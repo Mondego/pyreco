@@ -1,0 +1,463 @@
+Main code repository for watchdog.net.
+http://watchdog.net/
+
+CONTENTS:
+
+    README       # this file
+    REQUISITES   # things you need to install for this to work
+
+    data/
+      # The raw data that powers the site. This is not checked 
+      # into git, but can be downloaded (see below).
+      
+      crawl/     # incoming data dumps
+        almanac/
+        census/
+        govtrack/
+        votesmart/
+      parse/     # JSON files from parsing the data
+      load/      # SQL from loading into the DB (eventually)
+    
+    import/      # various import code
+      crawl/
+      parse/
+        manual/  # Data files that have been created by hand.
+      load/
+    
+    utils/       # utility functions
+        
+    schema.sql   # our database schema
+    static/      # static files for the webserver
+    templates/   # templates for the website
+    webapp.py    # the main code of the web app
+
+INSTALL:
+
+    # checkout the source code
+    git clone watchdog.net:~watchdog/git/dev.git watchdog
+    cd watchdog
+    
+    # download a copy of the data sources
+    # (you won't have permission to download all of it)
+    # (so there will be a few errors when you do this )
+    make sync
+    cd import
+    
+    # create the database
+    createdb watchdog_dev
+    make
+    
+    # this will parse, process, and import all the data
+    
+    cd ..
+    
+    # run the unit tests
+    make test
+    
+    # start the webserver
+    make run
+
+
+                        pyExcelerator
+                    --------------------
+
+
+                                                         Dedicated to Olya. 
+                                                With you it can be reality.
+
+
+
+0x0000. What's this?
+--------------------
+This   is   a    library   for   generating   Excel   97/2000/XP/2003   and
+OpenOffice    Calc   compatible     spreadsheets.     pyExcelerator     has
+full-blown   support   for  UNICODE  in Excel and Calc spreadsheets, allows
+using variety of formatting features,   provides   interface   to  printing
+options   of   Excel   and OpenOffice  Calc.  pyExcelerator  contains  also
+Excel BIFF8 dumper and MS compound  documents  dumper.  Main  advantage  is
+possibility of generating Excel  spreadsheets  without  MS  Windows  and/or
+COM  servers.  The  only requirement -- Python 2.4a3 or higher.
+
+
+0x0001. Why?
+--------------------
+I  had need to generate .xls with UNICODE under FreeBSD.
+
+
+0x0002. Requirements.
+--------------------
+Python    2.4   up   and   running.   I've   tested   pyExcelerator   under
+Win32  (Python     compiled     with    MS    C    compiler    and    Intel
+C  compiler),    Win64-x86  (MS       C      compiler),   FreeBSD/i386 (GCC
+3.4.2),   FreeBSD/amd64   (GCC    3.4.2).    Fastest    was   Python  under
+FreeBSD/amd64.
+
+
+0x0003. Installation.
+--------------------
+As usually: python ./setup.py install
+
+
+0x0004. Documentation.
+--------------------
+In progress. At the present time you can use examples and sources (I hope
+I commented sources well and gave variables good names).
+
+
+0x0005. Extra features.
+--------------------
+See  ./tools/*.py.  You'll  find  there  BIFF8  dumper  and MS Compound doc
+dumper.  In  ./hrc  you  can take my python.hrc for Colorer plug-in for FAR
+manager.
+
+
+0x0006. Reporting bugs.
+--------------------
+Please! 
+
+
+0x0008. Future.
+--------------------
+Support for Esher layer and (maybe) charts.
+
+
+0x0009. Useful links.
+--------------------
+http://www.python.org    --
+                           Python's home.
+http://sf.net/pyXLWriter -- 
+                           port of the first version Spreadsheet-WriteExcel.
+                           This library can write only BIFF5/7 spreadsheets
+                           and therefore can't use UNICODE in spreadsheets.
+                           pyXLWriter however can write formulas with help
+                           of PLY. IMHO, PLY and ambiguous grammar used by
+                           author for formulas support are too power tools.
+                           But in this case power was equals to simplicity.
+                           I want overcome these restrictions and (strictly
+                           IMHO) misfeatures. 
+http://www.openoffice.org --
+                           OpenOffice home. 
+                           About 650 Mb sources -- the best teachers.
+
+0x000A. Legality.
+--------------------
+With  help  from  lawyers  pyExcelerator is protect by Russian Federation's
+laws  and  international  treaties and can be used iff you agreed following
+BSD-like agreement.
+
+ Copyright (C) 2005 Roman V. Kiseliov
+ All rights reserved.
+ 
+ Redistribution and use in source and binary forms, with or without
+ modification, are permitted provided that the following conditions
+ are met:
+ 
+ 1. Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+ 
+ 2. Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in
+    the documentation and/or other materials provided with the
+    distribution.
+ 
+ 3. All advertising materials mentioning features or use of this
+    software must display the following acknowledgment:
+    "This product includes software developed by
+     Roman V. Kiseliov <roman@kiseliov.ru>."
+ 
+ 4. Redistributions of any form whatsoever must retain the following
+    acknowledgment:
+    "This product includes software developed by
+     Roman V. Kiseliov <roman@kiseliov.ru>."
+ 
+ THIS SOFTWARE IS PROVIDED BY Roman V. Kiseliov ``AS IS'' AND ANY
+ EXPRESSED OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+ IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+ PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL Roman V. Kiseliov OR
+ ITS CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+ NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
+ HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
+ STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED
+ OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+
+0xFFFF. Contacting author.
+--------------------
+Feel free to send me feedback and bug reports.
+
+Roman V. Kiseliov
+Russia
+Kursk
+Libknecht St., 4
+
++7(0712)56-09-83
+
+<roman@kiseliov.ru>
+subject *must* be 
+"pyExcelerator-bug" (without quotes)
+or 
+"pyExcelerator-feedback" (without quotes)
+
+
+===================
+python-capitolwords
+===================
+
+Python library for interacting with Capitol Words API.
+
+Capitol Words provides access to the most commonly used words in Congressional 
+Record each day. (http://www.capitolwords.org/api/)
+
+python-capitolwords is a project of Sunlight Labs (c) 2009
+Written by James Turk <jturk@sunlightfoundation.com>.
+
+All code is under a BSD-style license, see LICENSE for details.
+
+Homepage: http://pypi.python.org/pypi/python-capitolwords/
+
+Source: http://github.com/sunlightlabs/python-capitolwords/
+
+
+Requirements
+============
+
+python >= 2.4
+
+simplejson >= 1.8 (not required with python 2.6, will use built in json module)
+
+
+Installation
+============
+To install run
+
+    ``python setup.py install``
+
+which will install the bindings into python's site-packages directory.
+
+Usage
+=====
+
+All that is required to start using the API is for it to be imported, no API key is
+required for Capitol Words.
+
+Import ``capitolwords``:
+    
+    >>> import capitolwords
+    
+All Capitol Words API methods return a WordResult object with three attributes:
+    * word          - a word in question
+    * word_date     - a particular date **[not available for lawmaker]**
+    * word_count    - the number of times ``word`` was said
+
+dailysum
+--------
+
+``dailysum(word, year, month=None, day=None, endyear=None, endmonth=None, endday=None)``
+
+dailysum returns a list of records given a word and a series of days.
+
+Using ``dailysum`` to find out how many times 'transparency' was said on
+May 22nd 2008:
+
+    >>> wr = capitolwords.dailysum('transparency', 2008, 5, 22)[0]
+    >>> print wr.word_count
+    47
+
+Using ``dailysum`` to find out how many times 'transparency' was said
+in May 2008:
+
+    >>> for wr in capitolwords.dailysum('transparency', 2008, 5):
+    ...     print wr.word_date, wr.word_count
+    2008-05-23 3
+    2008-05-22 47
+    2008-05-21 13
+    2008-05-20 18
+    2008-05-19 25
+    2008-05-15 22
+    2008-05-14 22
+    2008-05-13 17
+    2008-05-12 10
+    2008-05-08 8
+    2008-05-07 11
+    2008-05-06 6
+    2008-05-05 1
+    2008-05-02 1
+    2008-05-01 11
+
+Using ``dailysum`` to find out how many times 'transparency' was said
+for all days in a given range of days:
+
+    >>> for wr in capitolwords.dailysum('transparency', 2008, 4, 3, 2008, 4, 10):
+    ...     print wr.word_date, wr.word_count
+    2008-04-10 2
+    2008-04-09 8
+    2008-04-08 5
+    2008-04-07 4
+    2008-04-03 8
+
+wordofday
+---------
+
+``dailysum(year=None, month=None, day=None, endyear=None, endmonth=None, endday=None, maxrows=1)``
+
+wordofday returns a list of records representing the most commonly used words for given dates.
+
+Using ``wordofday`` to get the top 5 words for April 3rd, 2008:
+
+    >>> for w in capitolwords.wordofday(2008, 4, 3, maxrows=5):
+    ...     print w.word, w.word_count
+    sergeant 1706
+    housing 1382
+    director 976
+    corporal 899
+    mortgage 868
+
+Using ``wordofday`` to get the top words for every day in May 2008:
+
+    >>> for w in capitolwords.wordofday(2008, 5):
+    ...     print w.word, w.word_count, w.word_date
+    conrad 3 2008-05-29
+    recess 3 2008-05-27
+    name 146 2008-05-23
+    defense 2411 2008-05-22
+    tax 1109 2008-05-21
+    assistance 1004 2008-05-20
+    assistance 645 2008-05-19
+    food 40 2008-05-16
+    iraq 586 2008-05-15
+    budget 756 2008-05-14
+    assistance 1402 2008-05-13
+    oil 546 2008-05-12
+    housing 1418 2008-05-08
+    insurance 591 2008-05-07
+    insurance 631 2008-05-06
+    day 95 2008-05-05
+    housing 82 2008-05-02
+    health 879 2008-05-01
+
+Using ``wordofday`` to get the word of day across a given range:
+
+    >>> for w in capitolwords.wordofday(2008, 4, 3, 2008, 4, 10):
+    ...     print w.word, w.word_count, w.word_date
+    energy 465 2008-04-10
+    health 380 2008-04-09
+    energy 265 2008-04-08
+    housing 540 2008-04-07
+    energy 244 2008-04-04
+    sergeant 1706 2008-04-03
+
+
+lawmaker
+--------
+
+``lawmaker(lawmaker_id, year=None, month=None, day=None, endyear=None, endmonth=None, endday=None, maxrows=1)``
+
+lawmaker returns a list of records representing a lawmakers most said words
+
+lawmakers are referenced by their `Bioguide ID`_.  Bioguide IDs can be obtained from the `Sunlight Labs API`_.
+
+**[Note: the word_date attribute of the records is not populated as it does not apply to this method]**
+
+Using ``lawmaker`` to get the words Mitch McConnell said the most on October 10th, 2008:
+
+    >>> for w in capitolwords.lawmaker('M000355', 2008, 12, 12, maxrows=5):
+    ...     print w.word, w.word_count
+    dole 23
+    women 16
+    elizabeth 13
+    included 11
+    north 11
+
+Using ``lawmaker`` to get the words Mitch McConnell said the most across a given range:
+
+    >>> for w in capitolwords.lawmaker('M000355', 2008, 4, 3, 2008, 4, 10, maxrows=5):
+    ...     print w.word, w.word_count
+    lance 24
+    home 21
+    iraq 21
+    colombia 19
+    nominee 17
+
+.. _`Bioguide ID`: http://bioguide.congress.gov/
+.. _`Sunlight Labs API`: http://services.sunlightlabs.com/api/
+
+
+See http://rdflib.net/2.4.0/ for the release notes. ...
+
+Also see http://rdflib.net/contributors/ for the list of contributors.
+
+
+
+
+This parser is implemented using the BisonGen format (see references at bottom).  SPARQLParser.c is generated from all the 
+.bgen and .bgen.frag files.  The command-line invokation for doing this is:
+
+BisonGen --mode=c SPARQL.bgen
+
+NOTE: The latest version of BisonGen (from CVS) may be required instead of the most package ftp://ftp.4suite.org/pub/BisonGen/
+
+## Bison Gen Resources ##
+- Copia article on BisonGen (with links): http://copia.ogbuji.net/blog/2005-04-27/Of_BisonGe
+- BisonGen CVS Tree: cvs.4suite.org/viewcvs/BisonGen/
+This harness is meant to work against the DAWG test cases:
+
+http://www.w3.org/2001/sw/DataAccess/tests/
+
+The contents should be uncompressed to this directory and test.py should be run from the command line.
+Currently it only checks SPARQL parsing.  I.e., it doesn't check against the results of evaluating the parsed
+expression, just checks that it parses it.  Any exceptions that are thrown by the generated Bison parser
+will be thrown.
+
+There are two classes of tests (for now): query and construct, each in its own directory. The structure is identical.
+
+Each test is in a different python file (usually Test***.py, where *** refer to the chapter
+in the SPARQL document). The test is run by the queryTest (resp. constructTest) script.
+This script does a run-time import of the test file, getting the variables in the Test files,
+construct and runs the sparql query and displays the result.
+
+Each test file has an identical structure: it is a bunch of (python) declaration:
+
+- the rdf data itself ("rdfData")
+	it is also possible to refer to an array of external files using the 
+	variable "datafiles", but the rdfData takes precedence. If files are used,
+	either set rdfData to None, or do not set it at all
+- the 'where' and 'optional' clauses, set as GraphPatterns
+- the 'select' tuple (if applicable)
+- the 'construct' pattern (if applicable)
+- for the query case, the expected result should be added in the form of a string
+
+Looking at the current examples, the structure is pretty straightforward.
+
+
+# web.py unit tests
+
+## Setup
+
+All databases expect a database with name `webpy` with username `scott` and password `tiger`.
+
+## Running all tests
+
+To run all tests:
+
+    $ python test/alltests.py
+
+## Running individual tests
+
+To run all tests in a file:
+
+    $ python test/db.py
+
+To run all tests in a class:
+
+    $ python test/db.py SqliteTest
+
+To run a single test:
+
+    $ python test/db.py SqliteTest.testUnicode
+
+
+

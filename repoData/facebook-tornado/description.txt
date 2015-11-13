@@ -1,0 +1,309 @@
+Running the Tornado AppEngine example
+=====================================
+This example is designed to run in Google AppEngine, so there are a couple
+of steps to get it running. You can download the Google AppEngine Python
+development environment at http://code.google.com/appengine/downloads.html.
+
+1. Link or copy the tornado code directory into this directory:
+
+   ln -s ../../tornado tornado
+
+   AppEngine doesn't use the Python modules installed on this machine.
+   You need to have the 'tornado' module copied or linked for AppEngine
+   to find it.
+
+3. Install and run dev_appserver
+
+   If you don't already have the App Engine SDK, download it from
+   http://code.google.com/appengine/downloads.html
+
+   To start the tornado demo, run the dev server on this directory:
+
+   dev_appserver.py .
+
+4. Visit http://localhost:8080/ in your browser
+
+   If you sign in as an administrator, you will be able to create and
+   edit blog posts. If you sign in as anybody else, you will only see
+   the existing blog posts.
+
+
+If you want to deploy the blog in production:
+
+1. Register a new appengine application and put its id in app.yaml
+
+   First register a new application at http://appengine.google.com/.
+   Then edit app.yaml in this directory and change the "application"
+   setting from "tornado-appenginge" to your new application id.
+
+2. Deploy to App Engine
+
+   If you registered an application id, you can now upload your new
+   Tornado blog by running this command:
+
+   appcfg update .
+
+   After that, visit application_id.appspot.com, where application_id
+   is the application you registered.
+
+
+Running the Tornado Blog example app
+====================================
+This demo is a simple blogging engine that uses MySQL to store posts and
+Google Accounts for author authentication. Since it depends on MySQL, you
+need to set up MySQL and the database schema for the demo to run.
+
+1. Install prerequisites and build tornado
+
+   See http://www.tornadoweb.org/ for installation instructions. If you can
+   run the "helloworld" example application, your environment is set up
+   correctly.
+
+2. Install MySQL if needed
+
+   Consult the documentation for your platform. Under Ubuntu Linux you
+   can run "apt-get install mysql". Under OS X you can download the
+   MySQL PKG file from http://dev.mysql.com/downloads/mysql/
+
+3. Install Python prerequisites
+
+   Install the packages MySQL-python, torndb, and markdown (e.g. using pip or
+   easy_install)
+
+3. Connect to MySQL and create a database and user for the blog.
+
+   Connect to MySQL as a user that can create databases and users:
+   mysql -u root
+
+   Create a database named "blog":
+   mysql> CREATE DATABASE blog;
+
+   Allow the "blog" user to connect with the password "blog":
+   mysql> GRANT ALL PRIVILEGES ON blog.* TO 'blog'@'localhost' IDENTIFIED BY 'blog';
+
+4. Create the tables in your new database.
+
+   You can use the provided schema.sql file by running this command:
+   mysql --user=blog --password=blog --database=blog < schema.sql
+
+   You can run the above command again later if you want to delete the
+   contents of the blog and start over after testing.
+
+5. Run the blog example
+
+   With the default user, password, and database you can just run:
+   ./blog.py
+
+   If you've changed anything, you can alter the default MySQL settings
+   with arguments on the command line, e.g.:
+   ./blog.py --mysql_user=casey --mysql_password=happiness --mysql_database=foodblog
+
+6. Visit your new blog
+
+   Open http://localhost:8888/ in your web browser. You will be redirected to
+   a Google account sign-in page because the blog uses Google accounts for
+   authentication.
+
+   Currently the first user to connect will automatically be given the
+   ability to create and edit posts.
+
+   Once you've created one blog post, subsequent users will not be
+   prompted to sign in.
+
+Running the Tornado Facebook example
+=====================================
+To work with the provided Facebook api key, this example must be
+accessed at http://localhost:8888/ to match the Connect URL set in the
+example application.
+
+To use any other domain, a new Facebook application must be registered
+with a Connect URL set to that domain.
+
+This directory contains tools and scripts that are used in the development
+and maintainance of Tornado itself, but are probably not of interest to
+Tornado users.
+
+Unit test support for app engine.  Currently very limited as most of
+our tests depend on direct network access, but these tests ensure that the
+modules that are supposed to work on app engine don't depend on any
+forbidden modules.
+
+The code lives in maint/appengine/common, but should be run from the py25
+or py27 subdirectories (which contain an app.yaml and a bunch of symlinks).
+runtests.py is the entry point; cgi_runtests.py is used internally.
+
+This directory contains additional tests that are not included in the main
+suite (because e.g. they have extra dependencies, run slowly, or produce
+more output than a simple pass/fail)
+
+Redbot is an HTTP validator that checks for common problems, especially
+related to cacheability.  These tests ensure that Tornado's default behavior
+is correct (but note that this guarantee does not automatically extend
+to applications built on Tornado since application behavior can impact
+cacheability.
+
+http://redbot.org/about
+This directory contains virtual machine setup scripts for testing Tornado.
+
+Requirements:
+
+Vagrant (http://vagrantup.com) and VirtualBox (http://virtualbox.org).
+Vagrant provides an easy download for Ubuntu 10.04 (aka lucid64); base
+images for other platforms are harder to find and can be built with
+VeeWee (https://github.com/jedi4ever/veewee).
+
+Usage:
+
+cd to the appropriate directory and run `vagrant up`, then `vagrant ssh`.
+From there, simply run `tox` to run the full test suite, or cd to /tornado
+and test manually.  Afterwards, use `vagrant suspend` or `vagrant destroy`
+to clean up.
+
+Notes:
+
+Python distutils (and therefore tox) assume that if the platform
+supports hard links, they can be used in the Tornado source directory.
+VirtualBox's shared folder filesystem does not support hard links (or
+symlinks), so we have to use NFS shared folders instead.  (which has
+the unfortunate side effect of requiring sudo on the host machine)
+
+Tornado Web Server
+==================
+
+`Tornado <http://www.tornadoweb.org>`_ is a Python web framework and
+asynchronous networking library, originally developed at `FriendFeed
+<http://friendfeed.com>`_.  By using non-blocking network I/O, Tornado
+can scale to tens of thousands of open connections, making it ideal for
+`long polling <http://en.wikipedia.org/wiki/Push_technology#Long_polling>`_,
+`WebSockets <http://en.wikipedia.org/wiki/WebSocket>`_, and other
+applications that require a long-lived connection to each user.
+
+
+Upgrade notes
+-------------
+
+As of Tornado 3.2, the `backports.ssl_match_hostname
+<https://pypi.python.org/pypi/backports.ssl_match_hostname>`_ package
+must be installed when running Tornado on Python 2.  This will be
+installed automatically when using ``pip`` or ``easy_install``.
+
+Quick links
+-----------
+
+* `Documentation <http://www.tornadoweb.org/en/stable/>`_
+* `Source (github) <https://github.com/tornadoweb/tornado>`_
+* `Mailing list <http://groups.google.com/group/python-tornado>`_
+* `Stack Overflow <http://stackoverflow.com/questions/tagged/tornado>`_
+* `Wiki <https://github.com/tornadoweb/tornado/wiki/Links>`_
+
+Hello, world
+------------
+
+Here is a simple "Hello, world" example web app for Tornado::
+
+    import tornado.ioloop
+    import tornado.web
+
+    class MainHandler(tornado.web.RequestHandler):
+        def get(self):
+            self.write("Hello, world")
+
+    application = tornado.web.Application([
+        (r"/", MainHandler),
+    ])
+
+    if __name__ == "__main__":
+        application.listen(8888)
+        tornado.ioloop.IOLoop.instance().start()
+
+This example does not use any of Tornado's asynchronous features; for
+that see this `simple chat room
+<https://github.com/tornadoweb/tornado/tree/stable/demos/chat>`_.
+
+Installation
+------------
+
+**Automatic installation**::
+
+    pip install tornado
+
+Tornado is listed in `PyPI <http://pypi.python.org/pypi/tornado/>`_ and
+can be installed with ``pip`` or ``easy_install``.  Note that the
+source distribution includes demo applications that are not present
+when Tornado is installed in this way, so you may wish to download a
+copy of the source tarball as well.
+
+**Manual installation**: Download the latest source from `PyPI
+<http://pypi.python.org/pypi/tornado/>`_.
+
+.. parsed-literal::
+
+    tar xvzf tornado-$VERSION.tar.gz
+    cd tornado-$VERSION
+    python setup.py build
+    sudo python setup.py install
+
+The Tornado source code is `hosted on GitHub
+<https://github.com/tornadoweb/tornado>`_.
+
+**Prerequisites**: Tornado runs on Python 2.6, 2.7, 3.2, 3.3, and 3.4.  It
+requires the `certifi <https://pypi.python.org/pypi/certifi>`_ package
+on all Python versions, and the `backports.ssl_match_hostname
+<https://pypi.python.org/pypi/backports.ssl_match_hostname>`_ package
+on Python 2.  These will be installed automatically when using
+``pip`` or ``easy_install``).  Some Tornado features may
+require one of the following optional libraries:
+
+* `unittest2 <https://pypi.python.org/pypi/unittest2>`_ is needed to run
+  Tornado's test suite on Python 2.6 (it is unnecessary on more recent
+  versions of Python)
+* `concurrent.futures <https://pypi.python.org/pypi/futures>`_ is the
+  recommended thread pool for use with Tornado and enables the use of
+  ``tornado.netutil.ThreadedResolver``.  It is needed only on Python 2;
+  Python 3 includes this package in the standard library.
+* `pycurl <http://pycurl.sourceforge.net>`_ is used by the optional
+  ``tornado.curl_httpclient``.  Libcurl version 7.18.2 or higher is required;
+  version 7.21.1 or higher is recommended.
+* `Twisted <http://www.twistedmatrix.com>`_ may be used with the classes in
+  `tornado.platform.twisted`.
+* `pycares <https://pypi.python.org/pypi/pycares>`_ is an alternative
+  non-blocking DNS resolver that can be used when threads are not
+  appropriate.
+* `Monotime <https://pypi.python.org/pypi/Monotime>`_ adds support for
+  a monotonic clock, which improves reliability in environments
+  where clock adjustments are frequent.  No longer needed in Python 3.3.
+
+**Platforms**: Tornado should run on any Unix-like platform, although
+for the best performance and scalability only Linux (with ``epoll``)
+and BSD (with ``kqueue``) are recommended for production deployment
+(even though Mac OS X is derived from BSD and supports kqueue, its
+networking performance is generally poor so it is recommended only for
+development use).  Tornado will also run on Windows, although this
+configuration is not officially supported and is recommended only for
+development use.
+
+Discussion and support
+----------------------
+
+You can discuss Tornado on `the Tornado developer mailing list
+<http://groups.google.com/group/python-tornado>`_, and report bugs on
+the `GitHub issue tracker
+<https://github.com/tornadoweb/tornado/issues>`_.  Links to additional
+resources can be found on the `Tornado wiki
+<https://github.com/tornadoweb/tornado/wiki/Links>`_. New releases are
+announced on the `announcements mailing list
+<http://groups.google.com/group/python-tornado-announce>`_.
+
+
+Tornado is one of `Facebook's open source technologies
+<http://developers.facebook.com/opensource/>`_. It is available under
+the `Apache License, Version 2.0
+<http://www.apache.org/licenses/LICENSE-2.0.html>`_.
+
+This web site and all documentation is licensed under `Creative
+Commons 3.0 <http://creativecommons.org/licenses/by/3.0/>`_.
+
+Test coverage is almost non-existent, but it's a start.  Be sure to
+set PYTHONPATH apprioriately (generally to the root directory of your
+tornado checkout) when running tests to make sure you're getting the
+version of the tornado package that you expect.

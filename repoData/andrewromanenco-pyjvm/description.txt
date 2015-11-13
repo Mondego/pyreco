@@ -1,0 +1,529 @@
+Class loading
+=============
+
+Class path is list of folders and jar files to read compiled java classes from.
+Part of vm startup is creating memory structure for the class path.
+
+The most important step is to locate rt.jar - this is major part of Java7
+platform with all system classes (e.g. java.*; sun.*).
+
+If jdk7 is installed and JAVA_HOME is set, pyjvm will try to locate rt.jar under
+that location.
+When no jdk exists, you should run get_rt.py in ./rt/ folder to download rt.jar
+from my dropbox account (about 60 mb). This location (./rt/) is always checked
+first and if rt.jar is found, then JAVA_HOME is ignored.
+
+On the next step class path parameter (-cp) is read and parsed to jars and
+folders. When this parameter is not submitted to pyjvm it's set to ".".
+
+For each jar (including rt.jar) index of all files is created and is used to
+actually load class file by name.
+
+Class loader will use this cached index to lookup classes on their first use.
+Order is:
+
+ 1. rt.jar content
+ 2. other jars
+ 3. folders from class path one by one
+ 4. fail app if not found
+
+After class file is located it's is read and parsed to python representation.
+Which is followed by static constructor execution.
+
+Loading of a class triggers loading of superclass (up to java.lang.Object).
+
+Class loader makes basic check to make sure class is compiled for Java7. Other
+java versions are not supported and application will be closed.
+
+The job of class loader is to read .class file and return JavaClass py object.
+
+Custom class loaders are not supported (probably).
+
+At this point all java byte code operations are already implemented.
+But many native handlers are not. See natives.md for details.
+
+To find which methods to implement, run you sample java program and check
+if it will finish with an exception:
+
+> Exception: Op (SOME_NAME) is not yet supported in natives
+
+This exception is good starting point to start coding from.
+
+Docs:
+natives.md - overall overview
+sample_dev.md - use case for adding new native methods
+
+Make sure you are using pep8 and pylint for code verification.
+
+I would really advise to contact me first, to discuss details of
+your implementation.
+
+Andrew Romanenco
+andrew@romanenco.com
+
+Garbage collector
+=================
+
+Java is known for moving memory management responsibilities from a developer to
+JVM. At this moment **NO garbage collector is implemented** in pyjvm.
+
+Before actually adding one, abstract api should be added to eliminate hard
+coded logic. This work is in progress.
+
+After API is done, these options might be implemented:
+
+ - Collectors described in JMV 7 specs
+ - Reference counting collector
+ 
+Documentation Index
+===================
+
+**You might want to start reading with vm.md**
+
+ - class_loading.md
+   How binary classes are loaded (.class to memory representation).
+   Handling jar files.
+
+ - developers.md
+   Read this document if you want to contribute/code for fun.
+
+ - garbage_collector.md
+   Notes about memory management.
+
+ - natives.md
+   How native calls from java are handled in python.
+   How to extend missing items.
+
+ - sample_dev.md
+   Use case for adding more native methods support.
+
+ - threads.md
+   Multi-threading support.
+   Thread synchronization.
+
+ - vm.md
+   Notes about Virtual Machine itself.
+   Memory structures (heap, permanent generation).
+   VM initialization and caching process.
+   Java Byte code interpretation.
+   Java types support.
+
+ - vmo.md
+   Virtual machine owned objects (e.g. STDOUT).
+   Python hooks to handle very few java objects.
+
+Native methods in Java
+======================
+
+**See sample_dev.md for example workflow of developing new native methods**
+
+If you check java sources (original java.* classes) you will see many methods
+declared as native and which should be implemented outside of java (for example
+in c for oracle jvm). PyJVM is implemented in python so there is no surprise
+natives are implemented in python as well.
+
+For example, open source code for java.lang.System and
+find method currentTimeMillis(). It is declared as:
+
+> public static native long currentTimeMillis();
+
+
+PyJVM supports these methods in predefined fashion.
+
+ - Static and instance native methods are handled in the same way
+ - Class name, method name and method signature are
+   concatenated with "_"
+ - Characters / ( ) [ ; . are replaced with "_"
+ - Result is interpreted as python function to call with two parameters:
+   current frame and arguments (see vm.md for details)
+ - Python function is allowed to change stack to push
+   result to (according to Oracle documentation)
+
+For example: on call of System.currentTimeMillis() python
+function to be executed is 
+
+> def java_lang_System_currentTimeMillis___J(frame, args):
+
+
+Python functions should be added under pyjvm/platform - all implementations
+must follow this convention, e.g. folder structure same as package name and
+lowercased py source code file.
+
+
+When specific native call is not yet implemented, application will shutdown
+with exception:
+
+> Exception: Op (SOME_NAME) is not yet supported in natives
+
+SOME_NAME is the name of python function to be implemented.
+
+Here is step by step JMV extension to support unimplemented native methods.
+
+See commit: 0d3807e80e9a2a79edd40f6d3e6170ab91875334
+
+Use case java code: testcases/src/io/FileExists.java
+Program reads file name from arguments and checks if the file exists.
+
+After running this sample app with pyjvm, this exception is printed:
+
+Exception: Op (java_io_FileSystem_getFileSystem___Ljava_io_FileSystem_) is not yet supported in natives
+
+Basically this means that an implementation is missing:
+
+Class: java.io.FileSystem
+Method: getFileSystem
+Parameters: none
+Return value: java.io.FileSystem
+
+To add this method:
+- create new file pyjvm/platform/java/io/filesystem.py
+- add java_io_FileSystem_getFileSystem___Ljava_io_FileSystem_(frame, args)
+- add implementation
+
+For this particular implementation, code will return VMO (VM owned object). And all next
+unimplemented calls will go to the implementation of that object.
+
+Rerunning code on and on, these methods will be implemented:
+
+- vmo5_getSeparator___C
+- vmo5_getPathSeparator___C
+- implement vmo5_normalize__Ljava_lang_String__Ljava_lang_String_
+- vmo5_getBooleanAttributes__Ljava_io_File__I
+
+Last one (vmo5_getBooleanAttributes__Ljava_io_File__I) actually implements file system access.
+See javadoc for java.io.FileSystem: getBooleanAttributes
+Threads
+=======
+
+Threads are represented by ThreadClass python objects. These py objects have
+field java_thread - which is a reference to a java's instance of
+java.lang.Thread in vm heap.
+
+Thread has stack of frames. Frames are created for each method execution. See
+jdk7 specification for details; pyjvm's frame is pretty close to original spec.
+
+PyJVM has implementation of a multi-threaded system run on single core machine.
+This means that actually all threads run in sequence one-by-one. Every thread
+has running quota of 100 (this is hard-coded value).
+Quota means the number of byte codes to be executed before putting current
+thread on hold and executing next one.
+Thread dies when there are no more steps to execute. Vm shutdowns when there
+are no more non-daemon processes to run.
+
+During a thread execution, thread my throw SkipThreadCycle exception. This will
+force vm to switch to the next thread in the line, even if current thread still
+has some unused quota. This may happen when thread can not proceed because of
+synchronization block (monitor is busy). When this exception is caught, current
+frame's pc (program counter) is reset to last executed op code and will be rerun
+when the thread will be picked up for execution next time.
+
+
+Synchronization
+---------------
+
+PyJVM supports synchronized blocks and methods (both static and instance).
+
+Classes and instances have monitor and monitor_count fields to support locking.
+Monitor has a link to a thread owning the lock. Monitor_count is supported for
+multilevel locking; it is incremented when the same thread enters a guarded
+code block and decremented when thread is out. When monitor_count gets back to
+zero - monitor is unlocked.
+
+For static synchronized methods see invokestatic.py.
+
+For instance static methods and synchronized blocks see ops_invoke*.py and
+ops_misc.py: monitorenter & monitorexit.
+
+Handling for synchronized method exit is handled in vm.py: run_thread()
+
+Wait&Notify are implemented in java.lang.Object class.
+PyJVM implementation
+====================
+
+Introduction
+------------
+
+PyJVM is python 2.7 based implementation of Java Virtual Machine 7.
+
+It's loosely based on jdk7 specification (see oracle's web site). Most
+exceptions are in runtime checks and binary compatibility. For example, if one's
+try to call other's class private method - real jdk will throw an exception,
+while pyjvm will execute it. Basically, java has both compile and run time,
+and pyjvm has none - it's assuming that source of java classes is trusted.
+
+PyJVM supports all byte code operations and has very few python coded shortcuts.
+
+Project structure (under pyjvm):
+
+ - ops: all java byte codes
+ - platform: all native method calls (see natives.md)
+ - *.py: see comments in those files
+
+
+Types
+-----
+
+All java types are supported.
+
+int, byte, short, char are plain python int.
+
+float, double and long are tuples e.g. ("long", 123)
+
+References - to instances in heap - are also tuples ("ref", 34). None for null.
+
+VM owned objects: ("vm_ref", -1)
+
+Classes are loaded with class loader from folders or jars and are represented by
+JavaClass py object (also java.lang.Class instance may be created).
+
+
+VM initialization
+-----------------
+
+For every fresh pyjvm instance there is an initialization process. This process
+is responsible for loading all initial dependencies and creating system wide
+objects - for example, initializing System.out. See vm.py init for details.
+
+To speed up this phase vm caching is implemented. For every fresh start, after
+vm is initialized and is about to run user application, file vm-cache.bin is
+created with memory dump.
+
+On every start, pyjvm checks if vm-cache.bin exists and if it's version matches
+current code base. If it is - vm is loaded from the file.
+
+There is constant: SERIALIZATION_ID in java.py - it should be incremented every
+time when init process get changed. To reset caching for those users who has
+old version already cached.
+
+To ignore caching process pyjvm can be run with parameter: -novmcache
+
+
+Memory structure
+----------------
+
+See vm.py
+
+perm_gen - storage for py objects for java classes. Name based dictionary. When
+code requests a specific class to get loaded this cache is always checked first.
+There are no concept of class + classloader relation in pyjvm. Overall, this
+should be refactored at some point.
+
+heap - java heap. Number based dictionary; so a reference to an
+object is ("ref", 4). Where number is the key. Heap contains only instance
+fields, byte code itself (as well as static fields) is in perm_gen.
+
+
+Garbage collection
+------------------
+
+See garbage_collector.md for details
+
+
+Multi-threading
+---------------
+
+Multithreading and synchronization is supported. Based on "one-core" machine,
+so all threads are executed in order based on small quota. See threads.md
+
+Exceptions
+----------
+
+When java exception is about to be thrown - py instance of JavaException is
+created. This JE instance has a filed - ref - which is a reference to actual
+exception (e.g. java.lang.NullPointerException) object created in heap.
+
+VM owned objects
+
+There are few java objects which live outside of java heap and are handled by
+pyjvm in a specific way (basically python code is called instead of java).
+
+For example, STDOUT.
+When you try to print something, your program usually uses System.out. This
+gives you PrintStream object built around java.io.OutputStream instance.
+In pyjvm this particular instance is owned by vm and has special reference:
+
+> ("vm_ref", -1)
+
+When vm receives order to call a method under such object, instead of real java
+code, specific python function is called; for example when you print to 
+System.out in background java tries to call:
+
+> write(byte[] b, int off, int len)
+
+So this call is translated to python:
+
+> vmo1_write___BII_V(frame, args)
+
+This code is in vmo.py and actually prints content of byte array to screen.
+
+
+Another VM owned object is System Properties and it's is handled the same way.
+See vmo.py for details.
+This particular vmo object might be re-factored to all java (low priority).
+
+
+When adding vm owned object, the crucial key is to make sure it's is the last
+object in a chain to be called. This greatly reduces dev effort.
+For example:
+when one implements System.out there is option to make System.out to be owned by
+vm. The problem is that type of out is PrintStream and all code of PrintStream
+class has to be implemented in python. This is really useless coding as at the
+end PrintStream calls an OutoutStream instance which has very simple interface.
+Check java source code for PrintStream for details.
+PyJVM
+=====
+Java 7 virtual machine implemented in pure python
+
+**Check START.md for jump-start** and docs folder for details
+
+- GPL
+- Requires python 2.7
+- https://github.com/andrewromanenco/pyjvm
+- check docs for implementation details
+
+> Andrew Romanenco, 2014
+> andrew@romanenco.com
+> https://twitter.com/andrewromanenco
+
+PyJVM - quick start
+===================
+
+ - you have some knowledge about java, compilation and class path settings
+ - you have python 2.7 installed
+ - latest version of pyjvm is downloaded from github
+ - python is in your PATH
+
+**With JAVA 7 installed:**
+Set JAVA_HOME to actual jdk location
+
+**Without JAVA 7:**
+Go to ./rt/ folder in pyjvm and run get_rt.py.
+This will download rt.jar of jdk 7 to ./rt/
+
+To run actual java 7 compiled class
+-----------------------------------
+**See testcases folder for sample calls and java examples**
+
+Assuming some.package.KlassName has static main method.
+
+With standard java:
+
+> java -cp some/class/path some.package.KlassName
+
+PyJVM @ Windows:
+
+> pava.cmd -cp some/class/path some.package.KlassName
+
+PyJVM @ *nix/Mac:
+
+> ./pava -cp some/class/path some.package.KlassName
+
+*Assuming pava/pava.cmd is in your PATH - you can just replace java with
+pava to run your application.*
+
+Class path
+----------
+Class path is configured with -cp parameter and default value is set to current
+folder ("."). To add other folders and/or jar files use -cp with list of those
+folders and jars separated by ":".
+
+Use cases
+---------
+**Run** class MyClass which is in default package and is in current
+folder (MyClass.class file exists):
+
+> ./pava MyClass
+
+or
+
+> ./pava -cp . MyClass
+
+**Run** class in MyClass from package abc.de, assuming MyClass.class
+is in ./abc/de/
+
+> ./pava abc.de.MyClass
+
+**Run** class in MyClass from package abc.de, class is in jar Some.jar
+
+> ./pava -jar Some.jar abc.de.MyClass
+
+
+Troubleshooting
+---------------
+
+There is good chance that your application will call native java method not yet
+implemented in python. In this case you will get error message similar to:
+
+> Exception: Op (SOME_NAME_HERE) is not yet supported in natives
+
+Unfortunately you have only two options: wait or implement it yourself. See
+documentation for more details (natives.txt and developers.txt)
+
+Other types of errors probably should be reported, including log file (created
+in pyjvm folder) and sample java source code.
+PyJVM is very young project (as of April , 2014) and some features
+are implemented just to make it work.
+There is good chance items from this list will get higher priority.
+
+
+sun.misc.Unsafe
+ - Class should be reviewed
+ - Under implemented
+
+Exceptions do not have full stack trace
+ - this will make debugging way easier
+
+Wait/notify is not yest implemented
+ - wait is already implemented
+ - notify/notifyall is trivial, to be added with good use case
+
+java.lang.Clazz
+ - Minimal part is implemented just for for vm to startup
+
+Review ops for right exceptions throwing
+ - something might be missed
+ - same for native methods implementations
+
+Method synchronization
+ - not supported for native methods - easy to add, not that easy to test
+
+Double/Float
+ - add normal support for double and float arithmetics
+ - trivial with numpy, don't what to have this dependency
+
+Why this project exists? (Yes, I was asked this questions MANY times)
+
+Putting aside fun part of coding a virtual machine, the goal is
+to create learning environment for students in software engineering.
+
+Below is not 100% set...
+
+Topics to be covered in learning materials vary from python and java to
+common algorithms and implementations. The main idea is to give students
+a context, when they can implement specific feature (e.g. bitwise shift)
+and see a result (versus coding small program out of context, like read
+an array, sort it and print it to the screen - no fun)
+
+Here is sample list:
+
+ - python language
+ - common tools for python (e.g. how to test)
+ - java + basic tools
+ - java lang specification
+ - source code management
+ - java virtual machine specification
+ - class loading process
+ - garbage collection
+ - java memory model
+ - bitwise operations
+ - float/double numbers
+ - big/little endian systems
+ - ???
+
+Feel free to add other stuff right under and push back to github
+
+--------- ADD BELOW TOPICS WHICH MIGHT BE INTERESTING ----------
+
+.
+.
+.

@@ -1,0 +1,112 @@
+Generic single-database configuration.
+Hello,
+
+This is a confirmation email for the job you listed at Hasjob.
+
+**{{ post.headline|e }}**
+
+[Click here to confirm your email address and publish the job][confirm]
+
+[confirm]: {{ url_for('confirm_email', _external=True, hashid=post.hashid, key=post.email_verify_key) }}
+
+Save this email for the next 30 days while the listing is active. Use these
+links if you need to edit the listing, or if the position has been filled
+and you wish to withdraw it:
+
+* [Edit job listing]({{ url_for('editjob', _external=True, hashid=post.hashid) }})
+* [Withdraw job listing]({{ url_for('withdraw', _external=True, hashid=post.hashid) }})
+
+The [HasGeek Job Board][jb] is a service of [HasGeek][hg]. Write to us at
+info@hasgeek.com if you have suggestions or questions on this service.
+
+[jb]: https://jobs.hasgeek.com
+[hg]: https://hasgeek.com
+
+If you did not list a job, you may safely ignore this email and the listing
+will be automatically removed.
+
+Hi {{ post.company_name }},
+
+This is regarding your job listing on Hasjob titled "**[{{ post.headline }}]({{ url_for('jobdetail', hashid=post.hashid, _external=True) }})**".
+
+Your listing has been temporarily de-listed by moderator {{ post.reviewer.fullname }}, who left the following comment. Please [edit the listing]({{ url_for('editjob', _external=True, hashid=post.hashid, key=post.edit_key) }}) and correct the indicated issue. A warning notice will appear on your listing until you edit it:
+
+-----
+
+{{ post.review_comments }}
+
+-----
+
+[Hasjob][jb] is a service of [HasGeek][hg]. Write to us at support@hasgeek.com if you have suggestions or questions on this service.
+
+[jb]: https://hasjob.co/
+[hg]: https://hasgeek.com/
+
+Hi {{ post.company_name }},
+
+This is regarding your job listing on Hasjob titled "**{{ post.headline }}**". Unfortunately, your listing is not in compliance with our [Terms of Service][tos] and has been taken down. Your listing was reviewed by {{ post.reviewer.fullname }}, who left the following comment:
+
+"**{{ post.review_comments }}**"
+
+You are welcome to post a new listing which complies with our [Terms of Service][tos].
+
+-----
+
+[Hasjob][jb] is a service of [HasGeek][hg]. Write to us at support@hasgeek.com if you have suggestions or questions on this service.
+
+[tos]: https://hasjob.co/tos
+[jb]: https://hasjob.co/
+[hg]: https://hasgeek.com/
+
+Hasjob
+======
+
+Code for Hasjob, HasGeek's job board at https://hasjob.co/
+
+You are welcome to contribute a patch or use this code to run your own job
+board under the terms of the BSD license, but please design your own UI.
+Don't copy ours and confuse users into thinking you are affiliated with us.
+We will like you better if you contribute a patch.
+
+Hasjob runs on [Python][] with the [Flask][] microframework. You will need
+to install all the requirements listed in `requirements.txt` using
+`easy_install` or `pip`:
+
+    $ pip install -r requirements.txt
+
+Hasjob will soon use NLTK to analyse the text of a post, so you will need to
+install NLTK's corpus data. Be warned, this is about 1.8 GB:
+
+    $ python -m nltk.downloader all
+
+If you are using Mac OS X and had trouble installing Numpy, please see the
+instructions here: https://gist.github.com/goldsmith/7262122
+
+Next, Copy `settings-sample.py` to `settings.py`, edit as
+necessary, and finish configuration with:
+
+    $ python manage.py db create
+    $ python manage.py configure
+
+To run the server in development mode:
+
+    $ python runserver.py
+
+WSGI is recommended for production. For Apache: enable `mod_wsgi` and make a
+`VirtualHost` with:
+
+    WSGIScriptAlias / /path/to/website.wsgi
+
+For Nginx, run website.py under uWSGI and proxy to it:
+
+    location / {
+        include uwsgi_params; # Include common uWSGI settings here
+        uwsgi_pass 127.0.0.1:8093;
+        uwsgi_param UWSGI_CHDIR /path/to/hasjob/git/repo/folder;
+        uwsgi_param UWSGI_MODULE website;
+    }
+
+
+[Python]: http://python.org/
+[Flask]: http://flask.pocoo.org/
+

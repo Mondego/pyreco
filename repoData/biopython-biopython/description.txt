@@ -1,0 +1,829 @@
+This is a directory to hold "cookbook" style documentation -- small,
+single-purpose documents that describe a particular aspect of
+Biopython. This is meant as an alternative to the large Tutorial
+style documentation which can be daunting to maintain and keep up
+to date.
+
+Since these are all independent -- they can be written in any
+style you find convenient, as long as it can be used to produce
+something displayable on the web (HTML or PDF).
+
+We welcome contributions about any aspect of Biopython. Please feel
+free to discuss on our mailing list (biopython@biopython.org).
+
+
+Biopython README file
+=====================
+ 
+The Biopython Project is an international association of developers of freely
+available Python tools for computational molecular biology.
+
+Our user-centric documentation is hosted on http://biopython.org including
+the main Biopython Tutorial and Cookbook:
+
+* HTML - http://biopython.org/DIST/docs/tutorial/Tutorial.html
+* PDF - http://biopython.org/DIST/docs/tutorial/Tutorial.pdf
+
+This README file is intended primarily for people interested in working
+with the Biopython source code, either one of the releases from the
+http://biopython.org website, or from our repository on GitHub
+https://github.com/biopython/biopython
+
+This Biopython package is open source software made available under generous
+terms. Please see the LICENSE file for further details.
+
+If you use Biopython in work contributing to a scientific publication, we ask
+that you cite our application note (below) or one of the module specific
+publications (listed on our website):
+
+Cock, P.J.A. et al. Biopython: freely available Python tools for computational
+molecular biology and bioinformatics. Bioinformatics 2009 Jun 1; 25(11) 1422-3
+http://dx.doi.org/10.1093/bioinformatics/btp163 pmid:19304878
+
+
+For the impatient
+=================
+
+To build and install Biopython, download and unzip the source code, go to this
+directory at the command line, and type::
+
+    python setup.py build
+    python setup.py test
+    sudo python setup.py install
+
+Windows users are instead recommended to use the installation packages provided
+on our website, http://biopython.org -- further instructions are given below.
+
+
+Python Requirements
+===================
+
+We currently recommend using Python 2.7 from http://www.python.org which
+is the final version of Python 2.  Early adopters are encouraged to try
+Biopython under Python 3.3 or 3.4, but not all the optional dependencies
+are available yet.
+
+Biopython is currently supported and tested on the following Python versions:
+
+- Python 2.6, 2.7, 3.3, 3.4 -- see http://www.python.org
+
+  This is currently the primary development platform for Biopython.
+
+- PyPy 2.0, 2.1, 2.2, 2.3 -- see http://www.pypy.org
+
+  Aside from modules with C code or dependent on NumPy, everything should
+  work. PyPy's NumPy reimplementation NumPyPy is still in progress.
+
+- Jython 2.7 -- see http://www.jython.org
+
+  Aside from modules with C code, or dependent on SQLite3 or NumPy,
+  everything should work.
+
+Please note that Biopython 1.62 was our final release to support Python 2.5
+and Jython 2.5.
+
+
+Dependencies
+============
+
+Depending on which parts of Biopython you plan to use, there are a
+number of other optional Python dependencies - which can in general
+be installed after Biopython.
+
+- NumPy, see http://www.numpy.org (optional, but strongly recommended)
+  This package is only used in the computationally-oriented modules.
+  It is required for Bio.Cluster, Bio.PDB and a few other modules.  If you
+  think you might need these modules, then please install NumPy first BEFORE
+  installing Biopython. The older Numeric library is no longer supported in
+  Biopython.
+
+- ReportLab, see http://www.reportlab.com/software/opensource/ (optional)
+  This package is only used in Bio.Graphics, so if you do not need this
+  functionality, you will not need to install this package.  You can install
+  it later if needed.
+
+- matplotlib, see http://matplotlib.org/ (optional)
+  Bio.Phylo uses this package to plot phylogenetic trees. As with ReportLab,
+  you can install this at any time to enable the plotting functionality.
+
+- networkx, see http://networkx.lanl.gov/ (optional) and
+  pygraphviz or pydot, see http://networkx.lanl.gov/pygraphviz/ and
+  http://code.google.com/p/pydot/ (optional)
+  These packages are used for certain niche functions in Bio.Phylo.
+  Again, they are only needed to enable these functions and can be installed
+  later if needed.
+
+- rdflib, see https://github.com/RDFLib/rdflib (optional)
+  This package is used in the CDAO parser under Bio.Phylo, and can be installed
+  as needed.
+
+- psycopg2, see http://initd.org/psycopg/ (optional) or
+  PyGreSQL (pgdb), see http://www.pygresql.org/ (optional)
+  These packages are used by BioSQL to access a PostgreSQL database.
+
+- MySQL Connector/Python, see http://dev.mysql.com/downloads/connector/python/
+  This package is used by BioSQL to access a MySQL database, and is
+  supported on Python 2 and 3 and PyPy too.
+
+- MySQLdb, see http://sourceforge.net/projects/mysql-python (optional)
+  This is an older alternative package used by BioSQL to access a MySQL
+  database, but it is not available for Python 3 or PyPy.
+
+Note that some of these libraries are not available for Jython or PyPy,
+and not all are available for Python 3 yet either.
+
+In addition there are a number of useful third party tools you may wish to
+install such as standalone NCBI BLAST, EMBOSS or ClustalW.
+
+
+Installation
+============
+
+First, **make sure that Python is installed correctly**. Second, we
+recommend you install NumPy (see above). Then install Biopython.
+
+Windows users should use the appropriate provided installation package
+from our website (each is specific to a different Python version).
+
+Installation from source should be as simple as going to the Biopython
+source code directory, and typing::
+
+    python setup.py build
+    python setup.py test
+    sudo python setup.py install
+
+Substitute `python` with your specific version, for example `python3`,
+`jython` or `pypy`.
+
+If you need to do additional configuration, e.g. changing the base
+directory, please type `python setup.py`, or see the documentation here:
+
+* HTML - http://biopython.org/DIST/docs/install/Installation.html
+* PDF - http://biopython.org/DIST/docs/install/Installation.pdf
+
+
+Testing
+=======
+
+Biopython includes a suite of regression tests to check if everything is
+running correctly. To run the tests, go to the biopython source code
+directory and type::
+
+    python setup.py test
+
+Do not panic if you see messages warning of skipped tests::
+
+    test_DocSQL ... skipping. Install MySQLdb if you want to use Bio.DocSQL.
+
+This most likely means that a package is not installed.  You can
+ignore this if it occurs in the tests for a module that you were not
+planning on using.  If you did want to use that module, please install
+the required dependency and re-run the tests.
+
+There is more testing information in the Biopython Tutorial & Cookbook.
+
+
+Experimental code
+=================
+
+Biopython 1.61 introduced a new warning, `Bio.BiopythonExperimentalWarning`,
+which is used to mark any experimental code included in the otherwise
+stable Biopython releases. Such 'beta' level code is ready for wider
+testing, but still likely to change, and should only be tried by early
+adopters in order to give feedback via the biopython-dev mailing list.
+
+We'd expect such experimental code to reach stable status within one or two
+releases, at which point our normal policies about trying to preserve
+backwards compatibility would apply.
+
+
+Bugs
+====
+
+While we try to ship a robust package, bugs inevitably pop up.  If you are
+having problems that might be caused by a bug in Biopython, it is possible
+that it has already been identified. Update to the latest release if you are
+not using it already, and retry. If the problem persists, please search our
+bug database and our mailing lists to see if it has already been reported
+(and hopefully fixed), and if not please do report the bug. We can't fix
+problems we don't know about ;)
+
+* Old issue tracker: https://redmine.open-bio.org/projects/biopython
+* Current issue tracker: https://github.com/biopython/biopython/issues
+
+If you suspect the problem lies within a parser, it is likely that the data
+format has changed and broken the parsing code.  (The text BLAST and GenBank
+formats seem to be particularly fragile.)  Thus, the parsing code in
+Biopython is sometimes updated faster than we can build Biopython releases.
+You can get the most recent parser by pulling the relevant files (e.g. the
+ones in `Bio.SeqIO` or `Bio.Blast`) from our git repository. However, be
+careful when doing this, because the code in github is not as well-tested
+as released code, and may contain new dependencies.
+
+Finally, you can send a bug report to the bug database or the mailing list at
+biopython@biopython.org.  In the bug report, please let us know:
+
+1. Which operating system and hardware (32 bit or 64 bit) you are using
+2. Python version
+3. Biopython version (or git commit/date)
+4. Traceback that occurs (the full error message)
+
+And also ideally:
+
+5. Example code that breaks
+6. A data file that causes the problem
+
+
+Contributing, Bug Reports
+=========================
+
+Biopython is run by volunteers from all over the world, with many types of
+backgrounds. We are always looking for people interested in helping with code
+development, web-site management, documentation writing, technical
+administration, and whatever else comes up.
+
+If you wish to contribute, please visit the web site http://biopython.org
+and join our mailing list: http://biopython.org/wiki/Mailing_lists
+
+
+Distribution Structure
+======================
+
+- README      -- This file.
+- NEWS        -- Release notes and news.
+- LICENSE     -- What you can do with the code.
+- CONTRIB     -- An (incomplete) list of people who helped Biopython in
+  one way or another.
+- DEPRECATED  -- Contains information about modules in Biopython that are
+  removed or no longer recommended for use, and how to update
+  code that uses those modules.
+- MANIFEST.in -- Tells distutils what files to distribute.
+- setup.py    -- Installation file.
+- Bio/        -- The main code base code.
+- BioSQL/     -- Code for using Biopython with BioSQL databases.
+- Doc/        -- Documentation.
+- Scripts/    -- Miscellaneous, possibly useful, standalone scripts.
+- Tests/      -- Regression testing code including sample data files.
+
+README
+Tue Aug  8 23:23:15 2000
+
+Xbbtools
+========
+
+Xbbtools is a Graphical Sequence Editor originally written in Tcl/Tk with
+BioWish. This is the start of a pure python re-implementation of xbbtools with
+biopython.
+Usage: xbbtools test.fas
+
+Whats available:
+      * open FASTA file
+      * display 1 or 6 frame translations ala DNA Strider
+      * all operations work on selection or complete sequence
+      * displays start, stop, length and composition of selection
+      * complement and reverse operations
+      * change genetic code 
+      * very simple blast run menus
+
+TODO:
+      * I'm waiting for a biopython modules for
+	    - reading and writing different sequence formats
+	    - spawning external programs/searches e.g. blast
+	      without freezing the whole Tk mainloop
+      * implement biowish's ORF Displayer
+      * add Pyphy's database grabber tool
+      * speedup DNA seq operations suitable for complete genomes
+      * add windows support (shudder)
+
+
+nextorf.py
+==========
+nextorf.py is a python re-implementation of the Tcl script nextorf.tcl
+used together with xbbtools for ORF-fishing during the Complete Genome
+Sequencing Project of the Typhus Bacteria Rickettsia Prowazekii developed
+by Thomas Sicheritz-Ponten, Jan Andersson an Morten Andersen
+
+Usage: nextorf.py testrp.fas
+    or nextorf.py -h
+
+Feel free to suggest, fix and hack
+ ... have fun 
+         -thomas
+
+Sicheritz Ponten Thomas E.  CBS, Department of Biotechnology
+blippblopp@linux.nu         The Technical University of Denmark
+CBS:  +45 45 252485         Building 208, DK-2800 Lyngby
+Fax   +45 45 931585         http://www.cbs.dtu.dk/thomas/index.html
+
+	De Chelonian Mobile ... The Turtle Moves ...
+
+
+
+Sicheritz-Ponten T.: BioWish: a molecular biology command extension to Tcl/Tk.
+Comput Appl Biosci. 1997 Dec;13(6):621-2. 
+PMID: 9475992; UI: 98136469
+
+Andersson SG, Zomorodipour A, Andersson JO, Sicheritz-Ponten T,
+Alsmark UC, Podowski RM, Naslund AK, Eriksson AS, Winkler HH,
+Kurland CG: The genome sequence of Rickettsia prowazekii and the origin of mitochondria.
+Nature. 1998 Nov 12;396(6707):133-40.
+PMID: 9823893; UI: 99039499
+
+
+BLAST TEST DATA FILES
+=====================
+
+This directory contains various data files for testing the
+BLAST-related code in Biopython. All files are grouped by BLAST
+release version, from the most recent first.
+
+
+BLAST 2.2.28+
+-------------
+tab_2228_tblastx_001         single query with all columns (including new ones added in this version), commented
+
+
+BLAST 2.2.26+
+-------------
+tab_2226_tblastn_001         multiple queries
+tab_2226_tblastn_002         single query, no hits
+tab_2226_tblastn_003         single query, hits @ single hsp
+tab_2226_tblastn_004         single query, multiple hsps per hit present
+tab_2226_tblastn_005         multiple queries, commented
+tab_2226_tblastn_006         single query, no hits, commented
+tab_2226_tblastn_007         single query, hits @ single hsp, commented
+tab_2226_tblastn_008         single query, multiple hsps per hit present, commented
+tab_2226_tblastn_009         multiple queries with custom columns
+tab_2226_tblastn_010         multiple queries with custom columns, commented
+tab_2226_tblastn_011         multiple queries with all columns, commented
+tab_2226_tblastn_012         multiple quries, remote search, standard columns, commented
+tab_2226_tblastn_013         single query, custom columns: qsseq std sseq
+
+text_2226_blastn_001         single query, no hits
+text_2226_blastn_002         single query, hits @ single hsp
+text_2226_blastn_003         single query, multiple hsps per hit present
+text_2226_blastn_004         multiple queries
+text_2226_blastp_001         single query, no hits
+text_2226_blastp_002         single query, hits @ single hsp
+text_2226_blastp_003         single query, multiple hsps per hit present
+text_2226_blastp_004         multiple queries
+text_2226_blastx_001         single query, no hits
+text_2226_blastx_002         single query, hits @ single hsp
+text_2226_blastx_003         single query, multiple hsps per hit present
+text_2226_blastx_004         multiple queries
+text_2226_tblastn_001        single query, no hits
+text_2226_tblastn_002        single query, hits @ single hsp
+text_2226_tblastn_003        single query, multiple hsps per hit present
+text_2226_tblastn_004        multiple queries
+text_2226_tblastx_001        single query, no hits
+text_2226_tblastx_002        single query, hits @ single hsp
+text_2226_tblastx_003        single query, multiple hsps per hit present
+text_2226_tblastx_004        multiple queries
+
+xml_2226_blastn_001.xml      multiple queries
+xml_2226_blastn_002.xml      single query, no hits
+xml_2226_blastn_003.xml      single query, hits @ single hsp
+xml_2226_blastn_004.xml      single query, multiple hsps per hit present
+xml_2226_blastn_005.xml      multiple queries, remote search on NCBI's database
+xml_2226_blastn_006.xml      single query, against a database with duplicate entries
+xml_2226_blastp_001.xml      multiple queries
+xml_2226_blastp_002.xml      single query, no hits
+xml_2226_blastp_003.xml      single query, hits @ single hsp
+xml_2226_blastp_004.xml      single query, multiple hsps per hit present
+xml_2226_blastp_005.xml      multiple queries, remote search on NCBI's database
+xml_2226_blastx_001.xml      multiple queries
+xml_2226_blastx_002.xml      single query, no hits
+xml_2226_blastx_003.xml      single query, multiple hsps per hit present
+xml_2226_blastx_004.xml      multiple queries, remote search on NCBI's database
+xml_2226_tblastn_001.xml     multiple queries
+xml_2226_tblastn_002.xml     single query, no hits
+xml_2226_tblastn_003.xml     single query, hits @ single hsp
+xml_2226_tblastn_004.xml     single query, multiple hsps per hit present
+xml_2226_tblastn_005.xml     multiple queries, remote search on NCBI's database
+xml_2226_tblastx_001.xml     multiple queries
+xml_2226_tblastx_002.xml     single query, no hits
+xml_2226_tblastx_003.xml     single query, multiple hsps per hit present
+xml_2226_tblastx_004.xml     multiple queries, remote search on NCBI's database
+
+
+BLAST 2.2.22+
+-------------
+text_2222_blastx_001.txt     multiple queries
+
+xml_2222_blastp_001.xml      n/a
+xml_2222_blastx_001.xml      compare with text_2222_blastx_001.txt
+
+
+BLAST 2.2.22 (Legacy)
+---------------------
+text_2222L_blastx_001.txt    multiple queries
+
+
+BLAST 2.2.21 (Legacy)
+---------------------
+text_2221L_blastp_001.txt    multiple queries
+
+
+BLAST 2.2.20 (Legacy)
+---------------------
+text_2220L_blastx_001.txt    multiple hits @ single hsp
+text_2220L_blastx_002.txt    multiple queries, most with no hits
+
+
+BLAST 2.2.18+
+-------------
+xml_2218_blastp_001.xml      n/a
+xml_2218_blastp_002.xml      n/a
+
+
+BLAST 2.2.18 (Legacy)
+---------------------
+xml_2218L_blastp_001.xml     n/a
+xml_2218L_rpsblast_001.xml   n/a
+
+
+BLAST 2.2.16 (Legacy)
+---------------------
+text_2216L_tblastn_001.txt   multiple hits, multiple hsps per hit present
+
+
+BLAST 2.2.15 (Legacy)
+---------------------
+text_2215L_blastx_001.txt    no hits, single query
+
+
+BLAST 2.2.12 (Legacy)
+---------------------
+xml_2212L_blastn_001.xml     n/a
+xml_2212L_blastp_001.xml     n/a
+xml_2212L_blastx_001.xml     n/a
+xml_2212L_tblastn_001.xml    n/a
+xml_2212L_tblastx_001.xml    n/a
+
+
+BLAST 2.2.8 (Legacy)
+--------------------
+text_2208L_psiblast_001.txt  no 'Searching...' lines
+
+
+BLAST 2.2.2 (Legacy)
+--------------------
+text_2202L_blastn_001.txt    no hits, with errors
+text_2202L_blastn_002.txt    no hits
+text_2202L_blastp_001.txt    n/a
+
+
+BLAST 2.2.1 (Legacy)
+--------------------
+text_2201L_blastx_001.txt    No 'length of query'
+
+
+BLAST 2.1.2 (Legacy)
+--------------------
+text_2102L_blastn_001.txt    no hits
+
+
+BLAST 2.0.14 (Legacy)
+---------------------
+text_2014L_blastn_001.txt    multiple hits @ single hsp
+text_2014L_psiblast_001.txt  no model sequences found (from Mike Poidinger)
+
+
+BLAST 2.0.12 (Legacy)
+---------------------
+text_2012L_psiblast_001.txt  multiple db (from Mike Poidinger)
+
+
+BLAST 2.0.11 (Legacy)
+---------------------
+text_2011L_blastp_001.txt    multiple hits @ single hsp
+text_2011L_blastp_002.txt    no hits
+text_2011L_blastp_003.txt    multiple hits, multiple hsps per hit present
+text_2011L_blastp_004.txt    no descriptions
+text_2011L_blastp_005.txt    hit table only
+text_2011L_blastp_006.txt    master-slave
+text_2011L_blastp_007.txt    master-slave, no descriptions
+text_2011L_phiblast_001.txt  converged in 2 rounds
+text_2011L_phiblast_002.txt  no new sequences before 'CONVERGED!' message
+text_2011L_phiblast_003.txt  master-slave
+text_2011L_blastn_001.txt    multiple hits @ single hsp
+text_2011L_blastn_002.txt    hit table only
+text_2011L_blastn_003.txt    no descriptions
+text_2011L_blastn_004.txt    master-slave
+text_2011L_blastx_001.txt    multiple hits @ single hsp
+text_2011L_blastx_002.txt    no hits
+text_2011L_tblastn_001.txt   multiple hits @ single hsp
+text_2011L_tblastn_002.txt   no hits
+text_2011L_tblastx_001.txt   multiple hits @ multiple hsps
+
+
+BLAST 2.0.10 (Legacy)
+---------------------
+text_2010L_blastp_001.txt    multiple hits @ single hsp
+text_2010L_blastp_002.txt    no hits
+text_2010L_blastp_003.txt    multiple hits, multiple hsps per hit present
+text_2010L_blastp_004.txt    no descriptions
+text_2010L_blastp_005.txt    hit table only
+text_2010L_blastp_006.txt    master-slave
+text_2010L_blastp_007.txt    master-slave, no descriptions
+text_2010L_phiblast_001.txt  converged in 1 round
+text_2010L_phiblast_002.txt  converged in 3 rounds
+text_2010L_phiblast_003.txt  no new sequences before 'CONVERGED!' message
+text_2010L_blastn_001.txt    multiple hits @ single hsp
+text_2010L_blastn_002.txt    no hits
+text_2010L_blastn_003.txt    multiple hits @ single hsp, no hit table
+text_2010L_blastn_004.txt    master-slave
+text_2010L_blastx_001.txt    multiple hits @ single hsp
+text_2010L_blastx_002.txt    no hits
+text_2010L_tblastn_001.txt   multiple hits @ single hsp
+text_2010L_tblastn_002.txt   no hits
+text_2010L_tblastx_001.txt   multiple hits @ multiple hsps
+
+BLAT TEST DATA FILES
+====================
+
+This directory contains various data files for testing the
+BLAT-related code in Biopython. All files are grouped by BLAT
+release version, from the most recent first.
+
+
+BLAT v34
+--------
+psl_34_001.psl      PSL format, multiple queries
+psl_34_002.psl      PSL format, single query, no hits
+psl_34_003.psl      PSL format, single query, hits with single HSP
+psl_34_004.psl      PSL format, single query, hits with multiple HSPs
+psl_34_005.psl      PSL format, multiple queries, no header
+
+pslx_34_001.pslx      PSLX format, multiple queries
+pslx_34_002.pslx      PSLX format, single query, no hits
+pslx_34_003.pslx      PSLX format, single query, hits with single HSP
+pslx_34_004.pslx      PSLX format, single query, hits with multiple HSPs
+pslx_34_005.pslx      PSLX format, multiple queries, no header
+
+EXONERATE TEST DATA FILES
+=========================
+
+This directory contains various data files for testing the
+Exonerate-related code in Biopython. All files are grouped by
+Exonerate release version, from the most recent first.
+
+
+Exonerate 2.2
+-------------
+exn_22_m_affine_local.exn           affine:local model alignment
+exn_22_m_cdna2genome.exn            cdna2genome model alignment
+exn_22_m_coding2coding.exn          coding2coding model alignment
+exn_22_m_coding2coding_fshifts.exn  coding2coding model alignment, with frameshifts
+exn_22_m_coding2genome.exn          coding2genome model alignment
+exn_22_m_dna2protein.exn            dna2protein model alignment
+exn_22_m_est2genome.exn             est2genome model alignment
+exn_22_m_genome2genome.exn          genome2genome model alignment
+exn_22_m_ner.exn                    ner model alignment
+exn_22_m_protein2dna.exn            protein2dna model alignment
+exn_22_m_protein2dna_fshifts.exn    protein2dna model alignment, with frameshifts
+exn_22_m_protein2genome.exn         protein2genome model alignment
+exn_22_m_ungapped.exn               ungapped model alignment (default)
+exn_22_m_ungapped_trans.exn         ungapped:translated model alignment
+
+exn_22_o_vulgar_cigar.exn           genome2genome alignment with vulgar and cigar lines only
+exn_22_o_vulgar.exn                 genome2genome alignment with vulgar lines only
+exn_22_o_vulgar_fshifts.exn         coding2coding alignment with vulgar lines only, frameshifts
+exn_22_o_vulgar_fshifts2.exn        protein2dna alignment with vulgar lines only, frameshifts
+
+exn_22_q_multiple.exn               est2genome, multiple queries, multiple hits and hsps
+exn_22_q_multiple_vulgar.exn        est2genome, multiple queries, multiple hits and hsps, vulgar lines only
+exn_22_q_empty.exn                  est2genome, single query, no results
+
+FASTA TEST DATA FILES
+=====================
+
+This directory contains various data files for testing the
+Fasta-related code in Biopython.
+
+The following are the common sequence file format, originally
+introduced as the input file format for Bill Pearson's FASTA
+tools.  These are for tested in Bio.SeqIO and Bio.AlignIO
+(where the format is called "fasta") as well as other older
+parts of Biopython such as the Bio.Fasta module.
+
+ID     Description
+f001   1 protein sequence
+f002   3 DNA sequences
+f003   2 proteins, with comments
+fa01   fasta alignment
+
+The following are example "machine readable" pairwise alignment
+output files from the FASTA tools when using the -m 10 command
+line option.  These are for testing the Bio.AlignIO and Bio.SearchIO
+code where the format is called "fasta-m10".
+
+output001.m10 - fasta35 protein-protein, 3 query sequences,
+                no histogram, with expectation threshold
+output002.m10 - fasta34 protein-protein, 3 query sequences,
+                with offsets and word size, max 2 hits per query
+output003.m10 - fasta34 protein-protein, 5 query sequences,
+                very strict threshold so not all have hits.
+output004.m10 - fasta35 nucleotide-nucleotide, 3 queries where
+                only the middle one has a single hit.
+output005.m10 - ssearch35 protein-protein, 3 queries where
+                only the middle one has a single hit.
+output006.m10 - fasta35 nucleotide-nucleotide, 1 query, in the
+                alignment the query has been reversed.
+output007.m10 - recreation of output001.m10 using fasta-36.3.4 (note that
+                histogram is now off by default, -H now turns it on, and the
+                -Q quiet flag no longer exists). Get more hits due to revised
+                e-value calculations, also ">>><<<" marks end of a query, not
+                just end of the file!
+output008.m10 - tfastx36 protein-nucleotide, 4 queries, some with no hits,
+                some matches with multiple HSPs (new feature in FASTA v36)
+output009.m10 - fasta36, multiple dna queries
+output010.m10 - fasta36, single dna query, no hit
+output011.m10 - fasta36, single dna query, each hit contains a single hsp
+output012.m10 - fasta36, single dna query, some hits contain multiple hsps
+output013.m10 - fasta36, multiple protein queries
+output014.m10 - fasta36, single protein query, no hit
+output015.m10 - fasta36, single protein query, each hit contains a single hsp
+output016.m10 - fasta36, single protein query, some hits contain multiple hsps
+
+This directory is needed to store output from testing pdf generation 
+with the Graphics modules.
+
+HMMER TEST DATA FILES
+=====================
+
+This directory contains various data files for testing the
+HMMER-related code in Biopython.
+
+
+HMMER3 OUTPUT FILES (plain text)
+-------------------------------
+text_31b1_hmmscan_001.out    multiple queries
+text_30_hmmscan_001.out      multiple queries
+text_30_hmmscan_002.out      single query, no match
+text_30_hmmscan_003.out      single query, one match, one hsp per match
+text_30_hmmscan_004.out      single query, multiple matches, one hsp per match
+text_30_hmmscan_005.out      single query, multiple matches, multiple hsps per match
+text_30_hmmscan_006.out      single query, multiple matches, multiple hsps per match, inclusion threshold present
+text_30_hmmscan_007.out      single query, one match, no alignment
+text_30_hmmscan_008.out      single query, multiple matches, no alignment width
+text_30_hmmscan_009.out      single query, alignment block(s) with large gaps (bug 3399 in Redmine)
+text_30_hmmscan_010.out      
+text_31b1_hmmsearch_001.out  multiple queries
+text_30_hmmsearch_001.out    single query, no match
+text_30_hmmsearch_002.out    single query, multiple matches, multiple hsps per match
+text_30_hmmsearch_003.out    single query, multiple matches, multiple hsps per match, no alignment
+text_30_hmmsearch_004.out    single query, multiple matches, multiple hsps per match, no alignment width
+text_30_hmmsearch_005.out    multiple queries
+
+tab_31b1_hmmscan_001.out    multiple queries
+tab_30_hmmscan_001.out      multiple queries
+tab_30_hmmscan_002.out      single query, no match
+tab_30_hmmscan_003.out      single query, one match, one hsp per match
+tab_30_hmmscan_004.out      single query, multiple matches, one hsp per match
+tab_31b1_hmmsearch_001.out  single query, multiple matches, one hsp per match
+
+domtab_31b1_hmmscan_001.out     multiple queries
+domtab_30_hmmscan_001.out       multiple queries, hmm as hit
+domtab_30_hmmscan_002.out       single query, no match, hmm as hit
+domtab_30_hmmscan_003.out       single query, one match, one hsp per match, hmm as hit
+domtab_30_hmmscan_004.out       single query, multiple matches, one hsp per match, hmm as hit
+domtab_31b1_hmmsearch_001.out   
+domtab_30_hmmsearch_001.out     single query, multiple matches, hmm as query
+
+
+HMMER2 OUTPUT FILES (plain text)
+--------------------------------
+text_21_hmmpfam_001.out     single query, two matches, bioperl's hmmpfam.out file
+text_22_hmmpfam_001.out     single query, one match, bioperl's L77119.hmmer file
+text_23_hmmpfam_001.out     single query, multiple matches, bioperl's hmmpfam_cs.out file
+text_23_hmmpfam_002.out     single query, no match
+text_23_hmmpfam_003.out     single query, one match, missing some consensus content
+text_24_hmmpfam_001.out     multiple queries
+text_20_hmmsearch_001.out   single query, multiple matches, bioperl's hmmsearch.out file
+text_22_hmmsearch_001.out   single query, multiple matches, bioperl's cysprot1b.hmmsearch file
+
+This folder contains the resources necessary to generate the PAML test result files.
+
+The following test files are included
+
+GenePop
+-------
+c2line.gen  - 2 chars per allele, one locus name per line
+c3line.gen  - 3 chars per allele, one locus name per line
+c2space.gen - 2 chars per allele, all loci in one line
+c3space.gen - 3 chars per allele, all loci in one line
+
+
+FDist
+-----
+fdist1           - marker input example
+data_fst_outfile - He and Fst pairs per locus
+out.dat          - simulated dataset
+out.cpl          - confidence interval contour
+
+Created with Roche tools from E3MFGYR02.sff, extracting 10 random reads:
+
+* E3MFGYR02_random_10_reads.sff - has an .mft1.00 style index and manifest
+* E3MFGYR02_random_10_reads.fasta
+* E3MFGYR02_random_10_reads.qual
+* E3MFGYR02_random_10_reads_no_trim.fasta
+* E3MFGYR02_random_10_reads_no_trim.qual
+* E3MFGYR02_no_manifest.sff - has an .srt1.00 style index and no manifest
+
+Modified with a dummy index block in various positions, SFF software
+should ignore an unknown index block gracefully. The Roche tools are
+happy to read these files:
+
+* E3MFGYR02_alt_index_at_start.sff
+* E3MFGYR02_alt_index_in_middle.sff
+* E3MFGYR02_alt_index_at_end.sff
+
+Modified to move the ".mft1.00" index block. The Roche tools do not
+like these files, and Roche told me in an email exchange that their
+(undocumented) index blocks should only be at the end of the file.
+However, I still found these useful for testing:
+
+* E3MFGYR02_index_at_start.sff
+* E3MFGYR02_index_in_middle.sff
+
+Additional SFF files modified from real data to rename the reads. The
+Roche tools are happy to read these files. They make excellent tests
+for parsing the index block since the read names are different lengths:
+
+* greek.sff  - has an .srt1.00 style index
+* paired.sff - has an .mft1.00 style index and manifest
+
+Finally these file are concatenations of the greek.sff and paired.sff
+files with E3MFGYR02_no_manifest.sff (for testing this as a special
+error condition):
+
+* invalid_greek_E3MFGYR02.sff - Concatenating SFF files together
+* invalid_paired_E3MFGYR02.sff - Concatenating without 8 byte alignment
+
+Files ex1.* were originally from the pysam project. File ex1.fa
+contains two sequences cut from the human genome build36. They
+were extracted with command:
+
+  samtools faidx human_b36.fa 2:2043966-2045540 20:67967-69550
+
+Sequence names were changed manually for simplicity. File ex1.sam.gz
+contains MAQ alignments extracted with:
+
+  (samtools view NA18507_maq.bam 2:2044001-2045500;
+   samtools view NA18507_maq.bam 20:68001-69500)
+
+and processed with `samtools fixmate' to make it self-consistent as a
+standalone alignment, and then converted to ex1.bam using `samtools
+import'.
+
+Files ex1_header.* were derived from ex1.* by adding a SAM header
+(@HD and @SQ lines). The contents of File ex1_refresh.bam are the
+same as ex1_header.bam but it was generated with a newer version
+of samtools, and uses a different BGZF block strategy. The older
+file ex1_header.bam has all its blocks the same size (64KB), the
+newer file ex1_refresh.bam gives the header its own block and also
+avoids splitting reads between blocks.
+
+SWISSPROT TEST DATA FILES
+=========================
+
+This directory contains various data files for testing the
+SwissProt-related code in Biopython.
+
+
+
+SPROT TEST FILES
+----------------
+
+ID     Version   SPID        Comments
+sp001  38        N33_HUMAN   DR buried within comments
+sp002  38        CSP_MOUSE   broken RC line
+sp003  37        143E_HUMAN
+sp004  38        NDOA_PSEPU  broken RC line
+sp005  38        NU3M_BALPH  broken RC line
+sp006  37        TCMO_STRGA  comment with no topic
+sp007  39        CLD1_HUMAN  broken RX line, broken DR lines 
+                             (from katel@worldpath.net)
+sp008  39        1A02_HUMAN  contains 2 AC lines
+sp009            CHS3_BROFI  contains an OX line
+sp010            5H4_HUMAN   RX line has multiple '='
+sp011            LSHR_RAT    broken VARSPLIC in feature table
+sp012  TrEMBL 16.0  Q9Y736   RC line has too many '='
+sp013  TrEMBL 16.0  P82909   reference 2 missing RL line
+sp014  SP 39.14  PSBL_ORYSA  OX spans 2 lines
+sp015  IPI    IPI00383150.2  Only two DT lines, strange format of DT lines
+                             Dot versions in DT lines, no DE line
+sp016            FOS_HUMAN   New PE line from UniProtKB rel 12.0, 24-Jul-2007
+
+
+KEYWLIST TEST FILE
+------------------
+
+ID            Version
+keywlist.txt  55.5 of 10-Jun-2008; most records were removed from this
+              file to reduce its size and create a manageable test file.
+
+
+
+

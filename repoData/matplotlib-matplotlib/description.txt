@@ -1,0 +1,332 @@
+Please refer to the [Coding
+Guidelines](http://matplotlib.org/devel/coding_guide.html).
+
+Please add a line to this file for any additional requirements necessary to
+generate a new figure.
+
+tex_demo.py and tex_unicode_demo.py:
+  latex
+  dvipng
+
+
+plotmap.py:
+    basemap toolkit
+
+maptlotlib documentation
+========================
+
+This is the top level build directory for the matplotlib
+documentation.  All of the documentation is written using sphinx, a
+python documentation system built on top of ReST.  This directory contains
+
+
+* users - the user documentation, eg plotting tutorials, configuration
+  tips, etc.
+
+* devel - documentation for matplotlib developers
+
+* faq - frequently asked questions
+
+* api - placeholders to automatically generate the api documentation
+
+* mpl_toolkits - documentation of individual toolkits that ship with
+  matplotlib
+
+* make.py - the build script to build the html or PDF docs
+
+* index.rst - the top level include document for matplotlib docs
+
+* conf.py - the sphinx configuration
+
+* _static - used by the sphinx build system
+
+* _templates - used by the sphinx build system
+
+* sphinxext - Sphinx extensions for the mpl docs
+
+* mpl_examples - a link to the matplotlib examples in case any
+  documentation wants to literal include them
+
+To build the HTML documentation, install sphinx (1.0 or greater
+required), then type "python make.py html" in this directory.  Wait
+for the initial run (which builds the example gallery) to be done,
+then run "python make.py html" again. The top file of the results will
+be ./build/html/index.html
+
+Note that Sphinx uses the installed version of the package to build
+the documentation, so matplotlib must be installed *before* the docs
+can be generated. Even if that is the case, one of the files needed
+to do this, '../lib/matplotlib/mpl-data/matplotlibrc', is not version
+controlled, but created when matplotlib is built. This means that the
+documentation cannot be generated immediately after checking out the
+source code, even if matplotlib is installed on your system: you will
+have to run ``python setup.py build`` first.
+
+To build a smaller version of the documentation (without
+high-resolution PNGs and PDF examples), type "python make.py --small
+html".
+
+matplotlib API
+==============
+
+These examples use the matplotlib api rather than the pylab/pyplot
+procedural state machine.  For robust, production level scripts, or
+for applications or web application servers, we recommend you use the
+matplotlib API directly as it gives you the maximum control over your
+figures, axes and plottng commands.
+
+The example agg_oo.py is the simplest example of using the Agg backend
+which is readily ported to other output formats.  This example is a
+good starting point if your are a web application developer.  Many of
+the other examples in this directory use matplotlib.pyplot just to
+create the figure and show calls, and use the API for everything else.
+This is a good solution for production quality scripts.  For full
+fledged GUI applications, see the user_interfaces examples.
+
+Example style guide
+===================
+
+If you are creating new examples, you cannot import pylab or import *
+from any module in your examples.  The only three functions allowed
+from pyplot are "figure", "show" and "close", which you can use as
+convenience functions for managing figures.  All other matplotlib
+functionality must illustrate the API.
+
+A simple example of the recommended style is::
+
+    import numpy as np
+    import matplotlib.pyplot as plt
+
+    fig, ax = plt.subplots()
+    ax.plot(np.random.rand(10))
+    ax.set_xlabel('some x data')
+    ax.set_ylabel('some y data')
+    ax.set_title('some title')
+    ax.grid(True)
+    fig.savefig('myfig')
+    plt.show()
+
+matplotlib event handling
+=========================
+
+matplotlib supports event handling with a GUI neutral event model.  So
+you can connect to matplotlib events w/o knowledge of what user
+interface matplotlib will ultimately be plugged in to.  This has two
+advantages: the code you write will be more portable, and matplotlib
+events are aware of things like data coordinate space and whih axes
+the event occurs in so you don't have to mess with low level
+transformation details to go from canvas space to data space.  Object
+picking examples are also included.
+
+There is an event handling tutorial at
+http://matplotlib.sourceforge.net/pycon/event_handling_tut.pdf.  The
+ReST source for this document is included in the matplotlib source
+distribution.
+
+
+
+Here are some demos of how to use the matplotlib.  
+
+
+-- data_helper.py - a convenience module to load some data from the
+      data dir
+
+-- embedding_in_gtk - The Figure class derives from gtk.DrawingArea,
+   so it is easy to embed in larger applications.
+
+-- histograms_gauss.py - 2D histograms; requires the jdh.mlab module
+
+-- simple_plot.py  - the basic 2D line plot
+
+-- subplot_demo.py - how to do multiple axes on a single plot
+
+-- vline_hline_demo.py   - working with straight lines
+
+-- stock_demo.py - working with large datasets.  Click on the plot and
+      launch the navigation tool; wheel mouse over the navigation
+      buttons to scroll and zoom.  There are 58 days of minute by
+      minute stock quotes for two tickers.  The plot lib uses
+      Numeric's super speedy searchsorted routine to extract the
+      clipping indices so only the data in the viewport are handled.
+
+
+matplotlib examples
+===================
+
+There are a variety of ways to use matplotlib, and most of them are
+illustrated in the examples in this directory.
+
+Probably the most common way people use matplotlib is with the
+procedural interface, which follows the matlab/IDL/mathematica
+approach of using simple procedures like "plot" or "title" to modify
+the current figure.  These examples are included in the "pylab_examples"
+directory.  If you want to write more robust scripts, eg for
+production use or in a web application server, you will probably want
+to use the matplotlib API for full control.  These examples are found
+in the "api" directory.  Below is a brief description of the different
+directories found here:
+
+  * animation - dynamic plots, see the tutorial at
+    http://www.scipy.org/Cookbook/Matplotlib/Animations
+
+  * api - working with the matplotlib API directory.  See the
+    doc/artist_api_tut.txt in the matplotlib src directory ((PDF at
+    http://matplotlib.sf.net/pycon)
+
+  * axes_grid - Examples related to the AxesGrid toolkit
+
+  * event_handling - how to interact with your figure, mouse presses,
+    key presses, object picking, etc.  See the event handling tutorial
+    in the "doc" directory of the source distribution (PDF at
+    http://matplotlib.sf.net/pycon)
+
+  * misc - some miscellaneous examples.  some demos for loading and
+    working with record arrays
+
+  * mplot3d - 3D examples
+
+  * pylab_examples - the  interface to matplotlib similar to matlab
+
+  * tests - tests used by matplotlib developers to check functionality
+    (These tests are still sometimes useful, but mostly developers should
+    use the nosetests which perform automatic image comparison.)
+
+  * units - working with unit data an custom types in matplotlib
+
+  * user_interfaces - using matplotlib in a GUI application, eg
+    TkInter, WXPython, pygtk, pyqt or FLTK widgets
+
+  * widgets - Examples using interactive widgets
+
+Embedding matplotlib in graphical user interfaces
+=================================================
+
+You can embed matplotlib directly into a user interface application by
+following the embedding_in_SOMEGUI.py examples here.  Currently
+matplotlib supports wxpython, pygtk, tkinter, pyqt, fltk and cocoa.
+
+When embedding matplotlib in a GUI, you must use the matplotlib API
+directly rather than the pylab/pyplot proceedural interface, so take a
+look at the examples/api directory for some example code working with
+the API.
+
+
+
+You have a few different options available to you for embedding
+matplotlib  in a wxPython application
+
+1. Embed one of the wxPython backend widgets (which subclass wx.Panel)
+   directly and draw plots on it using matplotlib's object-oriented
+   API.  This approach is demonstrated by some of the examples
+   embedding_in_wx*.py
+
+2. Embed the PlotPanel from Matt Newville's `MPlot' package and draw
+   plots on it using its plot() and oplot() methods.
+
+	http://cars9.uchicago.edu/~newville/Python/MPlot/
+
+3. Embed the PlotPanel from Ken McIvor wxmpl module and draw plots on
+   it using the matplotlib's object-oriented API.
+
+	http://agni.phys.iit.edu/~kmcivor/wxmpl/
+
+Each of these approachs has different benefits and drawbacks, so I
+encourage you to evaluate each of them and select the one that best
+meets your needs.
+
+Examples of how to write primitive, but GUI agnoistic, widgets in
+matplotlib
+
+Font Metrics for the 14 PDF Core Fonts
+======================================
+
+This directory contains font metrics for the 14 PDF Core Fonts,
+downloaded from Adobe. The title and this paragraph were added by
+Matplotlib developers. The download URL was
+<http://partners.adobe.com/public/developer/font/index.html>.
+
+This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, 
+and distributed for any purpose and without charge, with or without modification, 
+provided that all copyright notices are retained; that the AFM files are not 
+distributed without this file; that all modifications to this file or any of 
+the AFM files are prominently noted in the modified file(s); and that this 
+paragraph is not modified. Adobe Systems has no responsibility or obligation 
+to support the use of the AFM files.
+
+Contained herin is the Bitstream Vera font family.
+
+The Copyright information is found in the COPYRIGHT.TXT file (along
+with being incoporated into the fonts themselves).
+
+The releases notes are found in the file "RELEASENOTES.TXT".
+
+We hope you enjoy Vera!
+
+                        Bitstream, Inc.
+			The Gnome Project
+
+This is the sample data needed for some of matplotlib's examples and
+docs.  See matplotlib.cbook.get_sample_data for more info.
+
+About Matplotlib Testing Infrastructure
+---------------------------------------
+
+Information on the testing infrastructure is provided in
+the Testing section of the Matplotlib Developers’ Guide:
+
+* http://matplotlib.org/devel/testing.html
+* <mpl_source_dir>/doc/devel/coding_guide.rst (equivalent, but in reST format)
+
+
+Building mpl on OSX has proven to be a nightmare because of all the
+different types of zlib, png and freetype that may be on your system.
+The recommended and supported way to build is to use a third-party
+package manager to install the required dependencies, and then
+install matplotlib from source using the setup.py script. Two widely
+used package managers are homebrew and MacPorts. The following
+example illustrates how to install libpng and freetype using
+homebrew.
+
+Example usage::
+
+  brew install libpng freetype pkgconfig
+
+If you are using MacPorts, execute the following instead:
+
+Example usage::
+
+  port install libpng freetype
+
+To install matplotlib from source, execute:
+
+Example usage::
+
+  python setup.py install
+
+##########
+matplotlib
+##########
+
+matplotlib is a python 2D plotting library which produces publication
+quality figures in a variety of hardcopy formats and interactive
+environments across platforms. matplotlib can be used in python
+scripts, the python and ipython shell (ala matlab or mathematica), web
+application servers, and various graphical user interface toolkits.
+
+`Home page <http://matplotlib.org/>`_
+
+Installation
+=============
+
+For installation instructions and requirements, see the INSTALL file.
+
+Testing
+=======
+
+After installation, you can launch the test suite::
+
+  python tests.py
+
+Consider reading http://matplotlib.org/devel/coding_guide.html#testing for
+more information.
+

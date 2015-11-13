@@ -1,0 +1,543 @@
+Maintained and authored by:
+---------------------------
+Lucas Ou-Yang -- lucasyangpersonal@gmail.com
+
+Thanks to the following contributors:
+-------------------------------------
+- Alex Kessinger - https://github.com/voidfiles
+- Oleg Temnov - https://github.com/otemnov
+- Matthew Ward - https://github.com/WheresWardy
+- Juliano Fischer - https://github.com/julianofischer
+- Sandeep Singh - https://github.com/techaddict
+- Michael Hood - https://github.com/michaelhood
+
+Newspaper relied on some code of a few other open source projects:
+------------------------------------------------------------------
+Thanks to all who have contributed to python-goose.
+You can find the contributors list here:
+https://github.com/grangier/python-goose/graphs/contributors
+
+Thanks to all who have contributed to PyTeaser.
+You can find the contributors list here:
+https://github.com/xiaoxu193/PyTeaser/graphs/contributors
+
+Thanks to all who have contributed to gravity-goose.
+You can find the contributors list here:
+https://github.com/GravityLabs/goose/graphs/contributors
+
+Thanks to all who have contributed to python-jieba.
+You can find the contributors list here:
+https://github.com/fxsjy/jieba/graphs/contributors
+
+krTheme Sphinx Style
+====================
+
+This repository contains sphinx styles Kenneth Reitz uses in most of
+his projects. It is a derivative of Mitsuhiko's themes for Flask and Flask related
+projects.  To use this style in your Sphinx documentation, follow
+this guide:
+
+1. put this folder as _themes into your docs folder.  Alternatively
+   you can also use git submodules to check out the contents there.
+
+2. add this to your conf.py: ::
+
+    sys.path.append(os.path.abspath('_themes'))
+    html_theme_path = ['_themes']
+    html_theme = 'flask'
+
+The following themes exist:
+
+**kr**
+    the standard flask documentation theme for large projects
+
+**kr_small**
+    small one-page theme.  Intended to be used by very small addon libraries.
+
+
+0.0.4 - Fully integrated python-goose library into newspaper. Article objects
+        now have much more options. All configurations are now based on Configuration()
+        objects which can be passed into Source or Article objects. Default configuration
+        setups make this easy. Added simple multithreading article download framework.
+
+0.0.5 - Fixed seamless configuration api for Article and Source objects. Enabled multi language
+        support in 10+ languages including non-western languages like Arabic, Korean, Chinese.
+        Fixed bug where we made a wrong assumption of calling .text from the requests module.
+
+0.0.6 - Fixed a bunch of small bugs in the source.py file (still need to update readme). Batch
+        downloading articles was not setting the article is_downloaded boolean. I was also using
+        the del keyword very irresponsibly... Made many modifications where the source object
+        had to filter out urls. Mostly replaced with list comprehensions. 
+        Added a pull request from Alex K. where he added an option for just the article html
+        extraction. Feel free to toggle this option in the configs. I have yet to add this to the
+        docs once again.
+
+feedparser - Parse Atom and RSS feeds in Python.
+
+Copyright (c) 2010-2013 Kurt McKee <contactme@kurtmckee.org>
+Copyright (c) 2002-2008 Mark Pilgrim
+
+feedparser is open source. See the LICENSE file for more information.
+
+
+Installation
+============
+
+Feedparser can be installed using distutils or setuptools by running:
+
+    $ python setup.py install
+
+If you're using Python 3, feedparser will automatically be updated by the 2to3
+tool; installation should be seamless across Python 2 and Python 3.
+
+There's one caveat, however: sgmllib.py was deprecated in Python 2.6 and is no
+longer included in the Python 3 standard library. Because feedparser currently
+relies on sgmllib.py to handle illformed feeds (among other things), it's a
+useful library to have installed.
+
+If your feedparser download included a copy of sgmllib.py, it's probably called
+sgmllib3.py, and you can simply rename the file to sgmllib.py. It will not be
+automatically installed using the command above, so you will have to manually
+copy it to somewhere in your Python path.
+
+If a copy of sgmllib.py was not included in your feedparser download, you can
+grab a copy from the Python 2 standard library (preferably from the Python 2.7
+series) and run the 2to3 tool on it:
+
+    $ 2to3 -w sgmllib.py
+
+If you copied sgmllib.py from a Python 2.6 or 2.7 installation you'll
+additionally need to edit the resulting file to remove the `warnpy3k` lines at
+the top of the file. There should be four lines at the top of the file that you
+can delete.
+
+Because sgmllib.py is a part of the Python codebase, it's licensed under the
+Python Software Foundation License. You can find a copy of that license at
+python.org:
+
+    http://docs.python.org/license.html
+
+
+Documentation
+=============
+
+The feedparser documentation is available on the web at:
+
+    http://packages.python.org/feedparser
+
+It is also included in its source format, ReST, in the docs/ directory. To
+build the documentation you'll need the Sphinx package, which is available at:
+
+    http://sphinx.pocoo.org/
+
+You can then build HTML pages using a command similar to:
+
+    $ sphinx-build -b html docs/ fpdocs
+
+This will produce HTML documentation in the fpdocs/ directory.
+
+
+Testing
+=======
+
+Feedparser has an extensive test suite that has been growing for a decade. If
+you'd like to run the tests yourself, you can run the following command:
+
+    $ python feedparsertest.py
+
+This will spawn an HTTP server that will listen on port 8097. The tests will
+fail if that port is in use.
+
+# Python Module
+
+`tldextract` accurately separates the gTLD or ccTLD (generic or country code
+top-level domain) from the registered domain and subdomains of a URL. For
+example, say you want just the 'google' part of 'http://www.google.com'.
+
+*Everybody gets this wrong.* Splitting on the '.' and taking the last 2
+elements goes a long way only if you're thinking of simple e.g. .com
+domains. Think parsing
+[http://forums.bbc.co.uk](http://forums.bbc.co.uk) for example: the naive
+splitting method above will give you 'co' as the domain and 'uk' as the TLD,
+instead of 'bbc' and 'co.uk' respectively.
+
+`tldextract` on the other hand knows what all gTLDs and ccTLDs look like by
+looking up the currently living ones according to
+[the Public Suffix List](http://www.publicsuffix.org). So,
+given a URL, it knows its subdomain from its domain, and its domain from its
+country code.
+
+    >>> import tldextract
+    >>> tldextract.extract('http://forums.news.cnn.com/')
+    ExtractResult(subdomain='forums.news', domain='cnn', suffix='com')
+    >>> tldextract.extract('http://forums.bbc.co.uk/') # United Kingdom
+    ExtractResult(subdomain='forums', domain='bbc', suffix='co.uk')
+    >>> tldextract.extract('http://www.worldbank.org.kg/') # Kyrgyzstan
+    ExtractResult(subdomain='www', domain='worldbank', suffix='org.kg')
+
+`ExtractResult` is a namedtuple, so it's simple to access the parts you want.
+
+    >>> ext = tldextract.extract('http://forums.bbc.co.uk')
+    >>> ext.domain
+    'bbc'
+    >>> '.'.join(ext[:2]) # rejoin subdomain and domain
+    'forums.bbc'
+
+This module started by implementing the chosen answer from [this StackOverflow question on
+getting the "domain name" from a URL](http://stackoverflow.com/questions/569137/how-to-get-domain-name-from-url/569219#569219).
+However, the proposed regex solution doesn't address many country codes like
+com.au, or the exceptions to country codes like the registered domain
+parliament.uk. The Public Suffix List does, and so does this module.
+
+## Installation
+
+Latest release on PyPI:
+
+    $ pip install tldextract
+
+Or the latest dev version:
+
+    $ pip install -e git://github.com/john-kurkowski/tldextract.git#egg=tldextract
+
+Command-line usage, splits the url components by space:
+
+    $ tldextract http://forums.bbc.co.uk
+    forums bbc co.uk
+
+Run tests:
+
+    $ python -m tldextract.tests.all
+
+## Note About Caching & Advanced Usage
+
+Beware when first running the module, it updates its TLD list with a live HTTP
+request. This updated TLD set is cached indefinitely in
+`/path/to/tldextract/.tld_set`.
+
+(Arguably runtime bootstrapping like that shouldn't be the default behavior,
+like for production systems. But I want you to have the latest TLDs, especially
+when I haven't kept this code up to date.)
+
+To avoid this fetch or control the cache's location, use your own extract
+callable by setting TLDEXTRACT_CACHE environment variable or by setting the
+cache_file path in TLDExtract initialization.
+
+    # extract callable that falls back to the included TLD snapshot, no live HTTP fetching
+    no_fetch_extract = tldextract.TLDExtract(suffix_list_url=False)
+    no_fetch_extract('http://www.google.com')
+
+    # extract callable that reads/writes the updated TLD set to a different path
+    custom_cache_extract = tldextract.TLDExtract(cache_file='/path/to/your/cache/file')
+    custom_cache_extract('http://www.google.com')
+
+    # extract callable that doesn't use caching
+    no_cache_extract = tldextract.TLDExtract(cache_file=False)
+    no_cache_extract('http://www.google.com')
+
+If you want to stay fresh with the TLD definitions--though they don't change
+often--delete the cache file occasionally, or run
+
+    tldextract --update
+
+or:
+
+    env TLDEXTRACT_CACHE="~/tldextract.cache" tldextract --update
+
+It is also recommended to delete the file after upgrading this lib.
+
+### Specifying your own URL or file for the Suffix List data
+
+You can specify your own input data in place of the default Mozilla Public Suffix List:
+
+    extract = tldextract.TLDExtract(
+        suffix_list_url="http://foo.bar.baz",
+        # Recommended: Specify your own cache file, to minimize ambiguities about where
+        # tldextract is getting its data, or cached data, from.
+        cache_file='/path/to/your/cache/file')
+
+The above snippet will fetch from the URL *you* specified, upon first need to download the
+suffix list (i.e. if the cache_file doesn't exist).
+
+If you want to use input data from your local filesystem, just use the `file://` protocol:
+
+    extract = tldextract.TLDExtract(
+        suffix_list_url="file://absolute/path/to/your/local/suffix/list/file",
+        cache_file='/path/to/your/cache/file')
+
+Use an absolute path when specifying the `suffix_list_url` keyword argument. `os.path` is your
+friend.
+
+# Public API
+
+I know it's just one method, but I've needed this functionality in a few
+projects and programming languages, so I've uploaded
+[`tldextract` to App Engine](http://tldextract.appspot.com/). It's there on
+GAE's free pricing plan until Google cuts it off. Just hit it with
+your favorite HTTP client with the URL you want parsed like so:
+
+    $ curl "http://tldextract.appspot.com/api/extract?url=http://www.bbc.co.uk/foo/bar/baz.html"
+    {"domain": "bbc", "subdomain": "www", "suffix": "co.uk"}
+
+
+Newspaper: Article scraping & curation
+=======================================
+
+.. image:: https://badge.fury.io/py/newspaper.png
+    :target: http://badge.fury.io/py/newspaper
+        :alt: Latest version
+
+Inspired by `requests`_ for its simplicity and powered by `lxml`_ for its speed:
+
+    "Newspaper is an amazing python library for extracting & curating articles."
+    -- `tweeted by`_ Kenneth Reitz, Author of `requests`_
+
+    "Newspaper delivers Instapaper style article extraction." -- `The Changelog`_
+
+.. _`tweeted by`: https://twitter.com/kennethreitz/status/419520678862548992
+.. _`The Changelog`: http://thechangelog.com/newspaper-delivers-instapaper-style-article-extraction/
+
+**We support 10+ languages and everything is in unicode!**
+
+.. code-block:: pycon
+
+    >>> import newspaper     
+    >>> newspaper.languages()
+
+    Your available langauges are:
+    input code      full name
+
+      ar              Arabic
+      ru              Russian
+      nl              Dutch
+      de              German
+      en              English
+      es              Spanish
+      fr              French
+      it              Italian
+      ko              Korean
+      no              Norwegian
+      pt              Portuguese
+      sv              Swedish
+      hu              Hungarian
+      fi              Finnish
+      da              Danish
+      zh              Chinese
+
+A Glance:
+---------
+
+.. code-block:: pycon
+
+    >>> import newspaper
+
+    >>> cnn_paper = newspaper.build('http://cnn.com')
+
+    >>> for article in cnn_paper.articles:
+    >>>     print article.url
+    u'http://www.cnn.com/2013/11/27/justice/tucson-arizona-captive-girls/'
+    u'http://www.cnn.com/2013/12/11/us/texas-teen-dwi-wreck/index.html'
+    ...
+
+    >>> for category in cnn_paper.category_urls():
+    >>>     print category
+
+    u'http://lifestyle.cnn.com'
+    u'http://cnn.com/world'
+    u'http://tech.cnn.com'
+    ...
+
+.. code-block:: pycon
+
+    >>> article = cnn_paper.articles[0]
+
+.. code-block:: pycon
+
+    >>> article.download()
+
+    >>> article.html
+    u'<!DOCTYPE HTML><html itemscope itemtype="http://...'
+
+.. code-block:: pycon
+
+    >>> article.parse()
+
+    >>> article.authors
+    [u'Leigh Ann Caldwell', 'John Honway']
+
+    >>> article.text
+    u'Washington (CNN) -- Not everyone subscribes to a New Year's resolution...'
+
+    >>> article.top_image
+    u'http://someCDN.com/blah/blah/blah/file.png'
+
+    >>> article.movies
+    [u'http://youtube.com/path/to/link.com', ...]
+
+.. code-block:: pycon
+
+    >>> article.nlp()
+
+    >>> article.keywords
+    ['New Years', 'resolution', ...]
+
+    >>> article.summary
+    u'The study shows that 93% of people ...'
+
+
+Newspaper has *seamless* language extraction and detection.
+If no language is specified, Newspaper will attempt to auto detect a language.
+
+.. code-block:: pycon
+
+    >>> from newspaper import Article
+    >>> url = 'http://www.bbc.co.uk/zhongwen/simp/chinese_news/2012/12/121210_hongkong_politics.shtml'
+
+    >>> a = Article(url, language='zh') # Chinese
+    
+    >>> a.download()
+    >>> a.parse()
+
+    >>> print a.text[:150]
+    香港行政长官梁振英在各方压力下就其大宅的违章建
+    筑（僭建）问题到立法会接受质询，并向香港民众道歉。
+    梁振英在星期二（12月10日）的答问大会开始之际
+    在其演说中道歉，但强调他在违章建筑问题上没有隐瞒的
+    意图和动机。 一些亲北京阵营议员欢迎梁振英道歉，
+    且认为应能获得香港民众接受，但这些议员也质问梁振英有
+   
+    >>> print a.title
+    港特首梁振英就住宅违建事件道歉
+
+
+If you are certain that an *entire* news source is in one language, **go ahead and use the same api :)**
+
+.. code-block:: pycon
+
+    >>> import newspaper
+    >>> sina_paper = newspaper.build('http://www.sina.com.cn/', language='zh')
+
+    >>> for category in sina_paper.category_urls():
+    >>>     print category
+    u'http://health.sina.com.cn'
+    u'http://eladies.sina.com.cn'
+    u'http://english.sina.com'
+    ...
+
+    >>> article = sina_paper.articles[0]
+    >>> article.download()
+    >>> article.parse()
+
+    >>> print article.text
+    新浪武汉汽车综合 随着汽车市场的日趋成熟，
+    传统的“集全家之力抱得爱车归”的全额购车模式已然过时，
+    另一种轻松的新兴 车模式――金融购车正逐步成为时下消费者购
+    买爱车最为时尚的消费理念，他们认为，这种新颖的购车
+    模式既能在短期内
+    ...
+
+    >>> print article.title
+    两年双免0手续0利率 科鲁兹掀背金融轻松购_武汉车市_武汉汽
+    车网_新浪汽车_新浪网
+
+
+Documentation
+-------------
+
+Check out `The Documentation`_ for full and detailed guides using newspaper.
+
+Features
+--------
+
+- Works in 10+ languages (English, Chinese, German, Arabic, ...)
+- Multi-threaded article download framework
+- News url identification
+- Text extraction from html
+- Top image extraction from html
+- All image extraction from html
+- Keyword extraction from text
+- Summary extraction from text
+- Author extraction from text
+- Google trending terms extraction
+
+Get it now
+----------
+
+Installing newspaper is simple with `pip <http://www.pip-installer.org/>`_.
+However, you will run into fixable issues if you are trying to install on ubuntu.
+
+**If you are not using ubuntu**, install with the following:
+
+::
+
+    $ pip install newspaper
+
+    $ curl https://raw.github.com/codelucas/newspaper/master/download_corpora.py | python2.7
+
+
+**If you are**, install using the following:
+
+::
+
+    # For lxml
+    $ sudo apt-get install libxml2-dev libxslt-dev  
+
+    # For PIL to recognize .jpg
+    $ sudo apt-get install libjpeg-dev zlib1g-dev libpng12-dev  
+
+    $ easy_install lxml  # NOT PIP
+    
+    $ pip install newspaper 
+
+    $ curl https://raw.github.com/codelucas/newspaper/master/download_corpora.py | python2.7
+
+
+It is also important to note that the line 
+
+::
+
+    $ curl https://raw.github.com/codelucas/newspaper/master/download_corpora.py | python2.7
+
+
+is not needed unless you need the natural language, ``nlp()``, features like keywords extraction and summarization.
+
+If you are using **ubuntu** and are still running into gcc compile errors when installing lxml, try installing
+``libxslt1-dev`` instead of ``libxslt-dev``.
+
+
+Related Projects
+----------------
+
+- `ruby-readability`_ is a port of arc90's readability project to Ruby.
+- `python-goose`_ is a port of Gravity's goose project to Python.
+- `java-boilerpipe`_ is an article extraction library in Java.
+
+.. _`python-goose`: https://github.com/grangier/python-goose
+.. _`ruby-readability`: https://github.com/cantino/ruby-readability 
+.. _`java-boilerpipe`: http://boilerpipe-web.appspot.com/
+
+Todo List
+---------
+
+- Add a "follow_robots.txt" option in the config object.
+- Bake in the CSSSelect and BeautifulSoup dependencies
+
+.. _`Quickstart guide`: https://newspaper.readthedocs.org/en/latest/
+.. _`The Documentation`: http://newspaper.readthedocs.org
+.. _`lxml`: http://lxml.de/
+.. _`requests`: https://github.com/kennethreitz/requests
+
+LICENSE
+-------
+
+Authored and maintained by `Lucas Ou-Yang`_.
+
+Newspaper uses a lot of `python-goose's`_ parsing code. View their license `here`_.
+
+Please feel free to `email & contact me`_ if you run into issues or just would like
+to talk about the future of this library and news extraction in general!
+
+.. _`Lucas Ou-Yang`: http://codelucas.com
+.. _`email & contact me`: mailto:lucasyangpersonal@gmail.com
+.. _`python-goose's`: https://github.com/grangier/python-goose
+.. _`here`: https://github.com/codelucas/newspaper/blob/master/GOOSE-LICENSE.txt 
+

@@ -1,0 +1,272 @@
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!!! WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING !!!
+!!!                                                                 !!!
+!!! pysandbox is BROKEN BY DESIGN, please move to a new sandboxing  !!!
+!!! solution: run python in a sandbox, not the opposite!            !!!
+!!!                                                                 !!!
+!!! Learn more about pysandbox failure:                             !!!
+!!! https://lwn.net/Articles/574215/                                !!!
+!!!                                                                 !!!
+!!! WARNING WARNING WARNING WARNING WARNING WARNING WARNING WARNING !!!
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+On Linux, SECCOMP security feature looks nice a nice start to build a Python
+sandbox.
+
+Other sandboxing projects for Python:
+
+* PyPy project has a sandbox:
+  http://pypy.org/
+* http://pythonsweetness.tumblr.com/post/65442885019/secure-low-overhead-eval-sandbox-in-80-lines-of-python
+* http://chdir.org/~nico/seccomp-nurse/
+
+The old README follows.
+
+
+
+
+
+----
+
+
+
+
+
+pysandbox is a Python sandbox. By default, untrusted code executed in the
+sandbox cannot modify the environment (write a file, use print or import a
+module). But you can configure the sandbox to choose exactly which features are
+allowed or not, eg. import sys module and read /etc/issue file.
+
+Website: http://github.com/haypo/pysandbox/
+
+
+Features
+========
+
+Blocked Python functionality (by default):
+
+ * Deny access to the file system
+ * Deny importing Python modules
+ * Deny exiting Python
+ * Deny access to stdin, stdout or stderr
+ * Deny some builtin symbols like execfile(), reload() or KeyboardInterrupt
+ * Deny execution of arbitrary bytecode (creation of arbitrary code object)
+
+You can enable all of these features by setting the sandbox configuration.
+
+By default, the untrusted code is executed in a subprocess with the following
+limits:
+
+ * timeout = 5 seconds
+ * memory limit = 200 MB
+ * recursion limit = 50 frames
+ * number of child processes = 0 (forking and threads are disabled at the OS level)
+ * pysandbox is able to catch crashes like segmentation fault (SIGSEGV)
+ * stdin, stdout and stderr are redirected to /dev/null (or :NUL on Windows)
+ * input and output data are limited to 64 KB
+
+Protection of the namespace:
+
+ * Deny access to function closure, globals, defaults and code
+ * Deny access to frame locals
+ * Deny access to types' subclasses
+ * __builtins__ is read only
+ * Deny access to dict methods able to modify a dict, eg. dict.__setitem__.
+   But you can use "d[key] = value" and "del d[key]" instead
+ * Use a whitelist for sys.path
+
+
+Limitations
+===========
+
+pysandbox is a sandbox for the Python namespace, not a sandbox between Python
+and the operating system. It does not protect your system against Python
+security vulnerabilities, i.e. vulnerabilities in modules and functions
+available in your sandbox (depends on your sandbox configuration). By default,
+only a few functions are exposed to the sandbox namespace which limits the
+attack surface.
+
+See the Lib/test/crashers/ directory in the CPython source code to see examples
+of known bugs crashing the CPython interpreter.
+
+
+Configuration
+=============
+
+Use SandboxConfig class to configure your sandbox. Features are the most simple
+way to configure it.
+
+Features
+--------
+
+To enable a feature, use SandboxConfig('feature1', 'feature2', ...) or
+config.enable('feature'). Available features:
+
+ - "codecs": codecs module
+ - "datetime": datetime module
+ - "encodings": encodings module with ascii, latin_1, utf_8, utf_16_be,
+   utf_32_be and rot_13 codecs (submodules). Enable codecs feature.
+ - "exit": sys.exit(), BaseException, KeyboardInterrupt, SystemExit, quit()
+ - "future": from __future__ import ...
+ - "hashlib": hashlib module.
+ - "help": pydoc.help(), use "import pydoc" outside the sandbox to use it. Enable regex feature.
+ - "itertools": itertools module
+ - "math": math module
+ - "random": random module. Enable hashlib and math features.
+ - "regex": compile regex, match regex, search regex, etc. (re module)
+ - "site": allow to read the license file
+ - "stdin": sys.stdin, input() and raw_input()
+ - "stdout", "stderr": sys.stdout and sys.stderr
+ - "time": time module (except sleep, strptime and tzset functions)
+ - "traceback": compile() builtin, frame.f_code. Next calls to allowModule()
+   will add the module filename to the open() whitelist, so Python can display
+   a traceback with the source code. This feature has to be enabled before all
+   other features.
+ - "unicodedata": unicodedata module, required for u'\N{ATOM SYMBOL}' syntax
+
+CPython restricted mode
+-----------------------
+
+WARNING: CPython restricted mode is unsafe because it is possible to execute
+arbitrary bytecode.
+
+Use SandboxConfig(cpython_restricted=True) to enable CPython restricted mode.
+In this mode, reading a file and modifying a class are blocked. Some attributes
+are hidden (eg. method.__self__), others are read only (eg. func.__doc__).
+
+CPython restricted mode is disabled by default. The restricted mode is
+incompatible with SandboxConfig's "traceback" feature and allowPath() method.
+
+The restricted mode doesn't exist in Python3 anymore; it was removed with
+the bastion and rexec modules:
+
+ * http://svn.python.org/view?view=rev&revision=55301
+ * http://hg.python.org/cpython/rev/f60c877d52c8/
+
+Disable subprocess
+------------------
+
+It is possible to not run the untrusted code in a subprocess using
+SandboxConfig(use_subprocess=False). This mode is less secure; the following
+protections are disabled:
+
+ * timeout
+ * memory limit
+ * number the process is not limit (forking and threads are allowed by the OS)
+ * crashes aren't be caught
+
+Other options
+-------------
+
+ - config.sys_path: trusted path list used to import modules
+ - config.allowPath(path) allows reading a file from the specified path
+ - config.allowModule(name, symbol1, symbol2, ...) allows importing the
+   specified module, but only gives access to the specified symbols
+
+
+Example
+=======
+
+With call() method: ::
+
+    from sandbox import Sandbox
+
+    def func(a, b):
+        return a + b
+
+    sandbox = Sandbox()
+    print sandbox.call(func, 1, 2)
+
+With execute() method: ::
+
+    from sandbox import Sandbox, SandboxConfig
+    sandbox = Sandbox(SandboxConfig('stdout'))
+    sandbox.execute('print("Code executed in the sandbox")')
+
+execute() with a local variable: ::
+
+    from sandbox import Sandbox, SandboxConfig
+    sandbox = Sandbox(SandboxConfig('stdout'))
+    sandbox.execute('print(data)', locals={'data': [1, 2, 3]})    # ok
+    sandbox.execute('data.append(4)', locals={'data': [1, 2, 3]}) # error
+
+Objects passed to .call() globals/locals and .execute() arguments are
+proxified: they are replaced by read-only views of the objects.
+
+
+Status
+======
+
+pysanbox 1.5 is tested on Python 2.5 and 2.6 on Debian Sid.
+
+See TODO file for the complete status.
+
+
+See also
+========
+
+Python
+------
+
+ * http://wiki.python.org/moin/SandboxedPython
+ * tav CPython patches:
+   http://codereview.appspot.com/20051
+   http://codereview.appspot.com/21043
+ * secure*.py in plexnet
+   http://github.com/tav/plexnet/tree/master/source/plexnet/util
+ * Security in Python Wiki:
+   http://wiki.python.org/moin/Security
+ * safelite.py:
+   http://tav.espians.com/a-challenge-to-break-python-security.html
+ * Zope security:
+   http://pypi.python.org/pypi/RestrictedPython
+   http://svn.zope.org/zope.security/trunk/src/zope/security/
+ * Brett Canon's "objcap" secured Python interpreter
+   http://mail.python.org/pipermail/python-dev/2006-June/066344.html
+   http://sayspy.blogspot.com/2007/05/i-have-finished-securing-python.html
+   http://svn.python.org/view/python/branches/bcannon-objcap/secure_python.c?revision=56111&view=markup
+ * Python taint mode:
+   http://www.cats-muvva.net/software/
+ * Controlling Access to Resources Within The Python Interpreter:
+   http://www.cs.ubc.ca/~drifty/papers/python_security.pdf
+ * PyPy sandbox:
+   http://codespeak.net/pypy/dist/pypy/doc/sandbox.html
+ * mxProxy:
+   http://www.egenix.com/products/python/mxBase/mxProxy/
+ * Python 2.3: rexec and Bastion
+
+Python-dev mailing list
+-----------------------
+
+ * "Python jail: whitelist vs blacklist"
+   Victor Stinner, Tue Feb 24 13:50:40 CET 2009
+   http://mail.python.org/pipermail/python-dev/2009-February/086444.html
+ * "Challenge: Please break this!"
+   tav, Mon Feb 23 23:41:30 CET 2009
+   http://mail.python.org/pipermail/python-dev/2009-February/086401.html
+   http://mail.python.org/pipermail/python-dev/2009-February/086413.html
+   http://mail.python.org/pipermail/python-dev/2009-February/086439.html
+ * "Reviving restricted mode?"
+   Guido van Rossum, Sun Feb 22 17:45:27 CET 2009
+   http://mail.python.org/pipermail/python-dev/2009-February/086352.html
+ * "object capability; func_closure; __subclasses__"
+   tav, Thu Jun 28 03:04:42 CEST 2007
+   http://mail.python.org/pipermail/python-dev/2007-June/073724.html
+ * "Capabilities"
+   Guido van Rossum, Fri, 07 Mar 2003 12:41:16 -0500
+   http://mail.python.org/pipermail/python-dev/2003-March/033820.html
+   http://mail.python.org/pipermail/python-dev/2003-March/033854.html
+   ...
+   (read the whole archive of march and april 2003)
+
+Other
+-----
+
+ * Python shell running in Google AppEngine (which uses a sandbox)
+   http://shell.appspot.com/
+ * http://lua-users.org/wiki/SandBoxes
+ * "Capability-based Financial Instruments"
+   Mark S. Miller, Chip Morningstar and Bill Frantz, 2000
+   http://www.erights.org/elib/capability/ode/index.html
+
+

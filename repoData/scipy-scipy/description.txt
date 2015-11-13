@@ -1,0 +1,2121 @@
+SciPy Documentation
+===================
+
+How to build it
+---------------
+The easy way to build the documentation is to run
+
+    python setup.py build_sphinx
+
+This will first build Scipy in-place, and then generate documentation for it.
+
+Another way
+-----------
+1. Optionally download an XML dump of the newest docstrings from the doc wiki
+   at ``/pydocweb/dump`` and save it as ``dump.xml``.
+2. Run ``make html`` or ``make dist``
+
+Note that ``make html`` builds the documentation for the currently installed
+version of Scipy, not the one corresponding to the source code here.
+
+
+.. image:: https://travis-ci.org/scipy/scipy.png?branch=master
+   :target: https://travis-ci.org/scipy/scipy/
+
+.. image:: https://coveralls.io/repos/scipy/scipy/badge.png?branch=master
+   :target: https://coveralls.io/r/scipy/scipy?branch=master 
+
+=====
+SciPy
+=====
+
+.. contents::
+
+What is SciPy?
+--------------
+
+SciPy (pronounced "Sigh Pie") is open-source software for mathematics,
+science, and engineering.  It includes modules for statistics, optimization,
+integration, linear algebra, Fourier transforms, signal and image processing,
+ODE solvers, and more.  It is also the name of a very popular conference on
+scientific programming with Python.
+
+The SciPy library depends on NumPy, which provides convenient and fast
+N-dimensional array manipulation. The SciPy library is built to work with
+NumPy arrays, and provides many user-friendly and efficient numerical routines
+such as routines for numerical integration and optimization. Together, they
+run on all popular operating systems, are quick to install, and are free of
+charge. NumPy and SciPy are easy to use, but powerful enough to be depended
+upon by some of the world's leading scientists and engineers. If you need to
+manipulate numbers on a computer and display or publish the results, give
+SciPy a try!
+
+
+Installation
+------------
+
+For installation instructions, see ``INSTALL.txt``.
+
+
+Documentation
+-------------
+
+Scipy documentation is available on the web:
+
+    http://docs.scipy.org
+
+How to generate the HTML documentation, see ``doc/README.txt``.
+
+
+Web sites
+---------
+
+The user's site is:
+
+    http://www.scipy.org/
+
+
+Mailing Lists
+-------------
+
+Please see the developer's list here:
+
+    http://projects.scipy.org/mailman/listinfo/scipy-dev
+
+
+Latest source code
+------------------
+
+The latest development version of Scipy's sources are always available at:
+
+    https://github.com/scipy/scipy
+
+They can be downloaded as a zip file or using the Git client.
+
+
+Bug reports
+-----------
+
+To search for bugs or report them, please use the Scipy Bug Tracker at:
+
+    https://github.com/scipy/scipy/issues
+
+
+Developer information
+---------------------
+
+If you would like to take part in SciPy development, take a look
+at ``HACKING.rst.txt``.
+
+
+License information
+-------------------
+
+See the file ``LICENSE.txt`` for information on the history of this
+software, terms & conditions for usage, and a DISCLAIMER OF ALL
+WARRANTIES.
+
+
+Hey Costas,
+
+Glad to see someone using the kmeans stuff.
+
+> --I confess to not understanding the docstring
+
+Sorry for the confusion.  I'll try to explain thing more clearly.  If it works, will use this as the doc. :)
+
+> However, I am not quite following the kmeans() functionality (I am new to 
+> this clustering business, so this maybe a stupid newbie question): my docs 
+> tell me that kmeans should partition a dataset into k clusters.  So, I 
+> expect vq.kmeans(dataset, 2) to return to me dataset split up into two 
+> "equivalent" datasets.
+
+Splitting the data into two data sets is actually a two or three step process. 
+Here's a complete example.
+
+"Observations" are just another name for a data point.  The obs matrix is a 2D 
+array of data points.  For example if our data set includes height, weight, and 
+40-yard speed of football players, you might have the following (fictitous) 
+data:
+
+obs:
+                            lb        inches     seconds       
+                           ----------------------------
+    Refrigerator Perry    | 400         79         5.4
+    Jerry Rice            | 180         76         4.5
+    Zachary Jones         |  28         25        30.0
+    Too Tall Jones        | 270         81         5.0
+    Charlie Joiner        | 185         78         4.6
+
+The data above is the "obs" matrix.  Each row in the 2D array is a data point, 
+often called an "observation" or "sample".  Each column is sometimes called the 
+"features" of a player. Imagine, we want to split this data set into two 
+"clusters", perhaps dividing the data into linemen and receivers.  One way to 
+find two "codes", one to represent each of these groups.  (I think the term 
+"code" comes from communication theory, but I'm not sure.  Perhaps "classes" is 
+more descriptive.)  I watched enough games (observed enough players) to make an 
+educated guess as to what these codes might be:
+
+possible code book:
+
+                code        lb         inches     seconds
+                            -----------------------------
+    receiver     0         | 180          75         4.8
+    lineman      1         | 260          76         5.5
+
+
+So code 0 stands for a "typical" receiver and code 1 represents your typical 
+lineman.  "Vector quantization" is an algorithm that calculates the distance 
+between a data point and every code in the "code book" to find the closest one 
+(i.e. which class is the best match). In scipy.cluster, the vq module houses 
+the vector quantization tools. vq.vq(obs,code_book) returns 2 arrays -- (1) the 
+index (row in the code book) of the code nearest to each data point, and (2) 
+the distance that each data point is from that code. code_book is always a 2D
+array.  If obs is a 2D array, each row is a separate data point.
+
+    # note I rounded some numbers to save space
+    >>> obs = array(((400, 79, 5.4),
+    ...              (180, 76, 4.5),
+    ...              (28,  25, 30.),
+    ...              (270, 81, 5.0),
+    ...              (185, 78, 4.6)))
+    >>> code_book = array(((180, 75, 4.8),
+    ...                    (260, 76, 5.5)))
+    >>> code_id, distortion = vq.vq(obs,code_book)
+    >>> code_id
+    array([1, 0, 0, 1, 0])
+    >>> distortion
+    array([ 140.03, 1.045, 161.985, 11.192, 5.834]) 
+
+code_id now tells what position each of the football players is most likely to 
+play. Distortion is the distance, using sqrt( a^2 + b^2 + c^2), that each 
+player is from the code (typical player) in their category.  Low numbers mean 
+the match is good.  For example, vq tells us that Jerry Rice is receiver, and 
+the low distortion means that it is pretty dang sure about that. 
+
+                             code_id          distortion
+                         ------------------------------ 
+    Refrigerator Perry     1 --> lineman         140.03      
+    Jerry Rice             0 --> receiver          1.04
+    Zachary Jones          0 --> receiver        161.99
+    Too Tall Jones         1 --> lineman          11.19
+    Charlie Joiner         0 --> receiver          5.83
+
+Most of the classifications make sense, but the distortions have some problems. 
+Notably that my 1 year old son is about as likely to be a receiver as R. Perry 
+is to be a lineman.  Looking at the data, it is obvious that R. Perry is a 
+lineman. It isn't obvious where Zach falls because he's small (like a receiver) 
+and slow (like a lineman).  So we should be quite a bit more sure about the 
+fact that R. Perry is a lineman.  What's wrong?  Well, the distortion value's 
+primary contribution comes from the large weight differences between these 
+players and the typical players.  Even though Zach's speed is a long way from 
+receiver's speed this doesn't contribute to the distortion much.  That's bad 
+because the speed difference carries a lot of useful information.  For more 
+accurate distortion values, we would like each feature of a player 
+(weight, height, and speed) to be weighted equally.  One way of doing this is 
+to "whiten" the features of both the data and the code book by dividing each 
+feature by the standard deviation of that feature set.  
+
+The standard deviation of weights and speeds across all the players are:
+
+    #weight
+    >>> stats.stdev((400,180,28,270,185))
+    136.30407183939883
+    #speed
+    >>> stats.stdev((5.4,4.5,30.0,5.0,4.6))
+    11.241885962773329
+
+So the whitened weight and speed distortions for R. Perry from a typical 
+lineman is:
+
+    # whitened weight
+    >>> abs(400-260)/136.3
+    1.0271460014673512   
+    # whitened speed
+    >>> abs(5.4-5.5)/11.24
+    0.0088967971530248789
+
+So the whitened weight and speed distortions for Z. Jones from a typical 
+receiver is:
+
+    # whitened weight
+    >>> abs(28-180)/136.3
+    1.1151870873074101
+    # whitened speed
+    >>> (30.0-4.8)/11.24
+    2.2419928825622777
+
+It is apparent from these values that Zach's speed difference is gonna have
+a large affect on the distortion now.  
+
+The whiten() function handles the chore of whitening a data set.
+
+    >>> wh_obs = whiten(obs)
+
+Usually, the code book is actually calculated from a whitened set of data (via 
+kmeans or some other method), and thus are automatically white.  In this case,
+I specified the code_book in non-whitened units, so they'll need to be normalized
+by the same standard deviation of the data set.
+
+    # not normally needed
+    >>> wh_code_book = code_book / std(obs,axis=0)
+
+Now, rerunning vq gives:
+    
+    >>> code_id, distortion = vq.vq(wh_obs,wh_code_book)
+    >>> code_id
+    array([1, 0, 0, 1, 0])
+    >>> distortion
+    array([ 1.034, 0.049,  3.257 ,  0.225,  0.131])
+    
+                             code_id         whitened distortion
+                         --------------------------------------- 
+    Refrigerator Perry     1 --> lineman             1.034      
+    Jerry Rice             0 --> receiver            0.049
+    Zachary Jones          0 --> receiver            3.257
+    Too Tall Jones         1 --> lineman             0.225
+    Charlie Joiner         0 --> receiver            0.131
+
+Now Zach's distortion is much higher than everyone elses which makes sense.
+
+In the example above, I made an educated guess based on my knowledge of 
+football of what the size and speed of a typical player in a given position 
+might be.  This is information I had to supply to the clustering algorithm
+before it could determine how to classify each player.  Suppose you didn't
+know anything about football, and watched a football gamebut were given a list of players with there
+position, weight, height, and speed.  You could use this information to 
+educate yourself about the traits of a typical receiver, linebacker, lineman,
+etc.  The kmeans algorithm also does this.  It takes a set of data, and
+the number of positions you want to categorize 
+
+----- Original Message ----- 
+From: "Costas Malamas" <costasm@hotmail.com>
+To: <scipy-user@scipy.net>
+Sent: Monday, January 07, 2002 5:50 PM
+Subject: [SciPy-user] Kmeans help and C source
+
+
+> Hi all,
+> 
+> I need to use a modified K-means algorithm for a project and I was delighted 
+> to discover that SciPy includes a python wrapper for a kmeans() function.
+> 
+> However, I am not quite following the kmeans() functionality (I am new to 
+> this clustering business, so this maybe a stupid newbie question): my docs 
+> tell me that kmeans should partition a dataset into k clusters.  So, I 
+> expect vq.kmeans(dataset, 2) to return to me dataset split up into two 
+> "equivalent" datasets.  However, anyway I feed my data into vq.kmeans() this 
+> doesn't happen (e.g. I feed it a 5x4 dataset and I get back two 5x1 
+> vectors).  
+> My guess is that either this vq.kmeans() does something different 
+> --I confess to not understanding the docstring as the observation/codebook 
+> terminology has no parallel to the docs I've read-- or that I am not doing 
+> something right.  Any pointers? Even some documentation on the algorithm 
+> would be great help.
+> 
+> Secondly, as I mentioned above, I need a modified kmeans.  However, I see no 
+> C/Fortran code in the src tarball or CVS that seems related to kmeans.  Is 
+> the base code available?  If so, is it hackable by a SWIG newbie? (I am 
+> aware of SWIG, but I have never used it for anything serious).
+> 
+> Any and all info will be greatly appreciated :-) --and thanks for SciPy!
+> 
+> 
+> Costas Malamas
+> 
+> _________________________________________________________________
+> Get your FREE download of MSN Explorer at http://explorer.msn.com/intl.asp.
+> 
+> _______________________________________________
+> SciPy-user mailing list
+> SciPy-user@scipy.net
+> http://www.scipy.net/mailman/listinfo/scipy-user
+> 
+
+
+Here's what is available (all in double precision):
+LSODE 
+LSODES
+LSODA
+LSODAR
+LSODI
+LSOIBT
+
+To receive the document try:
+send only DOC from odepack
+
+To receive the demo program try:
+send only DEMO from odepack
+
+
+
+                     I. Summary of the ODEPACK Solvers
+
+
+  A. Solvers for explicitly given systems.
+
+       In the solvers below, it is assumed that the ODE's are given
+  explicitly, so that the system can be written in the form
+          dy/dt  =  f(t,y) ,
+  where y is the vector of dependent variables, and t is the independent
+  variable.
+
+
+  1. LSODE (Livermore Solver for Ordinary Differential Equations) is the
+     basic solver of the collection.  It solves stiff and nonstiff systems
+     of the form dy/dt = f.  In the stiff case, it treats the Jacobian matrix
+     df/dy as either a full or a banded matrix, and as either user-supplied
+     or internally approximated by difference quotients.  It uses Adams methods
+     (predictor-corrector) in the nonstiff case, and Backward Differentiation
+     Formula (BDF) methods in the stiff case.  The linear systems that arise
+     are solved by direct methods (LU factor/solve).  LSODE supersedes the older
+     GEAR and GEARB packages, and reflects a complete redesign of the user
+     interface and internal organization, with some algorithmic improvements.
+
+
+  2. LSODES, written jointly with A. H. Sherman, solves systems dy/dt = f
+     and in the stiff case treats the Jacobian matrix in general sparse
+     form.  It determines the sparsity structure on its own (or optionally
+     accepts this information from the user), and uses parts of the Yale Sparse
+     Matrix Package (YSMP) to solve the linear systems that arise.
+     LSODES supersedes, and improves upon, the older GEARS package.
+
+
+  3. LSODA, written jointly with L. R. Petzold, solves systems dy/dt = f
+     with a full or banded Jacobian when the problem is stiff, but it
+     automatically selects between nonstiff (Adams) and stiff (BDF) methods.
+     It uses the nonstiff method initially, and dynamically monitors data
+     in order to decide which method to use.
+
+
+  4. LSODAR, also written jointly with L. R. Petzold, is a variant of LSODA
+     with a rootfinding capability added.  Thus it solves problems dy/dt = f
+     with full or banded Jacobian and automatic method selection, and at
+     the same time, it finds the roots of any of a set of given functions
+     of the form g(t,y).  This is often useful for finding stop conditions
+     or points at which switches are to be made in the function f.
+
+
+  B. Solvers for linearly implicit systems.
+
+       In the solvers below, it is assumed that the derivative dy/dt is
+  implicit, but occurs linearly, so that the system can be written
+          A(t,y) dy/dt  =  g(t,y) ,
+  where A is a square matrix.  These solvers allow A to be singular,
+  in which case the system is a differential-algebraic system, but in that
+  case users must be very careful to supply a well-posed problem with
+  consistent initial conditions.
+
+
+  5. LSODI, written jointly with J. F. Painter, solves linearly implicit
+     systems in which the matrices involved (A, dg/dy, and d(A dy/dt)/dy) are
+     all assumed to be either full or banded.  LSODI supersedes the older
+     GEARIB solver and improves upon it in numerous ways.
+
+
+  6. LSOIBT, written jointly with C. S. Kenney, solves linearly implicit
+     systems in which the matrices involved are all assumed to be
+     block-tridiagonal.  Linear systems are solved by the LU method.
+
+
+QUADPACK is a FORTRAN subroutine package for the numerical
+computation of definite one-dimensional integrals. It originated
+from a joint project of R. Piessens and E. de Doncker (Appl.
+Math. and Progr. Div.- K.U.Leuven, Belgium), C. Ueberhuber (Inst.
+Fuer Math.- Techn.U.Wien, Austria), and D. Kahaner (Nation. Bur.
+of Standards- Washington D.C., U.S.A.).
+The routine names for the DOUBLE PRECISION versions are preceded
+by the letter D.
+
+- QNG  : Is a simple non-adaptive automatic integrator, based on
+         a sequence of rules with increasing degree of algebraic
+         precision (Patterson, 1968).
+
+- QAG  : Is a simple globally adaptive integrator using the
+         strategy of Aind (Piessens, 1973). It is possible to
+         choose between 6 pairs of Gauss-Kronrod quadrature
+         formulae for the rule evaluation component. The pairs
+         of high degree of precision are suitable for handling
+         integration difficulties due to a strongly oscillating
+         integrand.
+
+- QAGS : Is an integrator based on globally adaptive interval
+         subdivision in connection with extrapolation (de Doncker,
+         1978) by the Epsilon algorithm (Wynn, 1956).
+
+- QAGP : Serves the same purposes as QAGS, but also allows
+         for eventual user-supplied information, i.e. the
+         abscissae of internal singularities, discontinuities
+         and other difficulties of the integrand function.
+         The algorithm is a modification of that in QAGS.
+
+- QAGI : Handles integration over infinite intervals. The
+         infinite range is mapped onto a finite interval and
+         then the same strategy as in QAGS is applied.
+
+- QAWO : Is a routine for the integration of COS(OMEGA*X)*F(X)
+         or SIN(OMEGA*X)*F(X) over a finite interval (A,B).
+         OMEGA is is specified by the user
+         The rule evaluation component is based on the
+         modified Clenshaw-Curtis technique.
+         An adaptive subdivision scheme is used connected with
+         an extrapolation procedure, which is a modification
+         of that in QAGS and provides the possibility to deal
+         even with singularities in F.
+
+- QAWF : Calculates the Fourier cosine or Fourier sine
+         transform of F(X), for user-supplied interval (A,
+         INFINITY), OMEGA, and F. The procedure of QAWO is
+         used on successive finite intervals, and convergence
+         acceleration by means of the Epsilon algorithm (Wynn,
+         1956) is applied to the series of the integral
+         contributions.
+
+- QAWS : Integrates W(X)*F(X) over (A,B) with A.LT.B finite,
+         and   W(X) = ((X-A)**ALFA)*((B-X)**BETA)*V(X)
+         where V(X) = 1 or LOG(X-A) or LOG(B-X)
+                        or LOG(X-A)*LOG(B-X)
+         and   ALFA.GT.(-1), BETA.GT.(-1).
+         The user specifies A, B, ALFA, BETA and the type of
+         the function V.
+         A globally adaptive subdivision strategy is applied,
+         with modified Clenshaw-Curtis integration on the
+         subintervals which contain A or B.
+
+- QAWC : Computes the Cauchy Principal Value of F(X)/(X-C)
+         over a finite interval (A,B) and for
+         user-determined C.
+         The strategy is globally adaptive, and modified
+         Clenshaw-Curtis integration is used on the subranges
+         which contain the point X = C.
+
+   Each of the routines above also has a "more detailed" version
+with a name ending in E, as QAGE.  These provide more
+information and control than the easier versions.
+
+
+   The preceeding routines are all automatic.  That is, the user
+inputs his problem and an error tolerance.  The routine
+attempts to perform the integration to within the requested
+absolute or relative error.
+   There are, in addition, a number of non-automatic integrators.
+These are most useful when the problem is such that the
+user knows that a fixed rule will provide the accuracy
+required.  Typically they return an error estimate but make
+no attempt to satisfy any particular input error request.
+
+  QK15 QK21 QK31 QK41 QK51 QK61
+       Estimate the integral on [a,b] using 15, 21,..., 61
+       point rule and return an error estimate.
+  QK15I 15 point rule for (semi)infinite interval.
+  QK15W 15 point rule for special singular weight functions.
+  QC25C 25 point rule for Cauchy Principal Values
+  QC25F 25 point rule for sin/cos integrand.
+  QMOMO Integrates k-th degree Chebychev polynomial times
+        function with various explicit singularities.
+
+Support functions from linpack, slatec, and blas have been omitted
+by default but can be obtained by asking.  For example, suppose you
+already have installed linpack and the blas, but not slatec.  Then
+use a request like  "send dqag from quadpack slatec".
+
+
+[see also toms/691]
+
+- ddierckx is a 'real*8' version of dierckx 
+  generated by Pearu Peterson <pearu@ioc.ee>.
+- dierckx (in netlib) is fitpack by P. Dierckx
+
+README FOR INTERPOLATION MODULE
+
+
+Author: Enthought, Inc
+	Austin, TX
+	enthough-dev@mail.enthought.com
+
+
+Interpolate is a central package in SciPy, an open-source software package for scientific computing in Python which is maintained by Enthought, Inc.  Interpolate provides functionality for a variety of interpolation techniques, particularly those based on splines.
+
+
+A large portion of scipy.interpolate is Python wrappers around the functionality of FITPACK, a Fortran package produced by Pleasant Valley Software for working with curves and surfaces.  Scipy.interpolate provides the following wrappers around FITPACK functions:
+
+ splrep    -- find smoothing spline given (x,y) points on curve.
+ splprep   -- find smoothing spline given parametrically defined curve.
+ splev     -- evaluate the spline or its derivatives.
+ splint    -- compute definite integral of a spline.
+ sproot    -- find the roots of a cubic spline.
+ spalde    -- compute all derivatives of a spline at given points.
+ bisplrep   -- find bivariate smoothing spline representation.
+ bisplev   -- evaluate bivariate smoothing spline.
+
+
+Other available functions include
+
+ UnivariateSpline             -- A more recent, object-oriented wrapper;
+                                finds a (possibly smoothed) interpolating
+                                spline.
+ InterpolatedUnivariateSpline -- Identical to InivariateSpline, but with
+				less error checking
+ LSQUnivariateSpline	      -- Appears to be identical to UnivariateSplin
+				with more error checking.  Uses weighted
+				least squares fitting
+ BivariateSpline              -- A more recent, object-oriented wrapper;
+                                      finds a interpolating spline for a
+                                      bivariate function.
+ SmoothBivariateSpline	      -- Smooth bivariate spline approximation
+
+
+A number of other functions and classes are provided, for which README documentation is forthcoming.
+
+Introductions to interpolation and splines can be found online at:
+
+http://en.wikipedia.org/wiki/Interpolation
+	The Wikipedia article on interpolation.  Provides an accesible
+	overview of major areas of the subject, including spline
+	interpolation.
+http://en.wikipedia.org/wiki/Spline_interpolation
+	The Wikipedia article on spline interpolation.  It is accessible
+	as a conceptual introduction, and contains links to various
+	algorithms, but discussion is limited to 1D interpolation.
+
+
+
+interpolate.BivariateSpline
+interpolate.InterpolatedUnivariateSpline
+interpolate.LSQBivariateSpline
+interpolate.LSQUnivariateSpline
+interpolate.NumpyTest
+interpolate.RectBivariateSpline
+interpolate.SmoothBivariateSpline
+interpolate.UnivariateSpline
+interpolate.__all__
+interpolate.__class__
+interpolate.__delattr__
+interpolate.__dict__
+interpolate.__doc__
+interpolate.__file__
+interpolate.__getattribute__
+interpolate.__hash__
+interpolate.__init__
+interpolate.__name__
+interpolate.__new__
+interpolate.__path__
+interpolate.__reduce__
+interpolate.__reduce_ex__
+interpolate.__repr__
+interpolate.__setattr__
+interpolate.__str__
+interpolate._fitpack
+interpolate.bisplev
+interpolate.bisplrep
+interpolate.dfitpack
+interpolate.fitpack
+interpolate.fitpack2
+interpolate.insert
+interpolate.interp1d
+interpolate.interp2d
+interpolate.interpolate
+interpolate.lagrange
+interpolate.ppform
+interpolate.spalde
+interpolate.splev
+interpolate.spleval
+interpolate.spline
+interpolate.splint
+interpolate.splmake
+interpolate.splprep
+interpolate.splrep
+interpolate.spltopp
+interpolate.sproot
+interpolate.test
+
+Please see the documentation in subdirectory doc of this id_dist directory.
+
+At the minimum, please read Subsection 2.1 and Section 3 in the documentation,
+and beware that the _N.B._'s in the source code comments highlight important
+information about the routines -- _N.B._ stands for _nota_bene_ (Latin for
+"note well").
+
+label_inputs.txt, label_strels.txt, and label_results.txt are test
+vectors generated using ndimage.label from scipy version 0.10.0, and
+are used to verify that the cython version behaves as expected.  The
+script to generate them is in ../../utils/generate_label_testvectors.py 
+
+From the website for the L-BFGS-B code (from at
+http://www.ece.northwestern.edu/~nocedal/lbfgsb.html):
+
+"""
+L-BFGS-B is a limited-memory quasi-Newton code for bound-constrained
+optimization, i.e. for problems where the only constraints are of the
+form l<= x <= u.
+"""
+
+This is a Python wrapper (using F2PY) written by David M. Cooke
+<cookedm@physics.mcmaster.ca> and released as version 0.9 on April 9, 2004.
+The wrapper was slighly modified by Joonas Paalasmaa for the 3.0 version
+in March 2012.
+
+License of L-BFGS-B (Fortran code)
+==================================
+
+The version included here (in lbfgsb.f) is 3.0 (released April 25, 2011). It was
+written by Ciyou Zhu, Richard Byrd, and Jorge Nocedal <nocedal@ece.nwu.edu>. It
+carries the following condition for use:
+
+  """
+  This software is freely available, but we expect that all publications
+  describing work using this software, or all commercial products using it,
+  quote at least one of the references given below. This software is released
+  under the BSD License.
+  
+  References
+    * R. H. Byrd, P. Lu and J. Nocedal. A Limited Memory Algorithm for Bound
+      Constrained Optimization, (1995), SIAM Journal on Scientific and
+      Statistical Computing, 16, 5, pp. 1190-1208.
+    * C. Zhu, R. H. Byrd and J. Nocedal. L-BFGS-B: Algorithm 778: L-BFGS-B,
+      FORTRAN routines for large scale bound constrained optimization (1997),
+      ACM Transactions on Mathematical Software, 23, 4, pp. 550 - 560.
+    * J.L. Morales and J. Nocedal. L-BFGS-B: Remark on Algorithm 778: L-BFGS-B,
+      FORTRAN routines for large scale bound constrained optimization (2011),
+      ACM Transactions on Mathematical Software, 38, 1.
+  """
+
+The Python wrapper
+==================
+
+This code uses F2PY (http://cens.ioc.ee/projects/f2py2e/) to generate
+the wrapper around the Fortran code.
+
+The Python code and wrapper are copyrighted 2004 by David M. Cooke
+<cookedm@physics.mcmaster.ca>.
+
+Installation
+============
+
+Make sure you have F2PY, scipy_distutils, and a BLAS library that
+scipy_distutils can find. Then,
+
+$ python setup.py build
+$ python setup.py install
+
+and you're done.
+
+Example usage
+=============
+
+An example of the usage is given at the bottom of the lbfgsb.py file.
+Run it with 'python lbfgsb.py'.
+
+License for the Python wrapper
+==============================
+
+Copyright (c) 2004 David M. Cooke <cookedm@physics.mcmaster.ca>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+# TNC : truncated newton bound constrained minimization in C
+# Version 1.3
+# Copyright J.S. Roy (js@jeannot.org), 2002-2005
+# See the LICENSE file for copyright information.
+# $Jeannot: README,v 1.32 2005/01/28 15:12:09 js Exp $
+
+This software is a C implementation of TNBC, a truncated newton minimization
+package originally developed by Stephen G. Nash in Fortran.
+
+The original source code can be found at :
+http://iris.gmu.edu/~snash/nash/software/software.html
+
+Copyright for the original TNBC Fortran routines:
+
+  TRUNCATED-NEWTON METHOD:  SUBROUTINES
+    WRITTEN BY:  STEPHEN G. NASH
+          SCHOOL OF INFORMATION TECHNOLOGY & ENGINEERING
+          GEORGE MASON UNIVERSITY
+          FAIRFAX, VA 22030
+
+This software aims at minimizing the value a of nonlinear function whose
+variables are subject to bound constraints. It requires to be able to evaluate
+the function and its gradient and is especially useful for solving large scale
+problems.
+
+This software has been rewritten from the Fortran into C and provides the
+following modifications :
+- reentrancy (no global variables) ;
+- ability to pass a pointer to the function to be optimized (to provide
+  access to constants) ;
+- ability to rescale the function and variables ;
+- better handling of constant (low == up) variables ;
+- a simpler convergence test ;
+- ability to end the minimization at any time ;
+And many other small changes.
+
+This software has been tested on a large number of platforms and should run
+on any POSIX platform with an ANSI C compiler.
+
+The last version (and other software) is avalaible at the URL :
+http://www.jeannot.org/~js/code/index.en.html
+
+A Python interface module is also provided.
+
+Contents :
+- tnc.c : Source
+- tnc.h : Header, and API documentation
+- LICENSE : License and copyright information
+- HISTORY : Release history
+- README : This file
+- example.c : A simple example
+- Makefile : Make file used to build the examples
+- moduleTNC.c : the source of the python module
+- tnc.py : the python module wrapper
+- example.py : an example for the python module
+- setup.py : the python installer
+
+Use is described in tnc.h. For more information, see the example.
+The example can be built and executed by doing :
+  make test
+
+You may need to adjust the Makefile before building tnc.
+
+To install the module in the current directory, use:
+ python setup.py build_ext --inplace
+To test it, execute:
+  python tnc.py
+To install it globaly, use:
+ python setup.py install
+
+Thanks to eric jones <eric@enthought.com> for providing the setup script.
+
+If you make use of this software and observe incorrect behavior on some
+problems, or if you make modifications to it (for a specific platform for
+example), you are encouraged to send the sources involved to the author at
+the following email : js@jeannot.org
+Thanks !
+
+## SIGTOOLS module 
+##
+#Copyright (c) 2002 Travis Oliphant all rights reserved
+#Oliphant.Travis@altavista.net
+#Permission to use, modify, and distribute this software is given under the 
+#terms of the SciPy (BSD style) license.  See LICENSE.txt that came with
+#this distribution for specifics.
+
+I hope that this packages grows into a set of widely useful 1-D, 2-D,
+3-D, etc. filtering routines in this collection.  To start it off I
+have created C-code to do fast, general filtering of data.  Most
+additional code to be added should probably be written in Python
+unless a specific need for speed is needed.  If you have good routines
+to add to this collection (in Python or in C) please send them to me.
+
+So far this library has 4 C-code routines: 
+   (1) a general purpose N-D correlation.  This is almost like N-D
+         convolution but performs no 180 degree flipping of either
+	 input to the routine.  It takes two N-D arrays and returns
+	 the correlation of the two arrays.  It is intended for use in
+	 filtering large arrays with small kernels for blurring,
+	 edge-detection, etc.  Zero-padding is used to handle
+	 edges. 
+
+   (2) a general purpose N-D order-filter routine
+         An order-filter takes a data array and a domain kernel with
+         the same number of dimensions which has zero and non-zero
+         entries.  Each output is the order_th element of a sorted
+         list composed of the elements in the data array where the
+         kernel window (centered on the output point) is non-zero.
+         Zero-padding is used to handle the edges.  
+
+   (3) a 1-D linear filter.
+         linear_filter is a replacement for MATLAB's filter function.
+         It takes two 1-D arrays representing the numerator and
+         denominator of the z-transform of a rational linear
+         system. It then performs the filtering along the given
+         axis of an N-D array.  Access to initial conditions on the
+         Direct Form II Transposed system are provided.
+
+   (4) a remez exchange algorithm.
+         remez is Python wrapping for code from Erik Kvaleberg (itself a 
+         conversion to C of original code by Mcclellan) which
+	 implements the Parks-McClellan alogrithm for FIR optimal
+         filter design.
+
+In Python several more routines are defined:
+
+convolveND  (performs 180 degree flipping of all axes)
+wiener      (implements a wiener filter in N-D)
+medfilt     (implements an N-D median filter)
+
+
+All of these methods operate on arbitrary Python sequence objects (even 
+NumPy arrays of objects).  
+
+Due to popular request I have also included the numpyio module as part of
+this package.  It compiles along with the sigtools code.
+
+----------------------------------------
+INSTALLATION
+----------------------------------------
+
+To install, copy Makefile.pre.in from your python installation directory
+(mine is /usr/lib/python1.5/config/Makefile.pre.in) to this directory.
+
+Type 
+make -f Makefile.pre.in boot
+make
+
+Copy the file to somewhere under $PYTHON/site-packages or somewhere
+else on your path.
+
+Please send me feedback, questions, and especially contributions.
+
+CHANGELOG
+============
+Feb 5, 1999	First release just contains convolveND
+
+Feb 8, 1999	Second release (0.20) added order_filterND
+
+Feb 23, 1999    Third release (0.40) added linear_filter and remez 
+		routines.
+
+May  1, 1999    Release 0.5.1 introduces the signaltools.py module which
+                has some filtering routines.  Fixed a small bug with complex
+                filters that was preventing them from functioning.
+
+July 10, 1999   Release 0.5.2 is incorporated now with multipack.  Changed
+                the remez.c code to that from Erik Kvaleberg so that it 
+                could be incorporated into and LGPL package.  Placed remez
+                code directly in sigtoolsmodule.c
+Travis Oliphant
+oliphant.travis@ieee.org
+
+
+
+		SuperLU (Version 4.1)
+		=====================
+
+Copyright (c) 2003, The Regents of the University of California, through
+Lawrence Berkeley National Laboratory (subject to receipt of any required 
+approvals from U.S. Dept. of Energy) 
+
+All rights reserved. 
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met: 
+
+(1) Redistributions of source code must retain the above copyright notice,
+this list of conditions and the following disclaimer. 
+(2) Redistributions in binary form must reproduce the above copyright notice,
+this list of conditions and the following disclaimer in the documentation
+and/or other materials provided with the distribution. 
+(3) Neither the name of Lawrence Berkeley National Laboratory, U.S. Dept. of
+Energy nor the names of its contributors may be used to endorse or promote
+products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS
+IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR
+CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE. 
+  
+
+SuperLU contains a set of subroutines to solve a sparse linear system 
+A*X=B. It uses Gaussian elimination with partial pivoting (GEPP). 
+The columns of A may be preordered before factorization; the 
+preordering for sparsity is completely separate from the factorization.
+
+SuperLU is implemented in ANSI C, and must be compiled with standard 
+ANSI C compilers. It provides functionality for both real and complex
+matrices, in both single and double precision. The file names for the 
+single-precision real version start with letter "s" (such as sgstrf.c);
+the file names for the double-precision real version start with letter "d"
+(such as dgstrf.c); the file names for the single-precision complex
+version start with letter "c" (such as cgstrf.c); the file names
+for the double-precision complex version start with letter "z" 
+(such as zgstrf.c).
+
+
+SuperLU contains the following directory structure:
+
+    SuperLU/README    instructions on installation
+    SuperLU/CBLAS/    needed BLAS routines in C, not necessarily fast
+    SuperLU/DOC/      Users' Guide and documentation of source code
+    SuperLU/EXAMPLE/  example programs
+    SuperLU/FORTRAN/  Fortran interface
+    SuperLU/INSTALL/  test machine dependent parameters; the Users' Guide.
+    SuperLU/MAKE_INC/ sample machine-specific make.inc files
+    SuperLU/MATLAB/   Matlab mex-file interface
+    SuperLU/SRC/      C source code, to be compiled into the superlu.a library
+    SuperLU/TESTING/  driver routines to test correctness
+    SuperLU/Makefile  top level Makefile that does installation and testing
+    SuperLU/make.inc  compiler, compile flags, library definitions and C
+                      preprocessor definitions, included in all Makefiles.
+                      (You may need to edit it to be suitable for your system
+                       before compiling the whole package.)
+
+
+Before installing the package, please examine the three things dependent 
+on your system setup:
+
+1. Edit the make.inc include file.
+   This make include file is referenced inside each of the Makefiles
+   in the various subdirectories. As a result, there is no need to 
+   edit the Makefiles in the subdirectories. All information that is
+   machine specific has been defined in this include file. 
+
+   Example machine-specific make.inc include files are provided 
+   in the MAKE_INC/ directory for several systems, such as Linux,
+   IBM RS/6000, SunOS 5.x (Solaris), HP-PA and MacX.
+   When you have selected the machine to which you wish 
+   to install SuperLU, copy the appropriate sample include file (if one 
+   is present) into make.inc. For example, if you wish to run 
+   SuperLU on an linux, you can do
+
+       cp MAKE_INC/make.linux make.inc
+   
+   For the systems other than listed above, slight modifications to the 
+   make.inc file will need to be made.
+   
+2. The BLAS library.
+   If there is BLAS library available on your machine, you may define
+   the following in the file SuperLU/make.inc:
+        BLASDEF = -DUSE_VENDOR_BLAS
+        BLASLIB = <BLAS library you wish to link with>
+
+   The CBLAS/ subdirectory contains the part of the C BLAS needed by 
+   SuperLU package. However, these codes are intended for use only if there 
+   is no faster implementation of the BLAS already available on your machine.
+   In this case, you should do the following:
+
+    1) In SuperLU/make.inc, undefine (comment out) BLASDEF, and define:
+          BLASLIB = ../lib/blas$(PLAT).a
+
+    2) Go to the SuperLU/ directory, type:
+          make blaslib
+       to make the BLAS library from the routines in the CBLAS/ subdirectory.
+
+3. C preprocessor definition CDEFS.
+   In the header file SRC/slu_Cnames.h, we use macros to determine how
+   C routines should be named so that they are callable by Fortran.
+   (Some vendor-supplied BLAS libraries do not have C interface. So the 
+    re-naming is needed in order for the SuperLU BLAS calls (in C) to 
+    interface with the Fortran-style BLAS.)
+   The possible options for CDEFS are:
+
+       o -DAdd_: Fortran expects a C routine to have an underscore
+		 postfixed to the name;
+       o -DNoChange: Fortran expects a C routine name to be identical to
+		     that compiled by C;
+       o -DUpCase: Fortran expects a C routine name to be all uppercase.
+   
+4. The Matlab MEX-file interface.
+   The MATLAB/ subdirectory includes Matlab C MEX-files, so that 
+   our factor and solve routines can be called as alternatives to those
+   built into Matlab. In the file SuperLU/make.inc, define MATLAB to be the 
+   directory in which Matlab is installed on your system, for example:
+
+       MATLAB = /usr/local/matlab
+
+   At the SuperLU/ directory, type "make matlabmex" to build the MEX-file
+   interface. After you have built the interface, you may go to the MATLAB/ 
+   directory to test the correctness by typing (in Matlab):
+       trysuperlu
+       trylusolve
+
+A Makefile is provided in each subdirectory. The installation can be done
+completely automatically by simply typing "make" at the top level.
+The test results are in the files below:
+       INSTALL/install.out
+       TESTING/stest.out
+       TESTING/dtest.out
+       TESTING/ctest.out
+       TESTING/ztest.out
+
+
+--------------------
+| RELEASE VERSIONS |
+--------------------
+    February 4,  1997  Version 1.0
+    November 15, 1997  Version 1.1
+    September 1, 1999  Version 2.0
+    October 15,  2003  Version 3.0
+    August 1,    2008  Version 3.1
+    June 30,     2009  Version 4.0
+    November 23, 2010  Version 4.1
+    August 25,   2011  Version 4.2
+
+
+ARPACK-NG is a collection of Fortran77 subroutines designed to solve large scale
+eigenvalue problems.
+
+Important Features:
+
+* Reverse Communication Interface.
+* Single and Double Precision Real Arithmetic Versions for Symmetric,
+  Non-symmetric, Standard or Generalized Problems.
+* Single and Double Precision Complex Arithmetic Versions for Standard or
+  Generalized Problems.
+* Routines for Banded Matrices - Standard or Generalized Problems.
+* Routines for The Singular Value Decomposition.
+* Example driver routines that may be used as templates to implement numerous
+  Shift-Invert strategies for all problem types, data types and precision.
+
+This project is a joint project between Debian, Octave and Scilab in order to
+provide a common and maintained version of arpack.
+
+Indeed, no single release has been published by Rice university for the last
+few years and since many software (Octave, Scilab, R, Matlab...) forked it and
+implemented their own modifications, arpack-ng aims to tackle this by providing
+a common repository and maintained versions.
+
+arpack-ng is replacing arpack in Debian & Ubuntu. Fink, Fedora and Redhat are
+currently doing the same move.
+
+
+1. You have successfully unbundled ARPACK-NG and are now in the ARPACK-NG
+   directory that was created for you.
+
+2. 
+   The directory SRC contains the top level routines including 
+   the highest level reverse communication interface routines
+
+      ssaupd, dsaupd - symmetric single and double precision
+      snaupd, dnaupd - non-symmetric single and double precision
+      cnaupd, znaupd - complex non-symmetric single and double precision
+
+   The headers of these routines contain full documentation of calling
+   sequence and usage.  Additional information is in the DOCUMENTS directory.
+
+   The directory PARPACK contains the Parallel ARPACK routines.
+     
+
+3. Example driver programs that illustrate all the computational modes,
+   data types and precisions may be found in the EXAMPLES directory.
+   Upon executing the 'ls EXAMPLES' command you should see
+
+      BAND
+      COMPLEX
+      NONSYM
+      README
+      SIMPLE
+      SVD
+      SYM
+
+   Example programs for banded, complex, nonsymmetric, symmetric,
+   and singular value decomposition may be found in the directories
+   BAND, COMPLEX, NONSYM, SYM, SVD respectively.  Look at the README
+   file for further information.  To get started, get into the SIMPLE
+   directory to see example programs that illustrate the use of ARPACK in
+   the simplest modes of operation for the most commonly posed 
+   standard eigenvalue problems.  
+
+
+   Example programs for Parallel ARPACK may be found in the directory
+   PARPACK/EXAMPLES. Look at the README file for further information.
+
+   The following instructions explain how to make the ARPACK library.
+
+4. Unlike ARPACK, ARPACK-NG is providing autotools based build system.
+   Therefor, the classical:
+   $ ./configure
+   $ make 
+   $ make install
+   should work as expected.
+
+5. Within DOCUMENTS directory there are three files 
+
+   ex-sym.doc 
+   ex-nonsym.doc and
+   ex-complex.doc
+
+   for templates on how to invoke the computational modes of ARPACK.
+   Also look in the README file for explanations concerning the 
+   other documents.
+
+
+   Danny Sorensen   at  sorensen@caam.rice.edu
+   Richard Lehoucq  at  rblehou@sandia.gov
+   Chao Yang        at  cyang@lbl.gov
+   Kristi Maschhoff at  kristyn@tera.com
+   Sylvestre Ledru  at  sylvestre.ledru@scilab-enterprises.com
+   Allan Cornet     at  allan.cornet@scilab.org
+
+ Good luck and enjoy.
+
+
+This directory contains a bundled version of ARPACK-NG 3.1.2,
+http://forge.scilab.org/index.php/p/arpack-ng/
+
+NOTE FOR VENDORS: it is in general safe to use a system version of ARPACK
+instead. Note, however, that earlier versions of ARPACK and ARPACK-NG had
+certain bugs, so using those over the bundled version is not recommended.
+
+The bundled version has the following patch applied:
+
+Replace calls to certain Fortran functions with wrapper
+functions, to avoid various ABI mismatches on OSX. These changes are
+made with the following command:
+
+perl -pi -e '
+s@\bsdot\b@wsdot@g;
+s@\bcdotc\b@wcdotc@g;
+s@\bzdotc\b@wzdotc@g;
+s@\bcdotu\b@wcdotu@g;
+s@\bzdotu\b@wzdotu@g;
+s@\bcladiv\b@wcladiv@g;
+s@\bzladiv\b@wzladiv@g;
+s@\bslapy2\b@wslapy2@g;
+s@\bscnrm2\b@wscnrm2@g;
+s@\bslanhs\b@wslanhs@g;
+s@\bsnrm2\b@wsnrm2@g;
+s@\bclanhs\b@wclanhs@g;
+s@\bSLAMCH\b@wslamch@g;
+s@\bslamch\b@wslamch@g;
+s@\bslanst\b@wslanst@g;' \
+SRC/*.f UTIL/*.f LAPACK/*.f
+
+This is the ARPACK package from
+http://www.caam.rice.edu/software/ARPACK/
+
+Specifically the files are from
+http://www.caam.rice.edu/software/ARPACK/SRC/arpack96.tar.gz
+with the patch
+http://www.caam.rice.edu/software/ARPACK/SRC/patch.tar.gz
+
+The ARPACK README is at
+http://www.caam.rice.edu/software/ARPACK/SRC/readme.arpack
+
+---
+
+ARPACK is a collection of Fortran77 subroutines designed to solve large 
+scale eigenvalue problems. 
+
+The package is designed to compute a few eigenvalues and corresponding 
+eigenvectors of a general n by n matrix A. It is most appropriate for large 
+sparse or structured matrices A where structured means that a matrix-vector
+product w <- Av requires order n rather than the usual order n**2 floating 
+point operations. This software is based upon an algorithmic variant of the
+Arnoldi process called the Implicitly Restarted Arnoldi Method (IRAM). When
+the matrix A is symmetric it reduces to a variant of the Lanczos process 
+called the Implicitly Restarted Lanczos Method (IRLM). These variants may be
+viewed as a synthesis of the Arnoldi/Lanczos process with the Implicitly 
+Shifted QR technique that is suitable for large scale problems. For many 
+standard problems, a matrix factorization is not required. Only the action
+of the matrix on a vector is needed.  ARPACK software is capable of solving
+large scale symmetric, nonsymmetric, and generalized eigenproblems from 
+significant application areas. The software is designed to compute a few (k)
+eigenvalues with user specified features such as those of largest real part 
+or largest magnitude.  Storage requirements are on the order of n*k locations.
+No auxiliary storage is required. A set of Schur basis vectors for the desired
+k-dimensional eigen-space is computed which is numerically orthogonal to working
+precision. Numerically accurate eigenvectors are available on request. 
+
+Important Features: 
+
+    o  Reverse Communication Interface. 
+    o  Single and Double Precision Real Arithmetic Versions for Symmetric,
+       Non-symmetric, Standard or Generalized Problems.
+    o  Single and Double Precision Complex Arithmetic Versions for Standard
+       or Generalized Problems. 
+    o  Routines for Banded Matrices - Standard or Generalized Problems. 
+    o  Routines for The Singular Value Decomposition. 
+    o  Example driver routines that may be used as templates to implement
+       numerous Shift-Invert strategies for all problem types, data types
+       and precision. 
+
+---
+
+The ARPACK license is the BSD 3-clause license ("New BSD License")
+http://www.caam.rice.edu/software/ARPACK/RiceBSD.txt
+
+---
+
+BSD Software License
+
+Pertains to ARPACK and P_ARPACK
+
+Copyright (c) 1996-2008 Rice University.
+Developed by D.C. Sorensen, R.B. Lehoucq, C. Yang, and K. Maschhoff.
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are
+met:
+
+- Redistributions of source code must retain the above copyright
+  notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright
+  notice, this list of conditions and the following disclaimer listed
+  in this license in the documentation and/or other materials
+  provided with the distribution.
+
+- Neither the name of the copyright holders nor the names of its
+  contributors may be used to endorse or promote products derived from
+  this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
+A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
+OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
+DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
+THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Name
+
+      qhull, rbox         2012.1     2012/02/18
+  
+Convex hull, Delaunay triangulation, Voronoi diagrams, Halfspace intersection
+ 
+      Documentation:
+        html/index.htm
+        http://www.qhull.org/html
+
+      Available from:
+        <http://www.qhull.org>
+        <git@gitorious.org:qhull/qhull.git>
+        <http://packages.debian.org/sid/libqhull5> [out-of-date]
+ 
+      News and a paper:
+        <http://www.qhull.org/news>
+        <http://citeseerx.ist.psu.edu/viewdoc/summary?doi=10.1.1.117.405>
+
+     Version 1 (simplicial only):
+        <http://www.qhull.org/download/qhull-1.0.tar.gz>
+       
+
+Purpose
+
+  Qhull is a general dimension convex hull program that reads a set 
+  of points from stdin, and outputs the smallest convex set that contains 
+  the points to stdout.  It also generates Delaunay triangulations, Voronoi 
+  diagrams, furthest-site Voronoi diagrams, and halfspace intersections
+  about a point.
+
+  Rbox is a useful tool in generating input for Qhull; it generates 
+  hypercubes, diamonds, cones, circles, simplices, spirals, 
+  lattices, and random points.
+  
+  Qhull produces graphical output for Geomview.  This helps with
+  understanding the output. <http://www.geomview.org>
+
+Environment requirements
+
+  Qhull and rbox should run on all 32-bit and 64-bit computers.  Use
+  an ANSI C or C++ compiler to compile the program.  The software is 
+  self-contained.  It comes with examples and test scripts.
+  
+  Qhull's C++ interface uses the STL.  The C++ test program uses QTestLib 
+  from Nokia's Qt Framework.  Qhull's C++ interface may change without 
+  notice.  Eventually, it will move into the qhull shared library.
+  
+  Qhull is copyrighted software.  Please read COPYING.txt and REGISTER.txt
+  before using or distributing Qhull.
+
+To cite Qhull, please use
+
+  Barber, C.B., Dobkin, D.P., and Huhdanpaa, H.T., "The Quickhull 
+  algorithm for convex hulls," ACM Trans. on Mathematical Software,
+  22(4):469-483, Dec 1996, http://www.qhull.org.
+
+To contribute to Qhull
+
+  Qhull is on Gitorious (http://gitorious.org:qhull, git@gitorious.org:qhull/qhull.git)
+  
+  For internal documentation, see html/qh-code.htm
+
+To install Qhull
+
+  Qhull is precompiled for Windows, otherwise it needs compilation.
+  
+  Besides makefiles for gcc, qhull includes CMakeLists.txt for CMake, 
+  vcproj/sln files for Microsoft Visual Studio, and .pro files for Qt Creator.
+  It compiles with mingw.
+  
+  Install and build instructions follow.  
+  
+  See the end of this document for a list of distributed files.
+
+-----------------
+Installing Qhull on Windows
+
+  The zip file contains rbox.exe, qhull.exe, qconvex.exe, qdelaunay.exe, 
+  qhalf.exe, qvoronoi.exe, testqset.exe, user_eg*.exe, documentation files, 
+  and source files.
+  
+  To install Qhull:
+  - Unzip the files into a directory.  You may use WinZip32 <www.hotfiles.com>
+  - Click on QHULL-GO or open a command window into Qhull's bin directory.
+    
+  To uninstall Qhull
+  - Delete the qhull directory
+  
+  To learn about Qhull:
+  - Execute 'qconvex' for a synopsis and examples.
+  - Execute 'rbox 10 | qconvex' to compute the convex hull of 10 random points.
+  - Execute 'rbox 10 | qconvex i TO file' to write results to 'file'.
+  - Browse the documentation: qhull\html\index.htm
+  - If an error occurs, Windows sends the error to stdout instead of stderr.
+    Use 'TO xxx' to send normal output to xxx and error output to stdout
+
+  To improve the command window
+  - Double-click the window bar to increase the size of the window
+  - Right-click the window bar
+  - Select Properties
+  - Check QuickEdit Mode
+    Select text with right-click or Enter
+    Paste text with right-click
+  - Change Font to Lucinda Console
+  - Change Layout to Screen Buffer Height 999, Window Size Height 55
+  - Change Colors to Screen Background White, Screen Text Black
+  - Click OK
+  - Select 'Modify shortcut that started this window', then OK
+
+  If you use qhull a lot, install MSYS (www.mingw.org),
+    Road Bash (www.qhull.org/bash), or Cygwin (www.cygwin.com).
+
+-----------------
+Installing Qhull on Unix with gcc
+
+  To build Qhull, static libraries, shared library, and C++ interface
+  - Extract Qhull from qhull...tgz or qhull...zip
+  - make
+  - export LD_LIBRARY_PATH=$PWD/lib:$LD_LIBRARY_PATH
+
+  Or, to build Qhull and libqhullstatic.a
+  - Extract Qhull from qhull...tgz or qhull...zip
+  - cd src/libqhull
+  - make
+
+  The Makefiles may be edited for other compilers.
+  If 'testqset' exits with an error, qhull is broken
+  
+-----------------
+Installing Qhull with CMake 2.6 or later
+
+  To build Qhull, static libraries, shared library, and C++ interface
+  - Extract Qhull from qhull...tgz or qhull...zip
+  - cd build
+  - cmake ..
+  - make
+  - make install
+  
+  On Windows, CMake installs to C:/Program Files/qhull
+  See CMakeLists.txt for further build instructions
+
+-----------------
+Installing Qhull with Qt
+
+  To build Qhull, static libraries, shared library, C++ interface, and C++ test
+  - Extract Qhull from qhull...tgz or qhull...zip
+  - cd src
+  - qmake
+  - make
+  
+-----------------
+Installing Qhull with Autoconf [WARNING out-of-date]
+
+  The tar.gz tarball contains documentation, source files, 
+  and a config directory [R. Laboissiere].
+
+  [Nov 2011] Qhull 2009.1.2 does not include the C++ interface
+  
+  To install Qhull
+  - Extract the files
+  - ./configure
+  - make
+  - make install
+
+-------------------
+Working with Qhull's C++ interface
+
+  Qhull's C++ interface is likely to change.  Stay current with Gitorious.
+
+  To clone Qhull's next branch from http://gitorious.org/qhull
+    git init
+    git clone git://gitorious.org/qhull/qhull.git
+    cd qhull
+    git checkout next
+    ...
+    git pull origin next
+
+------------------
+Compiling Qhull with Microsoft Visual C++ 2005 or later
+
+  To compile Qhull with Microsoft Visual C++
+  - Extract Qhull from Gitorious, qhull...tgz, or qhull...zip
+  - Load solution build/qhull.sln 
+  - Build
+  - Project qhulltest requires Qt for DevStudio (http://qt.nokia.com/downloads)
+    Set the QTDIR environment variable to your Qt directory (e.g., c:/qt/4.7.4)
+    If incorrect, precompile will fail with 'Can not locate the file specified'
+
+-----------------
+Compiling Qhull with Qt Creator
+
+  Qt (http://qt.nokia.com) is a C++ framework for Windows, Linux, and Macintosh
+
+  Qhull uses QTestLib to test qhull's C++ interface (qhulltest)
+  
+  To compile Qhull with Qt Creator
+  - Extract Qhull from Gitorious, qhull...tgz, or qhull...zip
+  - Download the Qt SDK from Nokia (http://qt.nokia.com/downloads)
+  - Start Qt Creator
+  - Load src/qhull-all.pro
+  - Build
+
+-----------------
+Compiling Qhull with mingw on Windows
+
+  To compile Qhull with MINGW
+  - Extract Qhull from Gitorious, qhull...tgz, or qhull...zip
+  - Install Road Bash (http://www.qhull.org/bash)
+    or install MSYS (http://www.mingw.org/wiki/msys)
+  - Install MINGW (http://www.mingw.org/).  Mingw is included with Qt SDK.  
+  - make
+  
+-----------------
+Compiling Qhull with cygwin on Windows
+
+  To compile Qhull with cygwin
+  - Extract Qhull from Gitorious, qhull...tgz, or qhull...zip
+  - Install cygwin (http://www.cygwin.com)
+  - Include packages for gcc, make, ar, and ln
+  - make
+
+-----------------
+Compiling from Makfile without gcc
+
+  The file, qhull-src.tgz, contains documentation and source files for
+  qhull and rbox.  
+  
+  To unpack the gzip file
+  - tar zxf qhull-src.tgz
+  - cd qhull
+  
+  Compiling qhull and rbox with Makefile
+  - in Makefile, check the CC, CCOPTS1, PRINTMAN, and PRINTC defines
+      - the defaults are gcc and enscript
+      - CCOPTS1 should include the ANSI flag.  It defines __STDC__
+  - in user.h, check the definitions of qh_SECticks and qh_CPUclock.
+      - use '#define qh_CLOCKtype 2' for timing runs longer than 1 hour
+  - type: make 
+      - this builds: qhull qconvex qdelaunay qhalf qvoronoi rbox libqhull.a
+  - type: make doc
+      - this prints the man page
+      - See also qhull/html/index.htm
+  - if your compiler reports many errors, it is probably not a ANSI C compiler
+      - you will need to set the -ansi switch or find another compiler
+  - if your compiler warns about missing prototypes for fprintf() etc.
+      - this is ok, your compiler should have these in stdio.h
+  - if your compiler warns about missing prototypes for memset() etc.
+      - include memory.h in qhull_a.h
+  - if your compiler reports "global.c: storage size of 'qh_qh' isn't known"
+      - delete the initializer "={0}" in global.c, stat.c and mem.c
+  - if your compiler warns about "stat.c: improper initializer"
+      - this is ok, the initializer is not used
+  - if you have trouble building libqhull.a with 'ar'
+      - try 'make -f Makefile.txt qhullx' 
+  - if the code compiles, the qhull test case will automatically execute
+  - if an error occurs, there's an incompatibility between machines
+      - If you can, try a different compiler 
+      - You can turn off the Qhull memory manager with qh_NOmem in mem.h
+      - You can turn off compiler optimization (-O2 in Makefile)
+      - If you find the source of the problem, please let us know
+  - to install the programs and their man pages:
+      - define MANDIR and BINDIR
+      - type 'make install'
+
+  - if you have Geomview (www.geomview.org)
+       - try  'rbox 100 | qconvex G >a' and load 'a' into Geomview
+       - run 'q_eg' for Geomview examples of Qhull output (see qh-eg.htm)
+
+------------------
+Compiling on other machines and compilers
+
+  Qhull compiles with Borland C++ 5.0 bcc32.  A Makefile is included.
+  Execute 'make -f Mborland'.  If you use the Borland IDE, set the ANSI
+  option in Options:Project:Compiler:Source:Language-compliance.
+  
+  Qhull compiles with Borland C++ 4.02 for Win32 and DOS Power Pack.  
+  Use 'make -f Mborland -D_DPMI'.  Qhull 1.0 compiles with Borland 
+  C++ 4.02.  For rbox 1.0, use "bcc32 -WX -w- -O2-e -erbox -lc rbox.c".  
+  Use the same options for Qhull 1.0. [D. Zwick]
+  
+  Qhull compiles with Metrowerks C++ 1.7 with the ANSI option.
+  If you turn on full warnings, the compiler will report a number of 
+  unused variables, variables set but not used, and dead code.  These are
+  intentional.  For example, variables may be initialized (unnecessarily)
+  to prevent warnings about possible use of uninitialized variables.  
+
+  Qhull compiles on the Power Macintosh with Metrowerk's C compiler.
+  It uses the SIOUX interface to read point coordinates and return output.
+  There is no graphical output.  For project files, see 'Compiling a
+  custom build'.  Instead of using SIOUX, Qhull may be embedded within an
+  application.  
+
+  Some users have reported problems with compiling Qhull under Irix 5.1.  It
+  compiles under other versions of Irix. 
+  
+  If you have troubles with the memory manager, you can turn it off by
+  defining qh_NOmem in mem.h.
+
+-----------------
+Distributed files
+
+  README.txt           // Instructions for installing Qhull 
+  REGISTER.txt         // Qhull registration 
+  COPYING.txt          // Copyright notice 
+  QHULL-GO.lnk         // Windows icon for eg/qhull-go.bat
+  Announce.txt         // Announcement 
+  CMakeLists.txt       // CMake build file (2.6 or later)
+  File_id.diz          // Package descriptor
+  index.htm            // Home page 
+  Makefile             // Makefile for gcc and other compilers
+  qhull*.md5sum        // md5sum for all files
+
+  bin/*		       // Qhull executables and dll (.zip only)
+  build/qhull.sln      // DevStudio solution and project files (2005 or later)
+  build/*.vcproj
+  config/*             // Autoconf files for creating configure (Unix only)
+  eg/*                 // Test scripts and geomview files from q_eg
+  html/index.htm       // Manual
+  html/qh-faq.htm      // Frequently asked questions
+  html/qh-get.htm      // Download page
+  html/qhull-cpp.xml   // C++ style notes as a Road FAQ (www.qhull.org/road)
+  src/Changes.txt      // Change history for Qhull and rbox 
+  src/qhull-all.pro    // Qt project
+
+eg/ 
+  q_eg                 // shell script for Geomview examples (eg.01.cube)
+  q_egtest             // shell script for Geomview test examples
+  q_test               // shell script to test qhull
+  q_test-ok.txt        // output from q_test
+  qhulltest-ok.txt     // output from qhulltest (Qt only)
+
+rbox consists of (bin, html):
+  rbox.exe             // Win32 executable (.zip only) 
+  rbox.htm             // html manual 
+  rbox.man             // Unix man page 
+  rbox.txt
+
+qhull consists of (bin, html):
+  qhull.exe            // Win32 executables and dlls (.zip only) 
+  qconvex.exe
+  qdelaunay.exe
+  qhalf.exe
+  qvoronoi.exe
+  qhull.dll
+  qhull_p.dll
+  qhull-go.bat         // command window
+  qconvex.htm          // html manual
+  qdelaun.htm
+  qdelau_f.htm        
+  qhalf.htm
+  qvoronoi.htm
+  qvoron_f.htm
+  qh-eg.htm
+  qh-code.htm
+  qh-impre.htm
+  index.htm
+  qh-opt*.htm
+  qh-quick.htm
+  qh--*.gif            // images for manual
+  normal_voronoi_knauss_oesterle.jpg
+  qhull.man            // Unix man page 
+  qhull.txt
+
+bin/
+  msvcr80.dll          // Visual C++ redistributable file (.zip only)
+
+src/
+  qhull/unix.c         // Qhull and rbox applications
+  qconvex/qconvex.c    
+  qhalf/qhalf.c
+  qdelaunay/qdelaunay.c
+  qvoronoi/qvoronoi.c
+  rbox/rbox.c
+
+  user_eg/user_eg.c    // example of using qhull_p.dll (requires -Dqh_QHpointer)
+  user_eg2/user_eg2.c  // example of using qhull.dll from a user program
+  user_eg3/user_eg3.cpp // example of Qhull's C++ interface with libqhullstatic_p.a
+  qhulltest/qhulltest.cpp // Test of Qhull's C++ interface using Qt's QTestLib
+  qhull-*.pri          // Include files for Qt projects
+
+src/libqhull
+  libqhull.pro         // Qt project for shared library (qhull.dll)
+  index.htm            // design documentation for libqhull
+  qh-*.htm
+  qhull-exports.def    // Export Definition file for Visual C++
+  Makefile             // Simple gcc Makefile for qhull and libqhullstatic.a
+  Mborland             // Makefile for Borland C++ 5.0
+
+  libqhull.h           // header file for qhull
+  user.h               // header file of user definable constants 
+  libqhull.c           // Quickhull algorithm with partitioning
+  user.c               // user re-definable functions 
+  usermem.c
+  userprintf.c
+  userprintf_rbox.c
+
+  qhull_a.h            // include files for libqhull/*.c 
+  geom.c               // geometric routines 
+  geom2.c
+  geom.h     
+  global.c             // global variables 
+  io.c                 // input-output routines 
+  io.h   
+  mem.c                // memory routines, this is stand-alone code 
+  mem.h
+  merge.c              // merging of non-convex facets 
+  merge.h
+  poly.c               // polyhedron routines 
+  poly2.c
+  poly.h 
+  qset.c               // set routines, this only depends on mem.c 
+  qset.h
+  random.c             // utilities w/ Park & Miller's random number generator
+  random.h
+  rboxlib.c            // point set generator for rbox
+  stat.c               // statistics 
+  stat.h
+
+src/libqhullp
+  libqhullp.pro        // Qt project for shared library (qhull_p.dll)
+  qhull_p-exports.def  // Export Definition file for Visual C++
+
+src/libqhullstatic/
+  libqhullstatic.pro   // Qt project for static library     
+     
+src/libqhullstaticp/
+  libqhullstaticp.pro  // Qt project for static library with qh_QHpointer
+     
+src/libqhullcpp/
+  libqhullcpp.pro      // Qt project for static C++ library     
+  Qhull.cpp            // Call libqhull.c from C++
+  Qhull.h
+  qt-qhull.cpp         // Supporting methods for Qt
+  qhull_interface.cpp  // Another approach to C++
+    
+  Coordinates.cpp      // input classes
+  Coordinates.h
+  PointCoordinates.cpp
+  PointCoordinates.h
+  RboxPoints.cpp       // call rboxlib.c from C++
+  RboxPoints.h
+
+  QhullFacet.cpp       // data structure classes
+  QhullFacet.h
+  QhullHyperplane.cpp
+  QhullHyperplane.h
+  QhullPoint.cpp
+  QhullPoint.h
+  QhullQh.cpp
+  QhullStat.cpp
+  QhullStat.h
+  QhullVertex.cpp
+  QhullVertex.h
+  
+  QhullFacetList.cpp   // collection classes
+  QhullFacetList.h
+  QhullFacetSet.cpp
+  QhullFacetSet.h
+  QhullIterator.h
+  QhullLinkedList.h
+  QhullPoints.cpp
+  QhullPoints.h
+  QhullPointSet.cpp
+  QhullPointSet.h
+  QhullRidge.cpp
+  QhullRidge.h
+  QhullSet.cpp
+  QhullSet.h
+  QhullSets.h
+  QhullVertexSet.cpp
+  QhullVertexSet.h
+
+  functionObjects.h    // supporting classes
+  QhullError.cpp
+  QhullError.h
+  QhullQh.cpp
+  QhullQh.h
+  UsingLibQhull.cpp
+  UsingLibQhull.h
+
+src/qhulltest/
+  qhulltest.pro        // Qt project for test of C++ interface     
+  Coordinates_test.cpp // Test of each class
+  PointCoordinates_test.cpp
+  Point_test.cpp
+  QhullFacetList_test.cpp
+  QhullFacetSet_test.cpp
+  QhullFacet_test.cpp
+  QhullHyperplane_test.cpp
+  QhullLinkedList_test.cpp
+  QhullPointSet_test.cpp
+  QhullPoints_test.cpp
+  QhullPoint_test.cpp
+  QhullRidge_test.cpp
+  QhullSet_test.cpp
+  QhullVertexSet_test.cpp
+  QhullVertex_test.cpp
+  Qhull_test.cpp
+  RboxPoints_test.cpp
+  UsingLibQhull_test.cpp
+
+src/road/
+  RoadError.cpp        // Supporting base classes
+  RoadError.h
+  RoadLogEvent.cpp
+  RoadLogEvent.h
+  RoadTest.cpp         // Run multiple test files with QTestLib
+  RoadTest.h
+
+src/testqset/
+  testqset.pro		// Qt project for test qset.c with mem.c
+  testqset.c
+  
+-----------------
+Authors:
+
+  C. Bradford Barber                  Hannu Huhdanpaa (Version 1.0)
+  bradb@shore.net                     hannu@qhull.org
+  
+  Qhull 1.0 and 2.0 were developed under NSF grants NSF/DMS-8920161 
+  and NSF-CCR-91-15793 750-7504 at the Geometry Center and Harvard 
+  University.  If you find Qhull useful, please let us know.
+
+For inclusion in the cephes library.  The routines here need to be compiled
+in a library and then linked with the module code.  Only the double precision
+routines are included.  Pay attention to i1mach.f and d1mach.f which must be
+modified to match your architecture.  Right now they are set for IBM_PC.
+This may also work for any IEEE 754 conforming machine.
+
+
+
+ ======== readme for AMOS =======
+
+ A Portable Package for Bessel Functions of a Complex Argument
+ and Nonnegative Order
+
+ This algorithm is a package of subroutines for computing Bessel
+ functions and Airy functions.  The routines are updated
+ versions of those routines found in TOMS algorithm 644.
+
+
+# Author:  Travis E. Oliphant
+#          oliphant.travis@altavista.net
+#
+# This can be freely distributed provided this notification remain and it is
+# understood that no warranty is expressed or implied.
+
+CEPHES module for Numerical Python
+
+
+DESCRIPTION: 
+=====================
+This package contains all of the important functions from the cephes
+library with some complex extensions from the amos library 
+in a python module.  There are now some hooks for including toms algorithms 
+as well (thanks Lorenzo Catucci).
+
+The module is patterned after the umath module and uses the ufunc
+object as the interface so that all of the functions are accessible on
+multidimensional arrays.  The ufunc methods (reduce, outer, etc.) are
+also available to the functions which take two arguments (the need for 
+these methods is dubious for these functions, they are just along for the 
+ride as part of the ufunc object).  The ufunc
+object interface is general enough to allow even functions which take
+more than two arguments and return more than one argument to be
+implemented. 
+
+In the ./docs directory is the documentation for the all of the cephes
+library, and it includes an HTML page showing brief documentation for 
+all included functions calls.
+
+INSTALLATION:
+
+Part of SciPy
+ 
+
+CHANGES:
+===========
+0.5        Initial Release
+
+0.51       Fixed the name of a subroutine that was conflicting with
+	   one from umath so that Numeric and cephes work together.
+
+0.52       Fixed the real reason Numeric and cephes weren't working together:
+           I had copied a setup routine from umathmodule.c that wasn't
+           necessary and shouldn't have been called.
+
+0.60       Added kolmogorov and kolmogi functions from cephes file.  These 
+	   functions were not really functions in the cephes library, but they
+	   existed in a standalone program.  They may not be as robust. 
+	   Kolmogorov hangs if given 0 as an argument.  Someone could
+	   probably fix this.
+
+0.61       Changed so Kolmogorov doesn't hang on 0 argument.  Returns 1 
+           Also kolmogi returns 0 on 1.0 as argument.
+
+0.70       Added many more functions from the library.  Wrote wrappers
+	   so that functions which took an integer as one of two
+	   arguments could be added.  Also added wrappers around
+	   functions which returned more than one value:  I made a new
+	   function for each returned value.  yn,kn,jn Student T, and 
+	   Poisson distribution functions are notable inclusions.
+
+0.71       Added info about mconf.h in the README and created a patchfile
+           to patch mconf.h to a generic BIGENDIAN computer from an IBM_PC
+           Changed gamma to Gamma in the c-code so that Solaris's gamma
+	   which actually computes lgamma is not called.  Removed log2
+	   from library as it gave poor results on UNK machines. 
+
+1.0        Added all of the remaining cephes calls to the library and
+	   eliminated the wrapper functions after learning how to
+	   really use the ufunc object correctly to handle generic
+	   functions.
+
+1.1	   Added complex extensions to bessel and airy functions by
+	   incorporating the amos libraries into the module with some 
+	   wrappers around the fortran code.
+
+1.11       Fixed small bugs.
+
+1.15       Added changes from Lorenzo Catucci: a new wofz function and a
+           testing script.
+  
+1.2        Added a loopfunc method to the cephes module.  This method is a 
+	   kind of generalized map that takes a Python function with scalar
+           inputs and outputs and a tuple of input arrays or nested sequence
+	   objects and returns an array created by applying the Python function
+	   in turn to input tuples created from the elements of the input
+           arrays.  It uses the same broadcasting rules as are available with
+	   ufuncs.  Basically, this turns a regular Python function into
+	   the equivalent of a ufunc.   
+
+1.3        Added besselpoly function.  Added empty docstrings to compile with
+	   Numeric 15.3 (thanks Warren Focke).  Changed makefiles to compile 
+	   shared libraries with libtool.
+
+
+
+This directory contains numerical data for testing special functions.
+The data is in version control as text files, but it is distributed as
+compressed NPZ files which are also checked in.
+
+To rebuild the npz files, use ../../utils/makenpz.py on the directories.
+
+
+This contains a few hacks to re-use BOOST C++ library special function tests
+data for scipy.special
+
+convert.py
+----------
+
+This script parse the BOOST data and write the data into a CVS text file. For
+each data file, a subdirectory is created, as one boost data file (.ipp) can
+have several test sets.
+
+Blitz header file notes
+
+1) Some matrix headers are included in this release, but only because
+the Benchmark class needs them.  Their design is not yet stable,
+and they are untested, so use them at your own peril.
+
+2) A compiler-specific header file with configuration settings is included
+from the master header file <blitz/bzconfig.h>.  The compiler-specific 
+header file is selected on the basis of preprocessor symbols.  Since some
+C++ compilers (notably the IBM XL compiler for Darwin and for AIX systems)
+do not define a unique preprocessor symbol, we have added a -D option in
+the autoconf macro AC_CXX_FLAGS_PRESET (see file m4/ac_cxx_flags_preset.m4).
+Thus, we use the option -D__APPLE with xlc++ and -D__IBM with xlC.
+Please note that any user code must also be compiled with the same -D option
+in order to be compiled successfully with one of these compilers.
+
+
+weave provides tools for including C/C++ code within Python.
+
+For instructions on installation, see the tutorial file located in 
+doc/tutorial.html or weave/doc/tutorial.html, depending upon how weave was 
+packaged.
+
+The LICENSE.txt file (either in this directory or in the weave directory) has 
+licenses for all the code distributed in this package.  All licenses allow free 
+use of the package for both commercial and non-commercial
+purposes.
+Overview
+========
+
+ SCXX (Simplified CXX) is a lightweight C++ wrapper for dealing with PyObjects.
+ 
+ It is inspired by Paul Dubois' CXX (available from LLNL), but is much simpler.
+ It does not use templates, so almost any compiler should work. It does not try
+ to hide things like the Python method tables, or the init function. In fact, it
+ only covers wrapping the most common PyObjects. No extra support is added (for
+ example, you'll only get STL support for Python sequences from CXX).
+
+ It lets you write C++ that looks a lot more like Python than the C API. Reference
+ counts are handled automatically. It has not been optimized - it generally uses
+ the highest possible level of the Python C API.
+
+Classes
+=======
+ PWOBase	Base class; wraps any PyObject *
+ PWONumber	Uses PyNumber_xxx calls. Automatically does the right thing.
+ PWOSequence    Base class for all Python sequences. 
+  PWOTuple	
+  PWOString
+  PWOList
+ PWOMapping	Wraps a dictionary
+
+internal
+--------
+ PWOMappingMmbr	Used to give PWOMappings Python (reference) semantics.
+ PWOListMmbr	Used to give PWOLists Python (reference) semantics.
+
+error
+-----
+ PWException	A C++ class that holds appropriate Python exception info.
+
+General Notes
+=============
+
+ These classes can be used to create new Python objects, or wrap existing ones.
+
+ Wrapping an existing one forces a typecheck (except for PWOBase, which doesn't
+ care). So "PWOMapping dict(d);" will throw an exception if d is not a Python
+ Mapping object (a set with one member - dicts). Or you can use the Python C API
+ by casting to a PyObject * (e.g. "Pyxxx_Check((PyObject *)x)"). 
+
+ Since errors are normally reported through exceptions, use code like this:
+
+  try {
+    //....
+  }
+  catch(PWException e) {
+    return e.toPython();
+  }
+
+ To signal errors in your own code, use:
+  throw PWException(PyExc_xxxx, msg);
+
+ That is: throw a stack-based instance (not heap based), and give it the appropriate
+ PyExc_xxx type and a string that the Python exception can show.
+
+ To return a PWOxxx wrapped (or created) instance to Python, use disOwn():
+
+  return PWONumber(7.0).disOwn();
+
+ Without the disOwn(), the object would be deallocated before Python can get it.
+
+ Note that the PWOxxx classes are generally designed to be created on the stack. The
+ corresponding PyObject is on the heap. When the PWOxxx instance goes out of scope, 
+ the PyObject is automatically decreffed (unless you've used disOwn()).
+
+ See the MkWrap (http://www.equi4.com/metakit/mk4py/mkwrap/) project for extensive 
+ use of SCXX. Just don't confuse the PWOxxx classes (which _wrap_ Python objects) and 
+ the classes exposed by MkWrap (which are _both_ C++ objects _and_ Python objects).
+
+Why SCXX
+========
+
+ I realize that a lot of effort has gone into CXX and some of the initiatives on
+ the C++ SIG. I applaud those efforts; indeed, SCXX was inspired by CXX. But CXX
+ uses fairly up to date features of C++, and wouldn't compile with most of the
+ compilers I have, (I have to keep old versions around to support clients who still
+ use them). On the one where it worked, it produced bloated code (because of the 
+ way the compiler handles templates).
+
+ For my purposes, I really only wanted one thing: wrap Python objects, and take
+ care of the refcounts. The result is lightweight, and has the great advantage 
+ (like CXX) that using PyObjects in C++ looks very much like using them in Python.
+
+Instructions for use
+====================
+
+ Point to the installation directory with a -I directive.
+ Include PWOImp.cpp in your make.
+
+License
+=======
+
+ No restrictions on usage, modification or redistribution, as long as the copyright
+ notice is maintained. No warranty whatsoever.
+
+Contact
+=======
+
+ Gordon McMillan (McMillan Enterprises, Inc.) gmcm@hypernet.com.
+
+
+ 
+==================================
+ Building an OSX binary for scipy
+==================================
+
+This directory contains the scripts to build a universal binary for
+OSX.  The binaries work on OSX 10.4 and 10.5.
+
+The docstring in build.py may contain more current details.
+
+Requirements
+============
+
+* bdist_mpkg v0.4.3
+
+Build
+=====
+
+The build script will build a scipy distribution using bdist_mpkg and
+create the mac package (mpkg) bundled in a disk image (dmg).  To run
+the build script::
+
+  python build.py
+
+Install and test
+----------------
+
+The *install_and_test.py* script will find the scipy*.mpkg, install it
+using the Mac installer and then run the scipy test suite.  To run the
+install and test::
+
+  python install_and_test.py
+
+
+This is a set of scripts used to build a scipy .dmg installer with
+documentation.
+
+The actual content of the dmg is to be put in content: documentation go into
+the Documentation subdir, and the .mpkg installer for numpuy itself in the
+content directory. The name of the installer should match exactly the one in
+the scipy script (otherwise, the background will not appear correctly).
+
+The artwork is done in inkscape.
+
+The main script (new-create-dmg) was taken from stackoverflow.
+

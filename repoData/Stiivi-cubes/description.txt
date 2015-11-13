@@ -1,0 +1,611 @@
+Star Browser, Part 1: Mappings
+==============================
+
+Star Browser is new aggregation browser in for the
+[Cubes](https://github.com/Stiivi/cubes) – lightweight Python OLAP Framework.
+I am going to talk briefly about current state and why new browser is needed.
+Then I will describe in more details the new browser: how mappings work, how
+tables are joined. At the end I will mention what will be added soon and what
+is planned in the future.
+
+Originally I wanted to write one blog post about this, but it was too long, so
+I am going to split it into three:
+
+* mappings (this one)
+* joins and denormalization
+* aggregations and new features
+
+Why new browser?
+================
+
+Current [denormalized
+browser](https://github.com/Stiivi/cubes/blob/master/cubes/backends/sql/browser.py)
+is good, but not good enough. Firstly, it has grown into a spaghetti-like
+structure inside and adding new features is quite difficult. Secondly, it is
+not immediately clear what is going on inside and not only new users are
+getting into troubles. For example the mapping of logical to physical is not
+obvious; denormalization is forced to be used, which is good at the end, but
+is making OLAP newbies puzzled.
+
+The new browser, called
+[StarBrowser](https://github.com/Stiivi/cubes/blob/master/cubes/backends/sql/star.py).
+is half-ready and will fix many of the old decisions with better ones.
+
+Mapping
+=======
+
+Cubes provides an analyst's view of dimensions and their attributes by hiding
+the physical representation of data. One of the most important parts of proper
+OLAP on top of the relational database is the mapping of physical attributes
+to logical.
+
+First thing that was implemented in the new browser is proper mapping of
+logical attributes to physical table columns. For example, take a reference to
+an attribute *name* in a dimension *product*. What is the column of what table
+in which schema that contains the value of this dimension attribute?
+
+![](http://media.tumblr.com/tumblr_m3ajdppDAa1qgmvbu.png)
+
+There are two ways how the mapping is being done: implicit and explicit. The
+simplest, straightforward and most customizable is the explicit way, where the
+actual column reference is provided in the model description:
+
+<pre class="prettyprint">
+"mappings": {
+    "product.name": "dm_products.product_name"
+}
+</pre>
+
+If it is in different schema or any part of the reference contains a dot:
+
+<pre class="prettyprint">
+"mappings": {
+    "product.name": {
+            "schema": "sales",
+            "table": "dm_products",
+            "column": "product_name"
+        }
+}
+</pre>
+
+Disadvantage of the explicit way is it's verbosity and the fact that developer
+has to write more metadata, obviously.
+
+Both, explicit and implicit mappings have ability to specify default database
+schema (if you are using Oracle, PostgreSQL or any other DB which supports
+schemas).
+
+The mapping process process is like this:
+
+![](http://media.tumblr.com/tumblr_m3akrsmX9b1qgmvbu.png)
+
+Implicit Mapping
+----------------
+
+With implicit mapping one can match a database schema with logical model and
+does not have to specify additional mapping metadata. Expected structure is
+star schema with one table per (denormalized) dimension.
+
+Basic rules:
+
+* fact table should have same name as represented cube
+* dimension table should have same name as the represented dimension, for
+  example: `product` (singular)
+* references without dimension name in them are expected to be in the fact
+  table, for example: `amount`, `discount` (see note below for simple flat
+  dimensions)
+* column name should have same name as dimension attribute: `name`, `code`,
+  `description`
+* if attribute is localized, then there should be one column per localization
+  and should have locale suffix: `description_en`, `description_sk`,
+  `description_fr` (see below for more information)
+  
+This means, that by default `product.name` is mapped to the table `product`
+and column `name`. Measure `amount` is mapped to the table `sales` and column
+`amount`
+
+What about dimensions that have only one attribute, like one would not have a
+full date but just a `year`? In this case it is kept in the fact table without
+need of separate dimension table. The attribute is treated in by the same rule
+as measure and is referenced by simple `year`. This is applied to all
+dimensions that have only one attribute (representing key as well). This
+dimension is referred to as *flat and without details*.
+
+Note for advanced users: this behavior can be disabled by setting
+`simplify_dimension_references` to `False` in the mapper. In that case you
+will have to have separate table for the dimension attribute and you will have
+to reference the attribute by full name. This might be useful when you know
+that your dimension will be more detailed.
+
+Localization
+------------
+
+Despite localization taking place first in the mapping process, we talk about
+it at the end, as it might be not so commonly used feature. From physical
+point of view, the data localization is very trivial and requires language
+denormalization - that means that each language has to have its own column for
+each attribute.
+
+In the logical model, some of the attributes may contain list of locales that
+are provided for the attribute. For example product category can be in
+English, Slovak or German. It is specified in the model like this:
+
+<pre class="prettyprint">
+attributes = [{
+    "name" = "category",
+    "locales" = [en, sk, de],
+}]
+</pre>
+
+During the mapping process, localized logical reference is created first:
+
+![](http://media.tumblr.com/tumblr_m3aksf89Zb1qgmvbu.png)
+
+In short: if attribute is localizable and locale is requested, then locale
+suffix is added. If no such localization exists then default locale is used.
+Nothing happens to non-localizable attributes.
+
+For such attribute, three columns should exist in the physical model. There
+are two ways how the columns should be named. They should have attribute name
+with locale suffix such as `category_sk` and `category_en` (_underscore_
+because it is more common in table column names), if implicit mapping is used.
+You can name the columns as you like, but you have to provide explicit mapping
+in the mapping dictionary. The key for the localized logical attribute should
+have `.locale` suffix, such as `product.category.sk` for Slovak version of
+category attribute of dimension product. Here the _dot_ is used because dots
+separate logical reference parts.
+
+Customization of the Implicit
+-----------------------------
+
+The implicit mapping process has a little bit of customization as well:
+
+* *dimension table prefix*: you can specify what prefix will be used for all
+  dimension tables. For example if the prefix is `dim_` and attribute is
+  `product.name` then the table is going to be `dim_product`.
+* *fact table prefix*: used for constructing fact table name from cube name.
+  Example: having prefix `ft_` all fact attributes of cube `sales` are going
+  to be looked up in table `ft_sales`
+* *fact table name*: one can explicitly specify fact table name for each cube
+  separately
+
+The Big Picture
+===============
+
+Here is the whole mapping schema, after localization:
+
+![](http://media.tumblr.com/tumblr_m3akttdCmK1qgmvbu.png)
+
+Links
+=====
+
+The commented mapper source is
+[here](https://github.com/Stiivi/cubes/blob/master/cubes/backends/sql/common.py).
+
+* [github sources](https://github.com/Stiivi/cubes)
+* [Documentation](http://packages.python.org/cubes/)
+* [Mailing List](http://groups.google.com/group/cubes-discuss/)
+* [Submit issues](https://github.com/Stiivi/cubes/issues)
+* IRC channel [#databrewery](irc://irc.freenode.net/#databrewery) on irc.freenode.net
+
+Last time I was talking about how [logical attributes are mapped to the
+physical table columns](http://blog.databrewery.org/post/22119118550) in the
+Star Browser. Today I will describe how joins are formed and how
+denormalization is going to be used.
+
+The Star Browser is new aggregation browser in for the
+[Cubes](https://github.com/Stiivi/cubes) – lightweight Python OLAP Framework.
+
+Star, Snowflake, Master and Detail
+=================================
+
+Star browser supports a star:
+
+![](http://media.tumblr.com/tumblr_m3ajfbXcHo1qgmvbu.png)
+
+... and snowflake database schema:
+
+![](http://media.tumblr.com/tumblr_m3ajfn8QYt1qgmvbu.png)
+
+The browser should know how to construct the star/snowflake and that is why
+you have to specify the joins of the schema. The join specification is very
+simple: 
+
+<pre class="prettyprint">
+"joins" = [
+    { "master": "fact_sales.product_id", "detail": "dim_product.id" }
+]
+</pre>    
+
+Joins support only single-column keys, therefore you might have to create
+surrogate keys for your dimensions.
+
+As in mappings, if you have specific needs for explicitly mentioning database
+schema or any other reason where `table.column` reference is not enough, you
+might write:
+
+<pre class="prettyprint">
+"joins" = [
+    { 
+        "master": "fact_sales.product_id",
+        "detail": {
+            "schema": "sales",
+            "table": "dim_products",
+            "column": "id"
+        }
+]
+</pre>
+
+What if you need to join same table twice? For example, you have list of
+organizations and you want to use it as both: supplier and service consumer.
+It can be done by specifying alias in the joins:
+
+<pre class="prettyprint">
+"joins" = [
+    {
+        "master": "contracts.supplier_id", 
+        "detail": "organisations.id",
+        "alias": "suppliers"
+    },
+    {
+        "master": "contracts.consumer_id", 
+        "detail": "organisations.id",
+        "alias": "consumers"
+    }
+]
+</pre>
+
+In the mappings you refer to the table by alias specified in the joins, not by
+real table name:
+
+<pre class="prettyprint">
+"mappings": {
+    "supplier.name": "suppliers.org_name",
+    "consumer.name": "consumers.org_name"
+}
+</pre>
+
+![](http://media.tumblr.com/tumblr_m3ajian3sA1qgmvbu.png)
+
+Relevant Joins and Denormalization
+----------------------------------
+
+The new mapper joins only tables that are relevant for given query. That is,
+if you are browsing by only one dimension, say *product*, then only product
+dimension table is joined.
+
+Joins are slow, expensive and the denormalization can be
+helpful:
+
+![](http://media.tumblr.com/tumblr_m3ajglKwV11qgmvbu.png)
+
+The old browser is based purely on the denormalized view. Despite having a
+performance gain, it has several disadvantages. From the
+join/performance perspective the major one is, that the denormalization is
+required and it is not possible to browse data in a database that was
+"read-only". This requirements was also one unnecessary step for beginners,
+which can be considered as usability problem.
+
+Current implementation of the *Mapper* and *StarBrowser* allows
+denormalization to be integrated in a way, that it might be used based on
+needs and situation:
+
+![](http://media.tumblr.com/tumblr_m3d4ctMm6K1qgmvbu.png)
+
+It is not yet there and this is what needs to be done:
+
+* function for denormalization - similar to the old one: will take cube and
+  view name and will create denormalized view (or a table)
+* make mapper accept the view and ignore joins
+
+Goal is not just to slap denormalization in, but to make it a configurable
+alternative to default star browsing. From user's perspective, the workflow
+will be:
+
+1. browse star/snowflake until need for denormalization arises
+2. configure denormalization and create denormalized view
+3. browse the denormalized view
+
+The proposed options are: `use_denormalization`, `denormalized_view_prefix`,
+`denormalized_view_schema`.
+
+The Star Browser is half-ready for the denormalization, just few changes are
+needed in the mapper and maybe query builder. These changes have to be
+compatible with another, not-yet-included feature: SQL pre-aggregation.
+
+Conclusion
+==========
+
+The new way of joining is very similar to the old one, but has much more
+cleaner code and is separated from mappings. Also it is more transparent. New
+feature is the ability to specify a database schema. Planned feature to be
+integrated is automatic join detection based on foreign keys.
+
+In the next post, the last post about the new *StarBrowser*, you are going to
+learn about aggregation improvements and changes.
+
+Links
+=====
+
+Relevant source code is [this one] (https://github.com/Stiivi/cubes/blob/master/cubes/backends/sql/common.py) (github).
+
+See also [Cubes at github](https://github.com/Stiivi/cubes),
+[Cubes Documentation](http://packages.python.org/cubes/),
+[Mailing List](http://groups.google.com/group/cubes-discuss/)
+and [Submit issues](https://github.com/Stiivi/cubes/issues). Also there is an 
+IRC channel [#databrewery](irc://irc.freenode.net/#databrewery) on
+irc.freenode.net
+
+This folder contains copies of Cubes blog-posts on http://blog.databrewery.org. They are written in Markdown for Tumblr.
+
+
+
+Flask Dimension Browser
+=======================
+
+Simple browser of dimension hierarchy served with Flask web microframework.
+The application displays an aggregated table where user can drill down through
+dimension levels.
+
+Requirements
+------------
+
+Prepare the `hello_world` data in ``../hello_world`` by running:
+
+    python prepare_data.py
+
+Use
+---
+
+Run the server::
+
+    python application.py
+
+And navigate your browser to http://localhost:5000/
+
+You can also access the raw data using the Slicer at
+http://localhost:5000/slicer
+
+Files
+-----
+
+This directory contains following files:
+
+    * application.py  - the web application (see commends in the file)
+    * templates/report.html - HTML template that shows the simple table report
+                        (see comments in the file)
+    * static/         - just static files, such as Twitter Bootstrap css so it can be pretty
+
+Credits
+-------
+
+The example data used are IBRD Balance Sheet taken from The World Bank:
+
+https://finances.worldbank.org/Accounting-and-Control/IBRD-Balance-Sheet-FY2010/e8yz-96c6
+
+
+Hello World! example for cubes
+==============================
+
+Files
+-----
+
+This directory contains following files:
+
+    * model.json      - logical model
+    * slicer.ini      - server configuration file
+    * data.csv        - source data
+    * prepare_data.py - script for preparing the data: load them into database
+                        and create a view
+    * aggregate.py    - example aggregations
+
+Quick start
+-----------
+
+Prepare data::
+
+    python prepare_data.py
+
+Get some aggregations::
+
+    python aggregate.py
+
+Hello Server!
+-------------
+
+Run the server::
+
+    slicer serve slicer.ini
+    
+Try the server. Aggregate::
+
+    curl "http://localhost:5000/aggregate"
+    
+Aggregate by year::
+
+    curl "http://localhost:5000/aggregate?drilldown=year"
+    
+Aggregate by category (top level for dimension item)::
+
+    curl "http://localhost:5000/aggregate?drilldown=item"
+
+Aggregate by subcategory for item category 'e'::
+
+    curl "http://localhost:5000/aggregate?drilldown=item&cut=item:e"
+
+Note the implicit hierarchy of the `item` dimension.
+
+See also the Slicer server documentation for more types of requests:
+http://packages.python.org/cubes/server.html
+
+Credits
+-------
+
+The example data used are IBRD Balance Sheet taken from The World Bank:
+
+https://finances.worldbank.org/Accounting-and-Control/IBRD-Balance-Sheet-FY2010/e8yz-96c6
+
+
+Model Browser
+=============
+
+Example Flask web application for browsing a model.
+
+Use:
+
+    python application.py slicer.ini
+
+Where slicer.ini should contain absolute paths for model, translations. If you
+are using sqlite database then URL should be absolute as well.
+
+You can try it with the hello_world example:
+
+    cd ../hellow_world
+    python ../model_browser/application.py slicer.ini
+
+And then navigate your browser to: http://localhost:5000
+
+Cubes Examples
+==============
+
+* `hello_world` - basic example of browsing in python and running the slicer
+  server
+* `flask_dimension_browser` - simple Flask (web microframework) application for
+  browsing a dimension hierarchy
+
+Sandbox
+-------
+
+The sandbox directory contains examples that are work in progress. They serve
+for educational purposes, however they might not be very well documented yet.
+Once the sandbox example is tuned, simplified enough to be understandable and
+documented, then it will be moved to the parent `examples` directory.
+
+Cubes Examples Sandbox
+======================
+
+This directory contains examples that are work in progress. They serve for
+educational purposes, however they might not be very well documented yet. Once
+a sandbox example is tuned, simplified enough to be understandable and
+documented, then it will be moved to the parent `examples` directory.
+
+These examples also serve for tuning usability of cubes. If they are not
+understandable, then some work is necessary on the framework side.
+
+If you have any example that you would like to include here, just write to the
+author <stefan.urbanek@gmail.com> or better - send a pull request with files
+to this directory.
+
+Examples
+--------
+
+Note: Former flask example was moved to root examples, as it was good enough.
+
+Cubes - Online Analytical Processing Framework for Python
+=========================================================
+
+About
+-----
+
+Cubes is a light-weight Python framework and set of tools for Online
+Analytical Processing (OLAP), multidimensional analysis and browsing of
+aggregated data. 
+
+*Focus on data analysis, in human way*
+
+Purpose is to provide a framework for giving analyst or any application 
+end-user understandable and natural way of presenting the multidimensional 
+data. One of the main features is the logical model, which serves as 
+abstraction over physical data to provide end-user layer.
+
+Features:
+
+* OLAP and aggregated browsing (default backend is for relational databse - 
+  ROLAP)
+* multidimensional analysis
+* logical view of analysed data - how analysts look at data, how they think of
+  data, not not how the data are physically implemented in the data stores
+* hierarchical dimensions (attributes that have hierarchical dependencies,
+  such as category-subcategory or country-region)
+* localizable metadata and data
+* OLAP server (WSGI HTTP server with JSON API based on Wergzeug)
+
+Documentation
+-------------
+
+Latest release documentation: http://packages.python.org/cubes
+
+Development documentation: http://cubes.databrewery.org/dev/doc
+
+See `examples` directory for simple examples and use-cases. Also see:
+
+    https://github.com/stiivi/cubes-examples
+    
+for more complex examples.
+
+
+Source
+------
+
+Github source repository: https://github.com/Stiivi/cubes
+
+Requirements
+------------
+
+Developed using python 2.7.
+
+Most of the requirements are soft (optional) and need to be satisfied only if 
+certain parts of cubes are being used.
+
+* SQLAlchemy from http://www.sqlalchemy.org/ version >= 0.7.4 - for SQL
+  backend
+* Werkzeug from http://werkzeug.pocoo.org/ for Slicer server
+* Jinja2 from http://jinja.pocoo.org/docs/ for HTML presenters
+* PyMongo for mongo and mongo2 backend
+* pytz for mongo2 backend
+
+Support
+=======
+
+If you have questions, problems or suggestions, you can send a message to the 
+Google group or write to the author.
+
+* Google group: http://groups.google.com/group/cubes-discuss
+* IRC channel #databrewery on server irc.freenode.net
+
+Report bugs using github issue tracking: https://github.com/Stiivi/cubes/issues
+
+Development
+-----------
+
+If you are browsing the code and you find something that:
+
+* is over-complicated or not obvious
+* is redundant
+* can be done in better Python-way
+
+... please let it be known.
+
+Authors
+=======
+
+Cubes is written and maintained by Stefan Urbanek (@Stiivi on Twitter)
+<stefan.urbanek@gmail.com> and various contributors. See AUTHORS file for more 
+information.
+
+
+License
+=======
+
+Cubes is licensed under MIT license with following addition:
+
+    If your version of the Software supports interaction with it remotely 
+    through a computer network, the above copyright notice and this permission 
+    notice shall be accessible to all users.
+
+Simply said, that if you use it as part of software as a service (SaaS) you 
+have to provide the copyright notice in an about, legal info, credits or some 
+similar kind of page or info box.
+
+For full license see the LICENSE file.
+

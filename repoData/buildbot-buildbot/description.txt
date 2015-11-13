@@ -1,0 +1,543 @@
+Contributing to Buildbot
+========================
+
+Thank you for contributing to Buildbot!
+
+What appears below is just a quick summary.  See http://trac.buildbot.net/wiki/Development for the full story.
+
+Issues, Bugs, Tickets
+---------------------
+
+*We do not use the GitHub Issue Tracker for bugs*
+
+Please file tickets for any bugs you discover at http://trac.buildbot.net.
+
+The GitHub Issue Tracker is enabled only because it is a more usable interface for pull requests.
+
+Patches
+-------
+
+Contributions to Buildbot should come as a complete package.  For code changes, tests and documentation updates should be included.  Consider issues of compatibility, flexibility, and simplicity.  Follow the existing Buildbot coding style, and be sure that your changes do not cause warnings from pyflakes.  Patches are best submitted as Github pull requests, but also accepted as patch files attached to Trac tickets, or in attachments sent to the buildbot-devel mailing list.  Patch guidelines are at http://trac.buildbot.net/wiki/SubmittingPatches.
+
+Your contribution must be licensed under the GPLv2, and copyright assignment is not expected (or possible: Buildbot is not a legal entity).  See http://trac.buildbot.net/wiki/LicensingYourContribution for details.
+
+You should run common/validate.sh before sending your patches.
+
+Also you can install our git hook for validating and fixing most common coding style issues
+
+   cp common/hooks/post-commit .git/hooks
+
+Development Tips
+----------------
+
+The easiest way to hack on Buildbot is in a virtualenv.  See http://trac.buildbot.net/wiki/RunningBuildbotWithVirtualEnv for a description of how to set up such a thing.
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+This directory contains SVG templates to produce the Buildbot PngStatusResource
+files that tell us the build status for a given build of a given builder.
+
+The SVG files has been created with Inkscape-0.48.4 under Gentoo GNU/Linux for
+x86_64 architecture.
+
+
+Howto generate the PNG files?
+=============================
+There are two different ways for generate the PNG files using inkscape.
+
+    1) For non GUI users
+        Just edit the SVG files (as those are just XML files) with your
+        favourite text editor (vi, emacs, nano, joe...). The SVG image is
+        composed by layers so for any buildbot status we have a layer with
+        two components, the status text and the background color, there are
+        some other layers containing glows and static text that never changes
+        (like thw "build" word) so you dont have to care about.
+
+        Each layer has a descriptive name, for exmaple, the layer for failed
+        builds is called "rectFailed", "rectSuccess" for success, "rectExcept"
+        for exceptions and so on.
+
+        Each status layer has two components, the statsu text and the status
+        background, text is just a "tspan" markup and looks like this:
+
+            <tspan y="15" x= "2" id="tspan367" sodipodi:role="line">
+                success
+            </tspan>
+
+        The entire <tspan> should be inside a <text> markup that we don't care
+        about if we are not going to increade the size or the family of the
+        used font.
+
+        The background component is not more complex that the previous one, it
+        is built using a <rect> markup that looks like:
+
+            <rect
+                style="fill:#cc66cc;fill-opacity:1;stroke:none;display:inline"
+                id="rect3675"
+                with="32"
+                height="14"
+                x="0"
+                y="4"
+                rx="4.2"
+                ry="4.01"
+            />
+
+        The properties are pretty self descriptives, with the "style" property
+        we control the look of the rect, in the previous example we are
+        generating a rect with filled purple color without opacity no stroke
+        and displayed inline, the rest of properties are just size and position
+        in the canvas.
+
+        To change teh color we just need to modify the #hexcolor in the style
+        property.
+
+        As we said before, some layers are just hidden while other are visible,
+        to export one build status we need to make visible the related layers
+        to the status we want to generate.
+
+        The layers have also a "style" property in their definitions, the
+        hidden layers have it setted as "display:none" while the visible ones
+        have it as "display:inline" show or hidden layers is as easy as change
+        the values for layers that we want to hide or show.
+
+        To create a new group we only have to copy a full layer block and paste
+        it modifying the layer name and the new property values we require
+        (that usually are just the backgound color and the text of tspan).
+
+        When we are ok with our changes to the SVG file we can just execute
+        inkscape in the command line to export it to PNG format:
+
+             inkscape -z -e status_size.png status_size.svg
+
+        The -z option tells inkscape to don't use a graphical user interface,
+        the -e is just "export command" followed by the name of the new
+        exported file (status_size.png in our example) and the last argument
+        is just the name of the SVG file that we modified previously.
+
+    2) For GUI users
+        Well, if you never used Inkscape before, I suggest to check the basic
+        tutorial in their website, and then come back here:
+
+            http://inkscape.org/doc/basic/tutorial-basic.html
+
+        Our SVG files are compound by layers, some layers are pretty static and
+        them are "locked", that means that you can't click on the components
+        inside the layers so you can't select them to modify it.
+
+        The first thing you have to do is show the layers window using the
+        shortcut Ctrl+Shift+L
+
+        In this window you can see all the layers thart build the SVG file, you
+        can hide or make them visible clicking in the eye at the most left side
+        of the layer name. Next to this eye button is a "chain" button that is
+        used to lock or unlock any layer.
+
+        Each status layer has a descriptive name like "rectSuccess" for the
+        success buildbot status (rectFailed for failed etc). Them are compound
+        of two shapes:
+
+            The status text
+            The status background
+
+        To change the text we have to select it and then click on the Text
+        tool in the left side of the main window, then the cursor over the
+        text shape in the draw should change and we can just write on it. On
+        the top of the main window we can see a toolset for adjust properties
+        of the text (I recommend the reading of Inkscape tutorials to really
+        understand how all this works).
+
+        To change the background color for the status we need to show the
+        "Fill and Stroke" menu using the shortcut "Ctrl+Shift+F"
+
+        Then if we click on the rect shape we can check and modify all the
+        related properties and values about the object look.
+
+        To change the color we should modify the RGBA (in hex format) value
+        in the color form. Note that the last two characters of the hex format
+        controls the object alpha layer so FF is no opacity at all while 00
+        is total opacity, be careful and rememeber that when you modify the
+        color by hand.
+
+        To create a new layer you can just do right click on any of the already
+        existing status layers and select "Duplicate layer" in the context menu
+        that should be shown. Then you can modify the layer as your needs and
+        save it
+
+        To understand how to export from the SVG file to PNG format I reommend
+        to read this article about Inkscape export system:
+
+            http://inkscape.org/doc/basic/tutorial-basic.html
+
+        Anyway my preffer method is the one described in "Non GUI Users" just
+        using the command line.
+
+This is the directory to place customized templates for webstatus.
+
+You can find the sources for the templates used in:
+buildbot/status/web/templates
+
+You can copy any of those files to this directory, make changes, and buildbot will automatically
+use your modified templates.
+
+Also of note is that you will not need to restart/reconfig buildbot master to have these changes take effect.
+
+The syntax of the templates is Jinja2:
+http://jinja.pocoo.org/
+{% from 'feed_sources.html' import srcs_desc %}
+
+{% macro item_desc(b, title_url, title) -%}
+  <p>
+    Date: {{ b.date }}<br/>
+    Project home: <a href="{{ title_url }}">{{ title|e }}</a><br/>
+    Builder summary: <a href="{{ b.summary_link }}">{{ b.name }}</a><br/>
+    Build details: <a href="{{ b.link }}">Build {{ b.number }}</a><br/>
+    Author list: <b>{{ b.responsible_users|join(', ')|e }}</b><br/>
+    Failed step(s): <b>{{ b.failed_steps|join(', ') }}</b><br/>
+  </p>
+  {% for src in b.sources %}
+  {{ srcs_desc(src) }}
+  {% endfor %}
+  <p>
+    <i>Last lines of the build log:</i>
+  </p>
+{%- endmacro %}
+
+-- citools historical master tarball --
+
+This tarball was donated by Lukas Linhart and represents a real-world set of
+changes, builder pickles, build pickles, and logfiles.
+
+This was generated with a 0.7.11p1 master.
+
+-- 0.7.5 historical master tarball --
+
+This tarball exists to allow testing upgrades of old versions.  It was created
+by running the master against the included master.cfg using a normal
+buildbot.tac.  The slave was connected, and a few changes sent, including one
+with some funny characters in it:
+
+$ snowman=`python -c 'print u"\N{SNOWMAN}".encode("utf-8")'`
+$ black_star=`python -c 'print u"\N{BLACK STAR}".encode("utf-8")'`
+$ comet=`python -c 'print u"\N{COMET}".encode("utf-8")'`
+$ buildbot sendchange --master=localhost:9989 -u \
+        "the snowman <$snowman@norpole.net>" \
+        --revision="${black_star}-devel" -b "$comet" \
+        --comments "shooting star or $comet?" \
+        "$black_star/funny_chars/in/a/path" "normal/path"
+$ buildbot sendchange --master=localhost:9989
+        -u "dustin <dustin@v.igoro.us>" --revision="1234"
+        --comments "on-branch change" boring/path
+
+0.7.5 did not support change properties from sendchange.
+
+Note that the master.cfg also puts a funny character in stdout (in UTF-8).
+
+"Integration" tests are tests that exercise a significant chunk of the
+Buildbot code, and thus do not really count as unit tests.
+
+When debugging, get the unit tests working first, *then* work on the
+integration tests.
+
+-- Basic v0.8.2 tarball --
+
+This tarball is the result of a few runs from a few incarnations of a master
+that was running Buildbot-0.8.2.  It represents a decent set of claimed
+builds.
+
+-- Basic v0.8.3 tarball --
+
+This tarball is the result of a few runs from a few incarnations of a master
+that was running Buildbot-0.8.3.  It represents a decent set of claimed
+builds.
+
+-- Basic v0.8.4 tarball --
+
+This tarball is the result of a few runs from a few incarnations of a master
+that was running Buildbot-0.8.4.
+
+-- Basic v0.8.5 tarball --
+
+This tarball is the result of a few runs from a single incarnation of a master
+that was running Buildbot-0.8.5.
+
+-- Basic v0.8.6p1 tarball --
+
+This tarball is the result of a few runs from a single incarnation of a master
+that was running Buildbot-0.8.6p1.  It has only one build, which was
+interrupted.
+
+-- Basic v0.8.7p1 tarball --
+
+This tarball is the result of a couple of runs from a single
+incarnation of a master that was running Buildbot-0.8.7p1.  Both
+builds were successful.
+
+Mark Pauley contributed the two launchd plist files for OS-X (10.4+) to start
+a buildmaster or buildslave automatically at startup:
+
+ contrib/OS-X/net.sourceforge.buildbot.master.plist
+ contrib/OS-X/net.sourceforge.buildbot.slave.plist
+
+His email message is as follows:
+
+  Message-Id: <C0E57556-0432-4EB6-9A6C-22CDC72208E9@apple.com>
+  From: Mark Pauley <mpauley@apple.com>
+  To: buildbot-devel <buildbot-devel@lists.sourceforge.net>
+  Date: Wed, 24 Jan 2007 11:05:44 -0800
+  Subject: [Buildbot-devel] Sample buildbot launchd plists for MacOS 10.4+
+
+  Hi guys,
+  	I've had these kicking around for a while and thought that maybe
+  someone would like to see them.  Installing either of these two to /
+  Library/LaunchDaemons will cause the bulidbot slave or master to auto-
+  start as whatever user you like on launch.  This is the "right way to
+  do this" going forward, startupitems are deprecated.  Please note that
+  this means any tests that require a windowserver connection on os x
+  won't work.
+
+
+Utility scripts, things contributed by users but not strictly a part of
+buildbot:
+
+buildbot_json.py: Utility classes and standalone script to process data from
+                  /json status.
+
+fakechange.py: connect to a running bb and submit a fake change to trigger
+               builders
+
+generate_changelog.py: generated changelog entry using git. Requires git to
+                       be installed.
+
+run_maxq.py: a builder-helper for running maxq under buildbot
+
+svn_buildbot.py: a script intended to be run from a subversion hook-script
+                 which submits changes to svn (requires python 2.3)
+
+svnpoller.py: this script is intended to be run from a cronjob, and uses 'svn
+              log' to poll a (possibly remote) SVN repository for changes.
+              For each change it finds, it runs 'buildbot sendchange' to
+              deliver them to a waiting PBChangeSource on a (possibly remote)
+              buildmaster. Modify the svnurl to point at your own SVN
+              repository, and of course the user running the script must have
+              read permissions to that repository. It keeps track of the last
+              revision in a file, change 'fname' to set the location of this
+              state file. Modify the --master argument to the 'buildbot
+              sendchange' command to point at your buildmaster. Contributed
+              by John Pye. Note that if there are multiple changes within a
+              single polling interval, this will miss all but the last one.
+
+svn_watcher.py: adapted from svnpoller.py by Niklaus Giger to add options and
+                run under windows. Runs as a standalone script (it loops
+                internally rather than expecting to run from a cronjob),
+                polls an SVN repository every 10 minutes. It expects the
+                svnurl and buildmaster location as command-line arguments.
+
+viewcvspoll.py: a standalone script which loops every 60 seconds and polls a
+                (local?) MySQL database (presumably maintained by ViewCVS?)
+                for information about new CVS changes, then delivers them
+                over PB to a remote buildmaster's PBChangeSource. Contributed
+                by Stephen Kennedy.
+
+css/*.css: alternative HTML stylesheets to make the Waterfall display look
+           prettier. Copy them somewhere, then pass the filename to the
+           css= argument of the Waterfall() constructor.
+
+zsh/_buildbot: zsh tab-completion file for 'buildbot' command. Put it in one
+               of the directories appearing in $fpath to enable tab-completion
+               in zsh.
+
+bash/buildslave: bash tab-completion file for 'buildbot' command. Source this
+                 file to enable completions in your bash session. This is
+                 typically accomplished by placing the file into the
+                 appropriate 'bash_completion.d' directory.
+
+SimpleConfig.py: an example of how to configure buildbot using a declarative
+                 json file plus one buildshim script per project
+
+# What Is It?
+BuildBot Watcher is a [Trac](http://trac.edgewall.org) plugin. It watches a
+BuildBot status webserver and incorporates build information into the
+standard Trac timeline.
+
+# Prereqs
+## For the Trac site
+This plugin does not require anything other than Trac 0.11+. It makes use
+of the standard Trac CSS classes, so it will theme appropriately.
+
+## For the BuildMaster
+For now, you'll need to run a BuildBot using my patched XML-RPC server.
+
+	git clone git://github.com/djmitche/buildbot.git buildbot
+	cd buildbot
+	git pull git://github.com/rbosetti/buildbot.git
+
+# Installation
+Follow the standard fetch, cook, copy procedure:
+
+	git clone git://github.com/rbosetti/buildbot.git buildbot
+	cd buildbot
+	python setup.py bdist_egg
+	cp dist/*.egg /path/to/trac/env/plugins
+
+The plan is to eventually offer the same controls that webstatus does.
+
+# Missing
+ * Force Builds
+ * The grid display
+ * The waterfall display (replaced by a Timeline contributor for Trac)
+
+
+BuildBot: build/test automation
+  http://buildbot.net
+  Brian Warner <warner-buildbot @ lothar . com>
+  Dustin J. Mitchell <dustin@v.igoro.us>
+
+
+Buildbot is a continuous integration system designed to automate the
+build/test cycle. By automatically rebuilding and testing the tree each time
+something has changed, build problems are pinpointed quickly, before other
+developers are inconvenienced by the failure.  Features
+
+* Buildbot is easy to set up, but very extensible and customizable.  It
+  supports arbitrary build processes, and is not limited to common build
+  processes for particular languages (e.g., autotools or ant)
+
+* Buildbot supports building and testing on a variety of platforms.
+  Developers, who do not have the facilities to test their changes everywhere
+  before committing, will know shortly afterwards whether they have broken the
+  build or not.
+
+* Buildbot has minimal requirements for slaves: using virtualenv, only a
+  Python installation is required.
+
+* Slaves can be run behind a NAT firewall and communicate with the master
+
+* Buildbot has a variety of status-reporting tools to get information about
+  builds in front of developers in a timely manner. 
+
+
+DOCUMENTATION:
+
+  See http://buildbot.net/buildbot/docs/current for documentation of the
+  current version of Buildbot.
+
+REQUIREMENTS:
+
+  See http://buildbot.net/buildbot/docs/latest/manual/installation.html
+
+  Briefly: python, Twisted, Jinja2, simplejson, and SQLite.  Simplejson and
+  SQLite are included with recent versions of Python.
+
+
+SUPPORT:
+
+ Please send questions, bugs, patches, etc, to the buildbot-devel mailing
+ list reachable through http://buildbot.net/, so that everyone can see them.
+
+
+COPYING:
+
+    Buildbot is free software: you can redistribute it and/or modify it under
+    the terms of the GNU General Public License as published by the Free
+    Software Foundation, version 2.
+
+    This program is distributed in the hope that it will be useful, but
+    WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General
+    Public License for more details.
+
+    For full details, please see the file named COPYING in the top directory
+    of the source tree. You should have received a copy of the GNU General
+    Public License along with this program. If not, see
+    <http://www.gnu.org/licenses/>.
+
+
+BuildBot: build/test automation
+  http://buildbot.net
+  Brian Warner <warner-buildbot @ lothar . com>
+  Dustin J. Mitchell <dustin@v.igoro.us>
+
+Buildbot consists of two separate components: the master and the slave.  See
+master/README and slave/README for more information.
+
+Related repositories:
+  https://github.com/buildbot/buildbot-media - Buildbot-related media
+  https://github.com/buildbot/buildbot-website - Source for http://buildbot.net
+
+Mark Pauley contributed the two launchd plist files for OS-X (10.4+) to start
+a buildmaster or buildslave automatically at startup:
+
+ contrib/OS-X/net.sourceforge.buildbot.master.plist
+ contrib/OS-X/net.sourceforge.buildbot.slave.plist
+
+His email message is as follows:
+
+  Message-Id: <C0E57556-0432-4EB6-9A6C-22CDC72208E9@apple.com>
+  From: Mark Pauley <mpauley@apple.com>
+  To: buildbot-devel <buildbot-devel@lists.sourceforge.net>
+  Date: Wed, 24 Jan 2007 11:05:44 -0800
+  Subject: [Buildbot-devel] Sample buildbot launchd plists for MacOS 10.4+
+
+  Hi guys,
+  	I've had these kicking around for a while and thought that maybe
+  someone would like to see them.  Installing either of these two to /
+  Library/LaunchDaemons will cause the bulidbot slave or master to auto-
+  start as whatever user you like on launch.  This is the "right way to
+  do this" going forward, startupitems are deprecated.  Please note that
+  this means any tests that require a windowserver connection on os x
+  won't work.
+
+
+Utility scripts, things contributed by users but not strictly a part of
+buildbot:
+
+zsh/_buildslave: zsh tab-completion file for 'buildslave' command. Put it in
+                 one of the directories appearing in $fpath to enable
+                 tab-completion in zsh.
+
+bash/buildslave: bash tab-completion file for 'buildslave' command. Source this
+                 file to enable completions in your bash session. This is
+                 typically accomplished by placing the file into the
+                 appropriate 'bash_completion.d' directory.
+
+
+Buildbot: build/test automation
+  http://buildbot.net
+  Brian Warner <warner-buildbot @ lothar . com>
+  Dustin J. Mitchell <dustin@v.igoro.us>
+
+
+Buildbot is a continuous integration system designed to automate the
+build/test cycle. By automatically rebuilding and testing the tree each time
+something has changed, build problems are pinpointed quickly, before other
+developers are inconvenienced by the failure.  Features
+
+* Buildbot is easy to set up, but very extensible and customizable.  It
+  supports arbitrary build processes, and is not limited to common build
+  processes for particular languages (e.g., autotools or ant)
+
+* Buildbot supports building and testing on a variety of platforms.
+  Developers, who do not have the facilities to test their changes everywhere
+  before committing, will know shortly afterwards whether they have broken the
+  build or not.
+
+* Buildbot has minimal requirements for slaves: using virtualenv, only a
+  Python installation is required.
+
+* Slaves can be run behind a NAT firewall and communicate with the master
+
+* Buildbot has a variety of status-reporting tools to get information about
+  builds in front of developers in a timely manner.
+
+
+Buildslave:
+
+This package contains only the buildslave implementation.  The `buildbot`
+package contains the buildmaster as well as a complete set of documentation.
+
+See http://buildbot.net for more information and for an online version of the
+Buildbot documentation.
+

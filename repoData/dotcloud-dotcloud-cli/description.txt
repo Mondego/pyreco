@@ -1,0 +1,165 @@
+Changelog
+=========
+
+v0.9.8
+------
+
+Many thanks to the contributors who added so many features to this release!
+
+- Enable automatic `setup` use of API key if `DOTCLOUD_API_KEY` in
+  environment.  Helps with scripting and automation.  
+- Allow automated 'Y' or 'N' answer to all prompts. Helps with scripting.
+- Reduced the default verbosity of rsync-type `dotcloud push`.
+- Fix issues with SSH trying too many identities. Now only uses the
+  identity file associated with your dotCloud account.
+
+v0.9.7
+------
+
+- Added support for requests 1.1.0, 1.2.0
+- Added `traffic` command to retrieve traffic metrics from the API including request/second and latency for an application
+- Added `memory` command to retrieve memory metrics from the API including memory used, memory unused, and memory available
+- rsync should know display progress when uploading during `dotcloud push`.
+- Fixed bug: password prompt should not break anymore on Windows
+- Fixed bug with `--branch` argument when using git or hg to push
+
+v0.9.4
+------
+
+- Improved fault tolerance at the request-level (should get rid of the *"Max retries exceeded"* error)
+- Improved application feedback when pushing code from a child directory of a connected application.
+
+v0.9.3
+------
+
+- Implemented auto-retry when streaming deployment logs (there can be a short delay before the logs start becoming available)
+- Added the `dotcloud upgrade` command (enables increasing the container version, similar to `dotcloud push --clean` but for a specific service.)
+- Added debug mode through `--debug` (shorthand `-D`) option
+- Improved feedback when an exceptional situation occurs (hibernating application, `dotcloud ssh` command, no logs retrieved...)
+- Various bugfixes (encoding, timestamp parsing, git local branch detection)
+- Doc fixes (`-A` instead of `-a`)
+
+v0.9.2
+------
+
+*Initial non-beta release*
+
+# dotCloud CLI
+
+This is the dotCloud command line interface.
+
+## Python
+
+The CLI is tested against Python 2.6 and 2.7. Python 3.x is "try at
+your own risk" for now.
+
+## What's New
+
+This version of CLI is designed to work with the application directory
+linked to the remote dotCloud application.
+
+This allows you to avoid typing the same application names multiple
+times, and reduces the possiblity of making typos or overwriting the
+wrong applications by repeating the command line history.
+
+    # New CLI 
+    > dotcloud push
+    > dotcloud info
+    > dotcloud run www bash
+
+    # Old CLI
+    > dotcloud push myapp .
+    > dotcloud info myapp
+    > dotcloud run myapp.www bash
+
+The command line executable is installed as `dotcloud`.
+
+## Setup
+
+First, you have to configure your CLI.
+
+    > dotcloud setup
+    Dotcloud Username: your-user-name
+    Password: **********
+
+You're asked to provide your username and password for dotCloud, to
+register the new CLI client as a dotCloud REST API consumer. You can
+also use email, instead of your username.
+
+The CLI won't save these credentials locally, only the OAuth2 access
+token. Once the setup is complete, you can run the check command to
+see if everything is configured correctly.
+
+    > dotcloud check
+    --> Checking the authentication status
+    OK: Client is authenticated as <your-username>
+
+If this fails, try removing the directory `~/.dotcloud_cli` and start
+over from the setup.
+
+## Working with your application
+
+    > cd ~/dev
+    > mkdir myapp
+    > (write some code)
+
+### Create
+
+Once you're done writing your awesome application, run the `create` command:
+
+    > dotcloud create myapp
+    --> Creating a new application called "myapp"
+    Application "myapp" created.
+    Connect the current directory to "myapp"? [Yn]: y
+    --> Connecting with the application "myapp"
+    --> Connected.
+
+As you see, the CLI asks you if you want to connect the current
+working directory to the remote application. This allows you to omit
+typing the application name from now on.
+
+### Running commands
+
+To push the code to the dotCloud platform, simply type:
+
+    > dotcloud push
+
+and it will upload the code from the current directory to the
+application. You can see the currently connected application by typing:
+
+    > dotcloud app
+    myapp
+
+You can see the list of commands by running `dotcloud -h`.
+
+If you typed `n` when asked to connect the current directory, the CLI
+can't find the application name for the commands. You can specify the
+application name in such case, using the `--application` (or `-A` for
+short) option:
+
+    > dotcloud -A myapp info
+
+You can also use this option when you want to run commands against the
+application that you don't have the working directory for.
+
+### Connect
+
+Similarly, if you already have a working directory *and* a dotCloud
+remote application and want to connect them together, instead of
+creating a new application, run the connect command:
+
+    > cd ~/dev/myapp
+    > dotcloud connect myapp
+
+It will link your current working directory with the (existing) dotCloud application `myapp`.
+
+## Contributing
+
+If you've found a bug or have a feature request for the new CLI, the
+best way to send feedbacks is to open it in the github issues list.
+
+If you really want to contribute your code by submitting patches (that
+is awesome!), fork a project on github, and send us a pull
+request. Note that by forking and sending pull requests, you agree to
+assign the copyright to dotCloud Inc.
+

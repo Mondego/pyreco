@@ -1,0 +1,473 @@
+## Opening an Issue
+
+When opening a new Issue, please take the following steps:
+
+1. Search GitHub and/or Google for your issue to avoid duplicate reports.
+   Keyword searches for your error messages are most helpful.
+2. If possible, try updating to master and reproducing your issue,
+   because we may have already fixed it.
+3. Try to include a minimal reproducible test case
+4. Include relevant system information.  Start with the output of:
+
+        python -c "import IPython; print(IPython.sys_info())"
+
+   And include any relevant package versions, depending on the issue,
+   such as matplotlib, numpy, Qt, Qt bindings (PyQt/PySide), tornado, web browser, etc.
+
+## Pull Requests
+
+Some guidelines on contributing to IPython:
+
+* All work is submitted via Pull Requests.
+* Pull Requests can be submitted as soon as there is code worth discussing.
+  Pull Requests track the branch, so you can continue to work after the PR is submitted.
+  Review and discussion can begin well before the work is complete,
+  and the more discussion the better.
+  The worst case is that the PR is closed.
+* Pull Requests should generally be made against master
+* Pull Requests should be tested, if feasible:
+    - bugfixes should include regression tests
+    - new behavior should at least get minimal exercise
+* New features and backwards-incompatible changes should be documented by adding
+  a new file to the [pr](docs/source/whatsnew/pr) directory, see [the README.md
+  there](docs/source/whatsnew/pr/README.md) for details.
+
+[Travis](http://travis-ci.org/#!/ipython/ipython) does a pretty good job testing IPython and Pull Requests,
+but it may make sense to manually perform tests (possibly with our `test_pr` script),
+particularly for PRs that affect `IPython.parallel` or Windows.
+
+For more detailed information, see our [GitHub Workflow](https://github.com/ipython/ipython/wiki/Dev:-GitHub-workflow).
+
+
+IPython Documentation
+---------------------
+
+This directory contains the majority of the documentation for IPython. 
+
+Requirements
+------------
+The following tools are needed to build the documentation:
+
+sphinx
+
+On Debian-based systems, you should be able to run::
+
+    sudo apt-get install sphinx 
+
+The documentation gets built using ``make``, and comes in several flavors.
+
+``make html`` - build the API and narrative documentation web pages, this
+is the the default ``make`` target, so running just ``make`` is equivalent to
+``make html``. 
+
+``make html_noapi`` - same as above, but without running the auto-generated
+API docs. When you are working on the narrative documentation, the most time
+consuming portion  of the build process is the processing and rending of the
+API documentation. This build target skips that.
+
+``make pdf`` will compile a pdf from the documentation.
+
+You can run ``make help`` to see information on all possible make targets.
+
+
+
+
+Documenting What's New
+----------------------
+
+When making a new pull request that either adds a new feature, or makes a
+backwards-incompatible change to IPython, please add a new `.rst` file in this
+directory documenting this change as a part of your Pull Request.
+
+This will allow multiple Pull Requests to do the same without conflicting with
+one another. Periodically, IPython developers with commit rights will run a
+script and populate [development.rst](../development.rst)
+with the contents of this directory, and clean it up.
+
+Files which describe new features can have any name, such as
+`antigravity-feature.rst`, whereas backwards incompatible changes **must have**
+have a filename starting with `incompat-`, such as
+`incompat-switching-to-perl.rst`.  Our "What's new" files always have two
+sections,  and this prefix scheme will make sure that the backwards incompatible
+changes get routed to their proper section.
+
+git hooks for IPython
+
+add these to your `.git/hooks`
+
+For now, we just have `post-checkout` and `post-merge`,
+both of which just update submodules,
+so make sure that you have a fully synced repo whenever you checkout or pull.
+
+To use these hooks, run `./install-hooks.sh`. 
+If you havn't initialised and updated the submodules manually, you will then need to run `git checkout master` to activate the hooks (even if you already have `master` checked out).
+
+This is the IPython directory.
+
+For more information on configuring IPython, do:
+
+ipython -h
+
+or to create an empty default profile, populated with default config files:
+
+ipython profile create
+
+
+This is the IPython startup directory
+
+.py and .ipy files in this directory will be run *prior* to any code or files specified
+via the exec_lines or exec_files configurables whenever you load this profile.
+
+Files will be run in lexicographical order, so you can control the execution order of files
+with a prefix, e.g.::
+
+    00-first.py
+    50-middle.py
+    99-last.ipy
+
+# IPython Notebook development
+
+## Development dependencies
+
+Developers of the IPython Notebook will need to install the following tools:
+
+* fabric
+* node.js
+* less (`npm install -g less`)
+* bower (`npm install -g bower`)
+
+## Components
+
+We are moving to a model where our JavaScript dependencies are managed using 
+[bower](http://bower.io/). These packages are installed in `static/components`
+and committed into our git repo. Our dependencies are described in the file
+`static/components/bower.json`. To update our bower packages, run `fab update`
+in this directory.
+
+Because CodeMirror does not use proper semantic versioning for its GitHub tags,
+we maintain our own fork of CodeMirror that is used with bower. This fork should
+track the upstream CodeMirror exactly; the only difference is that we are adding
+semantic versioned tags to our repo.
+
+## less
+
+If you edit our `.less` files you will need to run the less compiler to build
+our minified css files.  This can be done by running `fab css` from this directory.
+
+## JavaScript Documentation
+
+
+How to  Build/ view the doc  for JavaScript. JavaScript documentation  should follow a
+style close  to JSDoc  one, so you  should be  able to build  them with  your favorite
+documentation builder. Still  the documentation comment are mainly written  to be read
+with YUI  doc. You can either  build a static version,  or start a YUIdoc  server that
+will live update the doc at every page request.
+
+
+
+To do so, you will need to install YUIdoc.
+
+### Install NodeJS
+
+Node is a browser less javascript interpreter. To install it please refer to
+the documentation for your platform. Install also NPM (node package manager) if
+it does not come bundled with it.  
+
+### Get YUIdoc
+
+npm does by default install package in `./node_modules` instead of doing a
+system wide install. I'll leave you to yuidoc docs if you want to make a system
+wide install.
+
+First, cd into js directory :
+```bash
+cd IPython/html/static/js/
+# install yuidoc
+npm install yuidocjs
+```
+
+
+### Run YUIdoc server
+
+From IPython/html/static/js/
+```bash
+# run yuidoc for install dir 
+./node_modules/yuidocjs/lib/cli.js --server .
+```
+
+Follow the instruction and the documentation should be available on localhost:3000
+
+Omitting `--server` will build a static version in the `out` folder by default.
+
+# IPython Notebook JavaScript Tests
+
+This directory includes regression tests for the web notebook. These tests
+depend on [CasperJS](http://casperjs.org/), which in turn requires a recent
+version of [PhantomJS](http://phantomjs.org/).
+
+The JavaScript tests are organized into subdirectories that match those in
+`static` (`base', `notebook`, `services`, `tree`, etc.).
+
+To run all of the JavaScript tests do:
+
+```
+iptest js
+```
+
+To run the JavaScript tests in a single subdirectory (`notebook` in this
+case) do:
+
+```
+iptest js/notebook
+```
+
+The file `util.js` contains utility functions for tests, including a path to
+a running notebook server on localhost (http://127.0.0.1) with the port
+number specified as a command line argument to the test suite. Port 8888 is
+used if `--port=` is not specified. When you run these tests using `iptest`
+you do not, however, have to start a notebook server yourself; that is done
+automatically.
+
+README FIRST
+============
+
+Please do not add new templates for nbconvert here.
+
+In order to speed up the distribution of nbconvert templates and make it
+simpler to share such contributions, we encourage [sharing those links on our
+wiki
+page](https://github.com/ipython/ipython/wiki/Cookbook:%20nbconvert%20templates).
+
+## Template skeleton
+
+This directory contains the template skeleton files.
+
+Do not modify the contents of the `../latex/skeleton` folder.  Instead, 
+if you need to, make modifications to the files in this folder and then run
+`make` to generate the corresponding latex skeleton files in the 
+`../latex/skeleton` folder.
+
+If you would like to share your resulting templates with others, we encourage
+[sharing those links on our wiki
+page](https://github.com/ipython/ipython/wiki/Cookbook:%20nbconvert%20templates).
+
+To compare nbconvert html output to the notebook's native html see https://gist.github.com/9241376.git.
+
+=======================================================
+ Nose plugin with IPython and extension module support
+=======================================================
+
+This directory provides the key functionality for test support that IPython
+needs as a nose plugin, which can be installed for use in projects other than
+IPython.
+
+The presence of a Makefile here is mostly for development and debugging
+purposes as it only provides a few shorthand commands.  You can manually
+install the plugin by using standard Python procedures (``setup.py install``
+with appropriate arguments).
+
+To install the plugin using the Makefile, edit its first line to reflect where
+you'd like the installation.  If you want it system-wide, you may want to edit
+the install line in the plugin target to use sudo and no prefix::
+
+  sudo python setup.py install
+
+instead of the code using `--prefix` that's in there.
+
+Once you've set the prefix, simply build/install the plugin with::
+
+  make
+
+and run the tests with::
+
+  make test
+
+You should see output similar to::
+
+  maqroll[plugin]> make test
+  nosetests -s --with-ipdoctest --doctest-tests dtexample.py
+  ..
+  ----------------------------------------------------------------------
+  Ran 2 tests in 0.016s
+
+  OK
+
+
+===========================================
+ IPython: Productive Interactive Computing
+===========================================
+
+Overview
+========
+
+Welcome to IPython.  Our full documentation is available on `our website
+<http://ipython.org/documentation.html>`_; if you downloaded a built source
+distribution the ``docs/source`` directory contains the plaintext version of
+these manuals.  If you have Sphinx installed, you can build them by typing
+``cd docs; make html`` for local browsing.
+
+
+Dependencies and supported Python versions
+==========================================
+
+For full details, see the installation section of the manual.  The basic parts
+of IPython only need the Python standard library, but much of its more advanced
+functionality requires extra packages.
+
+Officially, IPython requires Python version 2.7, or 3.3 and above.
+IPython 1.x is the last IPython version to support Python 2.6 and 3.2.
+
+
+Instant running
+===============
+
+You can run IPython from this directory without even installing it system-wide
+by typing at the terminal::
+
+   $ python -m IPython
+
+
+Development installation
+========================
+
+If you want to hack on certain parts, e.g. the IPython notebook, in a clean
+environment (such as a virtualenv) you can use ``pip`` to grab the necessary
+dependencies quickly::
+
+   $ git clone --recursive https://github.com/ipython/ipython.git
+   $ cd ipython
+   $ pip install -e ".[notebook]" --user
+
+This installs the necessary packages and symlinks IPython into your current
+environment so that you can work on your local repo copy and run it from anywhere::
+
+   $ ipython notebook
+
+The same process applies for other parts, such as the qtconsole (the
+``extras_require`` attribute in the setup.py file lists all the possibilities).
+
+Git Hooks and Submodules
+************************
+
+IPython now uses git submodules to ship its javascript dependencies.
+If you run IPython from git master, you may need to update submodules once in a while with::
+
+    $ git submodule update
+
+or::
+
+    $ python setup.py submodule
+
+We have some git hooks for helping keep your submodules always in sync,
+see our ``git-hooks`` directory for more info.
+
+===========================================================
+ Self-contained IPython installation with all dependencies
+===========================================================
+
+This is a self-contained source distribution of IPython with all its
+*non-graphical* dependencies, that installs in a single ``make`` call to your
+home directory (by default) or any location of your choice.
+
+This distribution is meant for developer-type usage in Unix environments, it is
+*not* an easy way to get IPython working on Windows, since it assumes the
+presence of a working compiler and development tools.
+
+Currently, the distribution contains::
+
+  ipython-0.9.1.tar.gz
+  pyOpenSSL-0.6.tar.gz
+  zope.interface-3.4.1.tar.gz
+  Twisted-8.1.0.tar.bz2
+  foolscap-0.3.1.tar.gz
+  nose-0.10.3.tar.gz
+
+
+Usage
+=====
+
+Download the single tarball where this README file lives and unpack it.  If
+your system is already configured as described below, these lines will do the
+whole job::
+
+    wget http://ipython.scipy.org/dist/alldeps/ipython-alldeps-0.9.1.tar
+    tar xf ipython-alldeps-0.9.1.tar
+    cd ipython-alldeps-0.9.1
+    make
+
+If all goes well, then just type::
+
+    iptest
+
+to run IPython's test suite.
+
+    
+It is meant to be used in an environment where you have your ``$PATH``,
+``$PYTHONPATH``, etc variables properly configured, so that the installation of
+packages can be made with (using ``~/usr/local`` as an example)::
+
+    python setup.py install --prefix=~/usr/local
+
+For an explanation of how to do this, see below.
+
+You can configure the default prefix used by editing the file
+``pkginstall.cfg``, where you can also override the python version used for the
+process.  If your system is configured in this manner, you can simply type::
+
+    make
+
+and this will build and install all of IPython's non-graphical dependencies on
+your system, assuming you have Python, a compiler, the Python headers and the
+SSL headers available.
+
+
+.. _environment_configuration:
+
+Environment configuration
+=========================
+
+Below is an example of what to put in your ``~/.bashrc`` file to configure your
+environment as described in this document, in a reasonably portable manner that
+takes 64-bit operating systems into account::
+
+  # For processor dependent config
+  MACHINE=$(uname -m)
+
+  # Python version information
+  PYVER=$(python -ESV 2>&1)
+  PYVER_MINOR=${PYVER#Python }
+  PYVER_MAJOR=${PYVER_MINOR:0:3}
+
+  function export_paths {
+      # Export useful paths based on a common prefix
+
+      # Input: a path prefix
+
+      local prefix=$1
+      local pp
+      local lp
+      local pypath=python${PYVER_MAJOR}/site-packages
+
+      # Compute paths with 64-bit specifics
+      if [[ $MACHINE == "x86_64" ]]; then
+	  lp=$prefix/lib64:$prefix/lib
+	  pp=$prefix/lib64/$pypath:$prefix/lib/$pypath
+      else	
+	  lp=$prefix/lib
+	  pp=$prefix/lib/$pypath
+      fi
+
+      # Set paths based on given prefix
+      export PATH=$prefix/bin:$PATH
+      export CPATH=$prefix/include:$CPATH
+      export LD_LIBRARY_PATH=$lp:$LD_LIBRARY_PATH
+      export LIBRARY_PATH=$lp:$LIBRARY_PATH
+      export PYTHONPATH=$pp:$PYTHONPATH
+  }
+
+  # Actually call the export function to set the paths.  If you want more than
+  # one such prefix, note that the call *prepends* the new prefix to the
+  # existing paths, so later calls take priority.
+
+  export_paths $HOME/usr/local
+

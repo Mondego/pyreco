@@ -1,0 +1,607 @@
+# Feedback items
+
+`feedback` items can be used to inform participants of their performance. `feedback` items are very similar to `sketchpad` items, but differ in the moment at which they are prepared. `feedback` items are not prepared in advance, which means that they can be used to display up-to-date information about response times, etc. On the other hand, this lack of preparation also means that they may introduce a small delay in your experiment. Therefore, you should not use `feedback` items to present time-critical displays.
+
+To provide feedback, you can make use of the built-in feedback variables, such as `avg_rt` and `acc`, for example by adding the following lines of text to your `feedback` item:
+
+	Your average response time was [avg_rt] ms
+	Your accuracy was [acc] %
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/usage/feedback/>
+
+# OpenSesame help
+
+*This is the offline help page. If you are connected to the Internet,
+you can find the online documentation at <http://osdoc.cogsci.nl>.*
+
+## Introduction
+
+OpenSesame is a graphical experiment builder for the social sciences. With OpenSesame you can easily create experiments using a point-and-click graphical interface. For complex tasks, OpenSesame supports [Python] scripting.
+
+## Getting started
+
+The best way to get started is by walking through one of the tutorials. These, and much more, can be found online:
+
+- <http://osdoc.cogsci.nl/tutorials/>
+
+## Citation
+
+To cite OpenSesame in your work, please use the following reference:
+
+Mathôt, S., Schreij, D., & Theeuwes, J. (2012). OpenSesame: An open-source, graphical experiment builder for the social sciences. *Behavior Research Methods*, *44*(2), 314-324. doi:[10.3758/s13428-011-0168-7](http://dx.doi.org/10.3758/s13428-011-0168-7)
+
+## Interface
+
+The graphical interface consists of the following components. You can get
+context-sensitive help by clicking on the help icons at the top-right of
+each tab.
+
+- The *menu* (at the top of the window) offers a variety of options, such as opening and saving files, inserting items (see below), and checking for updates. The menu cannot be hidden or closed.
+- The *main toolbar* (the big buttons below the menu) offers a selection of the most relevant options from the menu. The main toolbar cannot be hidden, but can be moved or detached from the main window.
+- The *item toolbar* (the big buttons on the left of the window) displays a list of available items. You can drag items from the item toolbar into the overview of the experiment. The item toolbar cannot be hidden, but it can be moved or detached from the main window.
+- The *overview area* provides an overview of your experiment. The structure of the experiment is visualized as a tree. The overview item can be hidden, moved, and detached from the main window.
+- The *tab area* contains the tabs that are used to edit the experiment. If you click on an item in the overview area, a corresponding tab will be opened in the tab area. Help is displayed in the tab area as well. The tab area cannot be moved or hidden.
+- The *file pool* (Control + P) provides an overview of the files that are bundled with your experiment. If you save your experiment in `.opensesame.tar.gz` format, the file pool will be saved along with your experiment. The file pool can be hidden, moved, and detached from the main window.
+-   The *variable inspector* (Control + I) provides an overview of the variables that are used in your experiment. The variable inspector can be hidden, moved, and detached from the main window.
+-   The *debug window*. (Control + D) shows the messages that are written to the standard output during an experiment. This is mostly useful for debugging `inline_script` items. A Python interpreter is provided as well. The debug window can be hidden, moved, and detached from the main window.
+
+## Items
+
+Items are the building blocks of your experiment. There are ten core items that provide the basic functionality that is necessary to create an experiment. Core items can be dragged into to your experiment from the item toolbar.
+
+- The `loop` item runs another item multiple times. You can also define independent variables in the `loop` item.
+- The `sequence` item runs multiple other items in sequence.
+- The `sketchpad` item presents visual stimuli. A built-in drawing tool allows you to easily create stimulus displays.
+- The `feedback` item is similar to the `sketchpad`, but is not prepared in advance. Therefore, `feedback` items can be used to present feedback to the participants.
+- The `sampler` item plays back a single sound file.
+- The `synth` item generates a single sound.
+- The `keyboard_response` item collects keypress responses.
+- The `mouse_response` item collects mouseclick responses.
+- The `logger` item writes variables to the log file.
+- The `inline_script` item allows you to execute Python code and offers a built-in programming editor.
+
+If installed, plug-in items provide additional functionality. Plug-ins appear alongside the core items in the item toolbar. An
+overview of available plug-ins can be found online:
+	
+- <http://osdoc.cogsci.nl/plug-ins/list-of-available-plug-ins/>
+
+## Running your experiment
+
+You can run your experiment in full-screen mode (*Control+R* or *Run -> Run fullscreen*), in a window (*Control+W* or *Run -> Run in window*), or in quick-run mode (*Control+Shift+W* or *Run -> Quick run*). When the 'auto-response' option (*Run -> Enable auto-response*) is enabled, OpenSesame will simulate keypress and mouseclick responses, which can be useful when testing your experiment.
+
+## Saving your experiment
+
+Experiments can be saved in two file formats:
+
+- An `.opensesame` file contains only the experiment script. Therefore, the file pool will not be saved along with your experiment when saving in `.opensesame` format. The `.opensesame` format is a plain-text format.
+- An `.opensesame.tar.gz` file contains the experiment script and all the files from the file pool. The `.opensesame.tar.gz` format is a `.tar.gz` compressed archive, which can be opened with most file compression utilities.
+
+[python]: http://www.python.org/
+# Inline_script items
+
+You can do a lot with the graphical interface of OpenSesame, but for certain complex tasks you will have to use scripting/ programming. This is where the `inline_script` item comes in. You can use regular [Python] code in your `inline_script`. Python is a modern, powerful, high-level programming language. There are numerous libraries available for Python, so there is really no limit to what you can do using `inline_script` items.
+
+For more information about using Python scripting, see:
+
+- <http://osdoc.cogsci.nl/python/about/>
+
+## A tab to prepare and a tab to run
+
+The `inline_script` item contains two scripts. The *Prepare* phase script is called first, before the `sequence` that contains the `inline_script` is executed. This allows you to do perform some time-consuming tasks in advance, so that the *Run* phase goes smoothly. The *Run* phase script is called during the actual running of the sequence that the `inline_script`
+is part of. So if you want to present a stimulus display in your `inline_script`, it is good practice to construct the display in the *Prepare* phase and show it in the *Run* phase. Note that this is purely a convention, from which you can deviate as circumstances dictate.
+
+For more information about the prepare-run strategy, see:
+
+- <http://osdoc.cogsci.nl/usage/prepare-run/>
+
+## Printing debug output
+
+You can print to the debug window using the Python `print` statement/ function:
+
+	print('This will appear in the debug window!')
+
+In general, the debug window functions as the standard output while the experiment is running.
+
+[python]: http://www.python.org/
+# Keyboard_response items
+
+The `keyboard_response` item is the primary way to collect keypress responses.
+
+## Options
+
+- *Correct response* is the name of the expected response. Usually you will set the `correct_response` variable elsewhere (e.g., in a `loop` item) and you can leave this field empty.
+- *Allowed responses* is a semicolon-separated list of keys that are accepted, e.g., 'a;b;/'.
+- *Timeout* contains a maximum response time in milliseconds or 'infinite' for no timeout.
+- *Flush pending keypresses* indicates that old, pending responses should be discarded.
+
+## Response variables
+
+- `response` is the name of the response key or 'None' if a timeout occurs.
+- `response_time` is the time between the start of the response interval and the response.
+- `correct` is 1 if `response` matches `correct_response` and 0 otherwise.
+- `average_response_time` is the average response time since the last feedback item.
+- `avg_rt` is a synonym for `average_response_time`.
+- `accuracy` is the average percentage of correct responses since the last feedback item.
+- `acc` is a synonym for `accuracy`.
+
+For more information about response variables, see:
+	
+- <http://osdoc.cogsci.nl/usage/variables-and-conditional-statements/#responsevariables>
+
+## Names of keys
+
+Keys are generally identified by their character and/ or their description (depending on which is applicable). For example, the `/` key is identified as 'slash' and '/'. The `a` is just identified as 'a'. The left-arrow key is just identified as 'left'. For a full list of available key names, click on the 'List available keys' button.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/usage/collecting-responses/>
+
+# Logger items
+
+*The one rule to rule them all is: Always triple-check whether all relevant variables are logged!*
+
+The `logger` item is the primary way to log your data to file.
+
+## Selecting variables
+
+In the `logger` you can indicate which variables you want to log. By default, the `logger` tries to auto-detect and log all variables. This is a safe bet, but results in large logfiles that contain a lot of unnecessary information. If you uncheck the auto-detect option, you can select variables from a list that contains all variables that OpenSesame is aware of. If, for some reason, the variable that you want to log does not appear in the list, you can add it using the 'Add custom variable' button. If you are unsure which variables you want to log, you can click on the Smart select button, which will select variables that are likely to be of interest.
+
+## Options
+
+- *Use 'NA' for variables that have not been set* indicates that the `logger` should not throw an exception when it tries to log a non-existent variable. Instead, it will log the value 'NA' (for 'not available'). This can be useful when you want to log a variable that has not been set the first time that the `logger` item is called, for example because that variable is only applicable to the last part of your experiment.
+- *Automatically detect and log all variables* indicates that the `logger` should auto-detect and log all variables.
+- *Put quotes around values* indicates that fields in the logfile should be quoted using double quotes.
+
+## Format of the logfile
+
+The logfile is in plain-text, comma-separated format. This format can be opened in most text-editors (although Windows Notepad may not handle the line-endings properly) and spreadsheets.
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/usage/logging/>
+
+# Loop items
+
+A `loop` item calls another item (the 'item to run') multiple times, while varying your independent variables. `loop`s are the main way to define independent variables, and to divide your experiment into trials and blocks.
+
+## The loop table
+
+In the `loop` table you can specify variables, each of which corresponds to a single column. The rows in the table correspond to cycles. A cycle corresponds to a 'level' or one unique combination of independent variables. You can specify the number of cycles by entering a number in the *cycles* input field. The *repeat* option corresponds to the number of times that all cycles should be executed. You can set this to a non-integer value. For example, by setting repeat to 0.5, half of all cycles will be executed.
+
+The *order* option indicates whether the cycles should be executed sequentially or in random order. Randomization is complete, in the sense that the complete list of `number-of-cycles x repeat` trials is randomized. 
+
+If you check *Show advanced options*, three more options become visible:
+	
+- *Break if* is a conditional statement that allows you to specify a stop criterion. For example, if you enter `[correct] = 1`, the `loop` will be aborted when the participants provides a correct response.
+- *At loop start, skip the first [X] cycle(s)* allows you to specify how many cycles should be skipped. For example, if you set this value to '2', the `loop` will skip the first two cycles and start at cycle 3. This options is only available when *order* is set to 'sequential'.
+- If you check *Run skipped cycles at end of loop (offset mode)*, the cycles that are skipped initially, as specified above, are still executed at the end of the `loop`.
+
+## Using Python functions
+
+Most of the time you will enter static values into the `loop` table. For example, you may have a variable called `cue`, which is either 'right' or 'left'. However, you can also use functions instead of static values. This is indicated by prepending an '=' character. For example, to draw a random number between 0 and 100, you can enter the following into a cell in the loop table:
+	
+	=randint(0,100)
+	
+More generally,you can enter any valid Python statement after the '=' sign. An overview of of useful functions can be found in the Python documentation:
+	
+- Random functions: <http://docs.python.org/library/random.html>
+- Mathematical: <http://docs.python.org/library/math.html>
+	
+## Convenient ways of creating a large loop table
+
+If you have multiple variables with multiple levels, it is a daunting task to create an entire full-factorial `loop` table by hand. In this case you can use the variable wizard, which can be started by clicking on the *Variable wizard* button at the top right of the `loop` table. In the variable wizard you can specify your variables and the levels of your variables to quickly create a full-factorial design. You can also prepare your `loop` variables in your favorite spreadsheet (e.g., OpenOffice Calc or Microsoft Excel) and paste them into the `loop` table.
+
+Fore more information, see:
+	
+- <http://osdoc.cogsci.nl/usage/variables-and-conditional-statements/#definingvariables>
+
+# Not found!
+
+Oops, the page that you requested was not found! But don't worry. You can find all the help you need on-line, at <http://osdoc.cogsci.nl>.
+
+Have a good day!
+
+# Mouse_response items
+
+The `mouse_response` item works analogously to the `keyboard_response` item, with the obvious difference that mouse clicks are recorded instead of key presses.
+
+## Names of mouse buttons
+
+Mouse buttons have a number (`1`, etc.) as well as a name (`left_button`, etc.). Both can be used to specify correct and allowed responses, but numbers will be used for logging.
+
+- `left_button` corresponds to `1`
+- `middle_button` corresponds to `2`
+- `right_button` corresponds to `3`
+- `scroll_up` corresponds to `4`
+- `scroll_down` corresponds to `5`
+
+For more information, see the help page of the `keyboard_response` and the documentation:
+
+- <http://osdoc.cogsci.nl/usage/collecting-responses/>
+
+# The file pool
+
+The file pool contains all the files that are bundled with your experiment, such as images (`.png`) that are used in `sketchpad` items and sound files (`.wav` / `.ogg`) that are used in `sampler` items.
+
+## Adding, removing and renaming
+
+You can add files to the file pool using drag-and-drop or by clicking on the 'Add' button and selecting a file. You can remove files from the file pool by right clicking them and selecting 'Remove from pool'. You can rename files in the file pool by right clicking them and selecting 'Rename'.
+
+## Saving the file pool
+
+In order to save the file pool along with your experiment, you must save your experiment in `.opensesame.tar.gz` format.
+
+# Sampler items
+
+`Sampler` items allow you to play sound files. Only files in `.wav or` `.ogg` format can be used. If you need to convert sound files, for example from `.mp3` format, you can use [Audacity], an excellent open-source sound editor.
+
+## Options
+
+You can specify a number of options:
+
+- *Volume* between 0 and 100%
+- *Pan* turns the right (negative values) or left (positive values) channel down. Setting pan to -20 or 20 completely mutes the right or left channel, respectively.
+- *Pitch* indicates the speed at which the sample is played. Values higher than 100% indicate a speed-up, values lower than 100% indicate a slowing down.
+- *Stop after* indicates how long the sample should be played. For example, a value of 100 ms means that the sample will be stopped after 100 ms, regardless of how long the sample is. A value of 0 ms means playing the full sample.
+- *Fade in* indicates the fade in time for the sample.
+- *Duration* indicates the duration of the sampler item, before the next item is presented. This doesn't need to match the length of the sample. For example, the duration of the sampler may be set to 0 ms, to advance directly to the next item (e.g., a sketchpad), while the sample continues playing. In addition to a numeric value, you can set duration to 'keypress', to wait for a keyboard press, 'mouseclick', to wait for a mouse click, or 'sound', to wait until the sampler has finished playing.
+
+## Sampling rate
+
+Sound files are always played back at the sampling rate that is used by the OpenSesame sampler back-end. If your sample appears to be sped up or slowed down, you can adjust the sampling rate of your sound file in a sound editor or change the sampling rate used by the OpenSesame sampler back-end (under 'Show back-end settings and info' in the General tab).
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/usage/sound/>
+
+[audacity]: http://audacity.sourceforge.net/
+
+# Sequence items
+
+In an experiment, you generally have a number of events that occur sequentially. For example, in a trial, you may present a fixation point, followed by a number of stimulus displays, followed in turn by response collection and response logging. This is where the `sequence` item comes in.
+
+## Sequences are sequential
+
+`sequence`s are run from top to bottom, i.e. the first item is the item that is presented at the top. You can change the order of the `sequence` by picking up items by their grab handle (on the left) and dragging them to a new position. You can remove items from a `sequence` by right-clicking an item and selecting 'Delete'.
+
+## Appending items to the sequence
+
+You can add items to a `sequence` by clicking on the buttons at the bottom of the tab. The *Append existing item* button appends an existing item to the sequence table, without creating a new item. This way you can add a single item (a fixation dot display, say) multiple times to a `sequence`. The *Append new item* button creates a new item and appends it to the `sequence`.
+
+## Run-if statements
+
+A very convenient feature of the sequence item is that you can use conditional ('if') statements to determine whether or not a particular item should be executed. For example, if you want a display to be presented only if a participant has made an incorrect response, you can set the Run-if statement to
+
+	[correct] = 0
+
+If you leave the Run-if statement empty or enter 'always', the item will always be executed.
+
+For more information, see also:
+	
+- <http://osdoc.cogsci.nl/usage/variables-and-conditional-statements/#usingconditionalifstatements>
+
+# Sketchpad items
+
+The `sketchpad` item is the main way to present visual stimuli. The `sketchpad` provides simple built-in drawing tools that allow you to very easily draw stimulus displays.
+
+## Duration
+
+The *Duration* entry can be set to any positive numeric value which reflects the duration of the sketchpad in ms. If you want no duration, for example because the next item is a `keyboard_response`, you can enter '0'. You can also enter 'keypress' or 'mouseclick' to show a `sketchpad` until a key is pressed or a mouse button is clicked, respectively.
+
+Note that your experiment will pause for the duration of a `sketchpad` item, and will not automagically start collecting responses. Therefore, if you want to collect the responses to a `sketchpad`, you generally set its *Duration* to 0 ms, and have it followed by a `keyboard_response` item. This principle is demonstrated in the online [tutorials].
+
+## Show-if statements
+
+You can use the Show-if field in the `sketchpad` to specify conditions under which elements should be shown. For example, if you want to have the direction of an arrow depend on the variable `cue`, you could draw two arrows and use `[cue] = left` and `[cue] = right` show-if statements to determine which arrow should be shown on a given trial.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/usage/variables-and-conditional-statements/#usingconditionalifstatements>
+
+## Sketchpad items are prepared in advance, feedback items are not
+
+For performance considerations, a `sketchpad` is prepared before the execution of the `sequence` that it is part of. Therefore, its contents cannot depend on what happens during the `sequence` (after the `sketchpad` has already been prepared). This is not the case for `feedback` items, which are prepared at runtime and can therefore be used to provide immediate feedback to participants.
+
+[tutorials]: http://osdoc.cogsci.nl/tutorials/
+
+# Debug window
+
+The debug window provides a basic Python interpreter. It is primarily useful for printing debugging messages from within `inline_script` items.
+
+Example:
+
+	print('This is a debugging message')
+
+
+# Synth items
+
+The `synth` item is a basic sound synthesizer. You can specify a
+number of options:
+
+- *Waveform* can be set to sine, sawtooth, square, or white noise
+- *Attack* is the time it takes for the sound the reach maximum volume (i.e. fade in).
+- *Decay* is the time it takes for the sound to die out (i.e. fade out). Note that the decay occurs within the length of the sound.
+- *Volume* between 0 and 100%
+- *Pan* turns the right (negative values) or left (positive values) channel down. Setting pan to -20 or 20 completely mutes the right or left channel, respectively.
+- *Length* indicates the length of the sound (in milliseconds).
+- *Duration* indicates the duration of the `synth` item, before the next item is presented. This doesn't need to match the length of the sound. For example, the duration of the `synth` may be set to 0ms, in order to advance directly to the next item (e.g., a `sketchpad`), while the sound continues playing in the background. In addition to a numeric value, you can set the duration to 'keypress', to wait for a keyboard press, 'mouseclick', to wait for a mouse click, or 'sound', to wait until the `synth` has finished playing.
+
+For more information about sound playback, see:
+
+- <http://osdoc.cogsci.nl/usage/sound/>
+
+# The variable inspector
+
+The variable inspector provides an overview of all the variables that are detected by OpenSesame, and which could be logged by a `logger` item. OpenSesame's introspection is imperfect, and the list of variables shown by the variable inspector may be incomplete.
+
+# Advanced_delay
+
+The `advanced_delay` plug-in delays the experiment for a pre-specified average duration plus a random margin.
+
+- *Duration* is the average duration of the delay in milliseconds.
+- *Jitter* is the size of the variation in the delay in milliseconds.
+- *Jitter mode* is the how the jitter is calculated:
+	- *Standard deviation* will draw the variation from a Gaussian distribution with Jitter as the the standard deviation.
+	- *Uniform* will draw the variation in duration from a uniform distribution.
+
+# Auto_example
+
+You can define your help files in [Markdown syntax](http://daringfireball.net/projects/markdown/syntax).
+# Fixation dot
+
+The `fixation_dot` plug-in is a convenience plug-in. That is, it does nothing that could not be done using a `sketchpad` item, but is more convenient if you want to present only a central-fixation dot.
+
+The following options are available:
+
+- `Style` specifies the style of the fixation dot.
+- `Duration` should be a positive integer value, 'keypress', or 'mouseclick', to wait respectively for a specified interval in milliseconds, until a key has been pressed, or until a mouse button has been clicked.
+- `Foreground color` should be an English color name (e.g., 'blue') or an HTML color value (e.g., '#0000FF').
+- `Background color` should be an English color name (e.g., 'blue') or an HTML color value (e.g., '#0000FF').
+- The `X` and `Y` coordinates reflect the position of the fixation dot.
+
+# Form_base plug-in
+
+The `form_base` plug-in allows you to create custom forms through OpenSesame script.
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/forms/custom-forms/>
+
+# Form_consent plug-in
+
+The `form_consent` plug-in provides a basic digital consent form.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/forms/form-plug-ins/>
+
+# Form_multiple_choice plug-in
+
+The `form_multiple_choice` plug-in provides a single multiple-choice question.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/forms/form-plug-ins/>
+
+# Form_text_display plug-in
+
+The `form_text_display` plug-in is a simple form consisting of a title, content, and an Ok button.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/forms/form-plug-ins/>
+
+# Form_text_input plug-in
+
+The `form_text_input` plug-in is a simple multi-character input form consisting of a title, question, and text-input area.
+
+For more information, see:
+	
+- <http://osdoc.cogsci.nl/forms/form-plug-ins/>
+
+# Joystick plug-in
+
+The `joystick` plug-in handles input from joystick devices, including trackballs and video-game-style gamepads. Using the joystick module of PyGame, the `joystick` plug-in allows for the use of a joystick with buttons, axes, trackballs, and hats.
+
+## Options and response variables
+
+The `joystick` plug-in works analogously to the `keyboard_response` item. For more information, see the `keyboard_response`-item help or visit:
+
+- <http://osdoc.cogsci.nl/usage/collecting-responses/>
+
+## Button names
+
+Depending on the kind of joystick or gamepad you use, a different number of buttons, axes, tracksballs, and hats are available. Please make sure you know which button corresponds to which button number (same goes for axes, hats and trackballs).
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/devices/joystick/>
+
+# Notepad
+
+The notepad is a simple plug-in that allows you to annotate your experiment. It does not offer any real functionality.
+
+# Reset_feedback
+
+*Tip: This plug-in has the same effect as presenting a `feedback` item with a duration of 0 ms.*
+
+If you do not reset feedback variables, you may confound your feedback with responses that are not relevant to the task. For example, the key presses made during the instruction phase may affect the feedback during
+the first block of the experiment. Therefore, you will need to reset the feedback variables at appropriate moments.
+
+This plug-in will reset the following variables to 0:
+
+- `total_response_time`
+- `total_response`
+- `acc`
+- `accuracy`
+- `avg_rt`
+- `average_response_time`
+
+For more information, see:
+
+- <http://osdoc.cogsci.nl/usage/feedback/>
+
+# Text_display
+
+*Tip: [Forms](http://osdoc.cogsci.nl/forms) provide a more flexible way to present text stimuli and collect text responses.*
+
+The `text_display` item is a convenience plug-in. That is, it does nothing which could not be done using a `sketchpad` item, but is more convenient if you want to display a large portion of text.
+
+The following options are available:
+
+- *Duration* should be a positive integer value, 'keypress', or 'mouseclick', to wait respectively for a specified interval in milliseconds, until a key has been pressed, or until a mouse button has been clicked.
+- *Foreground color* should be an English color name (e.g., 'blue') or an HTML color value (e.g., '#0000FF').
+- *Background color* should be an English color name (e.g., 'blue') or an HTML color value (e.g., '#0000FF').
+- *Font family* is mono, sans or serif.
+- *Font size* reflects the size of the font in points.
+- *Align* is either left, center, or right.
+
+# Touch response
+
+The `touch_response` plug-in allows you to work with touch responses (or mouse clicks) in an easy way, by dividing the display into rows and columns. Each response is encoded by a single number, which corresponds to the position counting from left-to-right and top-down. For example, if you have specified 2 columns and 3 rows, the display is divided into the following response regions:
+
+	1	2
+	3	4
+	5	6
+
+Similarly, if you have specified 4 columns and 1 row, the display is sliced horizontally into the following response regions:
+
+	1	2	3	4
+
+# Video_player
+
+The `video_player` plug-in plays back a video file. This plug-in is for basic image-only video playback, and requires the `legacy` back-end. If you are looking for more advanced video-playback functionality, you may want to use the `media_player_vlc` plug-in.
+
+The following options are available:
+
+- *Video file*: A video file from the file pool. Which formats are supported depends on your platform, but most common formats (such as `.avi` and `.mpeg`) are supported everywhere.
+- *Resize to fit screen*: Indicates if the video needs to be resized so that it fits the entire screen. If not, the video will be displayed in the center of the display.
+- *Duration*: A duration in milliseconds, 'keypres' (to stop when a key is pressed) or 'mouseclick' (to stop when a mousbutton is clicked).
+- *Frame duration*: The duration in milliseconds of a single frame. This essentially controls the playback speed. Note that the maximum playback speed depends on the speed of the computer.
+
+
+
+# OpenSesame
+
+*A graphical experiment builder for the social sciences*
+
+Copyright, 2010-2014, Sebastiaan Mathôt and contributors.
+
+<http://www.cogsci.nl/smathot>
+
+## About
+
+OpenSesame is a graphical experiment builder. OpenSesame provides an easy to use, point-and-click interface for creating psychological/ neuroscientific experiments.
+
+## Citation
+
+Mathôt, S., Schreij, D., & Theeuwes, J. (2012). OpenSesame: An open-source, graphical experiment builder for the social sciences. *Behavior Research Methods*, *44*(2), 314-324. [doi:10.3758/s13428-011-0168-7](http://dx.doi.org/doi:10.3758/s13428-011-0168-7)
+
+## Contribute
+
+If you wish to contribute to OpenSesame (and you are welcome to!), please visit:
+
+- <http://osdoc.cogsci.nl/contribute/>
+
+## License
+
+OpenSesame is distributed under the terms of the GNU General Public License 3. The full license should be included in the file `COPYING`, or can be obtained from:
+
+- <http://www.gnu.org/licenses/gpl.txt>
+
+OpenSesame contains works of others. For the full license information, please refer to `debian/copyright`.
+
+## Documentation
+
+Installation instructions and documentation are available on the documentation website ...
+
+- <http://osdoc.cogsci.nl/>
+
+... which is itself also hosted on GitHub:
+
+- <https://github.com/smathot/osdoc>
+
+
+
+STRUCTURE OF OPENSESAME THEMES
+==============================
+
+1. ABOUT THEMES
+===============
+OpenSesame themes provide a stylesheet and an icon theme. The aim is to be as
+standards-compliant as possible, but still provide sufficient flexibility to
+allow for custom icons, etc.
+
+2. STRUCTURE OF A THEME
+=======================
+A theme consists of a folder in the theme folder within the resources folder.
+For this example, let's assume that the resources folder is located here:
+
+	/usr/share/opensesame/resources
+
+Assuming that your theme is named 'my_theme', the theme folder would be:
+
+	/usr/share/opensesame/resources/my_theme
+
+2.1. THEME INFO
+===============
+The theme info file provides some information about the theme. It must be named
+as follows:
+
+	/usr/share/opensesame/resources/my_theme/__theme__.py
+
+The theme info file must contain at least the following lines:
+
+	qss = "stylesheet.qss"
+	icon_map = "icon_map.csv"
+	icon_theme = "os-custom-icons"	
+	
+You are free to choose different file names.
+
+2.2. STYLESHEET
+===============
+The stylesheet is typically placed here (depening on the theme info file):
+
+	/usr/share/opensesame/resources/my_theme/stylesheet.qss
+	
+See the Qt documentation for a description of the QSS format:
+
+	<http://developer.qt.nokia.com/doc/qt-4.8/stylesheet-reference.html>
+	
+2.3. ICON MAP
+=============
+The icon map is typically placed here (depening on the theme info file):
+
+	/usr/share/opensesame/resources/my_theme/icon_map.csv
+
+The icon map provides a mapping between various icon names (aliases) that are
+used within OpenSesame and the actual icon names from the icon theme. It
+consists of a 3 column comma-separated text file, with lines like so:
+
+	status_busy,emblem-synchronizing,16
+	
+This line means that when the 'status_busy' icon is used in OpenSesame, actually
+the emblem-synchronizing icon is taken from the icon theme. It also means that
+when OpenSesame detects a QWidget in the GUI that is named 'status_busy' and
+that can take an icon (e.g., a QLabel) the QWidget is automatically styled with
+the appropriate icon. The last column specifies a size, which is used only if a
+size is not automatically determined (e.g., button icons have a fixed size). The
+size column can be left blank, in which case a default is chosen.
+
+2.4. ICON THEME
+===============
+The icon theme is typically placed here (depening on the theme info file):
+
+	/usr/share/opensesame/resources/my_theme/os-custom-icons/
+	
+The icon theme must conform to the FreeDesktop icon theme specification:
+
+	<http://standards.freedesktop.org/icon-theme-spec/\
+		icon-theme-spec-latest.html>
+
+3. EXAMPLE
+==========
+The 'default' theme can serve as an example.
+

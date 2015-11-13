@@ -1,0 +1,1781 @@
+## We'd love your help!
+
+For information about contributing to NuPIC, please read wiki pages about [Contributing to NuPIC](https://github.com/numenta/nupic/wiki/Contributing-to-NuPIC).
+
+> This documentation is a work in progress.
+# Audio Stream Example
+
+A simple example that streams your mic input into the temporal pooler (TP), 
+and outputs an anomaly score, based on how familiar the TP has become to that
+particular mic input sequence. Think of it as being able to recognize a song,
+or become more familiar with your speech pattern.
+
+## Requirements
+
+- [matplotlib](http://matplotlib.org/)
+- [pyaudio](http://people.csail.mit.edu/hubert/pyaudio/)
+
+## Usage
+
+    python audiostream_tp.py
+
+This script will run automatically & forever.
+To stop it, use KeyboardInterrupt (CRTL+C).
+
+## General algorithm:
+
+1. Mic input is received (voltages in the time domain)
+2. Mic input is transformed into the frequency domain, using fast fourier transform
+3. The few strongest frequencies (in Hz) are identified
+4. Those frequencies are encoded into an SDR
+5. That SDR is passed to the temporal pooler
+6. The temporal pooler provides a prediction
+7. An anomaly score is calculated off that prediction against the next input
+    A low anomaly score means that the temporal pooler is properly predicting 
+    the next frequency pattern.
+
+## Print outs include:
+
+1. An array comparing the actual and predicted TP inputs
+	A - actual
+	P - predicted
+	E - expected (both A & P)
+2. A hashbar representing the anomaly score
+3. Plot of the frequency domain in real-time   
+
+## Next steps:
+
+1. Benchmark different parameters (especially TP parameters)
+	Use annoying_test and Online Tone Generator http://onlinetonegenerator.com/
+2. Implement anomaly smoothing
+3. Implement spatial pooler
+4. Look into better algorithms to pick out the frequency peaks (sound fingerprinting)
+
+# ----------------------------------------------------------------------
+# Numenta Platform for Intelligent Computing (NuPIC)
+# Copyright (C) 2013, Numenta, Inc.  Unless you have an agreement
+# with Numenta, Inc., for a separate license for this software code, the
+# following terms and conditions apply:
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses.
+#
+# http://numenta.org/licenses/
+# ----------------------------------------------------------------------
+
+A collection of simple tutorial and how-to's for the Python bindings of 
+various Numenta algorithms. 
+
+Note that these bindings are developed for internal use and will probably
+change in the future. 
+
+# Anomaly Client Example
+
+This custom client demonstrates how to configure an OPF client with a Numenta's
+Cortical Learning Algorithm (CLA) to detect anomalies. The internal model is
+constantly generating predictions about the future. The model can be configured
+to output an "anomaly score", a value between 0 and 1 which measures the 
+discrepancy between the actual input and its predicted value. To configure the 
+CLA model to output anomaly scores set the inference type of the model:
+
+	'inferenceType': 'TemporalAnomaly',
+
+
+Below you can see what the anomaly score looks like for this example, which uses
+hourly HotGym energy meter dataset.
+
+<img src="img/hotgym_anomaly1.png" width="60%" height="60%"/>
+
+
+* Initially, the anomaly score is very high. This is expected. It happens becuase the model is
+still learning the patterns in the dataset. Prior to learning the patterns in the
+data, everything seems unfamilar to the model which leads it to output a high 
+anomaly score. 
+
+<img src="img/hotgym_anomaly2.png" width="60%" height="60%" />
+
+
+* After the familiarizing itself with the patterns in the data, new and unseen
+patterns will trigger a high anomaly score.
+
+<img src="img/hotgym_anomaly3.png" width="60%" height="60%" />
+
+* Changes in magnitude, such as unusually high or low activity will also cause the
+anomaly score to rise.
+
+<img src="img/hotgym_anomaly4.png" width="60%" height="60%" />
+
+<img src="img/hotgym_anomaly5.png" width="60%" height="60%" />
+
+
+
+An anomaly score above 0.8 is a good indication that an unusual pattern has been
+detected.
+
+
+
+# One Hot Gym Prediction Tutorial
+
+The program in this folder is the complete source code for the "One Hot Gym Prediction" Tutorial. You can follow along with the construction of this tutorial's source code in the screencast below.
+
+[![One Hot Gym Prediction Tutorial Screencast](http://img.youtube.com/vi/S-0thrzOHTc/hqdefault.jpg)](http://www.youtube.com/watch?v=S-0thrzOHTc)
+
+## Premise
+
+The "hot gym" sample application has been around for a long time, and was one of the first real-world applications of NuPIC that actually worked. The data used is real energy consumption data from a gym in Australia. It is aggregated hourly already, so the input file at [rec-center-hourly.csv](rec-center-hourly.csv) simply contains a timestamp and float value for energy consumption during that hour.
+
+This tutorial shows how to take that data file, create a [swarm](https://github.com/numenta/nupic/wiki/Running-Swarms) to find the best NuPIC Model parameters, then use those Model parameters to create a NuPIC Model and feed the data into it, getting 1-step-ahead predictions for each row of data being fed into NuPIC. Essentially, this example shows how NuPIC can prediction the energy consumption of a building one hour into the future.
+
+## Program Description
+
+This is a program consisting of a simple collection of Python scripts using NuPIC's [Online Prediction Framework](https://github.com/numenta/nupic/wiki/Online-Prediction-Framework). Program execution is described in the [Running the Program](#running-the-program) section below. There are two steps this program performs to get predictions for the input data from the [rec-center-hourly.csv](rec-center-hourly.csv) file, which are described below. There is also an optional step ([Cleanup](#cleanup)), which removes artifacts from the files system after the previous steps have run.
+
+## Program Phases
+
+### 1. Swarming Over the Input Data
+
+Swarming ain't perfect, but it is an essential way for us to find the best NuPIC model parameters for a particular data set. It only needs to be done once, and can be performed over a subset of the data. NuPIC knows nothing about the structure and data types within [rec-center-hourly.csv](rec-center-hourly.csv), so we have to define this data.
+
+#### Swarm Description
+
+The swarming process requires an initial _swarm description_, which defines the input data and limits some of the permutations that must occur during the swarming process. The _swarm description_ for this tutorial application is within the [swarm_description.py](swarm_description.py) file, and looks like this:
+
+```
+{
+  "includedFields": [
+    {
+      "fieldName": "timestamp",
+      "fieldType": "datetime"
+    },
+    {
+      "fieldName": "kw_energy_consumption",
+      "fieldType": "float",
+      "maxValue": 53.0,
+      "minValue": 0.0
+    }
+  ],
+  "streamDef": {
+    "info": "kw_energy_consumption",
+    "version": 1,
+    "streams": [
+      {
+        "info": "Rec Center",
+        "source": "file://rec-center-hourly.csv",
+        "columns": [
+          "*"
+        ]
+      }
+    ],
+  },
+
+  "inferenceType": "TemporalMultiStep",
+  "inferenceArgs": {
+    "predictionSteps": [
+      1
+    ],
+    "predictedField": "kw_energy_consumption"
+  },
+  "iterationCount": -1,
+  "swarmSize": "medium"
+}
+```
+
+- `includedFields`: These correspond do the columns of data the swarm will use when searching for model parameters. A `fieldName` and `fieldType` are required. In this example, we are specifying minimum and maximum values for the `kw_energy_consuption` data column, which will help the swarm logic limit the amount of work it does to find the best params.
+
+- `streamDef`: Tells the swarm where the input data file is. You have to put the "file://" prefix before the path to the data file defined in `streams.source`. The path can be relative or absolute.
+
+- `inferenceType`: Indicates that we expect time-based multistep predictions to be evaluated. Other inference types include `Multistep`, `NontemporalMultistep`, and `TemporalAnomaly`.
+
+- `inferenceArgs`: Defines which field should be predicted, and how many steps into the future the field should be predicted. Several step-ahead predictions can be specified in `predictionSteps`, but be aware that more prediction steps will slow down NuPIC execution.
+
+- `iterationCount`: How many rows within the input data file to swarm over. If `-1`, assume all rows.
+
+- `swarmSize`: Can be `small`, `medium`, and `large`. Small swarms are used only for debugging. Medium swarms are almost always what you want. Large swarms can take a very long time, but get slightly better model params than medium.
+
+#### Results of the Swarm
+
+##### Working files (junk)
+Once the swarm is complete, you'll see a `swarm` folder within your working directory. It contains the internal workings of the swarm, which includes utilities you can use for advanced swarming (out of scope for this tutorial). This tutorial application places all the swarming junk into the `swarm` folder mostly just to keep the working directory uncluttered. When you [run swarms](https://github.com/numenta/nupic/wiki/Running-Swarms) through the swarming CLI, all this cruft is dumped into your current working directory.
+
+##### Model Params (GOLD!)
+Within the `model_params` directory, you'll also see a python file appear called `rec-center-hourly_model_params.py`. This file contains a configuration object for the **best model** the swarm found for the input data. This config object is used to create the NuPIC Model in the next step.
+
+### 2. Running the NuPIC Model
+
+The primary result of swarming is the **best model** configuration (detailed above). Once the best model parameters have been identified, a new NuPIC Model object can be created, data can be passed into it, and predictions can be retrieved. During this phase of the program, a new Model is created, and the [rec-center-hourly.csv](rec-center-hourly.csv) input data file is fed line-by-line into the model. For each line feed, a prediction for the next value of energy consumption is retrieved from the NuPIC Model and either written to file or presenting in a graph on the screen.
+
+### 3. Cleanup (optional)
+
+This phase simply removes all the file artifacts created within previous steps from the file system and presents a clean slate for further program executions.
+
+## Running the Program
+
+This program consists of 3 Python scripts you can execute from the command line and a few helper modules. The executable scripts are `swarm.py`, `run.py`, and `cleanup.py`. Each script prints out a description of the actions it takes when executed.
+
+There are two major steps: _swarming_ & _running_. Descriptions of these steps are above.
+
+### Swarming
+
+    ./swarm.py
+
+Hard-coded to run the [rec-center-hourly.csv](rec-center-hourly.csv) input for purposes of this tutorial application. Could take quite a long time for a medium swarm, depending on your hardware resources.
+
+### Running
+
+    ./run.py [--plot]
+
+If `--plot` is not specified, writes predictions to `rec-center-hourly_out.csv` file within the current working directory. If `--plot` is specified, will attempt to plot on screen using **matplotlib**. If matplotlib is not installed, this will fail miserably.
+
+### Cleanup
+
+    ./cleanup.py
+
+The previous steps leave some artifacts on your file system. Run this command to clean them up and start from scratch.
+
+# The "Hot Gym"
+
+> A NuPIC Tutorial, in several parts.
+
+**This is a work in progress**
+
+## Premise
+
+The "hot gym" sample application has been around for a long time, and was one of the first real-world applications of NuPIC that actually worked. The data used is real energy consumption data from a gym in Australia, which simply contains a timestamp and float value for energy consumption.
+
+This collection of tutorials uses the "Hot Gym" premise to illustrate many ways users can set up and run a NuPIC application against real-world data.
+
+## Tutorials
+
+These are still being created.
+
+1. One Gym Prediction Tutorial
+    - [README](prediction/one_gym/README.md)
+    - [source code](prediction/one_gym)
+1. ~~One Gym Anomaly Tutorial~~
+1. ~~One Gym Metrics Tutorial~~
+1. ~~Many Gyms Prediction Tutorial~~
+1. ~~Advanced Swarming~~
+
+# OPF Client Examples
+
+This directory contains examples of custom OPF clients. For more information on how to write a client, see the [OPF wiki page](https://github.com/numenta/nupic/wiki/Online-Prediction-Framework).
+
+## Clients
+
+* __hotgym__ - This is a custom client that performs the same experiment as `examples/opf/experiments/multistep/hotgym/`.
+* __hotgym_anomaly__ - This is a custom client that performs the same experiment as `examples/opf/experiments/anomaly/temporal/hotgym`.
+* __cpu__ - This is a custom client that attempts to predict CPU usage. The actual and predicted values are plotted live.
+
+Gym Dataset
+-----------
+The raw data comes in 3 CSV files of 2 kinds: attendance data and energy consumption data for Gyms in Australia for the months September 2010 and October 2010.
+
+Attendance data is hourly data of gym attendance in the following format:
+
+Bondi Platinum,,,,,,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,,,,,
+Date Of Swipe, < 6 am,6-7 am,7-8 am,8-9 am,9-10 am,10-11 am,11-12 am,12-1 pm,1-2 pm,2-3 pm,3-4 pm,4-5 pm,5-6 pm,6-7 pm,7-8 pm,8-9 pm,9-10 pm,> 10 pm,Totals
+1-Sep-10,73,179,83,147,145,90,55,62,34,45,72,102,130,182,91,23,4,0,1517
+
+The header contains the Gym name and hourly segement. Each data record (line) contain the date and the attendance at each hour (before 6AM and after 10PM are aggregated) for an entire day. There are multiple clubs (each with its own header) in the files. The attendance data comes in two monthly files: Attendance_Clubs_Sep.csv and Attendance_Clubs_Oct.csv
+
+
+The consumption data is in 15 minutes intervals and comes in a single file: all_group1_clubs_detail.csv:
+
+"   ","SITE_LOCATION_NAME","TIMESTAMP","TOTAL_KWH"
+"4","Bondi Platinum","1/09/2010 12:45:00 AM","14.39"
+"5","Bondi Platinum","1/09/2010 1:00:00 AM","13.92"
+"6","Bondi Platinum","1/09/2010 1:15:00 AM","14.71"
+"7","Bondi Platinum","1/09/2010 1:30:00 AM","15.01"
+
+There is a single header line for the entire file. Each line contains the Gym name, date and usually time and the energy consumption for a 15 minutes period.
+
+Issues
+------
+- Consumption data is 24 hours (in 15 minutes intervals) but attendance data is only 6AM through 10PM and then there are two numbers for "< 6a" and "> 10PM". To simplify I assume that <6AM means 5-6 and <5 is always 0. Also >10PM is 10-11 and >11PM is always 0. To match the consumption to attendance data the merged file will be in 1 hour resolution. The 4 consumption readings in an hour will be summed or averaged over one hour. If the data is total KW in each 15 minutes it will be summed, but if it is in KWH (as the title says) then it will be averaged.
+
+- There is significant consumption data when attendance is 0 (upto 80% of max consumption and sometimes more than at times when attendance > 0). That points out that attendance is not the only variable that impacts consumption. For example, it's possbile that some equipment is automatically started in the morning before people arrive and the startup process consumes a lot of energy.
+
+- Gym name inconsistencies. In attendance files: "Melbourne Central". In consumption file: "Melbourne CBD - Melbourne Central". I assume it's the same gym using my human deduction skills. Same thing with "North Sydney" vs. "North Sydney - Elizabeth Plaza". 
+
+- North Sydney is a big trouble maker it is missing attendance data for Sep-4 and Sep-5. Other clubs miss attendance data too. The script prints out missing data.
+
+- Inconsistent attendance file format. Sometimes one empty line and sometimes two empty lines between club data.
+
+- Inconsistent consumption file format. The first record in each day doesn't include the time (not a problem, it's 12AM of course). 
+
+
+- The consumption data has double quotes around every field (gets in the way of direct comparison)
+
+- Different date formats (dd-mmm-yy vs. dd/mm/yyyy). Again prevents direct comparison and requires conversion of one of them.
+Script
+
+- Consumption date file is a Unicode file and has a BOM at the beginning. Brrr...
+
+- The attendance data containes totals (not needed)
+
+- The consumption data contains line numbers (not needed)
+
+- \r EOL characters (old Mac format)
+
+Script
+------
+I assume that we will get more data files in the same format so I fixed all the issues in the script and not manually (e.g. replacing \r with \n in an editor or manually removing redundant empty lines).
+
+The gym name fixes are especially annoying since they are hard-coded.
+Each directory (1-9) contains the original dataset (nta/trunk/examples/prediction/data/extra/hotgym/joined_mosman_*.csv) with a percentage of the data removed. The percentage corresponds to the directory in which the new dataset resides - 1/ contains a dataset with 10% of data removed, 9/ contains a dataset with 90% of data removed. 
+
+Only the following fields were modified:
+consumption,TEMP,DEWP,SLP,STP,MAX,MIN,PRCP
+
+
+HotGym Dataset (gyms in Sidney, Australia)
+------------------------------------------
+The raw data comes in 4 CSV files:
+
+1. gym_input.csv
+
+Has information about 5 gyms for the period 2-jul-2010 through 31-dec-2010
+
+Has the following header line:
+
+"   ","SITE_LOCATION_NAME","TIMESTAMP","TOTAL_KWH"
+
+Every record has the following fields:
+
+ - running count (ignored)
+ - gym name
+ - timestamp (date and time in 15 minutes intervals)
+ - consumption (in KWH units)
+  
+Here is a sample record from the file:
+
+"17708","Lane Cove","3/07/2010 10:45:00 AM","18.9"
+
+The file also has the following header line:
+
+2. min_temps.csv
+
+A very simple file that contains the minimum temperature in a certain day.
+
+Has the following header line:
+
+"   ","TIME_ID","MIN"
+
+Every record has the following fields:
+
+ - running count (ignored)
+ - date
+ - temperature (Celcius)
+
+Here is a sample record from the file:
+
+"8","13/07/2010","11"
+
+3. max_temps.csv
+
+Same as min_temps.csv except that it contains the maximum temperature.
+
+The header is:
+
+"   ","TIME_ID","MAX"
+
+Sample record:
+
+"8","13/07/2010","18"
+
+4. club_hours.csv
+
+This is a file that contains some general and aggregated data about each gym.
+It is ignored at the moment. Here is the entire file for your enjoyment:
+
+"   ","GYM","SQM","NATURAL_LIGHTING","CBUS","HOURS_OF_USE","KWHM2_BENCHMARK","KWHM2HR_BENCHMARK"
+"1","Lane Cove","1891","Y","Y","95","140","1.47379498455287"
+"2","Balgowlah Platinum","1166","Y","N","97.5","279","2.86646611250385"
+"3","North Sydney - Walker St","1844","Y","N","95.5","311","3.26406065802773"
+"4","Randwick","2270","Y","N","100.5","347","3.45732916913231"
+"5","Mosman","2700","Y","N","100","486","4.86540955555556"
+
+---------------------
+makeDataset.py script
+---------------------
+The makeDataset.py script merges the information from numenta_air_cov.csv,
+min_temps.csv and max_temps.csv. It generates a StandardFile that contains
+for each record:
+
+gym name, timestamp, consumption, min temperature, max temperature.
+
+All the records from the same day will have the same min and max temperature.
+Many records (24,960 out of 87840) don't have min and max temperature. At the
+moment I put (min: 0, max: 40) for these records. Later we can extract the min/max
+temperatures from some weather database.
+
+The min/max files are synchronized (if there is a min temperature for certain
+day then there is always also a max temperature for the same day)
+
+# ![Numenta Logo](http://numenta.org/images/numenta-icon128.png) NuPIC
+
+## Basic Spatial Pooler Example
+
+hello_sp.py contains a simple spatial pooler demonstration written in python.
+
+#### To run
+	python hello_sp.py
+
+
+#### Details
+
+This script provides 3 examples demonstrating the effects of the spatial pooler on the following 3 sets of input values:
+		
+1. Displaying the output [SDRs](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) of 3 randomized input values.
+2. Displaying 3 [SDR's](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) generated from the same input value.
+3. Displaying 3 [SDR's](https://github.com/numenta/nupic/wiki/Sparse-Distributed-Representations) generated with slightly different input values, by adding 10% and 20% noise to the original input vector.
+
+The script uses a simple binary vector for input.
+
+After running this example and reading through the output you should have a basic understanding of the relationship between input and output of the spatial pooler.
+
+
+Further reading: [Encoders](https://github.com/numenta/nupic/wiki/Encoders)
+Temporal Pooler Sample Code
+=====
+
+This directory contains a number of files that demonstrate how to use the
+temporal pooler directly. Most of the files are currently implemented as tests
+that test (and illustrate) various interesting properties of the temporal
+pooler.
+
+The best place to start is hello_tp.py This file is
+straightforward whereas the other files are lot more complex. For example, the
+file tp_test.py contains many sophisticated tests that test the TP's properties
+learning first order and high order sequences.
+
+You can run each file by invoking python on the file, as in "python tp_test.py"
+
+WARNING: understanding these files requires building up a very detailed
+knowledge of how the temporal pooler works in CLA's. The documentation is not
+great at this level of detail - any suggestions or help appreciated!
+
+
+Font Metrics for the 14 PDF Core Fonts
+======================================
+
+This directory contains font metrics for the 14 PDF Core Fonts,
+downloaded from Adobe. The title and this paragraph were added by
+Matplotlib developers. The download URL was
+<http://partners.adobe.com/public/developer/font/index.html>.
+
+This file and the 14 PostScript(R) AFM files it accompanies may be used, copied, 
+and distributed for any purpose and without charge, with or without modification, 
+provided that all copyright notices are retained; that the AFM files are not 
+distributed without this file; that all modifications to this file or any of 
+the AFM files are prominently noted in the modified file(s); and that this 
+paragraph is not modified. Adobe Systems has no responsibility or obligation 
+to support the use of the AFM files.
+
+To use these git hooks, ln the githooks directory into the appropriate repo.
+For example, adding the hooks to trunk located at ~/nta/trunk, use the
+following (must use absolute paths):
+  ln -s ~/nta/trunk/githooks ~/nta/trunk/.git/hooks
+
+The pre-commit file is executed before each commit and the commit fails if it
+returns a non-zero exit code.  This can be overridden by committing files as
+follows:
+  git commit --no-verify ...
+
+This is the PyNode support implemented as a dynamic library. It is integrated
+with the build system and is copied into $NTA/install/lib
+
+
+
+# ----------------------------------------------------------------------
+# Numenta Platform for Intelligent Computing (NuPIC)
+# Copyright (C) 2013, Numenta, Inc.  Unless you have an agreement
+# with Numenta, Inc., for a separate license for this software code, the
+# following terms and conditions apply:
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses.
+#
+# http://numenta.org/licenses/
+# ----------------------------------------------------------------------
+
+"""
+Template file used by the OPF Experiment Generator to generate the actual
+description.py file by replacing $XXXXXXXX tokens with desired values.
+
+This description.py file was generated by:
+$EXP_GENERATOR_PROGRAM_PATH
+"""
+
+from nupic.frameworks.opf.expdescriptionapi import ExperimentDescriptionAPI
+
+from nupic.frameworks.opf.expdescriptionhelpers import (
+  updateConfigFromSubConfig,
+  applyValueGettersToContainer
+  )
+
+from nupic.frameworks.opf.clamodelcallbacks import *
+from nupic.frameworks.opf.metrics import MetricSpec
+from nupic.frameworks.opf.opfutils import (InferenceType,
+                                           InferenceElement)
+from nupic.support import aggregationDivide
+
+from nupic.frameworks.opf.opftaskdriver import (
+                                            IterationPhaseSpecLearnOnly,
+                                            IterationPhaseSpecInferOnly,
+                                            IterationPhaseSpecLearnAndInfer)
+
+
+# Model Configuration Dictionary:
+#
+# Define the model parameters and adjust for any modifications if imported
+# from a sub-experiment.
+#
+# These fields might be modified by a sub-experiment; this dict is passed
+# between the sub-experiment and base experiment
+#
+#
+config = {
+    # Type of model that the rest of these parameters apply to.
+    'model': "CLA",
+
+    # Version that specifies the format of the config.
+    'version': 1,
+
+    # Intermediate variables used to compute fields in modelParams and also
+    # referenced from the control section.
+    'aggregationInfo': $AGGREGATION_INFO,
+    'predictAheadTime': $PREDICT_AHEAD_TIME,
+
+    # Model parameter dictionary.
+    'modelParams': {
+        # The type of inference that this model will perform
+        'inferenceType': $INFERENCE_TYPE,
+
+        'sensorParams': {
+            # Sensor diagnostic output verbosity control;
+            # if > 0: sensor region will print out on screen what it's sensing
+            # at each step 0: silent; >=1: some info; >=2: more info;
+            # >=3: even more info (see compute() in py/regions/RecordSensor.py)
+            'verbosity' : 0,
+
+            # Example:
+            #     'encoders': {'field1': {'fieldname': 'field1', 'n':100,
+            #                  'name': 'field1', 'type': 'AdaptiveScalarEncoder',
+            #                  'w': 21}}
+            #
+            'encoders': {
+                $ENCODER_SPECS,
+            },
+
+            # A dictionary specifying the period for automatically-generated
+            # resets from a RecordSensor;
+            #
+            # None = disable automatically-generated resets (also disabled if
+            # all of the specified values evaluate to 0).
+            # Valid keys is the desired combination of the following:
+            #   days, hours, minutes, seconds, milliseconds, microseconds, weeks
+            #
+            # Example for 1.5 days: sensorAutoReset = dict(days=1,hours=12),
+            #
+            # (value generated from SENSOR_AUTO_RESET)
+            'sensorAutoReset' : $SENSOR_AUTO_RESET,
+        },
+
+        'spEnable': $SP_ENABLE,
+
+        'spParams': {
+            # Spatial pooler implementation to use. 
+            # Options: "py" (slow, good for debugging), and "cpp" (optimized).
+            'spatialImp': 'cpp',
+
+            # SP diagnostic output verbosity control;
+            # 0: silent; >=1: some info; >=2: more info;
+            'spVerbosity' : 0,
+
+            'globalInhibition': 1,
+
+            # Number of cell columns in the cortical region (same number for
+            # SP and TP)
+            # (see also tpNCellsPerCol)
+            'columnCount': 2048,
+
+            'inputWidth': 0,
+
+            # SP inhibition control (absolute value);
+            # Maximum number of active columns in the SP region's output (when
+            # there are more, the weaker ones are suppressed)
+            'numActiveColumnsPerInhArea': 40,
+
+            'seed': 1956,
+
+            # potentialPct
+            # What percent of the columns's receptive field is available
+            # for potential synapses. 
+            'potentialPct': $SP_POOL_PCT,
+
+            # The default connected threshold. Any synapse whose
+            # permanence value is above the connected threshold is
+            # a "connected synapse", meaning it can contribute to the
+            # cell's firing. Typical value is 0.10. Cells whose activity
+            # level before inhibition falls below minDutyCycleBeforeInh
+            # will have their own internal synPermConnectedCell
+            # threshold set below this default value.
+            # (This concept applies to both SP and TP and so 'cells'
+            # is correct here as opposed to 'columns')
+            'synPermConnected': $SP_PERM_CONNECTED,
+
+            'synPermActiveInc': 0.05,
+
+            'synPermInactiveDec': 0.0005,
+            
+            'maxBoost': 2.0
+        },
+
+        # Controls whether TP is enabled or disabled;
+        # TP is necessary for making temporal predictions, such as predicting
+        # the next inputs.  Without TP, the model is only capable of
+        # reconstructing missing sensor inputs (via SP).
+        'tpEnable' : $TP_ENABLE,
+
+        'tpParams': {
+            # TP diagnostic output verbosity control;
+            # 0: silent; [1..6]: increasing levels of verbosity
+            # (see verbosity in nta/trunk/py/nupic/research/TP.py and TP10X*.py)
+            'verbosity': 0,
+
+            # Number of cell columns in the cortical region (same number for
+            # SP and TP)
+            # (see also tpNCellsPerCol)
+            'columnCount': 2048,
+
+            # The number of cells (i.e., states), allocated per column.
+            'cellsPerColumn': 32,
+
+            'inputWidth': 2048,
+
+            'seed': 1960,
+
+            # Temporal Pooler implementation selector (see _getTPClass in
+            # CLARegion.py).
+            'temporalImp': 'cpp',
+
+            # New Synapse formation count
+            # NOTE: If None, use spNumActivePerInhArea
+            'newSynapseCount': 20,
+
+            # Maximum number of synapses per segment
+            'maxSynapsesPerSegment': 32,
+
+            # Maximum number of segments per cell
+            'maxSegmentsPerCell': 128,
+
+            # Initial Permanence
+            'initialPerm': 0.21,
+
+            # Permanence Increment
+            'permanenceInc': 0.1,
+
+            # Permanence Decrement
+            # If set to None, will automatically default to tpPermanenceInc
+            # value.
+            'permanenceDec' : 0.1,
+
+            'globalDecay': 0.0,
+
+            'maxAge': 0,
+
+            # Minimum number of active synapses for a segment to be considered
+            # during search for the best-matching segments.
+            # None=use default
+            # Replaces: tpMinThreshold
+            'minThreshold': 12,
+
+            # Segment activation threshold.
+            # A segment is active if it has >= tpSegmentActivationThreshold
+            # connected synapses that are active due to infActiveState
+            # None=use default
+            # Replaces: tpActivationThreshold
+            'activationThreshold': 16,
+
+            'outputType': 'normal',
+
+            # "Pay Attention Mode" length. This tells the TP how many new
+            # elements to append to the end of a learned sequence at a time.
+            # Smaller values are better for datasets with short sequences,
+            # higher values are better for datasets with long sequences.
+            'pamLength': 1,
+        },
+
+        'clParams': {
+            'regionName' : 'CLAClassifierRegion',
+            
+            # Classifier diagnostic output verbosity control;
+            # 0: silent; [1..6]: increasing levels of verbosity
+            'clVerbosity' : 0,
+
+            # This controls how fast the classifier learns/forgets. Higher values
+            # make it adapt faster and forget older patterns faster.
+            'alpha': 0.001,
+
+            # This is set after the call to updateConfigFromSubConfig and is
+            # computed from the aggregationInfo and predictAheadTime.
+            'steps': $PREDICTION_STEPS,
+        },
+
+        'anomalyParams': $ANOMALY_PARAMS,
+
+        'trainSPNetOnlyIfRequested': False,
+    },
+}
+# end of config dictionary
+
+
+# Adjust base config dictionary for any modifications if imported from a
+# sub-experiment
+updateConfigFromSubConfig(config)
+
+
+# Compute predictionSteps based on the predictAheadTime and the aggregation
+# period, which may be permuted over.
+if config['predictAheadTime'] is not None:
+  predictionSteps = int(round(aggregationDivide(
+      config['predictAheadTime'], config['aggregationInfo'])))
+  assert (predictionSteps >= 1)
+  config['modelParams']['clParams']['steps'] = str(predictionSteps)
+
+
+# Adjust config by applying ValueGetterBase-derived
+# futures. NOTE: this MUST be called after updateConfigFromSubConfig() in order
+# to support value-getter-based substitutions from the sub-experiment (if any)
+applyValueGettersToContainer(config)
+
+
+# ----------------------------------------------------------------------
+# Numenta Platform for Intelligent Computing (NuPIC)
+# Copyright (C) 2013, Numenta, Inc.  Unless you have an agreement
+# with Numenta, Inc., for a separate license for this software code, the
+# following terms and conditions apply:
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 3 as
+# published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see http://www.gnu.org/licenses.
+#
+# http://numenta.org/licenses/
+# ----------------------------------------------------------------------
+
+"""
+Template file used by the OPF Experiment Generator to generate the actual
+description.py file by replacing $XXXXXXXX tokens with desired values.
+
+This description.py file was generated by:
+$EXP_GENERATOR_PROGRAM_PATH
+"""
+
+from nupic.frameworks.opf.expdescriptionapi import ExperimentDescriptionAPI
+
+from nupic.frameworks.opf.expdescriptionhelpers import (
+  updateConfigFromSubConfig,
+  applyValueGettersToContainer,
+  DeferredDictLookup)
+
+from nupic.frameworks.opf.clamodelcallbacks import *
+from nupic.frameworks.opf.metrics import MetricSpec
+from nupic.frameworks.opf.opfutils import (InferenceType,
+                                           InferenceElement)
+from nupic.support import aggregationDivide
+
+from nupic.frameworks.opf.opftaskdriver import (
+                                            IterationPhaseSpecLearnOnly,
+                                            IterationPhaseSpecInferOnly,
+                                            IterationPhaseSpecLearnAndInfer)
+
+
+
+# ------------------------------------------------------------------------------
+# Model Configuration Dictionary:
+#
+# Define the model parameters and adjust for any modifications if imported
+# from a sub-experiment.
+#
+# These fields might be modified by a sub-experiment; this dict is passed between
+# the sub-experiment and base experiment
+#
+#
+# NOTE: Use of DEFERRED VALUE-GETTERs: dictionary fields and list elements
+#   within the config dictionary may be assigned futures derived from the
+#   ValueGetterBase class, such as DeferredDictLookup.
+#   This facility is particularly handy for enabling substitution of values in
+#   the config dictionary from other values in the config dictionary, which is
+#   needed by permutation.py-based experiments. These values will be resolved
+#   during the call to applyValueGettersToContainer(),
+#   which we call after the base experiment's config dictionary is updated from
+#   the sub-experiment. See ValueGetterBase and
+#   DeferredDictLookup for more details about value-getters.
+#
+#   For each custom encoder parameter to be exposed to sub-experiment/permutation
+#   overrides, define a variable in this section, using key names beginning with a
+#   single underscore character to avoid collisions with pre-defined keys (e.g.,
+#   _dsEncoderFieldName2_N).
+#
+#   Example:
+#      config = dict(
+#        _dsEncoderFieldName2_N = 70,
+#        _dsEncoderFieldName2_W = 5,
+#        dsEncoderSchema = [
+#          base=dict(
+#            fieldname='Name2', type='ScalarEncoder',
+#            name='Name2', minval=0, maxval=270, clipInput=True,
+#            n=DeferredDictLookup('_dsEncoderFieldName2_N'),
+#            w=DeferredDictLookup('_dsEncoderFieldName2_W')),
+#        ],
+#      )
+#      updateConfigFromSubConfig(config)
+#      applyValueGettersToContainer(config)
+#
+
+config = {
+
+  # Type of model that the rest of these parameters apply to
+  'model' : "CLA",
+
+  # The type of inference that this model will perform
+  'inferenceType': $INFERENCE_TYPE,
+  
+  # How much in advance we want to predict. Used only when swarming over
+  #  aggregations
+  'predictAheadTime': $PREDICT_AHEAD_TIME,
+  
+  # The number of prediction steps to use. When swarming over aggregations, this
+  #  is computed and filled in by the logic that follows this config 
+  #  declaration. It is computed based on the chosen aggreation and the
+  #  above predictAheadTime. 
+  'predictionSteps': 'FilledInBelow',
+  
+
+  ##############################################################################
+  # Dataset Aggregation Parameters (for training and inference datasets)
+  ##############################################################################
+
+  # Time-based Dataset Aggregation rules;
+  #
+  # Usage details and additional options: see
+  # nupic.data.aggregator.generateDataset()
+  #
+  # Aggregation presently begins at the start of the dataset. For every
+  # aggregation period, the records within the period are coalesced into a
+  # single record per rules specified via the aggregationInfo property.
+  #
+  # Value schema:
+  #   {
+  #     'periodUnit1':value1, 'periodUnit2':value2, ...,
+  #     'fields':[('fieldNameA', aggFuncNameA), ('fieldNameB', aggFuncNameB)]
+  #   }
+  #
+  # Aggregation period units: combination of 0 or more unit/value properties:
+  #   [years months] | [weeks days hours minutes seconds milliseconds microseconds]
+  # NOTE: years and months are mutually-exclusive with the other units.
+  # Example2: hours=1, minutes=30,
+  #
+  # Aggregation is disabled if the aggregationInfo key is omitted or all
+  # expressed period unit values evaluate to 0
+  #
+  # Aggregation fields: list of field-name/aggregationFunctionName tuples;
+  # e.g.: ("consumpion", "mean").
+  #
+  # Supported function names: "first", "last", "mean", "sum" (per
+  # nupic.data.aggregator.py)
+  #
+  # NOTE: Designated Sequence id, Reset, and Timestamp fields are included
+  #      automatically if not specified in aggregation fields.
+  #
+  # Aggregation period can be permuted over, so is separated out
+  # (generated from AGGREGATION_PERIOD)
+  '__aggregationPeriod' : $AGGREGATION_PERIOD
+
+  # (value generated from AGGREGATION_INFO)
+  'aggregationInfo' : $AGGREGATION_INFO,
+
+
+  ##############################################################################
+  # Sensor Region Parameters
+  ##############################################################################
+
+  # Sensor diagnostic output verbosity control;
+  # if > 0: sensor region will print out on screen what it's sensing at each step
+  # 0: silent; >=1: some info; >=2: more info; >=3: even more info
+  # (see compute() in py/regions/RecordSensor.py)
+  #
+  'sensorVerbosity' : 0,
+
+  # A dictionary specifying the period for automatically-generated resets from
+  # a RecordSensor;
+  #
+  # None = disable automatically-generated resets (also disabled if all of the
+  # specified values evaluate to 0).
+  # Valid keys is the desired combination of the following:
+  #   days, hours, minutes, seconds, milliseconds, microseconds, weeks
+  #
+  # Example for 1.5 days: sensorAutoReset = dict(days=1,hours=12),
+  #
+  # (value generated from SENSOR_AUTO_RESET)
+  'sensorAutoReset' : $SENSOR_AUTO_RESET,
+
+
+  # Dataset Encoder consists of field encoders that convert dataset record fields
+  # to the internal representations suitable for input to the Sensor Region.
+  #
+  # Each field encoder dict must have the following keys per
+  # nupic.encoders.MultiEncoder (multi.py):
+  #  1) data fieldname          ('fieldname')
+  #  2) an encoder type         ('type')
+  #  3) and the encoder params  (all other keys)
+  #
+  # See specific encoder modules (e.g., sdrcateogry.py, scalar.py,
+  # date.py, etc.) for encoder type values and descriptions of their specific params.
+  #
+  # Schema that describes how to build the encoder configuration.
+  #
+  #   dsEncoderSchema: [encoderSpec1, encoderSpec2, ...]
+  #   encoderSpec: dictionary of parameters describing the field encoder
+  #
+  # In this dsEncoderSchema example, the field name "Name1" is a timestamp,
+  # "Name2" is a scalar quantity, and "Name3" is a category
+  #
+
+  # Encoder specs;
+  # Example:
+  #          __field_name_encoder = dict(
+  #            type = SDRCategoryEncoder',
+  #            fieldname = name',
+  #            name = 'name',
+  #            n = 1000,
+  #            w = DeferredDictLookup('spNumActivePerInhArea'),
+  #          )
+  # Generated from ENCODER_SPECS
+  #
+  $ENCODER_SPECS,
+
+
+  # Example:
+  #     dsEncoderSchema = [
+  #       DeferredDictLookup('__field_name_encoder'),
+  #     ],
+  #
+  # (value generated from DS_ENCODER_SCHEMA)
+  #
+  'dsEncoderSchema' : $DS_ENCODER_SCHEMA,
+
+
+
+  ##############################################################################
+  # General CLA Region Parameters
+  ##############################################################################
+
+  # Number of cell columns in the cortical region (same number for SP and TP)
+  # (see also tpNCellsPerCol)
+  # Replaces: spCoincCount
+  'claRegionNColumns' : 2048,
+
+
+  ##############################################################################
+  # Spatial Pooler (SP) Parameters (SP is always enabled in OPF)
+  ##############################################################################
+
+  # SP diagnostic output verbosity control;
+  # 0: silent; >=1: some info; >=2: more info;
+  #
+  'spVerbosity' : 0,
+
+  # Print/logs stats every N iterations; 0 = disable stats
+  # NOTE: stats are printed by FDRCSpatial2.printPeriodicStats() to stdout
+  'spPrintStatsPeriodIter' : 0,
+
+  # SP inhibition control (absolute value);
+  # Maximum number of active columns in the SP region's output (when there are more,
+  # the weaker ones are suppressed)
+  #
+  'spNumActivePerInhArea' : 40,
+
+  # coincInputPoolPct
+  # What percent of the columns's receptive field is available
+  # for potential synapses. At initialization time, we will
+  # choose coincInputPoolPct * (2*coincInputRadius+1)^2
+  'spCoincInputPoolPct' : $SP_POOL_PCT,
+
+  # The default connected threshold. Any synapse whose
+  # permanence value is above the connected threshold is
+  # a "connected synapse", meaning it can contribute to the
+  # cell's firing. Typical value is 0.10. Cells whose activity
+  # level before inhibition falls below minDutyCycleBeforeInh
+  # will have their own internal synPermConnectedCell
+  # threshold set below this default value.
+  # (This concept applies to both SP and TP and so 'cells'
+  # is correct here as opposed to 'columns')
+  'spSynPermConnected' : $SP_PERM_CONNECTED,
+
+
+
+
+  ##############################################################################
+  # Temporal Pooler (TP) Parameters
+  ##############################################################################
+
+  # TP diagnostic output verbosity control;
+  # 0: silent; [1..6]: increasing levels of verbosity
+  # (see verbosity in nta/trunk/py/nupic/research/TP.py and TP10X*.py)
+  #
+  'tpVerbosity' : 0,
+
+  # Print stats every N iterations during training; 0 = disable stats
+  # TODO Why aren't experiments configuring stats for the inference phase? It seems
+  #   like SP stats are dumped by SP Pooler directly regardless of whether it's
+  #   in training or inference phase.  (waiting for email from Ron)
+  # TODO: In LPF, these were accumulated/printed via iter/final callbacks installed
+  #       by LPF; solve in OPF.
+  'tpTrainPrintStatsPeriodIter' : 0,
+
+  # Controls whether TP is enabled or disabled;
+  # TP is necessary for making temporal predictions, such as predicting the next
+  # inputs.  Without TP, the model is only capable of reconstructing missing sensor
+  # inputs (via SP).
+  #
+  'tpEnable' : True,
+
+  # The number of cells (i.e., states), allocated per column
+  #
+  'tpNCellsPerCol' : 32,
+
+  # Initial Permanence
+  # TODO need better explanation
+  #
+  'tpInitialPerm' : 0.21,
+
+  # Permanence Increment
+  #
+  'tpPermanenceInc' : 0.1,
+
+  # Permanence Decrement
+  # If set to None, will automatically default to tpPermanenceInc value
+  #
+  'tpPermanenceDec' : None,
+
+  # Temporal Pooler implementation selector (see _getTPClass in CLARegion.py)
+  #
+  'tpImplementation' : 'cpp',
+
+  # Maximum number of segments per cell
+  #  > 0 for fixed-size CLA
+  # -1 for non-fixed-size CLA
+  #
+  # TODO for Ron: once the appropriate value is placed in TP constructor, see if
+  #  we should eliminate this parameter from description.py
+  #
+  'tpMaxSegmentsPerCell' : 128,
+
+  # Segment activation threshold.
+  # A segment is active if it has >= tpSegmentActivationThreshold connected
+  # synapses that are active due to infActiveState
+  # None=use default
+  # Replaces: tpActivationThreshold
+  'tpSegmentActivationThreshold' : None,
+
+  # Minimum number of active synapses for a segment to be considered during
+  # search for the best-matching segments.
+  # None=use default
+  # Replaces: tpMinThreshold
+  'tpMinSegmentMatchSynapseThreshold' : None,
+
+  # Maximum number of synapses per segment
+  #  > 0 for fixed-size CLA
+  # -1 for non-fixed-size CLA
+  #
+  # TODO for Ron: once the appropriate value is placed in TP constructor, see if
+  #  we should eliminate this parameter from description.py
+  #
+  'tpMaxSynapsesPerSegment' : 32,
+
+  # New Synapse formation count
+  # NOTE: If None, use spNumActivePerInhArea
+  #
+  # TODO need better explanation
+  #
+  'tpNewSynapseCount' : 20,
+
+  # "Pay Attention Mode" length. This tells the TP how many new elements
+  # to append to the end of a learned sequence at a time. Smaller values are
+  # better for datasets with short sequences, higher values are better for
+  # datasets with long sequences.
+  'tpPamLength': 1,
+
+
+  ##############################################################################
+  # CLAClassifier parameters
+  ##############################################################################
+  'clRegionName' : 'CLAClassifierRegion',
+
+
+  # Classifier diagnostic output verbosity control;
+  # 0: silent; [1..6]: increasing levels of verbosity
+  #
+  'clVerbosity' : 0,
+
+  # Comma separated list of steps ahead to learn in the classifier.
+  'clSteps': $PREDICTION_STEPS,
+
+  # This controls how fast the classifier learns/forgets. Higher values
+  # make it adapt faster and forget older patterns faster.
+  'clAlpha': None,
+
+  # This allows the user to specify custom classifier params
+  'clAdvancedParams' : {},
+}
+
+# end of config dictionary
+
+
+# Adjust base config dictionary for any modifications if imported from a
+# sub-experiment
+updateConfigFromSubConfig(config)
+
+# Compute predictionSteps based on the predictAheadTime and the aggregation 
+# period, which may be permuted over. 
+if config['predictAheadTime'] is not None:
+  predictionSteps =  int(round(aggregationDivide(
+        config['predictAheadTime'], config['__aggregationPeriod'])))
+  assert (predictionSteps >= 1)
+  config['clSteps'] = '%s' % (predictionSteps)
+
+
+# Adjust config by applying ValueGetterBase-derived
+# futures. NOTE: this MUST be called after updateConfigFromSubConfig() in order
+# to support value-getter-based substitutions from the sub-experiment (if any)
+applyValueGettersToContainer(config)
+
+{
+  "additionalProperties": false, 
+  "type": "object", 
+  "description": "ExpGenerator-experiment-description", 
+  "properties": {
+    "resetPeriod": {
+      "additionalProperties": false, 
+      "required": false, 
+      "type": "object", 
+      "description": "sensor auto-reset period to enforce. NOTE: years/months are presently not supported for sensor auto-reset. If this parameter is omitted or all of the specified units are 0, then sensor auto-reset will be disabled in that permutation.", 
+      "properties": {
+        "seconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "days": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "hours": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "microseconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "weeks": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "minutes": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "milliseconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }
+      }
+    }, 
+    "maxModels": {
+      "default": null, 
+      "minimum": 1, 
+      "required": false, 
+      "type": [
+        "integer",
+        "null"
+      ], 
+      "description": "Maximum number of models to evaluate. This replaces the older location of this specification from the job params. "
+    }, 
+    "spPermuteDecrement": {
+      "default": true, 
+      "required": false, 
+      "type": "boolean", 
+      "description": "If true, permute over the sp permanence decrement value"
+    }, 
+    "inferenceArgs": {
+      "default": {}, 
+      "required": false, 
+      "type": [
+        {
+          "additionalProperties": false, 
+          "required": true, 
+          "type": "object", 
+          "description": "Additional parameters relevant to an inference", 
+          "properties": {
+            "predictionSteps": {
+              "description": "A list of integers that specifies which steps size(s) to learn/infer on", 
+              "default": [
+                1
+              ], 
+              "items": {
+                "minimum": 0, 
+                "required": true, 
+                "type": "integer"
+              }, 
+              "required": false, 
+              "minItems": 1, 
+              "type": "array"
+            }, 
+            "predictedField": {
+              "default": null, 
+              "required": false, 
+              "type": [
+                "string", 
+                "null"
+              ], 
+              "description": "Name of the field being optimized for during prediction"
+            },
+            "inputPredictedField": {
+              "default": null, 
+              "required": false, 
+              "type": "string", 
+              "description": "Whether or not to use the predicted field as an input. When set to 'auto', swarming will use it only if it provides better performance. When the inferenceType is NontemporalClassification, this value is forced to 'no'", 
+              "enum": [
+                "auto", 
+                "yes",
+                "no"
+              ]
+            } 
+          }
+        }, 
+        "null"
+      ], 
+      "description": ""
+    }, 
+    "prediction": {
+      "description": " [DEPRECATED] Prediction optimization options; at least oneMUST be enabled. NOTE: at this time, non-temporal and temporalpredictions are mutually-exclusive (RunPermutations cannot yetoptimize for both). This is deprecated. Used inferenceType instead", 
+      "default": {
+        "temporal": {
+          "optimize": true
+        }
+      }, 
+      "required": false, 
+      "additionalProperties": false, 
+      "type": "object", 
+      "properties": {
+        "nonTemporal": {
+          "description": "Non-temporal prediction options", 
+          "default": {
+            "optimize": false
+          }, 
+          "required": false, 
+          "additionalProperties": false, 
+          "type": "object", 
+          "properties": {
+            "optimize": {
+              "required": true, 
+              "type": "boolean", 
+              "description": "True=enable Non-temporal Prediction and optimize  Hypersearch based on Non-temporal prediction results; False=disable"
+            }
+          }
+        }, 
+        "temporal": {
+          "description": "Temporal prediction options", 
+          "default": {
+            "optimize": false
+          }, 
+          "required": false, 
+          "additionalProperties": false, 
+          "type": "object", 
+          "properties": {
+            "optimize": {
+              "required": true, 
+              "type": "boolean", 
+              "description": "True=enable Temporal Prediction and optimize Hypersearch based on Temporal prediction results; False=disable"
+            }
+          }
+        }
+      }
+    }, 
+    "fieldPermutationLimit": {
+      "default": 0, 
+      "minimum": 0, 
+      "required": false, 
+      "type": "integer", 
+      "description": "Bound permutations by the given number of fields, including meta-fields (e.g., 'timeOfDay', 'dayOfWeek'), in any given experiment during hypersearch; the value must be 0 or positive. If the value is 0 or this argument is omitted, ExpGenerator will use the total count of fields and meta-fields in the dataset as the maximum."
+    }, 
+    "environment": {
+      "default": "grok", 
+      "required": false, 
+      "type": "string", 
+      "description": "The type of program that will using this description file.This is used to determine which fields should be generated", 
+      "enum": [
+        "grok", 
+        "opfExperiment"
+      ]
+    }, 
+    "customErrorMetric": {
+      "required": false, 
+      "type": "object", 
+      "description": "Custom User definied Error metric that will be computed"
+    }, 
+    "spCoincInputPoolPct": {
+      "default": 0.8, 
+      "minimum": 0.0, 
+      "required": false, 
+      "type": "number", 
+      "description": "What percent of the columns's receptive field is available"
+    }, 
+    "fastSwarmModelParams": {
+      "default": null, 
+      "required": false, 
+      "type": [
+        "object",
+        "null"
+      ], 
+      "description": "This is the JSON encoded params from another model that will be used to seed a fast swarm. When included, the swarming will take a number of shortcuts based on this seed model, like turning off the normal field search logic and instead using the same fields used by the seed model. Normally, fixedFields should NOT be specified along with this option because the fixedFields will be extracted from these model params."
+    }, 
+    "swarmSize": {
+      "default": null, 
+      "enum": [
+        "small", 
+        "medium", 
+        "large"
+      ], 
+      "type": [
+        "string",
+        "null"
+      ], 
+      "description": "The swarm size. This is a meta parameter which, when present, sets the minParticlesPerSwarm, killUselessSwarms, minFieldContribution and other settings as appropriate for the requested swarm size.", 
+      "required": false
+    }, 
+    "runBaselines": {
+      "default": false, 
+      "required": false, 
+      "type": "boolean", 
+      "description": "Flag to run baseline error metrics with the job for comparison"
+    }, 
+    "metrics": {
+      "description": "Additional metrics to be generated, along with thedefault ones for the given inferenceType. Note: The specified metric should be compatible withe the giveninference", 
+      "default": [], 
+      "items": {
+        "required": true, 
+        "type": {
+          "additionalProperties": false, 
+          "type": "object", 
+          "description": "Sub-schema to specify metrics", 
+          "properties": {
+            "field": {
+              "default": null, 
+              "required": false, 
+              "type": [
+                "string",
+                "null"
+              ], 
+              "description": "Field on which to compute the metric"
+            }, 
+            "metric": {
+              "required": true, 
+              "type": "string", 
+              "description": "Type of metric to compute"
+            }, 
+            "inferenceElement": {
+              "required": true, 
+              "type": "string", 
+              "description": "InferenceElement on which to compute the metric"
+            }, 
+            "params": {
+              "default": {}, 
+              "required": false, 
+              "type": "object", 
+              "description": "Additional paramters for the metric"
+            }, 
+            "logged": {
+              "default": false, 
+              "required": false, 
+              "type": "boolean", 
+              "description": "Whether or not this metric is written to the output cache"
+            }
+          }
+        }
+      }, 
+      "required": false, 
+      "minItems": 1, 
+      "type": "array"
+    }, 
+    "predictionField": {
+      "minLength": 1, 
+      "required": false, 
+      "type": "string", 
+      "description": "[DEPRECATED] Name of field we're trying to predict. This is deprected. Used inferenceArgs.predictedFieldinstead"
+    }, 
+    "streamDef": {
+      "minLength": 1, 
+      "required": true, 
+      "type": "object", 
+      "description": "JSON description of the stream to use. The schema for this can be found at nupic.cluster.database.__path__/StreamDef.json"
+    }, 
+    "inferenceType": {
+      "enum": [
+        "NontemporalClassification", 
+        "TemporalMultiStep", 
+        "NontemporalMultiStep", 
+        "TemporalClassification", 
+        "TemporalNextStep", 
+        "TemporalAnomaly", 
+        "NontemporalAnomaly", 
+        "MultiStep"
+      ], 
+      "type": "string", 
+      "description": "The type of inference to conduct", 
+      "required": false
+    }, 
+    "metricWindow": {
+      "default": null, 
+      "minimum": 1, 
+      "required": false, 
+      "type": [
+        "number",
+        "null"
+      ], 
+      "description": "The metric window size. If not specified, then a default value as specified by the nupic configuration parameter nupic.opf.metricWindow will be used."
+    }, 
+    "fixedFields": {
+      "description": "If specified, the swarm will try only this field combination, but still search for the best encoder settings and other parameters. This is way to speed up swarming significantly if you already know which fields should be included in the final model.", 
+      "minItems": 1, 
+      "items": {
+        "type": "string"
+      }, 
+      "required": false, 
+      "uniqueItems": true, 
+      "type": "array"
+    }, 
+    "spSynPermConnected": {
+      "default": 0.10000000000000001, 
+      "minimum": 0.0, 
+      "required": false, 
+      "type": "number", 
+      "description": "What is the default connected threshold"
+    }, 
+    "iterationCount": {
+      "default": null, 
+      "minimum": -1, 
+      "required": false, 
+      "type": [
+        "integer",
+        "null"
+      ], 
+      "description": "Maximum number of iterations to run. This is used primarily for unit test purposes. A value of -1 means run through the entire dataset."
+    }, 
+    "anomalyParams": {
+      "default": {}, 
+      "required": false, 
+      "type": [
+        {
+          "additionalProperties": false, 
+          "required": true, 
+          "type": "object", 
+          "description": "Additional parameters relevant to an anomaly model", 
+          "properties": {
+            "anomalyCacheRecords": {
+              "default": null, 
+              "required": false, 
+              "type": [
+                "integer", 
+                "null"
+              ], 
+              "description": "Number of records to store in internal anomaly classifier record cache"
+            }, 
+            "autoDetectThreshold": {
+              "default": null, 
+              "required": false, 
+              "type": [
+                "number", 
+                "null"
+              ], 
+              "description": "Threshold for anomaly score to  auto detect anomalies"
+            }, 
+            "autoDetectWaitRecords": {
+              "default": null, 
+              "required": false, 
+              "type": [
+                "integer", 
+                "null"
+              ], 
+              "description": "Number of records to wait until auto detection begins"
+            }
+          }
+        }, 
+        "null"
+      ], 
+      "description": ""
+    }, 
+    "includedFields": {
+      "description": "Which fields to include in the hypersearch and their types. The encoders used for each field will be based on the type designated here.", 
+      "minItems": 1, 
+      "items": {
+        "additionalProperties": false, 
+        "type": "object", 
+        "properties": {
+          "space": {
+            "required": false, 
+            "type": "string", 
+            "description": "A way to customize which spaces (absolute, delta) are evaluted when runDelta is True. "
+          }, 
+          "maxValue": {
+            "required": false, 
+            "type": "number", 
+            "description": "Maximum value. Only applicable for 'int' and 'float' fields"
+          }, 
+          "minValue": {
+            "required": false, 
+            "type": "number", 
+            "description": "Minimum value. Only applicable for 'int' and 'float' fields"
+          }, 
+          "runDelta": {
+            "required": false, 
+            "type": "boolean", 
+            "description": "If true, use a delta encoder."
+          }, 
+          "fieldName": {
+            "required": true, 
+            "type": "string", 
+            "description": "Name of field to be encoded"
+          }, 
+          "fieldType": {
+            "required": true, 
+            "type": "string", 
+            "description": "Field type. Can be one of 'string', 'int', 'float'or 'datetime'"
+          }, 
+          "encoderType": {
+            "required": false, 
+            "type": "string", 
+            "description": "Encoder type, for example 'ScalarEncoder, AdaptiveScalarEncoder, etc. "
+          }
+        }
+      }, 
+      "required": true, 
+      "uniqueItems": true, 
+      "type": "array"
+    }, 
+    "minParticlesPerSwarm": {
+      "default": null, 
+      "minimum": 1, 
+      "required": false, 
+      "type": [
+        "number",
+        "null"
+      ], 
+      "description": "The number of particles to run per swarm"
+    }, 
+    "computeInterval": {
+      "required": false, 
+      "type": "object", 
+      "description": "How often predictions are computed. When this parameter is included, then different aggregations will be attempted during swarming. This parameter sets the UPPER BOUND on the interval between generated predictions, they may in fact be generated more often than this, depending on what the actual aggregation interval is for that particular model.  computeInterval MUST be an integer multiple of the minimum aggregation period, which is the aggregation setting of in the stream. The max aggregation period attempted will always be an integer factor of computeInterval. When this parameter is specified, inferenceArgs:predictionSteps must contain only 1 item, the number of prediction steps to use at the minimum aggregation setting. For other aggregation intervals that are evaluated during swarming, predictionSteps will be adjusted accordingly", 
+      "properties": {
+        "hours": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "microseconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "seconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "weeks": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "months": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "minutes": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "days": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "milliseconds": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }, 
+        "years": {
+          "minimum": 0, 
+          "required": false, 
+          "type": "integer"
+        }
+      }
+    }
+  }
+}
+
+# ![Numenta Logo](http://numenta.org/images/numenta-icon128.png) NuPIC
+
+## Numenta Platform for Intelligent Computing [![Build Status](https://travis-ci.org/numenta/nupic.png?branch=master)](https://travis-ci.org/numenta/nupic)
+
+NuPIC is a library that provides the building blocks for online prediction and anomaly detection systems.  The library contains the Cortical Learning Algorithm (CLA), but also the Online Prediction Framework (OPF) that allows clients to build prediction systems out of encoders, models, and metrics.
+
+For more information, see [numenta.org](http://numenta.org) or the [NuPIC wiki](https://github.com/numenta/nupic/wiki).
+
+## OPF Basics
+
+For more detailed documentation, see the [OPF wiki page](https://github.com/numenta/nupic/wiki/Online-Prediction-Framework).
+
+__Encoders__ turn raw values into sparse distributed representations (SDRs).  A good encoder will capture the semantics of the data type in the SDR using overlapping bits for semantically similar values.
+
+__Models__ take sequences of SDRs and make predictions.  The CLA is implemented as an OPF model.
+
+__Metrics__ take input values and predictions and output scalar representations of the quality of the predictions.  Different metrics are suitable for different problems.
+
+__Clients__ take input data and feed it through encoders, models, and metrics and store or report the resulting predictions or metric results.
+
+## Installation
+
+For all installation options, see the [Installing and Building NuPIC](https://github.com/numenta/nupic/wiki/Installing-and-Building-NuPIC) wiki page.
+
+Currently supported platforms:
+ * Linux (32/64bit)
+ * Mac OSX
+ * Raspberry Pi (ARMv6)
+ * Chromebook (Ubuntu ARM, Crouton) (ARMv7)
+ * [VM images](https://github.com/numenta/nupic/wiki/Running-Nupic-in-a-Virtual-Machine)
+
+Dependencies:
+ * Python (2.6-2.7) (with development headers)
+ * GCC (4.6-4.8), or Clang
+ * Make or any IDE supported by CMake (Visual Studio, Eclipse, XCode, KDevelop, etc)
+
+The dependencies are included in platform-specific repositories for convenience:
+
+* [nupic-linux64](https://github.com/numenta/nupic-linux64) for 64-bit Linux systems
+* [nupic-darwin64](https://github.com/numenta/nupic-darwin64) for 64-bit OS X systems
+
+Complete set of python requirements are documented in [requirements.txt](/external/common/requirements.txt),
+compatible with [pip](http://www.pip-installer.org/en/latest/cookbook.html#requirements-files):
+
+    pip install -r external/common/requirements.txt
+
+_Note_: If using pip 1.5 or later:
+
+    pip install --allow-all-external --allow-unverified PIL --allow-unverified psutil -r external/common/requirements.txt
+
+_Note_: If you get a "permission denied" error when using pip, you may add the --user flag to install to a location in your home directory, which should resolve any permissions issues. Doing this, you may need to add this location to your PATH and PYTHONPATH. Alternatively, you can run pip with 'sudo'.
+
+## Build and test NuPIC:
+
+Set the following environment variables in your `~/.bashrc` file. `$NUPIC` is the path to your NuPIC repository and `$NTA` is the installation path for NuPIC. You may set a different path for `$NTA` or specify the location with CMake with the command line option `-DPROJECT_BUILD_RELEASE_DIR:STRING=/my/custom/path`.
+
+    export NUPIC=<path to NuPIC repository>
+    export NTA=$NUPIC/build/release
+    export PYTHONPATH=$PYTHONPATH:$NTA/lib/python<version>/site-packages
+
+### Using command line
+
+#### Configure and generate build files:
+
+    mkdir -p $NUPIC/build/scripts
+    cd $NUPIC/build/scripts
+    cmake $NUPIC
+
+#### Build:
+
+    cd $NUPIC/build/scripts
+    make -j3
+
+> **Note**: -j3 option specify '3' as the maximum number of parallel jobs/threads that Make will use during the build in order to gain speed. However, you can increase this number depending your CPU.
+
+#### Run the tests:
+
+    cd $NUPIC/build/scripts
+    # all C++ tests
+    make tests_everything
+    # C++ HTM Network API tests
+    make tests_cpphtm
+    # Python HTM Network API tests
+    make tests_pyhtm
+    # Python OPF unit tests
+    make tests_run
+    # Python OPF unit and integration tests (requires mysql)
+    make tests_run_all
+    # Run all tests!
+    make tests_all
+
+### Using graphical interface
+
+#### Generate the IDE solution:
+
+ * Open CMake executable.
+ * Specify the source folder (`$NUPIC`).
+ * Specify the build system folder (`$NUPIC/build/scripts`), i.e. where IDE solution will be created.
+ * Click `Generate`.
+ * Choose the IDE that interest you (remember that IDE choice is limited to your OS, i.e. Visual Studio is available only on CMake for Windows).
+
+#### Build:
+
+ * Open `nupic.*proj` solution file generated on `$NUPIC/build/scripts`.
+ * Run `ALL_BUILD` project from your IDE.
+
+#### Run the tests:
+
+ * Run any `tests_*` project from your IDE (check `output` panel to see the results).
+
+### Examples
+
+For examples, tutorials, and screencasts about using NuPIC, see the [Using NuPIC](https://github.com/numenta/nupic/wiki/Using-NuPIC) wiki page.
+
+

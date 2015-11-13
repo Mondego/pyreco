@@ -1,0 +1,110 @@
+
+aMSN 2 - Cocoa
+==============
+Thank you for your interest in the Cocoa version of aMSN 2. This Read Me won't explain the architecture of aMSN 2, but is intended to give users/developers an insight into how to build and run aMSN 2 from source.
+
+Building
+========
+We use NIB files to build our interface, in order to load the NIB's correctly, we require aMSN 2 to be run from inside an application bundle. To build the bundle you need (from macports):
+
+python25
+py25-openssl
+py25-gobject
+py25-crypto
+py25-hashlib
+py25-py2app-devel
+py25-pyobjc2-cocoa
+
+
+After they have been installed, you will need to run this inside the root folder of amsn2:
+$ /opt/local/bin/python2.5 setupCocoa.py py2app -A
+
+This builds the file aMSN2.app into dist. You can now run aMSN2 by double clicking the app, or by running:
+$ dist/aMSN2.app/Contents/MacOS/aMSN2
+
+py-openssl - Note
+=================
+It is recommended to use the 0.7 version of py-openssl. Last version of Macports is using version 0.7. You can also use an updated portfile that can be found at: http://hosting.notjustanothermacuser.com/macports/py-openssl/Portfiles/0.7_0.tar.gz
+
+py2app - Note
+=============
+Be sure to use py25-py2app-devel and not py25-py2app from Macports, because py25-py2app is outdated and does not work with pyobjc2-cocoa. 
+
+=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=
+
+Development
+===========
+Tech
+====
+- aMSN2 uses the pyobjc bridge in order to facilitate a Cocoa GUI from python code.
+
+Main Loop
+=========
+The first challenge was to overcome the dependancy on glib's main loop (as we need to use NSApplication's run: method). Just like the cocoa-gimp project, we have subclassed NSApplication (-> aMSNCocoaNSApplication), and we simply have a method called processEvents: that implements one cycle of the NSApplication run: loop. And hence we can process gevents, and NSEvents.
+
+Support
+=======
+Currently we only support Mac OS X 10.5.
+
+aMSN Plugins
+============
+ToDo: I need to figure out how to get an instance of the plugin after importing the module. The instance can then be registered by plugins.registerPlugin(instance).
+
+example_plugin:
+import plugins
+
+class ExamplePlugin(plugins.aMSNPlugin):
+	def load(self):
+		self.log('Loading...')
+		self.registerForEvent('someevent', self.someEventCallback)
+	
+	def unload(self):
+		self.log('Unloading...')
+	
+	def someEventCallback(self, event, params):
+		self.log('Test event called...')
+		return params
+TEMPORARY README:
+
+In theory, you don't need much... 
+python-pyopenssl
+python-crypto
+python-imaging
+maybe some other stuff...
+
+Before launching amsn2 you have to fetch the submodules (papyon). Instructions can be found on the aMSN forum:
+http://www.amsn-project.net/forums/viewtopic.php?t=5994
+
+If you launch ./amsn2.py and it gives an error, that error probably tells you which dependency you need...
+You can type ./amsn2.py --help for more info... and the front ends can be selected with -f :
+./amsn2.py -f efl
+./amsn2.py -f gtk
+./amsn2.py -f qt4
+for gtk, you need python-gtk... and for efl, you need the EFL, the python-efl and python-etk
+
+
+If you want to install the EFL, it's easy go to http://omicron.homeip.net/projects/ and download the easy_e17.sh script :
+http://omicron.homeip.net/projects/easy_e17/easy_e17.sh
+Then do ./easy_e17.sh -i
+It will download the source, automake, configure, make and make install everything into /opt/e17 (so it doesn't 'contaminate' your system).
+Once done, go to ./e17_src/BINDINGS/python and type 
+PKG_CONFIG_PATH=/opt/e17/lib/pkgconfig ./build-all.sh /usr
+(this will build and install the python extensions into /usr/python2.X/...)
+Then the efl front end should become available...
+If it's not, fire up a python shell and try to import the ecore module; diagnose from there the problem.
+You'll need to run the script build.sh in amsn2/themes/default.
+
+
+If you have the following error with the qt4 front-end:
+	Traceback (most recent call last):
+	File "./amsn2.py", line 76, in <module>
+	amsn = aMSNCore(options)
+	File "/home/price/amsn2/amsn2/core/amsn.py", line 46, in __init__
+	self._loop = self._gui.gui.aMSNMainLoop(self)
+	AttributeError: 'NoneType' object has no attribute 'aMSNMainLoop'
+try moving into the amsn2/gui/front_ends/qt4 directory and calling generateFiles.sh
+
+If the backspace is not working as expected with the ncurses front-end it is probably because your TERM is not set to the correct value. Try to launch amsn2 with some other setting for TERM, like:
+TERM=konsole ./amsn2.py -f curses
+If it works with some other value it means that your terminal emulator is not set correctly.
+

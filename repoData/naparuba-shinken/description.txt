@@ -1,0 +1,463 @@
+start scripts for FreeBSD
+
+Clients samples for TSCA
+
+
+These clients use the thrift arbiter interface to submit services and hosts
+checks results (similar to NSCA server modules).
+
+They read their input from a csv file and send it to shinken.
+
+==============================================
+Shinken installation script for shinken 1.2.1
+==============================================
+
+Contact
+~~~~~~~~
+
+You can contact me at dguenault at monitoring-fr dot org if you find a bug
+or you can write an issue in the github interface
+
+if you find and fix a bug just send me the patch and i will apply it (and add credit for the patch in the README file)
+
+Minimal requirements
+~~~~~~~~~~~~~~~~~~~~
+
+For RedHat/CentOs you will need redhat-lsb (and git for cloning this repository)
+For Debian based distro you will need lsb_release
+
+Usage
+~~~~~
+
+This is a really simple script allowing to install a fully fonctionnal shinken in seconds!
+Curently only tested with Ubuntu/Linux Mint/Debian and RHEL/CentOS 5/6 distros.
+
+Usage: install -k | -i | -u [addonname] | -b | -r backupname | -l | -c | -e \"daemonslist\" | -p pluginname | -a addonname
+    -k | --kill             Kill shinken
+    -i | --install          Install shinken
+    -u | --uninstall        Remove shinken and all of the addons. if an argument is specified then just remove the specified argument
+    -b | --backup           Backup shinken configuration plugins and data
+    -r | --restore          Restore shinken configuration plugins and data
+    -l | --listbackups      List shinken backups
+    -c | --compresslogs     Compress rotated logs
+    -e | --enabledaemons    Which daemons to keep enabled at boot time. It's a quoted list of shinken daemons that should be enabled at startup.
+                            Daemons are:
+                                arbiter
+                                scheduler
+                                poller
+                                broker
+                                reactionner
+                                receiver
+				skonf
+    -p | --plugin           Install plugins. Argument should be one of the following:
+                               check_esx3
+                               nagios-plugins
+                               check_oracle_health
+                               check_mysql_health
+                               capture_plugin
+                               check_wmi_plus
+                               check_mongodb
+                               check_emc_clariion
+                               check_nwc_health
+                               manubulon (snmp plugins)
+                               check_hpasm
+                               check_netapp2
+                               check_mem (local enhanced memory check plugin)
+                               check_snmp_bandwidth (check bandwidth usage with snmp)
+    -a | --addon            Install addons. Argument should be one of the following:
+                               pnp4nagios
+                               multisite
+                               nagvis
+                               mongodb
+    -h | --help             Show help
+
+configuration file/parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can modify the target folder, backup folder or user/group the following way:
+
+  TARGET=/usr/local/nagios SKUSER=toto SKGROUP=titi ./install -i
+
+allowed values are:
+
+  TMP               temporary folder
+  TARGET            where to put shinken
+  ETC               where to put the etc folder
+  BACKUPDIR         where to put backups
+  SKUSER            shinken user
+  SKGROUP           shinken group
+  USEPROXY          use proxy environment variable for wget operations (also see below for proxy usage)
+  SKIPPREREQUISITES bypass prerequisites checks and installation (experimental). Set to 1 if you want to skip prerequisites
+
+Others configuration values are stored in install.d/shinken.conf. You can try to modify them, but never forget to test it before using them in production.
+
+Using proxy
+~~~~~~~~~~~
+
+You can enable support for proxy this way
+    ex: USEPROXY=1 ./install -i
+
+Do not forget to declare proxy environment variables
+
+    export http_proxy=http://login:password@proxy:port
+    export https_proxy=$http_proxy
+
+For debian package manager you also have to declare your proxy in /etc/apt/apt.conf
+
+    Acquire::http::Proxy "http://login:password@proxy:Port";
+
+For yum package manager you have to declare your proxy in /etc/yum.conf
+
+    proxy=http://proxy:port/
+    proxy_username=username
+    proxy_password=password
+
+Using proxy and sudo
+~~~~~~~~~~~~~~~~~~~~
+
+You should use -E option in order to preserve your environment variables
+
+    export http_proxy=http://login:password@proxy:port
+    export https_proxy=$http_proxy
+    sudo -E -- USEPROXY=1 ./shinken.sh -i
+
+
+Note about addon installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you plan to install multisite, pnp4angios and nagvis, you must install them in the following order: pnp4nagios, nagivs and multisite. Installing multisite at the end allow a better intergration of pnp4nagios and nagvis in multisite.
+==== EXPERIMENTAL ====
+
+How to install prerequisites for the eue plugin
+
+Just some words about cucumber and watir-webdriver. Those tools are for functional testing of (web) applications. They are rock solid and does the job like a charm. If you are not familiar with them just take the time to read the docs before anything else. 
+
+	Cucumber : http://cukes.info/
+	watir-webdriver : http://watirwebdriver.com/
+
+First you need a complete ruby stack (yeah i know it's ruby ... ) and a browser.
+
+	sudo apt-get install ruby rubygems ruby-dev libxml2-dev libxslt-dev libssl-dev build-essential firefox xvfb
+
+Then it is time to install some ruby gems
+
+	sudo gem update
+	sudo gem install rubygems-update
+	sudo update_rubygems
+	sudo gem install --no-ri --no-rdoc watir-webdriver
+	sudo gem install --no-ri --no-rdoc cucumber 
+	sudo gem install --no-ri --no-rdoc rspec
+	sudo gem install --no-ri --no-rdoc headless
+	sudo gem install --no-ri --no-rdoc mongo
+
+And that's it !
+
+Configuring a dedicated poller 
+
+If you just want to test it on a single shinken server, you must dedicate the poller to eue. What you have to do is to make sure that one and only one check is made at a time. Otherwise the  metrics should not be accurates. 
+
+Edit shinken-specific.cfg and modify the poller definition so it will match the following options 
+
+	max_workers 1 
+	min_workers 1 
+	processes_by_worker 1 
+
+Ok time to define a new check command. Everything is under libexec/eue and the required command line is : 
+
+	/usr/bin/cucumber --format Eue::Shinken /path/to/shinken/libexec/eue/yourfeature.feature. 
+
+yourfeature.feature is the feature test case you want to run (there is an example named glpi.feature that check the glpi demo site). Create a new command like this one 
+
+	define command {
+	       command_name             check_eue
+	       command_line             /usr/bin/cucumber --format Eue::Shinken $PLUGINSDIR$/eue/$ARG1$.feature
+	}
+
+The create the required service (for exemple for GLPI)
+
+	define service{
+	        service_description             Application GLPI authentification 
+	        use                             local-service
+	        host_name                       localhost
+	        check_command                   check_eue!glpi 
+	}
+
+Every feature test is associated to a configuration file featurename.ini. Do not modify the content unless you know what you are doing. The only thing you should modify is the application name and the robot details: 
+
+	[application]
+	name=Application GLPI
+
+	[robot]
+	env=prod
+	name=poller-eue-spain
+	os=linux
+	localization=spain
+
+Others parameters are experimental and should not be customized at the moment
+
+That's it, you are ready to do functional monitoring of your (web) applications ! 
+
+
+
+
+This is a first attempt to make nconf working with shinken
+The patch is about shinken engine recognition by nconf 1.3.0-0
+
+first install nconf the classical way and then:
+
+cd /var/www/nconf/include/ajax
+patch -p0 < /path/to/patch/exec_generate_config.php.patch
+
+Do not forget to edit/replace the deployment.ini file located in config folder!
+
+The CA pass phase is:
+iloveshinken
+
+To generate new certificate with this CA, launch:
+openssl req -new -nodes -out server.req -keyout server.key -config ./shinken_openssl_cnf
+openssl ca -out server.pem -config ./shinken_openssl_cnf -infiles server.req
+cp server.pem server.pem.bkp
+cp server.key server.pem
+cat server.pem.bkp >> server.pem
+cp server.pem client.pem
+
+
+#In this place you will find all your packs downloaded from shinken.iowebsite.
+#
+#you can freely adapt them to your own needs.
+
+
+# in this file you will have informations about installed packages from the shinken cli command
+
+README.rst
+===================================
+Presentation of the Shinken project
+===================================
+
+Welcome to the Shinken project.
+
+Shinken is a modern, Nagios compatible monitoring framework, written in
+Python. Its main goal is to give users a flexible architecture for
+their monitoring system that is designed to scale to large environments.
+
+Shinken is backwards-compatible with the Nagios configuration standard
+and plugins. It works on any operating system and architecture that
+supports Python, which includes Windows and GNU/Linux.
+
+Requirements
+============
+
+See the `Documentation`__ 
+
+__ https://shinken.readthedocs.org/en/latest/02_gettingstarted/installations/shinken-installation.html#requirements
+
+There are mandatory and conditional requirements for the installation
+methods which are described below.
+
+
+Installing Shinken
+==================
+
+See the `Documentation`__ 
+
+__ https://shinken.readthedocs.org/en/latest/02_gettingstarted/installations/shinken-installation.html
+
+
+
+Update
+------
+
+Launch:
+
+  python setup.py update
+
+It will only update the shinken lib and scripts, but won't touch your current configuration
+
+
+Running
+-------
+
+Shinken is installed with `init.d` scripts, enables them at boot time and starts them right after the install process ends. Based on your linux distro you only need to do:
+
+  chkconfig --add shinken
+  chkconfig shinken on
+
+or :
+
+  update-rc.d shinken defaults 20
+
+
+
+Where is the configuration?
+===========================
+
+The configuration is on the directory, `/etc/shinken`.
+
+
+Where are the logs?
+===================
+
+Logs are in /var/log/shinken
+(what did you expect?)
+
+
+I got a bug, how to launch the daemons in debug mode?
+=====================================================
+
+You only need to launch:
+
+  /etc/init.d/shinken -d start
+
+Debug logs will be based on the log directory (/var/log/shinken)
+
+
+I switched from Nagios, do I need to change my existing Nagios configuration?
+=============================================================================
+
+No, there is no need to change the existing configuration - unless
+you want to add some new hosts and services. Once you are comfortable
+with Shinken you can start to use its unique and powerful features.
+
+
+Learn more about how to use and configure Shinken
+=================================================
+
+Jump to the `Shinken documentation__.
+
+__ https://shinken.readthedocs.org/en/latest/
+
+
+If you find a bug
+================================
+
+Bugs are tracked in the `issue list on GitHub`__ . Always search for existing issues before filing a new one (use the search field at the top of the page).
+When filing a new bug, please remember to include:
+
+*	A helpful title - use descriptive keywords in the title and body so others can find your bug (avoiding duplicates).
+*	Steps to reproduce the problem, with actual vs. expected results
+*	Shinken version (or if you're pulling directly from the Git repo, your current commit SHA - use git rev-parse HEAD)
+*	OS version
+*	If the problem happens with specific code, link to test files (`gist.github.com`__  is a great place to upload code).
+*	Screenshots are very helpful if you're seeing an error message or a UI display problem. (Just drag an image into the issue description field to include it).
+
+__ https://github.com/naparuba/shinken/issues/
+__ https://gist.github.com/
+
+==============================================
+Shinken installation script for shinken 1.2.1
+==============================================
+
+Contact
+~~~~~~~~
+
+You can contact me at dguenault at monitoring-fr dot org if you find a bug
+or you can write an issue in the github interface
+
+if you find and fix a bug just send me the patch and i will apply it (and add credit for the patch in the README file)
+
+Minimal requirements
+~~~~~~~~~~~~~~~~~~~~
+
+For RedHat/CentOs you will need redhat-lsb (and git for cloning this repository)
+For Debian based distro you will need lsb_release
+
+Usage
+~~~~~
+
+This is a really simple script allowing to install a fully fonctionnal shinken in seconds!
+Curently only tested with Ubuntu/Linux Mint/Debian and RHEL/CentOS 5/6 distros.
+
+Usage: install -k | -i | -u [addonname] | -b | -r backupname | -l | -c | -e \"daemonslist\" | -p pluginname | -a addonname
+    -k | --kill             Kill shinken
+    -i | --install          Install shinken
+    -u | --uninstall        Remove shinken and all of the addons. if an argument is specified then just remove the specified argument
+    -b | --backup           Backup shinken configuration plugins and data
+    -r | --restore          Restore shinken configuration plugins and data
+    -l | --listbackups      List shinken backups
+    -c | --compresslogs     Compress rotated logs
+    -e | --enabledaemons    Which daemons to keep enabled at boot time. It's a quoted list of shinken daemons that should be enabled at startup.
+                            Daemons are:
+                                arbiter
+                                scheduler
+                                poller
+                                broker
+                                reactionner
+                                receiver
+				skonf
+    -p | --plugin           Install plugins. Argument should be one of the following:
+                               check_esx3
+                               nagios-plugins
+                               check_oracle_health
+                               check_mysql_health
+                               capture_plugin
+                               check_wmi_plus
+                               check_mongodb
+                               check_emc_clariion
+                               check_nwc_health
+                               manubulon (snmp plugins)
+                               check_hpasm
+                               check_netapp2
+                               check_mem (local enhanced memory check plugin)
+                               check_snmp_bandwidth (check bandwidth usage with snmp)
+    -a | --addon            Install addons. Argument should be one of the following:
+                               pnp4nagios
+                               multisite
+                               nagvis
+                               mongodb
+    -h | --help             Show help
+
+configuration file/parameters
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can modify the target folder, backup folder or user/group the following way:
+
+  TARGET=/usr/local/nagios SKUSER=toto SKGROUP=titi ./install -i
+
+allowed values are:
+
+  TMP               temporary folder
+  TARGET            where to put shinken
+  ETC               where to put the etc folder
+  BACKUPDIR         where to put backups
+  SKUSER            shinken user
+  SKGROUP           shinken group
+  USEPROXY          use proxy environment variable for wget operations (also see below for proxy usage)
+  SKIPPREREQUISITES bypass prerequisites checks and installation (experimental). Set to 1 if you want to skip prerequisites
+
+Others configuration values are stored in install.d/shinken.conf. You can try to modify them, but never forget to test it before using them in production.
+
+Using proxy
+~~~~~~~~~~~
+
+You can enable support for proxy this way
+    ex: USEPROXY=1 ./install -i
+
+Do not forget to declare proxy environment variables
+
+    export http_proxy=http://login:password@proxy:port
+    export https_proxy=$http_proxy
+
+For debian package manager you also have to declare your proxy in /etc/apt/apt.conf
+
+    Acquire::http::Proxy "http://login:password@proxy:Port";
+
+For yum package manager you have to declare your proxy in /etc/yum.conf
+
+    proxy=http://proxy:port/
+    proxy_username=username
+    proxy_password=password
+
+Using proxy and sudo
+~~~~~~~~~~~~~~~~~~~~
+
+You should use -E option in order to preserve your environment variables
+
+    export http_proxy=http://login:password@proxy:port
+    export https_proxy=$http_proxy
+    sudo -E -- USEPROXY=1 ./shinken.sh -i
+
+
+Note about addon installation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you plan to install multisite, pnp4angios and nagvis, you must install them in the following order: pnp4nagios, nagivs and multisite. Installing multisite at the end allow a better intergration of pnp4nagios and nagvis in multisite.

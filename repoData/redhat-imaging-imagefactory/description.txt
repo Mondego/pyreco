@@ -1,0 +1,426 @@
+Release Branching
+-----------------
+
+* With the first release candidate of a release, we want to create a branch named __release/*release-name*__. 
+
+* From this point on, any development meant for a later release should be done on master and any fixes meant for the pending release should be done on the branch and merged up to master. 
+
+* Milestones such as release candidates, the release itself, and any bug fix releases, should be done on the respective release branch and carried forward to master.
+
+Tagging
+-------
+
+We have used a few different tagging conventions over time.  Below are the rough details:
+
+* The current public facing release lives under the *release/1.0* branch in github and uses the version/tagging progression of 1.0.x.  Bugfix changes to this release will continue to be applied to this branch (or backported to it).
+
+* A brief period of additional development of the v1 REST interface without plugins took place in the master branch with a version convention of 1.1.*.  The most recent tag for this series of changes is 1.1.2.  We have since committed to, and begun work on, a large scale change to both the REST interface and to a scheme for making OS and provider support dynamic by means of plugins.  As a result, it is unlikely we will ever formally "release" any of the changes in 1.1.2 as a new version using the original REST interface.  If we do, we will likely merge the changes up through 1.1.2 back into the release/1.0 branch after they have been stabilized.
+
+* A large amount of development on the plugin scheme and v2 REST interface (among other things) has now been merged into the master branch.  The resulting factory daemon is not compatible with earlier clients.  We will continue to tag this sequence of work using 1.1.x, starting with 1.1.3.
+
+* 1.2.0 is being reserved for the stable initial "Algiers" release.
+
+* Work beyond Algiers will likely be tagged as 1.3.x
+
+Error Handling
+--------------
+
+The V1 Factory code provides only a simple binary success/failure indication via the REST API.  To obtain additional details, users must review the Factory log file.  We'd like to improve on this.
+
+So, we've added a "status_detail" field to our image objects in an attempt to improve the quality of error reporting that we pass through the API.  The convention we are attempting to follow across all builders is roughly as follows:
+
+* The "status_detail" should be set to a human readable single-line explanation of the sub-task that the builder is working on.  For example: "Removing unique identifiers from image - Adding cloud information".  When an exception is encountered causing a build failure the status_detail can then be used to provide a meaningful error message to end users.  For example: "Failure encountered while: <status_detail>"
+
+* Over time, we anticipate being able to identify particularly common failure modes that can be reliably detected in our exception handlers.  As we do this, we will begin to explicitly detect these details and then re-raise the exception as our own ImageFactoryException.  The text of an ImageFactoryException should itself be a simple, single-line human-readable explanation of the error encountered that can be displayed directly to UI users.  
+
+    For example: 
+
+        EC2 connection failed due to bad user credentials.  Please check credentials and try again.  
+
+    This line can then be merged with the existing "status_detail" to provide a larger context for the error, in addition to the specific detail from the re-raised exception.  
+
+* Full exception details should __always__ be logged via the Python logging subsystem. 
+
+This is actual output from a test run on a RHEL6 machine using the input files
+in this directory.
+
+[begin]
+
+# ./make_parameters.py fedora-livecd-desktop-flat.ks > f18_spin_ks.parameters.json
+
+# imagefactory --debug base_image --parameters f18_spin_ks.parameters.json f18_spinks.tdl
+
+============ Final Image Details ============
+UUID: 6d5aad23-7368-4e60-8fe5-b289bb2623d8
+Type: base_image
+Status: COMPLETE
+Status Details: {'error': None, 'activity': 'Base Image build complete'}
+
+# imagefactory --debug base_image f18_utility.tdl
+
+============ Final Image Details ============
+UUID: f216b47f-0444-4392-b1a4-a17f36746f7b
+Type: base_image
+Status: COMPLETE
+Status Details: {'error': None, 'activity': 'Base Image build complete'}
+
+# ./make_target_parameters.py ./utility_tasks.tdl f216b47f-0444-4392-b1a4-a17f36746f7b > f18_target_parameters.json
+# imagefactory --debug target_image --parameters f18_target_parameters.json --id 6d5aad23-7368-4e60-8fe5-b289bb2623d8 indirection
+
+============ Final Image Details ============
+UUID: fd9a6080-3e57-4f36-8f1f-55e8626ab1fa
+Type: target_image
+Status: COMPLETE
+Status Details: {'error': None, 'activity': 'Target Image build complete'}
+
+# file /var/lib/imagefactory/storage/fd9a6080-3e57-4f36-8f1f-55e8626ab1fa.body 
+/var/lib/imagefactory/storage/fd9a6080-3e57-4f36-8f1f-55e8626ab1fa.body: ISO 9660 CD-ROM filesystem data 'Linux 16 x86_64                ' (bootable)
+# mount -o loop /var/lib/imagefactory/storage/fd9a6080-3e57-4f36-8f1f-55e8626ab1fa.body /mnt/cdrom/
+# ls /mnt/cdrom/
+EFI  images  isolinux  LiveOS
+# 
+
+
+## Executive Summary ##
+
+This is a plugin that was originally created to generate LiveCD images
+using the livemedia-creator project in Fedora.
+
+I named it "IndirectionCloud" because really, it is a pluging to allow
+you do build an image using the tools inside of another image, instead
+of using any specific code in the plugin itself.
+
+For Fedora Live CD images, the process for doing this is roughly as follows:
+
+1) You build a base image using one of the existing accepted "spin kickstart"
+files.  This image is the content that will eventually be turned into a live CD.
+
+Details of spin-kickstarts and the existing live CD creation process:
+
+http://fedoraproject.org/wiki/Talk:How_to_create_and_use_a_Live_CD
+https://git.fedorahosted.org/cgit/spin-kickstarts.git
+
+
+2) You build a base image containing the environment in which you wish to run
+livemedia-creator.  Typically this is a JEOS-ish build of the same OS version
+from #1 with lorax (and this livemedia-creator) and its dependencies added.  
+In theory, it could actually be the _same_ image as #1 although we have not yet 
+tried this.  We call this the Utility Image.
+
+3) You build a target_image using the "indirection" plugin.  You pass it the images
+from #1 and #2 along with a fragment of TDL that drives the running of livemedia-creator.
+When this is finished the indirection plugin extracts the output of lmc from
+a known location and stores it as the target_image.  (This output is the ISO)
+
+
+## Details and examples ##
+
+* Utility Image
+
+This image is where lmc (or potentially other tools) will be run.  At the
+moment, it should be built with all required tools specified as packages
+and repos in the TDL.
+
+Here is an example of the TDL I used to generate the utility image for
+creating an F18 ISO:
+
+<template>
+  <name>f18utility</name>
+  <os>
+    <rootpw>ozrootpw</rootpw>
+    <name>Fedora</name>
+    <version>18</version>
+    <arch>x86_64</arch>
+    <install type='url'>
+<url>http://download.fedora.com/install_trees/fedora/F-18/64bit/</url>
+    </install>
+  </os>
+  <description>Fedora 18 64 bit image with packages needed for live CD
+creation</description>
+  <packages>
+      <package name='lorax'/>
+      <package name='hfsplus-tools'/>
+  </packages>
+</template>
+
+
+* Input Image
+
+This is the image that will be used as the input into lmc.  In short, it
+should be a base image built with the flattened spin kickstart.
+
+
+* Target Image
+
+You then create a target image with the following inputs and parameters.
+
+base_image - The base image should be set to the UUID of the Input Image
+generate in the step above.
+
+parameters - Just as with the base image creation step, this holds a
+dictionary of additional parameters that may be specific to a particular
+plugin.  The Live CD plugin expects the following:
+
+utility_image - This should be the UUID of the Utility Image generated
+in the step above.
+
+utility_customizations - This is a _partial_ TDL document that
+contains the commands necessary to generate the ISO.  These commands are
+run inside of a VM created from a copy of utility image that has been
+booted to runlevel 3.  This VM also has an additional unmounted
+filesystem available to it as /dev/vdb1 with the following
+characteristics:
+
+1) The input image is available as the file "/input_image.raw"
+
+2) Once the customization TDL has finished running and the VM has shut
+down, the plugin expects to find the results in
+"/results/images/boot.iso"
+
+Both of these paths are relative to the filesystem root of /dev/vdb1.
+
+The TDL fragment necessary to generate an ISO ends up being very simple.
+Here is an example for F18:
+
+<template>
+<commands>
+   <command name='mount'>mount /dev/vdb1 /mnt</command>
+   <command name='livecd'>livemedia-creator --make-iso
+--disk-image /mnt/input_image.raw --resultdir /mnt/results</command>
+</commands>
+</template>
+
+
+## Next Steps - Image Factory ##
+
+1) Make the input image filename and the expected output image location
+additional parameters with defaults of what is described above.  This is
+quite simple but should make the plugin quite a bit more flexible.
+
+UPDATE: This is now done.  Details are in the comments at the top of the source
+flie.
+
+2) Test out installing the lmc enabling packages as part of the target
+image step.  The code to allow this is already part of what processes
+the partial TDL that drives the ISO creation.  I just haven't yet tried
+to add repos or packages in this step.
+
+3) Use qcow2 snapshots of the utility image rather than doing a bulk
+copy.  This is an optimization.
+
+UPDATE: I have a pull request in to add a general purpose version of
+this to Oz.  If this is accepted we can use it here as well.
+
+4) Present the input image to the utility instance as a read only device
+rather than as a file inside of the working space partition.  I tested
+this very early on in my work and lmc seemed to be capable of accepting
+an actual device rather than a file as its input image.  This is another
+optimization as it avoids another bulk copy.  (Make this a special case
+of the parameter specification in #1)
+
+UPDATE: This is now an option via parameters but I have not yet tested
+it.
+
+## Next Steps - Not Image Factory ##
+
+1) Ensure that what lmc is producing is an acceptable substitute for
+what live CD creator is producing - I'm only aware of one potential
+issue at this point, which is size.  Thus far my test ISO builds based
+on the flattened F18 live CD spin kickstarts from git have been about 
+1 GB in size.  That is, larger than a CD.  
+
+OpenStack supports two distinct image storage services.  However only one, Glance,
+seems to be widely deployed or supported.
+
+Glance provides a REST API, a python binding to this API and a command line
+tool that uses the binding.
+
+Glance does not inspect uploaded images.  It is the responsibility of the uploader
+to correctly tag image details, including the image format, at the time the image is
+added.
+
+OpenStack itself is designed to suport a wide variety of hypervisors, not all of which
+use compatible image formats.
+
+To get things started I'm going to write a plugin to support the default hypervisor
+which happens to be KVM.  This is convenient as we use KVM internally to create
+base_images.
+
+Currently I have an extremely simple upload utility that uses the bindings from
+the python-glance package.
+
+glance_upload.py
+
+The only OS-specific change in vSphere can be found in the RHEL5 builder class.
+
+RHEL5 requires that we explicitly add the mptscsi module to the initrd.
+
+RHEL6 and the more recent Fedoras that we support have a boot environment that is
+smart enough to deal with this.
+
+Our approach in Factory v1 was to modify the ks.cfg used to create the JEOS that eventually
+became the vSphere image.  This is not going to be possible in v2, as we explicitly re-use a
+fully generic base_image for all builds.  We will need to make the initrd change by booting
+the base_image and doing further customization via a "mkinitrd" command within the running
+image.
+
+This will hook in nicely with our re-implementation of target specific packages and repos.
+
+This package contains a subset of the PicklingTools library. More information
+and the full source can be found at http://www.picklingtools.com
+
+PicklingTools is published under the BSD licences - http://www.picklingtools.com/license
+
+Image Persistence - MiniHOWTO
+
+The various image types are represented inside of the factory by child classes of PersistentImage (PI).  In our current implementation they are always paired with a PersistentImageManager (PIM).
+
+Here's how this is meant to be used.
+
+A PIM is instantiated at application startup time.
+
+As PIs are created they are added to the PIM (and thus persisted to disk) via the add_image() call in the PIM.
+
+Any time a user of the PIM wishes to persist a change to the image metadata they must explicitly call save_image() in the PIM.
+
+When using a PIM, it is given full control over the value of the "data" property in any PIs.  This property is the name of the file on disk to be used for the image data itself.  Users of the PI/PIM structure should never override this value but they may freely modify or overwrite the file that it points to.
+
+Some hypothetical use cases that this allows but that are not currently implemented or documented:
+
+1) Using the PIs without a PIM
+
+2) Having more than one PIM in a given application.
+
+
+Authoritative documentation for imagefactory can be found at:
+
+http://imgfac.org/documentation
+
+#Image Factory#
+
+Image Factory enables appliance creation and deployment to multiple virtualization
+and Cloud providers.
+
+##Features##
+*   Build guest images for a growing list of operating system and cloud combinations.
+    * Current guest OS support: Fedora 7-19, RHEL 5.x and 6.x
+    * Current cloud support: Red Hat Enterprise Virtualization, VMware vSphere, Amazon EC2, Rackspace, OpenStack, and more...
+*   Image Factory supports "build and upload" or snapshotting of existing images.
+*   RESTful API makes integrating Image Factory into existing workflows simple.
+
+
+##Using Image Factory##
+Building an image begins with a template describing what to build. See an example
+of such a template below. See the [schema documentation for TDL](http://imgfac.org/documentation/tdl/TDL.html)
+for more detail on creating a template. Note that a template is **not** tied to
+a specific cloud. 
+
+    <template>
+        <name>f12jeos</name>
+        <os>
+            <name>Fedora</name>
+            <version>12</version>
+            <arch>x86_64</arch>
+            <install type='iso'>
+                <iso>http://download.fedoraproject.org/pub/fedora/linux/releases/12/Fedora/x86_64/os/</iso>
+            </install>
+            <rootpw>p@55word!</rootpw>
+        </os>
+    </template>
+
+Ensure to change the element to your desired root password.
+
+Next, use the imagefactory command and specify the template to use and for which
+clouds to build an image. The above template example was saved to a file name f12_64.tdl.
+
+    $ sudo imagefactory --template f12_64.tdl --target ec2
+
+Once the image has been built, use the imagefactory command again, this time to
+push the image into the cloud.
+
+    $ sudo imagefactory --provider ec2-us-west-1 --credentials ec2_credentials.xml
+
+That's it!  You can now launch an instance of this image using the cloud
+provider's management console.
+
+##Installing Image Factory##
+Installing Image Factory is quick and easy.  See the
+[imagefactory rpm installation](http://imgfac.org/documentation/install.html#rpm)
+instructions for more detail.
+
+## Dev Setup ##
+If you are wanting to use Imagefactory in a dev environment, then you can run from source.  Run the 'imagefactory_dev_setup.sh' script found in the scripts directory.  This will setup a dev environment which allows you to run from source.  Once this is complete run ./imagefactoryd --foreground to start the server.
+
+## Documentation ##
+More documentation on how to configure, use, and develop for imagefactory can be found on the [Image Factory website](http://imgfac.org). 
+
+Holding area for standalone tests meant to be run manually
+
+## Introduction
+
+This is a testsuite for the imgfac v2 REST interface. You can launch the tests running `nosetest` from the root directory.
+
+Before launching the tests, you can put your favourite template files in `tdls/`. This will execute a base_build for every TDL found in that directory and, for every TDL and every target defined in TARGETS, a target_build. Builds will be threaded and monitored concurrently.
+
+If you configure imgfac with some `target_content.xml` and are executing the tests on the same system where imgfac is deployed, the testsuite will also compare for the installed/missing pacakges of every target_image by using libguestfs (that will need to mount the VM image, that's why).
+
+
+## Tests setup
+
+Options can be configured in `tests/config`. You'll want to set in there the URL of your imgfac v2 deployment, set to localhost by default. You can also set the URL by exporting the environment variable: `IMGFAC_URL` (eg. `export IMGFAC_URL=http://myimgfachost:8075/imagefactory`).
+
+Notable options:
+- TARGETS the list of providers you want to build your target_images for
+- PROVIDERS the list of providers you want to push your images to (note that for this to work you'll need to provide credentials and definitions as per the examples in `providers/`)
+
+
+## Requirements
+
+- python-nose
+- python-requests
+- python-libguestfs
+
+
+## Notes
+
+Currently the tests performed over http REST **do not** support oauth nor ssl, so you'll have to disable that in imgfac.
+
+
+### imgfac deployment
+
+You can get a F17 system ready for testing with the latest version of imgfac v2 by installing a minimal fedora and then:
+
+```
+# wget http://repos.fedorapeople.org/repos/aeolus/imagefactory/testing/repos/fedora/imagefactory.repo -O /etc/yum.repos.d/imagefactory.repo
+
+# yum install imagefactory imagefactory-plugins*
+```
+
+Then disable oauth and ssl:
+
+```
+# sed -i -e '/OPTIONS/s/^/#/' /etc/sysconfig/imagefactoryd
+
+# echo 'OPTIONS="--debug --no_ssl --no_oauth"' >> /etc/sysconfig/imagefactoryd
+```
+
+Don't forget to disable the default firewall if you're not testing localhost, the Fedora default firewall prevents external systems from connecting to your 8075.
+Title: Image Factory README
+Format: complete
+Author: Steve Loranz
+Date: February 18, 2011
+Revision: 1.0
+Keywords: aeolus,image_factory,cloud
+
+## Usage ##
+
+From the top level of the image_factory source tree:
+
+    nosetests -v
+
+Or, if you are on a system with Python 2.7 or later:
+
+    python -m unittest discover -v
+
+windows proxy service location 
+

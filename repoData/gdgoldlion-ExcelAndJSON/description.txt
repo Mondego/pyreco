@@ -1,0 +1,663 @@
+ExcelAndJSON的设计决策
+============
+
+*很多人看到ExcelAndJSON的第一反映是，这东西我的公司里面也有，那么我为什么用呢？*
+
+*做为开发来说，每一个工具的存在，都是为了加快游戏开发的速度。那么从无到有，从有到精。有和没有，好用和不好用的差别，每一个都比前一个情况能提升50%的效率。（按IPD理论，极限速度是提升100%的效率，这里取保守数字）。*
+
+*ExcelAndJSON这个工具，前前后后设计思考大约有一年的时间。在之前的开发中，我们使用大量的类似工具，数量有四五个，如果考虑评估阶段的话，是十几个。*
+
+*这些工具或多或少都有这样那样的问题。而每一个问题，都是开发中的一个大坑。下面我们来看ExcelAndJSON是如何对这些问题提供解决方案的。*
+
+**Part1.为什么选择Python开发？**
+============
+
+- 如果选择C++，那么是可以使用Qt的。但C++领域，一直没有好用的开源跨平台Excel解析库。要么是闭源的，要么是只支持老格式xls不支持新格式xlsx，还有就是不能够跨平台。而这些，恰恰都是ExcelAndJSON本身必须具备的特性。手游开发，决定了必须跨平台。开源项目决定了依赖库必须也是开源的。Office的不断更新，决定了必须支持新格式。所以，C++被淘汰出局。
+
+- 如果选择JS，因为我的方向是全栈式，目前来说在Node.js领域，npm中我没有找到非常好用的Excel解析库。很多库都是直接把Excel读成一个巨型JSON对象，这种写法是我所不能接受的，太SB了。还有一个原因在于，考虑未来扩展性，Node.js领域一直没有好用的UI库。另外，如果在web开发里面去找，我个人不是很喜欢BS架构的工具。所以，JS被淘汰出局。
+
+- 如果选择Java。Java目前在前端手机游戏开发领域，已经没落。在后端，快速开发方向面临新兴方案的冲击（RoR， Python，Node.js，Go），而且高性能方向又始终干不过C++。对于各个公司自行修改维护能否找到适合的人，是个问题（前端几乎没人做Java，后端可能有人做Java）。所以，Java也被淘汰出局。
+
+- 如果选择Python。首先，Python是跨平台的。其次，Python的学习速度很快，3~5年经验的人，上手时间顶多3~5天。再次，Python对于文件，文本，命令行处理，支持的非常之好。最后，Python里面也有方便的图形化工具，例如Qt就提供了Python版本。
+
+所以，选择Python。
+
+**Part2.数组的作用**
+============
+
+如果没有数组，那么在遇到成序列的数据时候，比如设计怪物AI中的技能部分，表的结构就会是类似这个样子：
+<table>
+    <tbody>
+        <tr>
+            <th>
+                length
+            </th>
+            <th>
+                skill1
+            </th>
+            <th>
+                <span style="font-weight:bold;text-align:center;background-color:#f7f7f7;">skill2</span>
+            </th>
+            <th>
+                <span style="font-weight:bold;text-align:center;background-color:#f7f7f7;">skill3</span>
+            </th>
+            <th>
+                <span style="font-weight:bold;text-align:center;background-color:#f7f7f7;">skill4</span>
+            </th>
+        </tr>
+        <tr>
+            <td>
+                4
+            </td>
+            <td>
+                火球
+            </td>
+            <td>
+                冰箭
+            </td>
+            <td>
+                魔法盾
+            </td>
+            <td>
+                顺移
+            </td>
+        </tr>
+        <tr>
+            <td>
+                3
+            </td>
+            <td>
+                突刺
+            </td>
+            <td>
+                半月
+            </td>
+            <td>
+                重斩
+            </td>
+            <td>
+                <br />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                1
+            </td>
+            <td>
+                治疗
+            </td>
+            <td>
+                <br />
+            </td>
+            <td>
+                <br />
+            </td>
+            <td>
+                <br />
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+
+
+如果你使用过类似这样的JSON结构，那么你应该知道，在填写数据的时候，容易出错，输出数据的时候会很难看（不管是填充null作为空数据，还是不输出空白格，都一样难看。前者存在无用数据，后者丢失了表的结构，造成阅读困难），遍历代码写起来也很麻烦。
+
+在JSON中，数组天生就可以获得其“元素个数”，并且可以方便的遍历。所以，我们要在工具层面支持数组，这样才能使用JSON的这个特性。
+
+**Part3.“引用”该怎么用？**
+============
+
+还是举一个例子，在经营建造游戏中，对于建筑物属性的定义，每个建筑的解锁等级这是一个固定值，该建筑占用的地块面积也是一个固定值。但是该建筑不同等级的属性，则是完全不相同的。如果是一个资源产生建筑，那么会有不同的资源生成速度和资源上限，如果是一个出兵建筑，会有可造兵种类别，出兵时间。如果是一个防御建筑，会有攻击半径，伤害力等。这些不同结构的字段，是没有可能放到一个二维表中的。
+
+一般采用的方式是，会有几种方案：
+1.会有一个主要的表来存放所有建筑包含的相同的字段，然后那些不相同的字段信息放到其他表中，然后通过主键跳转来访问。
+2.直接拆成多个表来填数据
+3.使用一些不同的开关字段或分类字段，让同一个字段在不同开关状态下有不同的含义。现在游戏越来越复杂，这是最不建议的一种方式。
+
+上面的3种方案，维护和修改成本都很高。
+
+采用引用实现就很简单，还是多个表，然后在主要表上，插入其他表的引用即可。
+<table>
+    <tbody>
+        <tr>
+            <th>
+                s
+            </th>
+            <th>
+                i
+            </th>
+            <th>
+                i
+            </th>
+            <th>
+                r
+            </th>
+            <th>
+                r
+            </th>
+            <th>
+                r
+            </th>
+        </tr>
+        <tr>
+            <td>
+                name
+            </td>
+            <td>
+                unlock_lv
+            </td>
+            <td>
+                area
+            </td>
+            <td>
+                lv1
+            </td>
+            <td>
+                lv2
+            </td>
+            <td>
+                lv3
+            </td>
+        </tr>
+        <tr>
+            <td>
+                基地
+            </td>
+            <td>
+                1
+            </td>
+            <td>
+                4
+            </td>
+            <td>
+                基地.lv1
+            </td>
+            <td>
+                基地.lv2
+            </td>
+            <td>
+                基地.lv3
+            </td>
+        </tr>
+        <tr>
+            <td>
+                铀矿
+            </td>
+            <td>
+                3
+            </td>
+            <td>
+                4
+            </td>
+            <td>
+                铀矿.lv1
+            </td>
+            <td>
+                铀矿.lv2
+            </td>
+            <td>
+                铀矿.lv3
+            </td>
+        </tr>
+        <tr>
+            <td>
+                兵营
+            </td>
+            <td>
+                5
+            </td>
+            <td>
+                1
+            </td>
+            <td>
+                兵营.lv1
+            </td>
+            <td>
+                兵营.lv2
+            </td>
+            <td>
+                兵营.lv3
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+**Part4.主表模式的意义是什么？**
+============
+
+游戏开发中，前后端对于数据的需求是不一样的。前端需要的是一些显示数据，如资源名称，动作参数。后端需要的是一些计算数据，比如攻击力，防御力，伤害公式等。但是有一些数据，是前后端都需要的，比如：技能范围，技能类型等，这些数据既与前端的显示有关系也和后端的逻辑计算有关系。
+
+那么这种情况下，按照传统方式，也会拆成若干表。一般是一张表前端用，一张表后端用。但问题在于，前后端都需要的数据该如何处理？在两个表之间同步是一个成本比较高的办法。
+
+这就体现出主表模式的意义了。我们可以把这些数据都组织在一张表上：
+<table style="border-collapse:collapse;border-spacing:0;">
+    <tbody>
+        <tr>
+            <th style="font-family:arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;">
+                name
+            </th>
+            <th style="font-family:arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;">
+                type
+            </th>
+            <th style="font-family:arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;">
+                effect
+            </th>
+            <th style="font-family:arial, sans-serif;font-size:14px;font-weight:normal;padding:10px 5px;border-style:solid;border-width:1px;">
+                atk
+            </th>
+        </tr>
+        <tr>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                平砍
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                1
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                平砍.png
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                10
+            </td>
+        </tr>
+        <tr>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                横扫千军
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                3
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                横扫千军.png
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                7
+            </td>
+        </tr>
+        <tr>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                暴风雪
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                4
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                暴风雪.png
+            </td>
+            <td style="font-family:arial, sans-serif;font-size:14px;padding:10px 5px;border-style:solid;border-width:1px;">
+                8
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+然后在输出的时候，在主表模式中，分成两个来输出：
+<table>
+    <tbody>
+        <tr>
+            <th>
+                skill-&gt;skill_fn
+            </th>
+            <th>
+                name
+            </th>
+            <th>
+                type
+            </th>
+            <th>
+                effect
+            </th>
+        </tr>
+        <tr>
+            <td>
+                skill-&gt;skill_bn
+            </td>
+            <td>
+                name
+            </td>
+            <td>
+                type
+            </td>
+            <td>
+                atk
+            </td>
+        </tr>
+    </tbody>
+</table>
+**Finally**
+============
+
+需求一直在变，工具要提供的是应对不同需求的灵活性。
+
+ExcelAndJSON
+============
+
+
+
+*by 老G （qq 233424570）*
+
+
+
+**Part0.缘起**
+============
+
+
+
+Excel，是游戏开发中，策划最常用的数值编辑工具。它有着公式填充，数值曲线图等许多好用功能。作为Office办公套件的一部分，它的上手度，易用性也非常不错。
+
+
+
+JSON，是手机游戏开发中，最常用的数据交换格式。它的树形结构，让数据访问变得非常自然。并且，这种结构和脚本语言有着天然的兼容性（例如Python，JavaScript）。
+
+
+
+基于上面的原因，在手机游戏开发过程中，很多公司都使用Excel编辑数值，然后导出JSON，最后加载到程序中。大家也都开发了许多通过Excel导出为JSON的工具。
+
+但因为Excel是基于二维表的结构，最后导出为JSON时，JSON也是一个类似二维表的结构，这严重限制了JSON作为一种树形结构的数据交换格式的表现力和易用性。造成的结果就是，大家在开发中，不断的建表，因为二维表表现方式有限，所以只能通过当前数据获得一个主键，然后在另外的表上查找，甚至还可能出现在多个表间跳转等情况。很吃力。
+
+除此之外，很多工具都存在着功能单一、流程复杂、配置不方便、设计不合理等问题。
+
+
+
+为了解决上述问题，我尝试开发了这个工具。市面上大部分工具都起名为：ExcelToJSON。而我的想法是，结合Excel和JSON的优点，所以我的工具起名为：ExcelAndJSON。
+
+
+
+**Part1.运行环境**
+==============
+
+
+
+-   支持xlsx格式的Office
+
+-   Python 2.7
+
+-   xlrd
+
+
+
+**Part2.特点**
+============
+
+
+
+易用
+--
+
+-   快速的上手速度
+
+-   配置简单，所见即所得
+
+
+
+输出可定制
+-----
+
+-   支持各种输出格式的定制方式：数组与字典、折叠、引用、可选字段的输出
+
+
+
+数据完整性
+-----
+
+-   单元格中的数据都会输出，不会允许跳过空数据，保证JSON结构的同一化
+
+-   所有的属性值，如果不填写，缺省值都是null，防止bool判断出错
+
+-   支持的字段类型较多，建议明确书写字段类型参数。如果当前单元格的数据没有填写对应的字段类型，程序会自动判断。
+
+
+
+格式自携带
+-----
+
+-   数据与数据格式存储在同一张sheet上（主表模式除外），便于同步
+
+
+
+**Part3.初级功能**
+==============
+
+
+
+*初级功能适用于简单的单机游戏，休闲益智类游戏，等没有太多复杂数值要处理的游戏类型。它的上手速度较快，而且也提供了足够的支持。*
+
+
+
+**单表模式**
+--------
+
+顾名思义，单表模式就是只有一个workbook文件的模式。该模式下，我们只使用一个.xlsx文件。所有的sheet都在这个文件上。
+
+
+
+单表模式的命令，举例如下：
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+python excel_and_json.py singlebook -o ./  -i single.xlsx
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+命令说明：
+
+-   singlebook：开启单表模式
+
+-   -o：输出目录
+
+-   -i：输入的.xlsx
+
+
+
+**表头**
+------
+
+表头决定了sheet的各种格式和内容信息
+<table><tr><th>__default__</th><th></th><th></th><th></th><th></th><th></th></tr><tr><td>__folding__</td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>__type__</td><td>s</td><td>i</td><td>i</td><td>i</td><td>i</td></tr><tr><td>__name__</td><td>name</td><td>hp</td><td>mp</td><td>atk</td><td>def</td></tr></table>
+
+表头最左侧是一些约定标记，这些标记表示了该行是什么参数类型：
+
+-   `__type__`：必选标记，表示该行是字段类型
+
+-   `__name__`：必选标记，表示该行是字段名
+
+-   `__default__`：可选标记，表示该行是缺省值
+
+-   `__folding__`：可选标记，表示该行是折叠属性，在高级功能中详述
+
+
+
+### 字段类型
+
+字段类型是必选标记。ExcelAndJSON支持如下的字段类型：
+
+-   s：字符串
+
+-   i：整数
+
+-   f：小数
+
+-   b：布尔
+
+-   as：字符串数组
+
+-   ai：整数数组
+
+-   af：小数数组
+
+-   d：字典，若在字典中想使用数字字符串作为值，请在数字两端加""
+
+-   r：引用，可以引用另一张sheet中的内容，在高级功能中详述
+
+
+
+### 缺省值
+
+缺省值是可选标记。如果该单元格是空白，程序会自动在该单元格上填写缺省值。
+
+-   为了保证布尔判断的正确性，以及表格结构的完整性，所有默认的缺省值都是null
+
+-   可以自定义缺省值，但与单元格一样，需要保证数据类型的正确性
+
+
+
+**数据区**
+-------
+
+在表头下面的，就是数据区。数据区的大小是程序自行判断的，为了保证程序正确判断数据区的单元格位置，请在数据区下面一行和最右侧一列，保持空白。在数据区之外的单元格，程序不会读取，可自由编辑。
+
+
+
+### null
+
+null为保留字，在单元格中可以直接填写null为占位符。程序最终会输出null到JSON结构中。
+
+
+
+### 字段类型自动判断
+
+如果当前单元格的数据没有填写对应的字段类型，程序将自动判断。只支持几种类型的自动判断：i，f，s。
+
+
+
+
+**Part4.高级功能**
+==============
+
+
+
+*高级功能适用于比较复杂的大中型游戏，有大量数值要处理。它有一定的学习成本，但相应的提供了更强大的功能。*
+
+
+
+**引用**
+------
+
+引用是一个字段类型，其类型值为r。引用允许在一张sheet中，插入另一张sheet中的一行。
+<table><tr><th>__type__</th><th>r</th></tr><tr><td>__name__</td><td>lv1award</td></tr><tr><td>zhangsan</td><td>lvAward.lv1</td></tr></table>
+
+在引用属性的单元格中，填写的是lvAward.lv1。该格式为约定格式“表名.记录名”。程序会在名为“lvAward”的sheet中，查找到名为“lv1”的记录，并把该记录，作为属性值插入到当前sheet中。
+
+注意，不允许各个sheet之间循环引用。在单表模式下，被引用的表也不会输出。
+
+
+
+**折叠**
+------
+
+折叠是一个可选字段属性。该功能允许把一张sheet中的字段，反复折叠，变成一个JSON，该JSON会填充到最后一次折叠对应的单元格中。
+
+
+
+按JSON格式的特点，我们有两种折叠方式：
+
+-   按{}折叠：折叠后，会生成一个字典
+
+-   按[]折叠：折叠后，会生成一个数组
+
+
+
+每一次折叠，不只会折叠数据。对应的字段类型，字段名，甚至折叠属性本身都会被折叠。我们约定，在折叠字段属性填写时，左侧括号后，必须紧接一个折叠后的字段名。折叠后的字段类型为d。
+
+
+
+折叠本身的含义可能过于抽象，但其实质是非常简单的。下面演示了折叠的整个过程：
+
+
+
+原始表
+<table><tr><th>__folding__</th><th>{a{b</th><th></th><th>}</th><th></th><th>{c</th><th>}}</th></tr><tr><td>__type__</td><td>s</td><td>i</td><td>i</td><td>i</td><td>s</td><td>b</td></tr><tr><td>__name__</td><td>name</td><td>hp</td><td>atk</td><td>def</td><td>description</td><td>leader</td></tr></table>
+
+
+第一次折叠
+<table><tr><th>__folding__</th><th>{a</th><th></th><th>{c</th><th>}}</th></tr><tr><td>__type__</td><td>d</td><td>i</td><td>s</td><td>b</td></tr><tr><td>__name__</td><td>b</td><td>def</td><td>description</td><td>leader</td></tr></table>
+
+
+第二次折叠
+<table><tr><th>__folding__</th><th>{a</th><th></th><th>}</th></tr><tr><td>__type__</td><td>d</td><td>i</td><td>d</td></tr><tr><td>__name__</td><td>b</td><td>def</td><td>c</td></tr></table>
+
+
+第三次折叠
+<table><tr><th>__folding__</th><th></th></tr><tr><td>__type__</td><td>d</td></tr><tr><td>__name__</td><td>a</td></tr></table>
+
+
+折叠后的JSON结构形如：
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    "a":{
+        "b":{
+            "name":"x x x",
+            "hp":111,
+            "atk":222
+        },
+        "def":333,
+        "c":{
+            "description":"x x x",
+            "leader":false
+        }
+    }
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+### 引用与折叠的关系
+
+特别注意，程序在进行数据输出时。先对每个sheet进行单独处理，此时会触发折叠操作。然后如果该sheet存在引用，再插入相应的数据。所以，引用插入的数据是不可以被折叠的。
+
+
+
+
+**主表模式**
+--------
+
+顾名思义，主表模式是存在一个独立的主要workbook文件，该.xlsx内部存储了一些用于输出的配置信息。一个主表workbook可以读取和加载大量的数据workbook。并按照相应的定制信息，进行sheet的输出。
+
+
+
+主表模式的命令，举例如下：
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+python excel_and_json.py mainbook -o ./  -i main.xlsx
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+命令说明：
+
+-   mainbook：开启主表模式
+
+-   -o：输出目录
+
+-   -i：输入的.xlsx
+
+
+
+### 输入的workbook
+
+使用`__workbook__`进行标记，在后面紧接要使用的workbook名。
+<table><tr><th>__workbook__</th><th>workbook1</th><th>workbook2</th></tr></table>
+
+
+### 输出的sheet
+
+在`__workbook__`标记下面，每一行都是一个要输出sheet。每行开头为该sheet的名字。
+<table><tr><th>sheet1</th><th>aaa</th><th>skill1</th><th>skill2</th><th>skill3</th><th>option</th><th>lv1</th><th>lv2</th></tr><tr><td>sheet2</td><td>name</td><td>atk</td><td>def</td><td>hp</td><td></td><td></td><td></td></tr><tr><td>sheet3</td><td>lv1</td><td>lv2</td><td>lv3</td><td></td><td></td><td></td><td></td></tr><tr><td>sheet4</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>sheet4-&gt;sheet5</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr></table>
+
+-   选择输出的字段：如果需要字段的选择性输出，可以在sheet名后面接要输出的字段名。如果不写，则该sheet的所有字段都会被输出。
+
+-   表改名：支持在输出时修改表的名字，方便把一个表拆成多个。表的旧名和新名之间，用->连接。
+
+
+
+**Part5.输出BSON**
+==============
+
+
+
+*有部分同行对JSON的读取性能表示担忧。使用BSON格式可以提高数据的读取速度，但也需要配置相应的读取库。*
+
+*实际上，在游戏开发中，JSON主要用来做一些配置信息和数值，并没有大规模的数据量，一般情况下不会成为性能瓶颈。而且因为Python不支持条件编译，增加BSON必然增加配置时间，或复杂度（通过替换文件方式）。*
+
+可以手动添加BSON的输出支持，使用下面的库即可。
+
+[https://github.com/martinkou/bson][1]
+
+
+  [1]: https://github.com/martinkou/bson
+

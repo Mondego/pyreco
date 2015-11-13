@@ -1,0 +1,244 @@
+
+JavaScript crypto.
+
+IMPORTANT: this library REQUIRES that a variable JSCRYPTO_HOME be set by an HTML file, indicating
+the complete path to the current directory
+
+The Helios Django App
+=====================
+
+LICENSE: this code is released under the GPL v3 or later.
+
+NOTE: this used to be a separate git submodule, but now it's not.
+
+
+JavaScript crypto.
+
+IMPORTANT: this library REQUIRES that a variable JSCRYPTO_HOME be set by an HTML file, indicating
+the complete path to the current directory
+
+The Helios Booth
+================
+
+LICENSE: this code is released under the GPL v3 or later.
+
+JavaScript crypto.
+
+IMPORTANT: this library REQUIRES that a variable JSCRYPTO_HOME be set by an HTML file, indicating
+the complete path to the current directory
+
+The Helios Verifier
+================
+
+LICENSE: this code is released under the GPL v3 or later.
+Python Oauth client for Twitter
+---------
+
+I built this so that i didn't have to keep looking for an oauth client for twitter to use in python. 
+
+It is based off of the PHP work from abrah.am (http://github.com/poseurtech/twitteroauth/tree/master). 
+It was very helpful. 
+
+I am using the OAuth lib that is from google gdata. I figure it is a working client and is in production use - so it should be solid. You can find it at:
+http://gdata-python-client.googlecode.com/svn/trunk/src/gdata/oauth
+
+With a bit of modification this client should work with other publishers. 
+
+btw, i am a python n00b. so feel free to help out. 
+
+Thanks,
+harper - harper@nata2.org (email and xmpp)
+
+
+-----------
+Links:
+
+Google Code Project: http://code.google.com/p/twitteroauth-python/
+Issue Tracker: http://code.google.com/p/twitteroauth-python/issues/list
+Wiki: http://wiki.github.com/harperreed/twitteroauth-python
+
+-----------
+
+The example client is included in the client.py. It is:
+
+if __name__ == '__main__':
+    consumer_key = ''
+    consumer_secret = ''
+    while not consumer_key:
+        consumer_key = raw_input('Please enter consumer key: ')
+    while not consumer_secret:
+        consumer_secret = raw_input('Please enter consumer secret: ')
+    auth_client = TwitterOAuthClient(consumer_key,consumer_secret)
+    tok = auth_client.get_request_token()
+    token = tok['oauth_token']
+    token_secret = tok['oauth_token_secret']
+    url = auth_client.get_authorize_url(token) 
+    webbrowser.open(url)
+    print "Visit this URL to authorize your app: " + url
+    response_token = raw_input('What is the oauth_token from twitter: ')
+    response_client = TwitterOAuthClient(consumer_key, consumer_secret,token, token_secret) 
+    tok = response_client.get_access_token()
+    print "Making signed request"
+    #verify user access
+    content = response_client.oauth_request('https://twitter.com/account/verify_credentials.json', method='POST')
+    #make an update
+    #content = response_client.oauth_request('https://twitter.com/statuses/update.xml', {'status':'Updated from a python oauth client. awesome.'}, method='POST')
+    print content
+   
+    print 'Done.'
+
+
+* install XCode
+
+* in the preferences, downloads, install Command Line Tools
+
+* install homebrew
+
+* install python
+
+```
+brew install python
+```
+
+* clean up some things
+
+```
+pip install pip --upgrade
+
+# yes this is necessary
+pip uninstall setuptools
+pip install setuptools
+```
+
+* install PostgreSQL latest
+
+```
+brew install --no-tcl postgresql
+```
+
+* install virtualenv
+
+```
+pip install virtualenv
+```
+
+* download helios-server
+
+```
+git clone git@github.com:benadida/helios-server
+```
+
+* cd into the helios-server directory
+
+* create a virtualenv:
+
+```
+virtualenv venv
+```
+
+* activate virtual environment
+
+```
+source venv/bin/activate
+````
+
+* install requirements
+
+```
+pip install -r requirements.txt
+```
+
+* reset database
+
+```
+./reset.sh
+```
+
+* start server
+
+```
+python manage.py runserver
+```
+
+* install PostgreSQL 8.3+
+
+* make sure you have virtualenv installed:
+http://www.virtualenv.org/en/latest/
+
+* download helios-server
+
+* cd into the helios-server directory
+
+* create a virtualenv:
+
+```
+virtualenv venv
+```
+
+* activate virtual environment
+
+```
+source venv/bin/activate
+````
+
+* install requirements
+
+```
+pip install -r requirements.txt
+```
+
+* reset database
+
+```
+./reset.sh
+```
+
+* start server
+
+```
+python manage.py runserver
+```
+
+The Helios Election Server
+==========================
+
+LICENSE: this code is released under the GPL v3 or later.
+
+NEEDS:
+- as of Helios v3.1, requires Django 1.2.5+
+
+- http://github.com/openid/python-openid
+- rabbitmq 1.8
+-- http://www.rabbitmq.com/debian.html
+-- update the deb source
+-- apt-get install rabbitmq-server
+
+- celery 2.0.2 and django-celery 2.0.2 for async jobs
+-- http://celeryq.org
+-- apt-get install python-setuptools
+-- easy_install celery
+-- easy_install django-celery
+
+- South for schema migration
+-- easy_install South
+
+- django-webtest for testing
+-- http://pypi.python.org/pypi/django-webtest
+-- easy_install webtest
+-- easy_install django-webtest
+
+GETTING SOUTH WORKING ON EXISTING INSTALL
+- as of Helios v3.0.4, we're using South to migrate data models
+- if you've already loaded the data model beforehand, you need to tell South that you've migrated appropriately
+- so, if your data model is up to date with the code, do
+
+python manage.py syncdb
+
+to get the south db models set up, and then:
+
+python manage.py migrate --list
+
+- if there are some unchecked migrations, and you are SURE that your database is up to date with the models (which should be the case if you're on a v3.0.x version), then do
+
+python manage.py migrate --fake
+

@@ -1,0 +1,4094 @@
+In Developement
+===============
+   * ComfoAir Plugin
+   * Denon Plugin
+   * Fritzbox refactoring
+   * Modbus Plugin
+
+# 1.0
+## With Contributions from:
+   * Daniel (mode)
+   * Jan N. Klug
+   * Lars Bernau (lbernau)
+   * Marcus (mannmawg)
+   * Mark Hönisch
+   * Matthias Lemke
+   * Mike Pieper
+   * Mirko Hirsch
+   * mptei
+   * Niko Will
+   * Oliver Hinckel
+   * Robert Budde
+   * xtcommerce
+
+## New Plugins
+   * Artnet
+   * Boxcar
+   * DLMS
+   * easymeter
+   * eBusd
+   * ecmd
+   * eta_pu
+   * Hue
+   * iaqstick
+   * Kostal
+   * NetIO230B
+   * NMA
+   * SMA
+   * Squeezebox
+   * vr100
+   * wettercom
+
+## Base Features
+   * sh.match_items, eval_trigger and watch_item: supports item attribute matches by ':attribute' e.b. '*:my' every item with the attribute my.
+   * item.timer and autotimer
+        age() = Alter des aktuellen Wertes, also seit der letzten Änderung in Sekunden
+        prev_age() = Alter des vorherigen Wertes, also seit der vorletzten Änderung in Sekunden
+        last_change() = Zeitpunkt der letzten Änderung des Wertes als datetime
+        prev_change() = Zeitpunkt der vorletzten Änderung des Wertes als datetime
+        last_update() = Zeitpunkt der letzten Aktualisierung des Wertes (includiert Änderungen) als datetime
+        prev_value()
+
+        Weiterhin gibt es zwei neue Zeit-Methoden in tools:
+        sh.tools.dt2ts(dt) konvertiert ein datetime in ein Unix Timestamp
+        sh.tools.dt2js(dt) konvertiert ein datetime in ein JavaScript Timestamp (Sekunden & Millisekunden)
+   * tools.rel2abs()
+   * sh.py -V, -i adding history to interactive mode 
+
+## Plugin Features
+   * Asterisk: `ast_db` attribute to control Asterisk database entries
+   * KNX: new knx_status attribute
+   * SQLite: sqlite = init
+    sqlite: allowing to set database path via plugin.conf
+   *  cli plugin: adding lt to list 
+   * RRDTool: rrd = init, db
+   * Network Plugin: nw_udp_send
+        nw_upd_send = host:port # sendet den Item Wert an den Host/Port
+        nw_udp_send = host:port=irgendeintext # sendet 'irgendeintext' an den Host/Port
+        nw_udp_send = host:port=commando:itemvalue # sendet 'commando:itemwert' an den Host/Port
+
+    * Visu Plugin: acl, visu_acl
+
+## Changes:
+   * Python 3.2 migration
+   * Visu: visu => visu_acl = rw & plugin acl
+   * predifined items env.core env.system used by smartVISU
+   * SQLite: speed improvements
+   * 1-Wire: adding DS18S20 support 
+   * new config parser: |
+   * improving logic response time
+
+
+# 0.9
+
+## Contributions from:
+   * Alexander Rieger
+   * Matthias Lemke
+   * Niko Will
+
+## New Plugins
+   * Fritzbox Plugin
+   * Luxtronic2 Plugin
+   * MPD Plugin
+   * Samsung Smart TV Plugin
+   * Solarlog Plugin
+   * SQLite Plugin
+   * XBMC Plugin
+
+## Features
+   * trigger destination => dest
+   * Scene support
+   * Item: setting values by crontab and cycle
+   * Logic: calling with values by crontab and cycle
+   * De-/Activate logics with "sh.scheduler.change('alarmclock', active=False)"
+   * Basic sh methods: sh.return_item ...
+   * Mail Plugin: enable sending UTF-8 mails
+   * 1-Wire Plugin: rewritten to support many different sensors.
+   * Asterisk: adding destination support for Userevents
+   * CLI plugin: new command 'cl' to clean the memory log of sh.py
+   * DWD Plugin: adding support for Pollen forecast
+   * KNX Plugin:
+      * change encoding of dpt10 to use a datetime object and send the isoweekday
+      * DPT 17 support
+      * adding support to log all packets (busmonitor)
+   * Visu Plugin:
+      * change url
+      * basic Websocket TLS and client certificate support
+      * jQuery Mobile 1.3.*
+      * Visu API change for rrd handling
+      * smartVISU support multiple widgets with one item
+
+## Bug Fixes
+   * KNX Plugin: fix broken knx_cache, with support from Robert@knx-user-forum
+
+# 0.8
+
+## Contributions from:
+   * Niko Will
+   * Alexander Rieger
+
+## New Plugins
+   * DWD Plugin: new plugin to fetch weather warnings and forecasts from Deutscher Wetterrdienst (DWD)
+   * Mail Plugin: IMAP, SMTP
+   * RRD Plugin: build round robin databases and create graphs with flot.
+   * Russound Plugin: RIO
+   * Snom Plugin: to handle snom VOIP phones.
+
+## Features
+   * Base
+    * sh.tools.fetch_url()
+    * item.conf: new types list, dict
+    * sh.moon() with set(), rise(), pos(), light(), phase()
+    * sh.find_items('config_string'), sh.find_children(self, parent, 'config_string')
+   * Asterisk plugin: Call Log, mailbox count
+   * CLI plugin: adding 'rl' to reload logic, and 'rr' to reload and run logic
+   * KNX plugin: DPT 16 support
+   * Network plugin: adding simple http interface
+   * Visu plugin: plot rrd with flot,
+      * push buttond sends now cyclic,
+      * list view
+      * dpt3 push buttons,
+      * TITLE header template,
+      * adding 'unit' attribute to item.conf
+      * JQuery: 1.8.3, JQuery Mobile 1.2
+      * Log view  SmartHome.py, Asterisk
+
+## Bug Fixes
+   * KNX plugin: knx_init/knx_cache could not work if first connection attempt failed
+        dpt 10, 11 encoding
+   * Onewire plugin: improve error handling
+   * Workaround for urllib2 memory leakage
+
+
+# 0.7
+
+## Features
+   * Items
+      * Trees: You could now build unlimited item trees.
+      * id(): function to return the item id (path).
+      * eval: see the item configuration page for an explanation for 'eval' and 'eval_trigger'.
+   * Asterisk Plugin: hangup(channel)
+   * iCal Plugin: to parse iCal files
+   * Visu Plugin:
+      * autogenerate visu pages
+      * new input type 'time'
+    * SmartHome.py:
+       * sh.scheduler.change
+       * directory structure cleanup: logic => logics
+       * sh.tools.dewpoint(): new function to calculate the dewpoint
+       * sh.tools.ping(): moved ping to the tools object.
+       * sh.tz => sh.tzinfo(): new function tzinfo().
+
+## Bug Fixes
+    * CLI Plugin: update attribute negated
+
+0.6
+===
+Nonfunctional changes
+---------------------
++ Heavy redesign of the underlying framework to reduce the number of necessary threads and system footprint.
+
+Features
+--------
++ Network plugin: new plugin to send and receive TCP/UDP messages.
++ DMX accepts a channel list as item attribute to change multiple channels with one item
++ sh.string2bool()
++ KNX plugin: changed class options.
++ Visu plugin: added three interactive image elements.
++ 1-Wire plugin: changed class options. new function ibutton_hook.
++ -d start option to use the debug log level
++ new item types: list, foo
+
+Bug Fixes
+---------
++ Visu Plugin: Improve error handling if connection is lost or could not connect the socket
+
+0.5
+===
+Features
+--------
++ WebSocket/JQuery mobile Visu
++ ping: sh.ping(host), return True if up, False if down.
++ sh.return_item(path)
++ sh.return_items()
++ sh.return_areas()
+
+Bug Fixes
+---------
++ Asterisk plugin: update_db() now log errors
++ set enviroment TZ
+
+0.4
+===
+Features
+--------
++ KNX plugin: reply to read requests
+
+
+0.3
+===
+Features
+--------
++ item.fade(): fade the item to a specified value
++ item.area: provides access to the area object
++ logic.alive: safe loop expression for a clean shutdown
++ crontab: new keyword 'init'
++ CLI plugin: new function 'tr' to trigger logics
++ Asterisk plugin: to monitor channels and listen for UserEvents
+
+Nonfunctional changes
+---------------------
++ New Logic handling. Now logics share some worker threads. Multiple logic instances could run at the same time.
++ Two new functions to call/trigger a logic: logic.trigger() and sh.trigger().
++ Every logic provides an 'trigger' object with the reason of the call.
+
+Bug Fixes
+---------
++ sh.sun.set() and rise provides a timezone aware datetime. :-)
+  And a small fix in computing the dates.
+
+
+0.2
+===
+Features
+--------
++ item attribute threshold: set low:high
+                            or only low which is equal to low:low
++ item attribute offset: You could specify offsets for numeric item types.
++ cli plugin
++ dmx plugin
+
+Bug Fixes
+---------
++ knx_ga => knx_send, knx_listen
++ sh.sun.set() provided a timezone aware datetime.
+
+
+
+# Plugin developement
+
+## GIT
+
+For an git introduction to git see: [http://gitimmersion.com/](http://gitimmersion.com/)
+
+It you want to publish your plugin, get an [github account](https://github.com/users) as soon as possible.
+
+### Usefull commands
+   * __list changes__ since the release with the tag VERSIONTAG: `git log --pretty=format:"%s" <VERSIONTAG>..HEAD`
+   * __undo commit__ with the id XXXIDXXX: `git reset --hard XXXIDXXX && git push origin develop --force`
+   * __copy commit__ to current branch: `git cherry-pick <commit>`
+
+   Follow the [commit Atom Feed](https://github.com/mknx/smarthome/commits/develop.atom)
+
+### Global settings
+   * only push the current branch (not all): `git config --global push.default current`
+   * adapt your user settings:
+      * `git config --global user.name "Your Name"`
+      * `git config --global user.email you@example.com`
+
+### Branches
+The repositry consist of three main branches:
+
+  * __master__: it contains the stable/release code
+  * __develop__: is the branch where new features and plugins are merged into
+  * __gh-pages__: this branch contains the SmartHome.py website hostet at: [http://mknx.github.io/smarthome/](http://mknx.github.io/smarthome/)
+
+The branch setup is based on [this model](http://nvie.com/posts/a-successful-git-branching-model/).
+
+### Getting the Source
+  * you could fork the repository on github or
+  * get the repository: `git clone git://github.com/mknx/smarthome.git`
+  * create your own (local) branch (from develop) `git checkout -b myplugin develop`
+
+## Python Version
+You should only use Python =< 3.2 methods. If not make it clear in the documentation what kind of Python version you need.
+
+## Coding style
+Your code should conform to [pep 8](http://www.python.org/dev/peps/pep-0008/). (I'm ignoring "E501 line too long".)
+
+## Start Coding
+   * __copy__ the skeleton directory: `cp -r plugins/skeleton plugins/myplugin`
+   * __edit__ the main file: `vi plugins/myplugin/__init__.py`
+
+### Tools
+Have a look at the following tools to test your code:
+
+#### pep8
+   * Install pep8: `apt-get install pep8` 
+   * Test your code: `pep8 -qq --statistics yourcode.py`
+
+#### autopep8
+   * `pip-3.2 install autopep8`
+   * `autopep8 yourcode.py -i`
+
+#### flake8
+   * `pip-3.2 install flake8`
+   * `flake8 yourcode.py`
+
+I'm using it as a vim plugin. It checks the code every time I save the file. Most usefull!
+
+### Test and Document
+Please test and document your code!
+In your plugin directory should be a __README.md__ (from the skeleton directory). Please fill it with the neccesary information. `vi plugins/myplugin/README.md`
+
+### Basic Rules
+   * __only push to the develop branch__
+   * changes to bin/smarthome.py and lib/\* must be checked with me.
+   * changes to plugins from other developers must be checked with the developer.
+
+### Fork
+   * Goto [SmartHome Repo](https://github.com/mknx/smarthome) logged in with your username/password.
+   * Click on 'fork' in the right upper corner.
+   * Change to your Terminal and enter `git clone https://USER:PASSWORD@github.com/USER/smarthome`
+   * Checkout the develop branch `git checkout develop`
+   * Change/create a file.
+   * Add the file `git add FILE`
+   * Commit the changes with a usefull comment: 'git commit'
+   * Push your changes to your repository: `git pull && git push`
+   * Create a pull request on github: base: mknx/develop  compare: USER/develop
+
+
+### Merge
+If you think your code is ready for prime time send me a __pull request via github__ or an [email](mailto:marcus@popp.mx) with the code.
+
+Acitve commiters could merge the myplugin branch into develop with:
+
+   * __change__ the active branch to develop: `git checkout develop`
+   * __merge__ your plugin into it: `git merge --no-ff myplugin`
+   * (delete your branch: `git branch -d myplugin`)
+   * __push__ to github: `git push origin develop`
+
+#### .git/config
+If you have problems pushing, you could check the repo git config. Mine looks like this:
+<pre>
+[remote "origin"]
+    url = git@github.com:mknx/smarthome.git
+    fetch = +refs/heads/*:refs/remotes/origin/*
+[branch "master"]
+    remote = origin
+    merge = refs/heads/master
+[branch "develop"]
+    remote = origin
+    merge = refs/heads/develop
+</pre>
+
+# Artnet
+
+# Requirements
+
+You need a device understanding Artnet.
+I suggest to use the software OLA http://www.opendmx.net/index.php/Open_Lighting_Architecture to translate the ArtNet packets into DMX Signals.
+OLA supports most USB -> DMX Adapters available at the moment.
+
+## Supported Hardware
+
+* Hardware supported by OLA. See Link above. 
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[dmx1]
+	class_name = ArtNet
+	class_path = plugins.artnet
+	artnet_subnet = 0
+	artnet_net = 0
+	artnet_universe = 0
+	ip = 192.168.1.123
+	port = 6454
+</pre>
+
+## items.conf
+
+Not needed yet.
+
+## logic.conf
+Notice: First DMX channel is 1! Not 0!
+
+To send DMX Data to the universe set in plugin.conf you have 3 possibilities:
+###1) Send single value
+<pre>sh.dmx1(<DMX_CHAN>, <DMX_VALUE>)</pre>
+Sets DMX_CHAN to value DMX_VALUE.
+
+Example:
+<pre>sh.dmx1(12,255)</pre>
+If channels 1-11 are already set, they will not change.
+If channels 1-11 are not set till now, the will be set to value 0. 
+This is needed because on a DMX bus you can not set just one specific channel.
+You have to begin at first channel setting your values.
+
+###2) Send a list of values starting at channel
+<pre>sh.dmx1(<DMX_CHAN>, <DMX_VALUE_LIST>)</pre>
+Sends <DMX_VALUE_LIST> to DMX Bus starting at <DMX_CHAN>
+
+Example:
+<pre>sh.dmx1(10,[0,33,44,55,99])</pre>
+If channels 1-9 are already set, they will not change.
+If channels 1-9 are not set till now, the will be set to value 0. 
+This is needed because on a DMX bus you can not set just one specific channel.
+You have to begin at first channel setting your values.
+Values in square brackets will be written to channel (10-14)
+
+###3) Send a list of values 
+<pre>sh.dmx1(<DMX_VALUE_LIST>)</pre>
+Sends <DMX_VALUE_LIST> to DMX Bus starting at channel 1
+Nearly the same as 2) but without starting channel.
+
+Example:
+<pre>sh.dmx1([0,33,44,55,99])</pre>
+Values in Square brackets will be written to channel (1-5)
+
+
+# Asterisk
+
+Requirements
+============
+A running asterisk daemon with a configured Asterisk Manager Interface (AMI) is necessary.
+In manager.config its required to enable at least:
+<code>read = system,call,user,cdr</code> and `write = system,call,orginate`
+In misc/asterisk some configuration files from the authors asterisk are available to learn from.
+
+Configuration
+=============
+
+## plugin.conf
+
+The plugin needs the username and password of the AMI and a IP and port address if asterisk does not run on localhost. 
+
+<pre>
+[ast]
+    class_name = Asterisk
+    class_path = plugins.asterisk
+    username = admin
+    password = secret
+    host = 127.0.0.1 # default
+    port = 5038 # default
+</pre>
+
+## items.conf
+
+### ast_dev
+
+Its possible to specify the `ast_dev` attribute to an bool item in items.conf. The argument could be a number or string and corrospond to thhe asterisk device configuration.
+E.g. <code>2222</code> for the following device in asterisk sip.conf:
+<pre>[2222]
+secret=very
+context=internal
+</pre>
+
+### ast_box
+The mailbox number of this phone. It will be set to the number of new messages in this mailbox.
+
+### ast_db
+Specify the database entry which will be updated at an item change.
+
+In items.conf:
+<pre>
+[office]
+    [[fon]]
+        type = bool
+        ast_dev = 2222
+        ast_db = active/office
+        [[[box]]]
+            type = num
+            ast_box = 22
+</pre>
+
+Calling the '2222' from sip client or making a call from it, <code>office.fon</code> will be set to True. After finishing the call, it will be set to False.
+
+
+## logic.conf
+
+It is possible to specify the `ast_userevent` keyword to every logic in logic.conf.
+<pre>
+[logic1]
+    ast_userevent = Call
+
+[logic2]
+    ast_userevent = Action
+</pre>
+
+In the asterisk extensions.conf `exten => _X.,n,UserEvent(Call,Source: ${CALLERID(num)},Value: ${CALLERID(name)})` would trigger 'logic1' every time, this UserEvent is sent.
+A specified destination for the logic will be triggered e.g. `exten => _X.,n,UserEvent(Call,Source: ${CALLERID(num)},Destination: Office,Value: ${CALLERID(name)})`
+
+
+Functions
+=========
+
+call(source, dest, context, callerid=None)
+------------------------------------------
+`sh.ast.call('SIP/200', '240', 'door')` would initate a call from the SIP extention '200' to the extention '240' with the 'door' context. Optional a callerid for the call is usable.
+
+db_write(key, value)
+--------------------
+<code>sh.ast.db_write('dnd/office', 1)</code> would set the asterisk db entry 'dnd/office' to 1.
+
+db_read(key)
+------------
+<code>dnd = sh.ast.db_read('dnd/office')</code> would set 'dnd' to the value of the asterisk db entry 'dnd/office'.
+
+mailbox_count(mailbox, context='default')
+-----------------------------------------
+<code>mbc = sh.ast.mailbox_count('2222')</code> would set 'mbc' to a tuple (old_messages, new_messages).
+
+## hangup(device)
+`sh.ast.hangup('30')` would close all connections from or to the device '30'.
+
+# Boxcar Notification Service
+
+# Requirements
+
+You need to register at http://boxcar.io and get a free Boxcar Account.
+In addition you need the free Boxcar App from Apple Appstore on your iOS Device.
+
+## Supported Hardware
+
+* Hardware supported by Boxcar.io Service (ATM only iOS, Android comming soon - perhaps)
+
+# Configuration
+
+## plugin.conf
+
+Please provide a plugin.conf snippet for your plugin with ever option your plugin supports. Optional attributes should be commented out.
+
+<pre>
+[bc]
+	class_name = Boxcar
+	class_path = plugins.boxcar
+	apikey     = abcdefghij123456 # Get it from your Boxcar Account
+	email      = your@mail.org    # Registered with Boxcar
+</pre>
+
+
+## items.conf
+
+Not needed yet.
+
+## logic.conf
+To push a message to your iOS Device just call
+<pre>
+sh.bc('House at Tulpenstrasse',' Waschmaschine fertig!')
+</pre>
+
+sh is the main smarthome instance.
+bc is the name of the plugin instance (defined in plugins.conf in the squre brackets).
+Two parameters with text to be send are supported.
+If you only want to send one string, set the second string to an empty string.
+
+
+# CLI
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[cli]
+   class_name = CLI
+   class_path = plugins.cli
+#   ip = 127.0.0.1
+#   port = 2323
+#   update = false
+</pre>
+
+This plugin listens for a telnet connection. 
+<code>ip = </code> used network interface, e.g. 127.0.0.1 (localhost, default) or listen on all network interfaces: 0.0.0.0
+<code>port =</code> used network port, default 2323
+<code>update =</code> restrict the access of the items to read only (false, default) or allows read/write access (true)
+
+Usage
+=====
+
+Telnet to the configured IP adress and port. 
+<code>help</code>list an set of available commands:
+<pre>
+cl: clean (memory) log
+ls: list the first level items
+ls item: list item and every child item (with values)
+la: list all items (with values)
+lo: list all logics and next execution time
+lt: list current thread names
+update item = value: update the specified item with the specified value
+up: alias for update
+tr logic: trigger logic
+rl logic: reload logic
+rr logic: reload and run logic
+quit: quit the session
+q: alias for quit
+</pre>
+
+Example:
+<code>up office.light = On</code> to update an item.
+
+# DLMS
+
+# Requirements
+
+* smartmeter using DLMS (Device Language Message Specification) IEC 62056-21
+* ir reader e.g. from volkszaehler.org
+* serial port/USB-serial adapter
+
+make sure the serial port can be used by the user executing smarthome.py
+
+Example (adapt the vendor- and product-id!):
+<pre>
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="0403", ATTR{idProduct}=="6010", MODE="666"' > /etc/udev/rules.d/99-smartmeter.rules
+udevadm trigger
+</pre>
+
+If you like, you can also give the serial port a descriptive name with this.
+
+## Supported Hardware
+
+* smart meters using using DLMS (Device Language Message Specification) IEC 62056-21
+* e.g. Landis & Gyr ZMD120
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[dlms]
+    class_name = DLMS
+    class_path = plugins.dlms
+    serialport = /dev/ttyO1
+#    update_cycle = 20
+#    baudrate = 300
+</pre>
+
+Description of the attributes:
+
+* __update_cycle__: interval in seconds how often the data is read from the meter (default 60)
+* __baudrate__: use fixed baudrate after startup (always 300 baud) [300,600,1200,2400,4800,9600,auto] (default 'auto')
+
+## items.conf
+
+You can use all obis codes available by the meter.
+
+To get a list of all available OBIS codes of your reader, start smarthome.py in Debug-mode. All codes which can be obtained from the reader will be printer after the first successful read operation.
+
+Attributes:
+* __dlms_obis_code__: obis code such as 'x.y', 'x.y.z' or 'x.y.z*q'
+ 
+<pre>
+[Stromzaehler]
+  [[Bezug]]
+    [[[Energie]]]
+      type = num
+      dlms_obis_code = 1.8.1
+  [[Lieferung]]
+    [[[Energie]]]
+      type = num
+      dlms_obis_code = 2.8.1
+</pre>
+
+# DMX
+
+Requirements
+============
+This plugin needs one of the supported DMX interfaces:
+
+   * [NanoDMX](http://www.dmx4all.de/)
+   * [DMXking](http://www.dmxking.com) it should work with other Enttec Pro compatible as well.
+
+and pyserial.
+
+<pre>apt-get install python-serial</pre>
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[dmx]
+   class_name = DMX
+   class_path = plugins.dmx
+   tty = /dev/usbtty...
+#  interface = nanodmx
+</pre>
+
+You have to adapt the tty to your local enviroment. In my case it's <code>/dev/usbtty-1-2.4</code> because I have the following udev rule:
+
+<pre># /etc/udev/rules.d/80-smarthome.rules
+SUBSYSTEMS=="usb",KERNEL=="ttyACM*",ATTRS{product}=="NanoDMX Interface",SYMLINK+="usbtty-%b"</pre>
+
+With 'interface'  you could choose between 'nanodmx' and 'enttec'. By default nanodmx is used.
+
+items.conf
+--------------
+
+### dmx_ch
+With this attribute you could specify one or more DMX channels.
+
+# Example
+<pre>
+[living_room]
+    [[dimlight]]
+        type = num
+        dmx_ch = 10 | 11
+</pre>
+
+Now you could simply use:
+<pre>sh.living_room.dimlight(80)</pre> to dim the living room light.
+
+Functions
+=========
+
+send(channel, value)
+--------------------
+This function sends the value to the dmx channel. The value could be 0 to 255.
+<pre>sh.dmx.send(12, 255)</pre>
+
+# DWD
+
+Requirements
+============
+This plugin needs an FTP account from the Deutscher Wetterdienst.
+You could get it, free of charge, [here](http://kunden.dwd.de/gdsRegistration/gdsRegistrationStart.do).
+
+# Configuration
+
+## plugin.conf
+<pre>
+[dwd]
+   class_name = DWD
+   class_path = plugins.dwd
+   username = ****
+   password = ****
+</pre>
+
+You only need to specify your username and password.
+
+## items.conf
+
+There are no dwd specific item options.
+
+# Functions
+
+I'm sorry but this plugin return a _lot_ of information. See the Wiki for a item configuration and two logics using this plugin.
+(DWD Logic)[https://github.com/mknx/smarthome/wiki/DWD)
+
+## current(Location)
+Have a look at one file in the `gds/specials/observations/tables/germany` directory for the available locations.
+This function returns a dictonary with the values for the availabe information.
+
+## forecast(Area, Location)
+See the `gds/specials/forecasts/tables/germany/` for the available areas (e.g. Deutschland, Mitte, Nordost ...) and locations.
+
+## pollen(Area)
+See `gds/specials/warnings/FG/s_b31fg.xml` for available areas.
+
+## uvi(Location)
+See `gds/specials/warnings/FG/sb31fg.xml` for available locations.
+
+## warnings(Issuer, LocationCode)
+See `/gds/specials/warnings/legend_warnings.pdf` for possible issuers and Locations.
+
+## ftp_quit()
+This function should be called after all dwd request are finished.
+
+# Easymeter
+
+# Requirements
+## Supported Hardware
+
+* Easymeter Q3D with ir-reader from volkszaehler.org
+
+# Configuration
+## plugin.conf
+
+<pre>
+[easymeter]
+    class_name = easymeter
+    class_path = plugins.easymeter
+</pre>
+
+Parameter for serial device are currently set to fix 9600/7E1.
+
+Description of the attributes:
+
+* none
+
+## items.conf
+
+* __easymeter_code__: obis protocol code
+
+* __device__: USB device for ir-reader from volkszaehler.org
+
+### Example
+
+<pre>
+# items/easymeter.conf
+
+[output]
+  easymeter_code = 1-0:21.7.0*255
+  device = /dev/ttyUSB0
+  type = num
+</pre>
+
+
+Please take care, there are different obis codes for different versions of Easymeter Q3D.
+For example Version 3.02 reports obis code 1-0:21.7.255*255, version 3.04 
+reports 1-0:21.7.0*255.
+
+# eBus
+
+## Requirements/Description
+Description:
+Connects to ebusd http://cometvisu.de/wiki/index.php?title=Ebusd wich is communicating with eBus heatings.
+Requirements:
+running ebusd in network (note: ebusd also requires an ebus-interface)
+
+## Supported Hardware
+I.e. Vaillant, Wolf, Kromschroeder or other eBus-heatings
+
+## Configuration
+### plugin.conf
+
+<pre>
+[ebus]
+    class_name = eBus
+    class_path = plugins.ebus
+    host = localhost  # ip of ebusd
+    port = 8888       # port of ebusd
+    cycle = 240       # cycle of each item
+</pre>  
+  
+    
+
+### items.conf
+Items need parameter "ebus_cmd" and "ebus_type".  
+ebus_cmd is the command you use for telnet-connection to ebusd.  
+ebus_type can be "get" or "set".
+####ebus_set
+Items are read/write. All "set"-items will be read cyclic too!
+####ebus_get
+Items will only be readable, i.e. sensors.
+
+<pre>
+[ebus]
+  [[hk_pumpe_perc]]
+    type = num
+    knx_dpt = 5
+    knx_send = 8/6/110
+    knx_reply = 8/6/110
+    ebus_cmd = "cir2 heat_pump_curr"
+    ebus_type = "get"
+    comment = akt. PWM-Wert Heizkreizpumpe
+
+  [[ernergie_summe]]
+    type = num
+    knx_dpt = 12
+    knx_send = 8/6/22
+    knx_reply = 8/6/22
+    ebus_cmd = "mv yield_sum"
+    ebus_type = "get"
+    comment = Energieertrag
+  
+  [[speicherladung]]
+    type = bool
+    knx_dpt = 1
+    knx_listen = 8/7/1
+    ebus_cmd = "short hw_load"
+    ebus_type = "set"
+    comment = Quick - WW Speicherladung
+</pre>   
+  
+
+# ECMD
+
+# Requirements
+
+The ECMD plugin connects to an AVR microcontroller board with ethersex firmware via network. The ECMD protocoll provides access to attached 1wire temperature sensors DS1820.
+
+## Supported Hardware
+
+* 8-bit AVR microcontroller boards with network support, like NetIO (Pollin), Etherrape (lochraster.org), etc.
+* 1-wire temperature and other sensors 
+* - DS1820 (Temperatursensor)
+* - DS18B20 (Temperatursensor)
+* - DS1822 (Temperatursensor)
+* - DS2502 (EEPROM)
+* - DS2450 (4 Kanal ADC)
+
+# Configuration
+
+## plugin.conf
+
+You can specify the host ip of your ethersex device.
+
+<pre>
+[ecmd]
+    class_name = ECMD
+    class_path = plugins.ecmd
+    host = 10.10.10.10
+#   port = 2701
+</pre>
+
+This plugin needs an host attribute and you could specify a port attribute which differs from the default '1010'.
+
+## items.conf
+
+The item needs to define the 1-wire address of the sensor.
+
+### ecmd1wire_addr 
+
+ecmd1wire_addr = 10f01929020800dc
+type = num
+
+
+### Example
+
+Please provide an item configuration with every attribute and usefull settings.
+
+<pre>
+# items/my.conf
+
+[someroom]
+    [[temperature]]
+        name = Raumtemperatur
+        ecmd1wire_addr = 10f01929020800dc
+        type = num
+        sqlite = yes
+        history = yes
+        visu = yes
+        sv_widget = "{{ basic.float('item', 'item', '°') }}" , "{{ plot.period('item-plot', 'item') }}"
+</pre>
+
+
+# ETA Pellet Unit PU
+
+# Requirements
+
+## Supported Hardware
+
+* ETA Pellet Unit PU (http://www.eta.at) with remote access enabled
+
+# Configuration
+## plugin.conf
+
+<pre>
+
+[eta_pu]
+    class_name = ETA_PU
+    class_path = plugins.eta_pu
+    address = 192.168.179.15
+    port = 8080
+    setpath = '/user/vars'
+    setname = 'smarthome'
+
+</pre>
+
+Description of the attributes:
+
+* __address__: ip address of the ETA pellet unit
+* __port__: port of the ETA webserver (usally 8080)
+* __setpath__: path to the presaved sets of CAN-bus-uri
+* __setname__: the name of the set, used by this plugin
+
+## items.conf
+
+There ist one item type in this plugin. Every item has subitems for particular information of the requested uri.
+The uri represents the CAN-bus-id in the pellet unit. Every CAN-bus-id request replies the following data:
+E.g.:
+<pre>
+<value uri="/user/var/112/10021/0/0/12162" strValue="26" unit="°C" decPlaces="0" scaleFactor="10" advTextOffset="0">262</value>
+</pre>
+
+The subitem represents one field of the data line. A number ("26") plus unit ("°C") consists of two subitems for the same CAN-Bus-id (uri).
+
+* __eta_pu_uri__: Contains the CAN-bus-id. The pellet unit shows all ids with discription by requesting http://ip/user/menu
+
+* __eta_pu_type__: Represents the field of the data line. Must be one of: strValue, unit, decPlaces, scaleFactor, advTextOffset
+
+### Example
+
+<pre>
+# items/eta_pu.conf
+[eta_unit]
+    [[boiler_state]]
+       eta_pu_uri = 112/10021/0/0/12000
+       type = str
+       [[[strValue]]]
+           eta_pu_type = strValue
+           type = str
+    [[emission_temperature]]
+       eta_pu_uri = 112/10021/0/0/12162
+       type = str
+       [[[Value]]]
+           eta_pu_type = strValue
+           type = num
+       [[[unit]]]
+           eta_pu_type = unit
+           type = str
+
+</pre>
+
+## logic.conf
+
+t.b.d.
+
+## ToDo
+* reading errors (number of errors and text)
+* setting of parameters
+* reading the raw file of an uri
+
+
+# FritzBox
+
+# Requirements
+This plugin has no requirements or dependencies.
+At the moment only fritzbox firmware versions before 5.50 are supported.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[fritzbox]
+    class_name = FritzBox
+    class_path = plugins.fritzbox
+    host = fritz.box
+    password = blub
+</pre>
+
+### Attributes
+  * `host`: specifies the hostname or ip address of the FritzBox.
+  * `password`: the password of the FritzBox web interface.
+
+## items.conf
+
+### fritzbox
+This attribute defines supported functions of the plugin. The function is executed, when the item is set to a bool `true` value.
+Functions supported in the plugin:
+ * `call <<from>> <<to>>`: The FritzBox will initiate a call from the number (outgoing line) defined with `from` to a number defined with `to`.
+
+### fritzbox:<<telcfg>>
+This attributes represents direct access to the FritzBox webinterface. Each attribute which starts with `fritzbox:` is taken to create a dictionary, which is sent to the FritzBox. Here you can use every command which is available for the telcfg interface (just replace the `telcfg:` with `fritzbox:`). A list of known commands is described here: http://www.wehavemorefun.de/fritzbox/Telcfg
+
+Example item:
+
+<pre>
+[fb]
+    [[call1]]
+        type=bool
+        fritzbox=call **610 **611
+    [[call2]]
+        type=bool
+        fritzbox:settings/UseClickToDial = '1'
+        fritzbox:command/Dial = '**610'
+        fritzbox:settings/DialPort = '**611'
+</pre>
+
+Both `call1` and `call2` will have the same effect. The first uses the implemented call function. The later uses the telcfg commands which are used internally in the call function. With the second option you can control almost anything which can be controlled via the web interface of your FritzBox.
+
+## logic.conf
+
+Currently there is no logic configuration for this plugin.
+
+# Functions
+
+## call(from, to)
+This function calls a specified number with the specified caller.
+<pre>
+sh.fritzbox.call('**610', '**611')
+</pre>
+
+# Phillips HUE
+
+# Requirements
+
+Needs httplib
+
+## Supported Hardware
+
+Philips hue bridge
+
+# Configuration
+
+## plugin.conf
+
+Typical configuration
+<pre>
+[HUE]
+   class_name = HUE
+   class_path = plugins.hue
+   hue_user = 38f625a739562a8bd261ab9c7f5e62c8
+</pre>
+
+### hue_user
+A user name for the hue bridge. Usually this is a hash value of 32 hexadecimal digits.
+
+If the user/hash is not yet authorized, you can use sh.hue.authorizeuser() (via interactive shell or via logic)
+to authorize it. The link button must be pressed before.
+
+### hue_ip
+IP or host name of the hue bridge. Per default this is "Philips-hue", so that you normally don't have to
+specify a value here.
+
+### hue_port
+Port number of the hue bridge. Default 80. Normally there is no need to change that.
+
+### cycle
+Cycle in seconds to how often update the state of the lights in smarthome.
+
+Note: The hue bridge has no notification feature. Therefore changes can only be detected via polling.
+
+## items.conf
+
+### hue_id
+
+Specify the lamp id. Via this parameter the hue connection
+is established. 
+
+The feature which is to be controlled is determined
+via the type of the item.
+
+type = bool - controls feature 'on' (switching lamp on/off)
+
+type = num - controls feature 'bri' (brightness)
+
+type = dict - controls all features
+
+### hue_feature
+
+Determines which feature to control. If this parameter is given, exactly that
+feature is controlled. You have to choose the item type accordingly.
+
+hue_feature = hue - controls the hue. Type must be num
+
+hue_feature = effect - controls the effect. Type must be str.
+
+Special: hue_feature = all - controls all settings via dict.
+
+### Example
+
+<pre>
+# items/my.conf
+
+[someroom]
+    [[mydevice]]
+        type = bool
+        hue_id = 1
+    [[[level]]]
+        type = num
+        hue_id = 1
+    [[[effect]]]
+        type = str
+        hue_id = 1
+        hue_feature = effect
+    [[[all]]]
+        type = dict
+        hue_id = 1
+        hue_feature = all
+</pre>
+
+Hint: on and bri are currently coupled, like a KNX dimmer.
+
+## logic.conf
+No logic attributes.
+
+
+# Methodes
+
+## authorizeuser()
+Authorizes the user configured by hue_user config property. You have to press the link button.
+
+<pre>
+sh.hue.authorizeuser()
+</pre>
+
+# iAQ Stick
+
+# Requirements
+
+* pyusb
+* udev rule
+
+install by
+<pre>
+apt-get install python3-setuptools
+easy_install3 pyusb
+</pre>
+
+<pre>
+echo 'SUBSYSTEM=="usb", ATTR{idVendor}=="03eb", ATTR{idProduct}=="2013", MODE="666"' > /etc/udev/rules.d/99-iaqstick.rules
+udevadm trigger
+</pre>
+
+## Supported Hardware
+
+* Applied Sensor iAQ Stick
+* Voltcraft CO-20 (by Conrad)
+* others using the same reference design
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[iaqstick]
+    class_name = iAQ_Stick
+    class_path = plugins.iaqstick
+#    update_cycle = 10
+</pre>
+
+Description of the attributes:
+
+* __update_cycle__: interval in seconds how often the data is read from the stick (default 10)
+
+## items.conf
+
+You can use all commands available by the serial interface.
+
+For a explanation of all available commands type 'help' when connected to robot
+
+Attributes:
+* __iaqstick_info__: used to get data from the stick
+ 
+Fields:
+* __ppm__: get the air quality measured in part-per-million (ppm)
+
+<pre>
+[iAQ_Stick]
+  [[PPM]]
+    type = num
+    sqlite = true
+    iaqstick_info = ppm
+</pre>
+
+# iCal
+
+# Requirements
+This plugin has no requirements or dependencies.
+
+# Configuration
+
+## plugin.conf
+<pre>[ical]
+    class_name = iCal
+    class_path = plugins.ical
+</pre>
+
+# Functions
+Because there is only one function you could access it directly by the object. With the above plugin.conf it would look like this: `events = sh.ical('http://cal.server/my.ical')`.
+
+This function has one mandatory and two optional arguments. `sh.ical(file, delta=1, offset=0)`
+
+   * file: specify a local file or a url starting with 'http://'
+   * delta: how many additional days should the analysed. By default it will for events for today and the next day (delta=1).
+   * offset: when should the analysed timeframe start. By default today (offset = 0).
+
+It returns a dictonary with a datetime.date object as key and an array with the event time and summary.
+
+<pre>
+today = sh.now().date()
+tomorrow = today + datetime.timedelta(days=1)
+
+holidays = sh.ical('http://cal.server/holidays.ical')
+if today in holidays:
+    print 'yeah'
+else:
+    print 'naah'
+
+events = sh.ical('http://cal.server/events.ical')
+for day in events:
+    print("Date: {0}".format(day))
+    for event in events[day]:
+        time, summary = event
+        print("Time: {0} {1}".format(time, summary))
+</pre>
+
+# KNX
+
+Requirements
+============
+This plugin needs a running eibd.
+
+Installing eibd
+---------------
+I'm using the vanilla eibd from Martins repository.
+<pre>$ sudo add-apt-repository ppa:mkoegler/bcusdk
+$ sudo apt-get install eibd-clients eibd-server libeibclient-dev</pre>
+
+
+Configuration
+=============
+
+plugin.conf
+-----------
+
+<pre>
+[knx]
+   class_name = KNX
+   class_path = plugins.knx
+#   host = 127.0.0.1
+#   port = 6720
+   send_time = 600 # update date/time every 600 seconds, default none
+   time_ga = 1/1/1 # default none
+   date_ga = 1/1/2 # default none
+#   busmonitor = False
+</pre>
+
+This plugins is looking by default for the eibd on 127.0.0.1 port 6720. You could change this in your plugin.conf.
+If you specify a `send_time` intervall and a `time_ga` and/or `date_ga` the plugin sends the time/date every cycle seconds on the bus.
+
+If you set `busmonitor` to True, every KNX packet will be logged.
+
+items.conf
+--------------
+
+### knx_dpt
+This attribute is mandatory. If you don't provide one the item will be ignored.
+The DPT has to match the type of the item!
+
+The following datapoint types are supported:
+
++--------+---------+------+----------------------------------+
+| DPT    | Data    | Type | Values                           |
++========+=========+======+==================================+
+| 1      | 1 bit   | bool | True &#124; False                |
++--------+---------+------+----------------------------------+
+| 2      | 2 bit   | list | [0, 0] - [1, 1]                  |
++--------+---------+------+----------------------------------+
+| 3      | 4 bit   | list | [0, 0] - [1, 7]                  |
++--------+---------+------+----------------------------------+
+| 4.002  | 8 bit   | str  | 1 character (8859_1) e.g. 'c'    |
++--------+---------+------+----------------------------------+
+| 5      | 8 bit   | num  | 0 - 255                          |
++--------+---------+------+----------------------------------+
+| 5.001  | 8 bit   | num  | 0 - 100                          |
++--------+---------+------+----------------------------------+
+| 6      | 8 bit   | num  | -128 - 127                       |
++--------+---------+------+----------------------------------+
+| 7      | 2 byte  | num  | 0 - 65535                        |
++--------+---------+------+----------------------------------+
+| 8      | 2 byte  | num  | -32768 - 32767                   |
++--------+---------+------+----------------------------------+
+| 9      | 2 byte  | num  | -671088,64 - 670760,96           |
++--------+---------+------+----------------------------------+
+| 10     | 3 byte  | foo  | datetime.time                    |
++--------+---------+------+----------------------------------+
+| 11     | 3 byte  | foo  | datetime.date                    |
++--------+---------+------+----------------------------------+
+| 12     | 4 byte  | num  | 0 - 4294967295                   |
++--------+---------+------+----------------------------------+
+| 13     | 4 byte  | num  | -2147483648 - 2147483647         |
++--------+---------+------+----------------------------------+
+| 14     | 4 byte  | num  | 4-Octet Float Value IEEE 754     |
++--------+---------+------+----------------------------------+
+| 16     | 14 byte | str  | 14 characters (ASCII)            |
++--------+---------+------+----------------------------------+
+| 16.001 | 14 byte | str  | 14 characters (8859_1)           |
++--------+---------+------+----------------------------------+
+| 17     | 8 bit   | num  | Scene: 0 - 63                    |
++--------+---------+------+----------------------------------+
+| 20     | 8 bit   | num  | HVAC: 0 - 255                    |
++--------+---------+------+----------------------------------+
+| 24     | var     | str  | ulimited string (8859_1)         |
++--------+---------+------+----------------------------------+
+| 232    | 3 byte  | list | RGB: [0, 0, 0] - [255, 255, 255] |
++--------+---------+------+----------------------------------+
+
+If you are missing one, open a bug report or drop me a message in the knx user forum.
+
+### knx_send
+You could specify one or more group addresses to send updates to. Item update will only be sent if the item is not changed via KNX.
+
+### knx_status
+Similar to knx_send but will send updates even for changes vie KNX if the knx_status GA differs from the destination GA.
+
+### knx_listen
+You could specify one or more group addresses to monitor for changes.
+
+### knx_init
+If you set this attribute, SmartHome.py sends a read request to specified group address at startup and set the value of the item to the response.
+It implies 'knx_listen'.
+
+### knx_cache
+If you set this attribute, SmartHome.py tries to read the cached value for the group address. If it fails it sends a read request to specified group address at startup and set the value of the item to the response.
+It implies 'knx_listen'.
+
+### knx_reply
+Specify one or more group addresses to allow reading the item value.
+
+# Example
+<pre>
+[living_room]
+    [[light]]
+        type = bool
+        knx_dpt = 1
+        knx_send = 1/1/3
+        knx_listen = 1/1/4 | 1/1/5
+        knx_init = 1/1/4
+
+    [[temperature]]
+        type = num
+        knx_dpt = 9
+        knx_send = 1/1/6
+        knx_reply = 1/1/6
+        ow_id = 28.BBBBB20000 # see 1-Wire plugin
+        ow_sensor = temperature # see 1-Wire plugin
+</pre>
+
+logic.conf
+----------
+You could specify the `knx_listen` and `knx_reply` attribute to every logic in your logic.conf. The argument could be a single group address and dpt or a list of them.
+<pre>
+[logic1]
+    knx_dpt = 9
+    knx_listen = 1/1/7
+
+[logic2]
+    knx_dpt = 9
+    knx_reply = 1/1/8 | 1/1/8
+</pre>
+If there is a packet directed to the according group address, SmartHome.py would trigger the logic and will pass the payload (via the trigger object) to the logic.
+
+In the context of the KNX plugin the trigger dictionary consists of the following elements:
+
+* trigger['by']     protocol ('KNX')
+* trigger['source']     PA (physical adress of the KNX packet source) 
+* trigger['value']     payload
+
+Functions
+=========
+
+encode(data, dpt)
+-----------------
+This function encodes your data according to the specified datapoint.
+<pre>data = sh.knx.encode(data, 9)</pre>
+
+groupwrite(ga, data, dpt)
+-------------------------
+With this function you could send the data to the specified group address.
+<pre>sh.knx.groupwrite('1/1/10', 10.3, '9')</pre>
+
+groupread(ga, cache=False)
+--------------------------
+This function triggers a read request on the specified group address. It doesn't return the received value!
+
+send_time(time_ga, date_ga)
+-----------------------------
+This funcion send the current time and or date to the specified group address.
+<pre>sh.knx.send_time('1/1/1', '1/1/2') # send the time to 1/1/1 and the date to 1/1/2
+sh.knx.send_time('1/1/1') # only send the time to 1/1/1
+sh.knx.send_time(data_ga='1/1/2') # only send the date to 1/1/2
+</pre>
+Hint: instead of this function you could use the plugin attribute 'send_time' as described above.
+
+# KOSTAL
+
+# Requirements
+
+This plugin is designed to retrieve data from a [KOSTAL](http://www.kostal-solar-electric.com/) inverter module (e.g. PICO inverters).
+
+## Supported Hardware
+
+Is currently working with the following KOSTA inverter modules:
+
+  * KOSTAL PIKO 7.0
+
+# Configuration
+
+## plugin.conf
+
+The plugin can be configured like this:
+
+<pre>
+[KOSTAL]
+   class_name = Kostal
+   class_path = plugins.kostal
+   ip = 10.10.10.10
+#   user = pvserver
+#   passwd = pvwr
+#   cycle = 300
+</pre>
+
+This plugin retrieves data from a KOSTAL inverter module of a solar energy
+plant.
+
+The data retrieval is done by establishing a network connection to the 
+inverter module and retrieving the status via a HTTP request.
+
+You need to configure the host (or IP) address of the inverter module. Also
+the user and password attributes (user, passwd) can be overwritten, but
+defaults to the standard credentials.
+
+The cycle parameter defines the update interval and defaults to 300 seconds.
+
+## items.conf
+
+### kostal
+
+This attribute references the information to retrieve by the plugin. The
+following list of information can be specified:
+
+  * power_current: The current power of the solar installation
+  * power_total: The total amount of generated energy
+  * power_day: The amount of generated energy for the current day
+  * status: The textual status of the module (off, feeding, ...)
+  * string1_volt ... string3_volt: The current voltage of string 1, 2, 3
+  * string1_ampere ... string3_ampere: The current ampere of string 1, 2, 3
+  * l1_volt ... l3_volt: The current voltage of L 1, 2, 3
+  * l1_watt ... l3_watt: The current watt of L 1, 2, 3
+
+### Example
+
+Example configuration which shows the current status and the current, total and
+daily power. Additionally it shows the volts and watts for the phases.
+
+<pre>
+# items/my.conf
+[solar]
+    [[status]]
+        type = str
+        kostal = status
+    [[current]]
+        type = num
+        kostal = power_current
+    [[total]]
+        type = num
+        kostal = power_total
+    [[day]]
+        type = num
+        kostal = power_day
+    [[l1v]]
+        type = num
+        kostal = l1_watt
+    [[l1w]]
+        type = num
+        kostal = l1_watt
+    [[l2v]]
+        type = num
+        kostal = l2_watt
+    [[l2w]]
+        type = num
+        kostal = l2_watt
+    [[l3v]]
+        type = num
+        kostal = l3_watt
+    [[l3w]]
+        type = num
+        kostal = l3_watt
+</pre>
+
+## logic.conf
+
+No logic related stuff implemented.
+
+# Methods
+
+No methods provided currently.
+
+
+# Luxtronic2
+
+# Requirements
+This plugin has no requirements or dependencies.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[luxtronic2]
+    class_name = Luxtronic2
+    class_path = plugins.luxtronic2
+    host = 192.168.0.123
+    # port = 8888
+</pre>
+
+### Attributes
+  * `host`: specifies the hostname of your heating server.
+  * `port`: if you want to use a nonstandard port.
+
+## items.conf
+
+Each heating controlled with a Luxtronic 2.0 controller has different things which can controlled or different information which can be received. 
+The reason for that is that every heating system can have special modules installed or mounted to the system itself.
+To have the most generic way to read state informations or change values this plugin is based on the index values of the ouput from your heating.
+There are three main sections:
+  * 'parameter': all parameters which are needed to control the heating (parameters can be changed with this plugin, so be careful with them). Attention: because the protocol is not well documented, not every parameter and its function is knwon.
+  * 'attribute': I'm not sure what they are for. In the Java Applet on the webserver of the heating itself it is used as visibility and it seems that these are only boolean flags, maybe to control which parameter is realy needed.
+  * 'calculated': returns calculated information. For example the current state or the time the heating was running until now.
+
+For all of the following items.conf attributes you have to define the right index for the output from your heating.
+
+### lux2
+Special post processed values from the calculated section for the most important information (read-only).
+
+Processed indexes are:
+119: current state of the heating as string
+10, 11, 12, 15, 19, 20, 151, 152: original float values encoded as integer so they're just divided by ten.
+
+### lux2_p
+Defines a mapping to a parameter (remember, parameters are read- and writeable). All parameter are integer (numbers).
+
+### lux2_a
+Defines a mapping to a attribute (read-only). All attribute values are bytes (numbers).
+
+### lux2_c
+Defines a mapping to a calculated value (read-only). All calculated values are integer (numbers).
+
+<pre>
+[heating]
+    [[temp_outside]]
+        type = num
+        lux2 = 10
+    [[state_numeric]]
+        type = num
+        lux2_c = 119
+    [[state]]
+        type = str
+        lux2 = 119
+</pre>
+
+## logic.conf
+
+Currently there is no logic configuration for this plugin.
+
+# Functions
+
+Currently there are no functions offered from this plugin.
+
+
+
+# Mail
+
+Requirements
+============
+This plugin has no requirements or dependencies.
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[mail]
+    class_name = SMTP
+    class_path = plugins.mail
+    host = mail.example.com
+    mail_from = mail@example.com
+    # ssl = False
+    # username = False
+    # password = False
+
+[imap]
+    class_name = IMAP
+    class_path = plugins.mail
+    host = mail.example.com
+    username = smarthome
+    password = secret
+    # ssl = False
+    # port = default
+    # cycle = 300
+</pre>
+
+### Attributes
+  * `host`: specifies the hostname of your mail server.
+  * `port`: if you want to use a nonstandard port.
+  * `username`/`password`: login information
+  * `ssl`: specifies if you want to use SSL/TLS.
+  * `mail_from`: for SMTP you have to specify an origin mail address.
+  * `cycle`: for IMAP you could specify the intervall how often the inbox is checked
+
+## items.conf
+
+There is no item specific configuration.
+
+## logic.conf
+
+You could assign the following keywords to a logic. The matching order is as listed.
+
+### mail_subject
+If the incoming mail subject matches the value of this key the logic will be triggerd.
+
+### mail_to
+If the mail is sent to specified address the logic will be triggerd.
+
+### mail
+A genric flag to trigger the logic on receiving a mail.
+
+Attention:
+   * You could only call one logic per mail!
+   * If a mail is processed by a logic it will be delteted (moved to Deleted folder).
+   * There is no email security. You have to use an infrastructure which provides security (e.g. own mail server which only accepts authenticated messages for the inbox).
+
+<pre>
+[sauna]
+    filename = sauna.py
+    mail_to = sauna@example.com
+
+[mailbox]
+    filename = mailbox.py
+    mail = yes
+</pre>
+
+A mail to `sauna@example.com` will only trigger the logic 'sauna'. Every other mail is process by the 'mailbox' logic.
+
+# Usage
+If a logic is triggered by this plugin it will set the trigger `source` to the from address and the `value` contains an [email object](http://docs.python.org/2.6/library/email.message.html).
+
+See the [phonebook logic](https://github.com/mknx/smarthome/wiki/Phonebook) for a logic which is triggerd by IMAP.
+
+# Functions
+The SMTP object provides one function (sending) and you access without specifing a method name.
+`sh.mail(to, subject, message)` e.g. `sh.mail('admin@smart.home', 'Rain: Help me', u'You could send UTF-8 encoded subjects and messages')`
+
+# MPD
+
+Requirements
+============
+You only need one or more Music Player Daemons (MPD).
+
+Configuration
+=============
+
+## plugin.conf
+
+<pre>
+[mpd]
+    class_name = MPD
+    class_path = plugins.mpd
+</pre>
+
+## items.conf
+
+You could see a full featured item configuration at the end of this file.
+
+<pre>
+[living]
+    type = bool
+    [[mpd]]
+        type = str
+        mpd_host = 127.0.0.1
+        mpd_port = 6600
+        [[[state]]]
+            type = str
+            mpd_listen = state
+            mpd_send = value  # sends the item value. e.g. sh.dev.mpd.state('play') will send 'play'
+        [[[volume]]]
+            type = num
+            mpd_listen = volume
+            mpd_send = volume
+        [[[jungle]]]
+            type = bool
+            mpd_file = http://jungletrain.net/64kbps.m3u
+            enforce_updates = yes
+</pre>
+
+
+### mpd_host
+This attribute is mandatory. You have to provide the IP address or host name of a MPD system.
+
+### mpd_port
+You could specify a port to connect to. By default port 6060 is used.
+
+### mpd_listen
+You could assign the following values to `mpd_listen`:
+
+   * `state`: ("play", "stop", or "pause")
+   * `volume`: (0-100)
+   * `repeat`: (0 or 1)
+   * `random`: (0 or 1)
+   * `single`: (0 or 1)
+   * `time`: <int elapsed> (of current playing/paused song)
+   * `total`: <time total> (of current playing/paused song)
+   * `percent`: (0-100)
+   * `play`: (0 or 1)
+   * `pause`: (0 or 1)
+   * `stop`: (0 or 1)
+   * `song`: (current song stopped on or playing, playlist song number)
+   * `playlistlength`: (integer, the length of the playlist)
+   * `nextsongid`: (next song, playlist song number)
+
+   * `title`: current song title
+   * `name`: current song name
+   * `album`: current song album
+   * `artist`: current song artist
+   * `file`: current song file
+   * `albumartist`: album artist
+   * `track`: album track
+   * `disc`: album disc
+
+
+### mpd_send
+The following `mpd_send` attributes could be defined to send changes to the system:
+
+   * `volume`: a numeric value (0 -100)
+   * `repeat`: enable/disable repeat
+   * `random`: enable/disable random
+   * `single`: enable/disable repeat current song 
+   * `<command>`: send the specified command at an item change. See below for a list of commands.
+
+### mpd_file
+You could specify a file, directory or URL which will be played if the value of this item change.
+
+
+
+# Functions
+
+## command(cmd)
+Send any of the commands: `play`, `pause`, `stop`, `next`, `previous`...<br />
+For a complete list see: [http://mpd.wikia.com/wiki/MusicPlayerDaemonCommands](http://mpd.wikia.com/wiki/MusicPlayerDaemonCommands).
+
+## play(file)
+Plays the specified file, directory or URL.
+
+## add(file)
+Adding the specified file, directory or URL to the playlist.
+
+
+# Example item.conf
+<pre>
+[living]
+    [[mpd]]
+        type = str
+        mpd_host = 127.0.0.1
+        mpd_port = 6600
+        [[[state]]]
+            type = str
+            mpd_listen = state
+            mpd_send = value  # sends the item value. e.g. sh.dev.mpd.state('play') will send 'play'
+        [[[volume]]]
+            type = num
+            mpd_listen = volume
+            mpd_send = volume
+        [[[play]]]  # any call of dev.mpd.play will send 'play'
+            type = bool
+            # knx_listen ....
+            mpd_send = play
+            enforce_updates = yes
+#       [[[time]]]
+#          type = num
+#          mpd_listen = time
+        [[[total]]]
+            type = num
+            mpd_listen = total
+        [[[percent]]]
+            type = num
+            mpd_listen = percent
+        [[[repeat]]]
+            type = bool
+            mpd_listen = repeat
+            mpd_send = repeat
+        [[[title]]]
+            type = str
+            mpd_listen = title
+        [[[album]]]
+            type = str
+            mpd_listen = album
+        [[[artist]]]
+            type = str
+            mpd_listen = artist
+        [[[name]]]
+            type = str
+            mpd_listen = name
+        [[[track]]]
+            type = str
+            mpd_listen = track
+        [[[rick]]]
+            type = bool
+            mpd_file = http://rick.net/roll.m3u
+            enforce_updates = yes
+        [[[url]]]
+            type = str
+            mpd_file = value  # plays the item value
+            enforce_updates = yes
+[office]
+    [[mp2]]
+        type = str
+        mpd_host = 127.0.0.1
+        mpd_port = 6601
+        [[[state]]]
+            type = str
+            mpd_listen = state
+            mpd_send = value
+        [[[volume]]]
+            type = num
+            mpd_listen = volume
+            mpd_send = volume
+        [[[name]]]
+            type = str
+            mpd_listen = name
+        [[[track]]]
+            type = str
+            mpd_listen = track
+</pre>
+
+# NetIO230B
+
+# Requirements
+## Supported Hardware
+
+* KOUKAAM NETIO230B
+
+# Configuration
+## plugin.conf
+
+<pre>
+[netio230b0]
+    class_name = NetIO230B
+    class_path = plugins.netio230b
+    address = 10.0.0.10
+    user = username
+    password = password
+#   netio_id = 1
+</pre>
+
+Description of the attributes:
+
+* __address__: ip address of the netio230b power distribution 
+* __user__: username needed for login
+* __password__: password needed for login
+* __netio_id__: optional, set id if you want to control more than one device
+
+## items.conf
+
+There are two types of items in this plugin. Items to control the state of the power
+distribution (control item) and items to detect an error (error item). The error item
+is used to detect wether it is not possible to communicate with the device.
+
+* __netio_id__: Contains the device id specified in plugin.conf. This attribute is optional for the control item.
+
+* __netio_port__: Specify one of the 4 ports of the power distribution, starting with 0. This attribute must not
+be set for the error item.
+
+### Example
+
+<pre>
+# items/netio230b.conf
+
+[someroom]
+    [[control0]]
+        type = bool
+        netio_id = 1
+        netio_port = 0
+
+    [[control1]]
+        type = bool
+        netio_port = 3
+
+    [[control2]]
+        type = bool
+        netio_id = 2
+        netio_port = 2
+
+    [[error1]]
+        type = bool
+        netio_id = 1
+
+    [[error2]]
+        type = bool
+        netio_id = 2
+</pre>
+
+* __control0__: item to control port 0 of netio230b device with id 1
+* __control1__: item to control port 3 of netio230b device with id 1 (default for netio_id is 1)
+* __control2__: item to control port 2 of netio230b device with id 2
+* __error1__: item to get error state of netio230b device with id 1
+* __error2__: item to get error state of netio230b device with id 2
+
+## logic.conf
+
+The state of a port can be changed by setting the belonging item to True or False. For the example above mentioned:
+
+<pre>
+sh.someroom.control0(True)
+sh.someroom.control1(False)
+</pre>
+
+# Network
+
+Requirements
+============
+This plugin has no requirements or dependencies.
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[nw]
+    class_name = Network
+    class_path = plugins.network
+    # ip = 0.0.0.0
+    # port = 2727
+    tcp = yes
+    tcp_acl= 127.0.0.1 | 192.168.0.34
+    # udp = no
+    # udp_acl= *
+</pre>
+
+### Attributes
+  * `ip`: specifies the listening IP address. By default it listens on all addresses.
+  * `port`: specifies the listening port for generic incoming TCP and UDP connections. By default it listens on 2727.
+  * `tcp`: by default the plugin doesn't accept incoming TCP connections. You have to set this attribute to 'yes' to accept them.
+  * `tcp_acl`: with this attribute you could specify a list or a single IP address to allow TCP updates from. By default it accepts every incoming request.
+  * `udp`: by default the plugin doesn't accept incoming UDP connections. You have to set this attribute to 'yes' to accept them.
+  * `udp_acl`: with this attribute you could specify a list or a single IP address to allow UDP updates from. By default it accepts every incoming request.
+  * `http`: port to listen for HTTP GET request
+  * `http_acl`: with this attribute you could specify a list or a single IP address to allow HTTP updates from. By default it accepts every incoming request.
+
+
+items.conf
+--------------
+
+### nw
+If this attribute is set to 'yes' you could update this item with the generic listener (TCP and/or UDP).
+<pre>
+[test]
+    [[item1]]
+        type = string
+        nw = yes
+</pre>
+
+### nw_acl
+Like the generic tcp_acl/udp_acl a list or single IP address to limit updates from.
+This attribute is valid for TCP and UDP and overrides the generic tcp_acl/udp_acl.
+
+### nw_udp_listen/nw_tcp_listen
+You could specify the `nw_udp_listen` and `nw_tcp_listen` attribute to an item to create a dedicated listener. The argument could be a port or ip:port.
+<pre>
+[test]
+    [[item1]]
+        type = string
+        # bind to 0.0.0.0:7777 (every IP address)
+        nw_tcp_listen = 7777
+
+    [[item2]]
+        type = string
+        # bind to 0.0.0.0:7777 and 127.0.0.1:8888
+        nw_udp_listen = 127.0.0.1:8888
+</pre>
+If you send a TCP/UDP packet to the port, the corrosponding item will be set to the TCP/UDP payload.
+<code>$ echo teststring | nc -u 127.0.0.1 8888</code> would set the value of item2 to 'teststring'.
+
+logic.conf
+----------
+You could use the same network attributes as in items.conf to trigger logics.
+
+In the context of the KNX plugin the trigger dictionary consists of the following elements:
+
+* trigger['by']     protocol (tcp, udp, http)
+* trigger['source']     IP adress of the sender
+* trigger['value']     payload 
+
+
+Usage
+=====
+
+The generic listener accepts a simple message format: `key|id|value`.
+Currently are three different keys supported:
+
+  * `item|item.path|value`
+  * `logic|logic_name|value`
+  * `log|loglevel|message` # loglevel coud be info, warning or error
+
+<pre>
+# send a udp message to set the item 'network.incoming' to '123'
+$ echo "item|network.incoming|123" | nc -uw 1 XX.XX.XX.XX 2727`
+
+# send a tcp message to trigger the logic 'say' with 'hello'
+$ echo "logic|say|hello" | nc -w 1 XX.XX.XX.XX 2727`
+
+# send a udp message to add an log entry with loglevel 'warning' and the message 'lost internet connection'
+$ echo "log|warning|lost internet connection" | nc -uw 1 XX.XX.XX.XX 2727`
+
+# http request to set the item 'network.incoming' to '123'
+$ wget "http://XX.XX.XX.XX:8090/item|network.incoming|123"
+</pre>
+
+Functions
+=========
+
+udp(host, port, data)
+---------------------
+<code>sh.nw.udp('192.168.0.5', 9999, 'turn it on')</code> would send 'turn it on' to 192.168.0.5 port 9999. Simple, isn't it?
+
+# Notify My Android
+
+# Requirements
+
+NMA API-KEY
+
+get it from http://www.notifymyandroid.com/ for free
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[nma]
+    class_name = NMA
+    class_path = plugins.nma
+#    apikey = <your-api-key>
+</pre>
+
+Description of the attributes:
+
+* __apikey__: set api-key globally so you do not have to set it in the function calls
+
+# Functions
+
+Because there is only one function you could access it directly by the object. 
+
+<pre>
+sh.nma('Intrusion', 'Living room window broken!')
+</pre>
+
+This function takes several arguments:
+
+* __event__: Event (up to 1000 chars)
+* __description__: Text describing the event in detail (up to 1000 chars)
+* __priority__: Ranging from -2 (Very low) to 2 (Emergency) - not used by now! 
+* __url__: URL to be send with the notification (up to 2000 chars)
+* __apikey__: API-KEY used for this request - not necessary if global 'apikey' is set
+* __application__: Name of the application (default: 'SmartHome')
+ 
+# Examples
+<pre>
+sh.nma('Intrusion', 'Living room window broken', 2, 'http://yourvisu.com/')
+sh.nma('Tumbler', 'finished', apikey='<your-api-key>')
+</pre>
+
+# 1-Wire
+
+Requirements
+============
+This plugin needs an running owserver from owfs. I have tested owfs-2.7p34 and owfs-2.8p15.
+
+Hint: to run the owserver as non root. You have to add a udev rule for the usb busmasters.
+<pre># /etc/udev/rules.d/80-smarthome.rules
+SUBSYSTEM=="usb",ENV{DEVTYPE}=="usb_device",ATTR{idVendor}=="04fa", ATTR{idProduct}=="2490",GROUP="smarthome",MODE="0660"
+</pre>
+
+Hint2: You can also use a running owserver on another host.
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[ow]
+    class_name = OneWire
+    class_path = plugins.onewire
+#    host = 127.0.0.1
+#    port = 4304
+</pre>
+
+This plugins is looking by default for the owserver on 127.0.0.1 port 4304. You could change this in your plugin.conf.
+
+Advanced options in plugin.conf. Please be careful.
+
+* 'cycle' = timeperiod between two sensor cycles. Default 300 seconds. If you decrease the cycle to much you could destabilise the bus, because of the increased power consumption.
+* 'io_wait' = timeperiod between two requests of 1-wire I/O chip. Default 5 seconds.
+* 'button_wait' = timeperiod between two requests of ibutton-busmaster. Default 0.5 seconds.
+ 
+
+
+items.conf
+--------------
+
+### name
+This is a name for the defined sensor information. 
+ 
+### type
+This is the type of the sensor data. Currently 'num' and 'bool' are supported.
+
+### ow_addr
+'ow_addr' defines the 1wire adress of the sensor (formerly 'ow_id'). If 'ow_addr' is specified, the 1wire plugin monitors this sensor.
+
+### ow_sensor
+'ow_sensor' defines the particular data of the sensor. Currently are supported:
+
+* 'T' - temperature - could be T, T9, T10, T11, T12 (depends on accuracy, but more accuracy needs more time!)
+* 'H' - humidity
+* 'L' - light intensity (lux)
+* 'V' - voltage
+* 'Ix' - input - could be IA or IB (depends on the choosen input)
+* 'Ox' - output - could be OA or OB (depends on the choosen output)
+* 'VDD' - voltage of sensor powering (most DS2438 based sensors)
+
+for ibuttons:
+
+* 'BM' - ibutton master
+* 'B' - ibutton
+
+If an ibutton master ('BM') is specified, the 1-wire plugin will monitor this bus with a higher frequency for changes.
+The ibutton sensor ('B') returns 'true', if the ibutton is present or 'false', if not.
+If I/O sensors (2406) are specified they will be monitored within a shorter timeframe.
+
+Currently the following 1wire devices are tested by users:
+
+* DS9490 busmaster
+* DS18B20 (temperature)
+* Elabnet BMS v1.3  (MS-THS-13)
+* Elabnet BMS v2.11 (MS-THS-21) (incl. additional lightsensor modul) 
+* Elabnet AMS v2.11 (MS-THS-21) (additional '+ DS2406 dual I/O + DS2438 0-10V' are untested)
+* DATANAB DS2438 (rugged temp/hum)
+* D2PC (dual I/O DS2406)
+
+<pre>
+[test-1wire]
+    [[bm-ibutton]]
+        name = ibutton busmaster to identify ibutton buses
+        type = bool
+        ow_addr = 81.75172D000000
+        ow_sensor = BM
+    [[ib-guest]]
+        name = ibutton guest
+        type = bool
+        ow_addr = 01.787D58130000
+        ow_sensor = B
+    [[temp_outside]]
+        name = temperature outside
+        type = num
+        ow_addr = 28.8DEAAA030000
+        # could be T, T9, T10, T11, T12
+        ow_sensor = T
+    [[lux_outside]]
+        name = lux / lightintensity outside
+        type = num
+        ow_addr = 26.8DD76B010000
+        ow_sensor = L
+    [[humidity_outside]]
+        name = humidity outside
+        type = num
+        ow_addr = 26.8DD76B010000
+        ow_sensor = H
+    [[input_water_leak]]
+        name = input water leak detection
+        type = bool
+        ow_addr = 3A.C6CC07000000
+        # could be IA, IB
+        ow_sensor = IA
+    [[output_led1]]
+        name = output led1 keys
+        type = bool
+        ow_addr = 3A.C6CC07000000
+        # could be OA, OB
+        ow_sensor = OB
+    [[voltage_sensor]]
+        name = voltage of the sensor input (0-10V)
+        type = num
+        ow_addr = 26.A9D76B010000
+        ow_sensor = V
+</pre>
+
+Functions
+=========
+
+ibutton_hook(ibutton, item)
+--------------------------------
+
+This is a special function which is called if an unknown ibutton is attached to the bus.
+If the unknown ibutton is already seen, the id will be cached and the function is not called again. The cache will be reset every ten minutes.
+The function must take two arguments. The first will be the id of the ibutton and the second is the item of the ibutton busmaster (e.g. `sh.home.key_hanger`).
+
+To use it you have to assign a (useful) function. For this you could do something like this:
+
+<pre># my startup.py logic which is called at startup with crontab = init
+def intruder_alert(ibutton_id, item):
+    sh.notify("iButton-Alert","Someone uses an unknown iButton ({0}) at {1}".format(ibutton_id, item))
+    # sh.take_picuture()
+    # ...
+
+sh.ow.ibutton_hook = intruder_alert</pre>
+
+
+# Prowl
+
+Requirements
+============
+This plugin has no requirements or dependencies.
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>[notify]
+    class_name = Prowl
+    class_path = plugins.prowl
+    apikey = asdf1234asdf1234 # secret global key for prowl
+</pre>
+
+### Attributes
+   * `apikey`: this attribute is optional. You could define a global apikey for the prowl service.
+
+Functions
+=========
+Because there is only one function you could access it directly by the object. With the above example it would look like this: `sh.notify('Intrusion', 'Living room window broken!')`
+This function takes several arguments:
+
+ 1. event: type of event.
+ 2. description: describes the event.
+ 3. priority: you could give a priority (0-2) to differentiate beetween events on your mobile device.
+ 4. url: This url would be linked to the notification.
+ 5. apikey: you could specify an individual apikey.
+ 6. application: describes the name of the application. By default it is SmartHome.
+
+<pre># some examples
+sh.notify('Intrusion', 'Living room window broken', 2, 'http://yourvisu.com/')
+sh.notify('Tumbler', 'finished', apikey='qwerqwer')
+</pre>
+
+# RRDTool
+
+Requirements
+============
+You have to install the python3 bindings for rrdtool:
+<pre>$ sudo apt-get install python3-dev librrd-dev
+$ cd lib/3rd/rrdtool
+$ sudo python3 setup.py install</pre>
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[rrd]
+    class_name = RRD
+    class_path = plugins.rrd
+    # step = 300
+    # rrd_dir = /usr/smarthome/var/rrd/
+</pre>
+
+`step` sets the cycle time how often entries will be updated.
+`rrd_dir` specify the rrd storage location.
+
+items.conf
+--------------
+
+### rrd
+To active rrd logging (for an item) simply set this attribute to yes.
+If you set this attribute to `init`, SmartHome.py tries to set the item to the last known value (like cache = yes).
+
+### rrd_min
+Set this item attribute to log the minimum as well. Default is no.
+
+### rrd_max
+Set this item attribute to log the maximum as well. Default is no.
+
+### rrd_mode
+Set the type of data source. Default ist `gauge`.
+  * `gauge` - should be used for things like temperatures.
+  * `counter` - should be used for continuous incrementing counters like the Powermeter (kWh), watercounter (m³), pellets (kg).
+
+<pre>
+[outside]
+    name = Outside
+    [[temperature]]
+        name = Temperatur
+        type = num
+        rrd = init
+        rrd_min = yes
+        rrd_max = yes
+
+[office]
+    name = Büro
+    [[temperature]]
+        name = Temperatur
+        type = num
+        rrd = yes
+</pre>
+
+# Functions
+This plugin adds one item method to every item which has rrd enabled.
+
+## sh.item.db(function, start, end='now')
+This method returns you a value for the specified function and timeframe.
+
+Supported functions are:
+
+   * `avg`: for the average value
+   * `max`: for the maximum value
+   * `min`: for the minimum value
+   * `last`: for the last value
+
+For the timeframe you have to specify a start point and a optional end point. By default it ends 'now'.
+The time point could be specified with `<number><interval>`, where interval could be:
+
+   * `i`: minute
+   * `h`: hour
+   * `d`: day
+   * `w`: week
+   + `m`: month
+   * `y`: year
+
+e.g.
+<pre>
+sh.outside.temperature.db('min', '1d')  # returns the minimum temperature within the last day
+sh.outside.temperature.db('avg', '2w', '1w')  # returns the average temperature of the week before last week
+</pre>
+
+
+# Russound
+
+Requirements
+============
+This plugin needs a Russound audio device in the network to communicate with. The communication protocol for the ethernet port has to be set to RIO.
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[russound]
+   class_name = Russound
+   class_path = plugins.russound
+   host = 192.168.1.123
+#   port = 9621
+</pre>
+
+This plugin talks by default with the Russound audio device with the given host ip on the default port 9621. If you have changed the default port you have to change it here as well.
+
+items.conf
+--------------
+
+### rus_path
+This attribute is mandatory. If you don't provide one the item will be ignored.
+The value must be given with the following format c.z.p where c is the number of the controller, z is the number of the zone and p is the system parameter of the Russound audio device like volume or treble.
+Right know the following russound parameter types are supported:
+
+* status = zone On/Off: type must be bool
+* volume = volume of the zone: type must be num [0..50]
+* bass = bass of the zone: type must be num [-10..10]
+* treble = treble of the zone: type must be num [-10..10]
+* balance = balance of the zone: type must be num [-10..10]
+* turnonvolume = volume on zone on: type must be num [0..50]
+* currentsource = number of the source: type must be num
+* mute = mute the zone volume: type must be bool
+* loudness = loudness of the zone: type must be bool
+* partymode = party mode setting of the zone: type must be string [ON/OFF/MASTER]
+* donotdisturb = do not disturb setting of the zone: type must be string
+* name = name of the zone (readonly)
+
+For all parameters with specified ranges (volume, turnonvolume, bass, treble, balance) all values out of range are ignored and the minimum or maximum value will be taken. So if you set balance to 15 the plugin will send 10 to the Russound audio device.
+
+Besides the above parameters there are so called key codes. This are special values send like from a remote control which effects the current state of the Russound audio device itself or maybe a connected device if the Russound audio device can communicate with it. Look in the manual of your Russound which key codes are possible. If you specify a parameter not on the above list it will be interpreted as key code and send to the russound audio device as a "KeyRelease" event. This way you can e.g. define rus_path=1.5.channelup which will send the key code "channelup" to the russound. In case of the internal radio tuner this will change the current channel. 
+
+For such key codes it will be best to define the item with the aditional attribute enforce_updates=true so that the value of the item is not important. That means you can e.g. use a KNX push device that sends a ONE on every push to a group address and smarthome.py listens for that address. With this on every push the channelup key code is sent.
+
+# Example
+<pre>
+['dg']
+        [['bedroom']]
+                [[['audio']]]
+                        type=bool
+                        rus_path=1.1.status
+                        knx_dpt=1
+                        knx_send=12/1/0
+                        knx_listen=12/1/0
+
+                        [[[['volume']]]]
+                                type=num
+                                rus_path=1.1.volume
+                                knx_dpt=5
+                                knx_send=12/1/1
+                                knx_listen=12/1/1
+                        [[[['bass']]]]
+                                type=num
+                                rus_path=1.1.bass
+                                knx_dpt=6
+                                knx_send=12/1/2
+                                knx_listen=12/1/2
+                        [[[['treble']]]]
+                                type=num
+                                rus_path=1.1.treble
+                        [[[['balance']]]]
+                                type=num
+                                rus_path=1.1.balance
+                        [[[['turnonvolume']]]]
+                                type=num
+                                rus_path=1.1.turnonvolume
+                        [[[['source']]]]
+                                type=num
+                                rus_path=1.1.currentsource
+                        [[[['mute']]]]
+                                type=bool
+                                rus_path=1.1.mute
+                        [[[['channelup']]]]
+                                type=bool
+                                rus_path=1.1.channelup
+                                knx_dpt=1
+                                knx_listen=12/1/9
+                                enforce_updates=true
+                        [[[['loudness']]]]
+                                type=bool
+                                rus_path=1.1.loudness
+                        [[[['partymode']]]]
+                                type=str
+                                rus_path=1.1.partymode
+                        [[[['donotdisturb']]]]
+                                type=str
+                                rus_path=1.1.donotdisturb
+</pre>
+
+
+# My Plugin
+
+# Requirements
+
+List the requirements of your plugin. Does it need special software or hardware?
+
+## Supported Hardware
+
+* list
+* the
+* supported
+* hardware
+
+# Configuration
+
+## plugin.conf
+
+Please provide a plugin.conf snippet for your plugin with ever option your plugin supports. Optional attributes should be commented out.
+
+<pre>
+[My]
+   class_name = MyPlugin
+   class_path = plugins.myplugin
+   host = 10.10.10.10
+#   port = 1010
+</pre>
+
+Please provide a description of the attributes.
+This plugin needs an host attribute and you could specify a port attribute which differs from the default '1010'.
+
+## items.conf
+
+List and describe the possible item attributes.
+
+### my_attr
+
+Description of the attribute...
+
+### my_attr2
+
+### Example
+
+Please provide an item configuration with every attribute and usefull settings.
+
+<pre>
+# items/my.conf
+
+[someroom]
+    [[mydevice]]
+        type = bool
+        my_attr = setting
+</pre>
+
+## logic.conf
+If your plugin support item triggers as well, please describe the attributes like the item attributes.
+
+
+# Methodes
+If your plugin provides methods for logics. List and describe them here...
+
+## method1(param1, param2)
+This method enables the logic to send param1 and param2 to the device. You could call it with `sh.my.method1('String', 2)`.
+
+## method2()
+This method does nothing.
+
+# SMA
+
+# Requirements
+
+bluez
+
+install by
+<pre>
+apt-get install bluez
+</pre>
+
+## Supported Hardware
+
+Tested with:
+* SMA SunnyBoy 5000TL-21
+
+Should work with other SMA inverters as well - please let me know!
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[sma]
+    class_name = SMA
+    class_path = plugins.sma
+    bt_addr = 00:80:25:21:7F:58
+#    password = 0000
+#    update_cycle = 60
+</pre>
+
+Description of the attributes:
+
+* __bt_addr__: MAC-address of the inverter (find out with 'hcitool scan')
+* __password__: password for accessing the inverter in user-mode (default 0000)
+* __update_cycle__: interval in seconds how often the data is read from the inverter (default 60)
+
+## items.conf
+
+### AC_POWER
+
+Current power feed to the grid (W)
+
+### DAY_YIELD
+
+Todays yield (Wh)
+
+### TOTAL_YIELD
+
+Total yield of the inverter (Wh)
+
+### INV_SERIAL
+
+Serial number of the inverter
+
+### INV_ADDRESS
+
+MAC-address of the inverter
+
+### LAST_UPDATE
+
+String represensting date/time of last successful read operation
+
+### DC_POWER_STRING<x>
+
+DC power supplied by string <x> (W)
+
+### DC_VOLTAGE_STRING<x>
+
+DC voltage supplied by string <x> (V)
+
+### DC_CURRENT_STRING<x>
+
+DC current supplied by string <x> (A)
+
+<pre>
+[Wechselrichter]
+  [[Einspeiseleistung]]
+    type = num
+    sma = "AC_POWER"
+  [[Tagesertrag]]
+    type = num
+    sma = "DAY_YIELD"
+  [[Gesamtertrag]]
+    type = num
+    sma = "TOTAL_YIELD"
+  [[Seriennummer]]
+    type = num
+    sma = "INV_SERIAL"
+  [[MAC_Adresse]]
+    type = str
+    sma = "INV_ADDRESS"
+  [[Letzte_Aktualisierung]]
+    type = str
+    sma = "LAST_UPDATE"
+  [[DC_Leistung_String1]]
+    type = num
+    sma = "DC_POWER_STRING1"
+  [[DC_Leistung_String2]]
+    type = num
+    sma = "DC_POWER_STRING2"
+  [[DC_Spannung_String1]]
+    type = num
+    sma = "DC_VOLTAGE_STRING1"
+  [[DC_Spannung_String2]]
+    type = num
+    sma = "DC_VOLTAGE_STRING2"
+  [[DC_Strom_String1]]
+    type = num
+    sma = "DC_CURRENT_STRING1"
+  [[DC_Strom_String2]]
+    type = num
+    sma = "DC_CURRENT_STRING2"
+</pre>
+
+# SmartTV
+
+# Requirements
+This plugin has no requirements or dependencies.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[smarttv]
+    class_name = SmartTV
+    class_path = plugins.smarttv
+    host = 192.168.0.45
+#    port = 55000
+#    tvid = 1
+</pre>
+
+### Attributes
+  * `host`: specifies the ip address of your SmartTV device.
+  * `port`: if you want to use a nonstandard port.
+  * `tvid`: if you have more than one SmartTV device, you can identify them with the tvid in the item configuration.
+
+## items.conf
+
+### smarttv
+There are two possibilities to use this attribute. 
+  * Define it on a string item and set it to `true`: With this configuration, every string you set to this item will be send to the SmartTV device.
+  * Define it on a boolean item and set it to a key value: With this configuration, the specified key value is sent whenever you set the item to `true` (if the item is only for sending a specific command to the tv then you should consider using the `enforce_updates` attribute, too). It is even possible to define several keys separeted with a comma.
+
+### smarttv_id
+With this attribute you can define to which smarttv device you want to send the specified command. If there is only one device configured you can avoid setting this attribute.
+
+<pre>
+[tv]
+    type = str
+    smarttv = true
+    smarttv_id = 1
+    enforce_updates = true
+
+    [[mute]]
+        type = bool
+        smarttv = KEY_MUTE
+        smarttv_id = 1
+        enforce_updates = true
+  
+    [[KIKA]]
+        name = KIKATV
+        type = bool
+        visu = yes
+        smarttv = KEY_1, KEY_0, KEY_6, KEY_ENTER
+        smarttv_id = 2
+        enforce_updates = true
+        knx_dpt = 1
+        knx_listen = 0/0/7
+</pre>
+
+### Key Values
+And here is a list of possible key values. It depends on your device if all of them are supported.
+
+KEY_MENU
+KEY_UP
+KEY_DOWN
+KEY_LEFT
+KEY_RIGHT
+KEY_3
+KEY_VOLUP
+KEY_4
+KEY_5
+KEY_6
+KEY_VOLDOWN
+KEY_7
+KEY_8
+KEY_9
+KEY_MUTE
+KEY_CHDOWN
+KEY_0
+KEY_CHUP
+KEY_PRECH
+KEY_GREEN
+KEY_YELLOW
+KEY_CYAN
+KEY_ADDDEL
+KEY_SOURCE
+KEY_INFO
+KEY_PIP_ONOFF
+KEY_PIP_SWAP
+KEY_PLUS100
+KEY_CAPTION
+KEY_PMODE
+KEY_TTX_MIX
+KEY_TV
+KEY_PICTURE_SIZE
+KEY_AD
+KEY_PIP_SIZE
+KEY_MAGIC_CHANNEL
+KEY_PIP_SCAN
+KEY_PIP_CHUP
+KEY_PIP_CHDOWN
+KEY_DEVICE_CONNECT
+KEY_HELP
+KEY_ANTENA
+KEY_CONVERGENCE
+KEY_11
+KEY_12
+KEY_AUTO_PROGRAM
+KEY_FACTORY
+KEY_3SPEED
+KEY_RSURF
+KEY_ASPECT
+KEY_TOPMENU
+KEY_GAME
+KEY_QUICK_REPLAY
+KEY_STILL_PICTURE
+KEY_DTV
+KEY_FAVCH
+KEY_REWIND
+KEY_STOP
+KEY_PLAY
+KEY_FF
+KEY_REC
+KEY_PAUSE
+KEY_TOOLS
+KEY_INSTANT_REPLAY
+KEY_LINK
+KEY_FF_
+KEY_GUIDE
+KEY_REWIND_
+KEY_ANGLE
+KEY_RESERVED1
+KEY_ZOOM1
+KEY_PROGRAM
+KEY_BOOKMARK
+KEY_DISC_MENU
+KEY_PRINT
+KEY_RETURN
+KEY_SUB_TITLE
+KEY_CLEAR
+KEY_VCHIP
+KEY_REPEAT
+KEY_DOOR
+KEY_OPEN
+KEY_WHEEL_LEFT
+KEY_POWER
+KEY_SLEEP
+KEY_2
+KEY_DMA
+KEY_TURBO
+KEY_1
+KEY_FM_RADIO
+KEY_DVR_MENU
+KEY_MTS
+KEY_PCMODE
+KEY_TTX_SUBFACE
+KEY_CH_LIST
+KEY_RED
+KEY_DNIe
+KEY_SRS
+KEY_CONVERT_AUDIO_MAINSUB
+KEY_MDC
+KEY_SEFFECT
+KEY_DVR
+KEY_DTV_SIGNAL
+KEY_LIVE
+KEY_PERPECT_FOCUS
+KEY_HOME
+KEY_ESAVING
+KEY_WHEEL_RIGHT
+KEY_CONTENTS
+KEY_VCR_MODE
+KEY_CATV_MODE
+KEY_DSS_MODE
+KEY_TV_MODE
+KEY_DVD_MODE
+KEY_STB_MODE
+KEY_CALLER_ID
+KEY_SCALE
+KEY_ZOOM_MOVE
+KEY_CLOCK_DISPLAY
+KEY_AV1
+KEY_SVIDEO1
+KEY_COMPONENT1
+KEY_SETUP_CLOCK_TIMER
+KEY_COMPONENT2
+KEY_MAGIC_BRIGHT
+KEY_DVI
+KEY_HDMI
+KEY_W_LINK
+KEY_DTV_LINK
+KEY_APP_LIST
+KEY_BACK_MHP
+KEY_ALT_MHP
+KEY_DNSe
+KEY_RSS
+KEY_ENTERTAINMENT
+KEY_ID_INPUT
+KEY_ID_SETUP
+KEY_ANYNET
+KEY_POWEROFF
+KEY_POWERON
+KEY_ANYVIEW
+KEY_MS
+KEY_MORE
+KEY_PANNEL_POWER
+KEY_PANNEL_CHUP
+KEY_PANNEL_CHDOWN
+KEY_PANNEL_VOLUP
+KEY_PANNEL_VOLDOW
+KEY_PANNEL_ENTER
+KEY_PANNEL_MENU
+KEY_PANNEL_SOURCE
+KEY_AV2
+KEY_AV3
+KEY_SVIDEO2
+KEY_SVIDEO3
+KEY_ZOOM2
+KEY_PANORAMA
+KEY_4_3
+KEY_16_9
+KEY_DYNAMIC
+KEY_STANDARD
+KEY_MOVIE1
+KEY_CUSTOM
+KEY_AUTO_ARC_RESET
+KEY_AUTO_ARC_LNA_ON
+KEY_AUTO_ARC_LNA_OFF
+KEY_AUTO_ARC_ANYNET_MODE_OK
+KEY_AUTO_ARC_ANYNET_AUTO_START
+KEY_AUTO_FORMAT
+KEY_DNET
+KEY_HDMI1
+KEY_AUTO_ARC_CAPTION_ON
+KEY_AUTO_ARC_CAPTION_OFF
+KEY_AUTO_ARC_PIP_DOUBLE
+KEY_AUTO_ARC_PIP_LARGE
+KEY_AUTO_ARC_PIP_SMALL
+KEY_AUTO_ARC_PIP_WIDE
+KEY_AUTO_ARC_PIP_LEFT_TOP
+KEY_AUTO_ARC_PIP_RIGHT_TOP
+KEY_AUTO_ARC_PIP_LEFT_BOTTOM
+KEY_AUTO_ARC_PIP_RIGHT_BOTTOM
+KEY_AUTO_ARC_PIP_CH_CHANGE
+KEY_AUTO_ARC_AUTOCOLOR_SUCCESS
+KEY_AUTO_ARC_AUTOCOLOR_FAIL
+KEY_AUTO_ARC_C_FORCE_AGING
+KEY_AUTO_ARC_USBJACK_INSPECT
+KEY_AUTO_ARC_JACK_IDENT
+KEY_NINE_SEPERATE
+KEY_ZOOM_IN
+KEY_ZOOM_OUT
+KEY_MIC
+KEY_HDMI2
+KEY_HDMI3
+KEY_AUTO_ARC_CAPTION_KOR
+KEY_AUTO_ARC_CAPTION_ENG
+KEY_AUTO_ARC_PIP_SOURCE_CHANGE
+KEY_HDMI4
+KEY_AUTO_ARC_ANTENNA_AIR
+KEY_AUTO_ARC_ANTENNA_CABLE
+KEY_AUTO_ARC_ANTENNA_SATELLITE
+KEY_EXT1
+KEY_EXT2
+KEY_EXT3
+KEY_EXT4
+KEY_EXT5
+KEY_EXT6
+KEY_EXT7
+KEY_EXT8
+KEY_EXT9
+KEY_EXT10
+KEY_EXT11
+KEY_EXT12
+KEY_EXT13
+KEY_EXT14
+KEY_EXT15
+KEY_EXT16
+KEY_EXT17
+KEY_EXT18
+KEY_EXT19
+KEY_EXT20
+KEY_EXT21
+KEY_EXT22
+KEY_EXT23
+KEY_EXT24
+KEY_EXT25
+KEY_EXT26
+KEY_EXT27
+KEY_EXT28
+KEY_EXT29
+KEY_EXT30
+KEY_EXT31
+KEY_EXT32
+KEY_EXT33
+KEY_EXT34
+KEY_EXT35
+KEY_EXT36
+KEY_EXT37
+KEY_EXT38
+KEY_EXT39
+KEY_EXT40
+KEY_EXT41
+
+## logic.conf
+
+Currently there is no logic configuration for this plugin.
+
+# Functions
+
+Currently there are no functions offered from this plugin.
+
+
+
+# snom
+
+# Requirements
+This plugin has no requirements or dependencies.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[snom]
+    class_name = Snom
+    class_path = plugins.snom
+    # phonebook = None
+    # username = None
+    # password = None
+</pre>
+
+### Attributes
+  * `host`: specifies the hostname of your mail server.
+  * `port`: if you want to use a nonstandard port.
+  * `username`/`password`: login information for _all_ snom phones
+  * `phonebook`: path to a xml phonebook file e.g. '/var/www/voip/phonebook.xml'
+
+## items.conf
+
+### snom_host
+With 'snom_host' you specify the host name or IP address of a snom phone.
+
+### snom_key
+This is the key name of an item in the snom configuration. You have to specify the 'snom_host' in the same or the item above to make the link to the phone.
+
+<pre>
+[phone]
+    snom_host = 10.0.0.4
+    [[display]]
+        type = str
+        snom_key = user_realname1
+    [[mailbox]]
+        type = num
+        ast_box = 33
+    [[hook]]
+        type = bool
+        nw = yes
+</pre>
+
+## logic.conf
+
+Currently there is no logic configuration for this plugin.
+
+# Functions
+
+## phonebook_add(name, number)
+
+If you have specified a phonebook, you could add or change existing entries by calling this function.
+You to provide the (unique) name and a number. It will replace the number of an existing entry with exactly the same name.
+
+See the [phonebook logic](https://github.com/mknx/smarthome/wiki/Phonebook) for a logic which is using this function.
+
+# Solarlog
+
+# Requirements
+This plugin has no requirements or dependencies.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[solarlog]
+    class_name = SolarLog
+    class_path = plugins.solarlog
+    host = http://solarlog.fritz.box/
+</pre>
+
+### Attributes
+  * `host`: specifies the hostname of the SolarLog.
+
+## items.conf
+You need to know the format details of the SolarLog to define the valid values for this plugin to work correctly. All the plugin does is to request the JavaScript files from the device and parse them. Almost the same way the webpage does when you visit the URL of your SolarLog in the browser. A description of the format can be found here (german): [http://photonensammler.homedns.org/wiki/doku.php?id=solarlog_datenformat](http://photonensammler.homedns.org/wiki/doku.php?id=solarlog_datenformat)
+
+### solarlog
+This is the only attribute for items. To retrieve values from the SolarLog data format you just have to use their variable name like on the site which was mentioned above described. If you want to use values from a array structure like the PDC value from the seconds string on the first inverter then you have to use the variable name underscore inverter-1 underscore string-1:
+
+var[_inverter[_string]]
+
+Maybe the next example makes it clearer.
+
+<pre>
+[pv]
+    [[pac]]
+        type = num
+        solarlog = Pac
+        rrd = 1
+
+    [[kwp]]
+        type = num
+        solarlog = AnlagenKWP
+
+        [[[soll]]]
+            type = num
+            solarlog = SollYearKWP
+
+    [[inverter1]]
+        [[[online]]]
+            type = bool
+            solarlog = isOnline
+
+        [[[inverter1_pac]]]
+            type = num
+            solarlog = pac_0
+            rrd = 1
+
+        [[[out]]]
+            type = num
+            solarlog = out_0
+            rrd = 1
+
+        [[[string1]]]
+            [[[[string1_pdc]]]]
+                type = num
+                solarlog = pdc_0_0
+                rrd = 1
+            [[[[string1_udc]]]]
+                type = num
+                solarlog = udc_0_0
+                rrd = 1
+
+        [[[string2]]]
+            [[[[string2_pdc]]]]
+                type = num
+                solarlog = pdc_0_1
+                rrd = 1
+            [[[[string2_udc]]]]
+                type = num
+                solarlog = udc_0_1
+                rrd = 1
+</pre>
+
+## logic.conf
+
+Currently there is no logic configuration for this plugin.
+
+# Functions
+
+Currently there are no functions offered from this plugin.
+
+
+
+# SQLite
+
+Configuration
+=============
+
+plugin.conf
+-----------
+<pre>
+[sql]
+    class_name = SQL
+    class_path = plugins.sqlite
+</pre>
+
+items.conf
+--------------
+
+For num and bool items, you could set the attribute: `sqlite`. By this you enable logging of the item values.
+If you set this attribute to `init`, SmartHome.py tries to set the item to the last know value (like cache = yes).
+
+<pre>
+[outside]
+    name = Outside
+    [[temperature]]
+        name = Temperatur
+        type = num
+        sqlite = yes
+</pre>
+
+
+# Functions
+This plugin adds one item method to every item which has sqlite enabled.
+
+## sh.item.db(function, start, end='now')
+This method returns you an value for the specified function and timeframe.
+
+Supported functions are:
+
+   * `avg`: for the average value
+   * `max`: for the maximum value
+   * `min`: for the minimum value
+   * `sum`: for the value sum
+
+For the timeframe you have to specify a start point and a optional end point. By default it ends 'now'.
+The time point could be specified with `<number><interval>`, where interval could be:
+
+   * `i`: minute
+   * `h`: hour
+   * `d`: day
+   * `w`: week
+   + `m`: month
+   * `y`: year
+
+e.g.
+<pre>
+sh.outside.temperature.db('min', '1d')  # returns the minimum temperature within the last day
+sh.outside.temperature.db('avg', '2w', '1w')  # returns the average temperature of the week before last week
+</pre>
+
+# Squeezebox
+
+# Requirements
+
+A properly installed and configured Logitech Media Server is required.
+
+## Supported Hardware
+
+Tested with:
+* Logitech Squeezebox Radio
+
+Should work with other Squeezebox players as well - please let me know!
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[squeezebox]
+    class_name = Squeezebox
+    class_path = plugins.squeezebox
+#    host = &lt;server&gt;
+#    port = &lt;port&gt;
+</pre>
+
+Description of the attributes:
+
+* __host__: IP or hostname of the Logitech Media Server if not local
+* __port__: Port number of the Logitech Media Server if not 9090
+
+## items.conf
+
+You can use all commands available by the telnet-interface.
+
+For a explanation of all available commands see http://&lt;server&gt;:9000/html/docs/cli-api.html
+
+Up to four identifier strings are used:
+* __squeezebox_playerid__: used in the parent item to allow using &lt;playerid&gt; placeholder in the children
+* __squeezebox_send__: used to set the item
+* __squeezebox_recv__: used to get notifications when running
+* __squeezebox_init__: used to query the item at start-up
+ 
+Fields:
+* __&lt;playerid&gt;__: gets replaced by the player-id set in the parent item
+* __{}__: the value of the item is written to this placeholder (don't use if a fixed/no value is required)
+
+You should verify all your commands manually by using the telnet-interface on port 9090.
+<pre>
+telnet &lt;server&gt;:&lt;port&gt;
+listen 1
+&lt;playerid&gt; name ?
+...
+</pre>
+
+<pre>
+[Squeezebox]
+  squeezebox_playerid = your-players-ID-in-here
+
+  [[Name]]
+    type = str
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; name {}
+    squeezebox_recv = &lt;playerid&gt; name
+  [[IP]]
+    type = str
+    visu = yes
+    squeezebox_recv = player ip &lt;playerid&gt;
+  [[Signal_Strength]]
+    type = num
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; signalstrength
+
+  [[Power]]
+    type = bool
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; power {}
+    squeezebox_recv = &lt;playerid&gt; prefset server power
+    squeezebox_init = &lt;playerid&gt; power
+    
+  [[Mute]]
+    type = bool
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; mixer muting {}
+    squeezebox_recv = &lt;playerid&gt; prefset server mute
+    squeezebox_init = &lt;playerid&gt; mixer muting
+  [[Volume]]
+    type = num
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; mixer volume {}
+    squeezebox_recv = &lt;playerid&gt; prefset server volume
+    squeezebox_init = &lt;playerid&gt; mixer volume
+  [[Volume_Up]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; button volup
+  [[Volume_Down]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; button voldown
+    
+  [[Play]]
+    type = bool
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; play
+    squeezebox_recv = &lt;playerid&gt; play
+    squeezebox_init = &lt;playerid&gt; mode
+  [[Stop]]
+    type = bool
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; stop
+    squeezebox_recv = &lt;playerid&gt; stop
+    squeezebox_init = &lt;playerid&gt; mode
+  [[Pause]]
+    type = bool
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; pause {}
+    squeezebox_recv = &lt;playerid&gt; pause
+    squeezebox_init = &lt;playerid&gt; mode
+    
+  [[Current_Title]]
+    type = str
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; playlist newsong
+    squeezebox_init = &lt;playerid&gt; current_title
+
+  [[Genre]]
+    type = str
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; genre
+  [[Artist]]
+    type = str
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; artist
+  [[Album]]
+    type = str
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; album
+  [[Title]]
+    type = str
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; title
+  [[Duration]]
+    type = num
+    visu = yes
+    squeezebox_recv = &lt;playerid&gt; duration
+
+  [[Time]]
+    type = num
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; time {}
+    squeezebox_recv = &lt;playerid&gt; time
+
+  [[Playlist_Index]]
+    type = num
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist index {}
+    squeezebox_recv = &lt;playerid&gt; playlist index
+  [[Playlist_Forward]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist index +1
+  [[Playlist_Backward]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist index -1
+    
+  [[Playlist_Name]]
+    type = str
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist name {}
+    squeezebox_recv = &lt;playerid&gt; playlist name
+  [[Playlist_Save]]
+    type = str
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist save {}
+  [[Playlist_Load]]
+    type = str
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist load {}
+  [[Playlist_Load_Internetradio]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist load file:///home/robert/playlists/Internetradio.m3u
+    
+  [[Repeat]]
+    type = num
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist repeat {}
+    squeezebox_recv = &lt;playerid&gt; playlist repeat
+  [[Repeat_Song]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist repeat 1
+  [[Repeat_Playlist]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist repeat 2
+  [[Repeat_None]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist repeat 0
+    
+  [[Shuffle]]
+    type = num
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist shuffle {}
+    squeezebox_recv = &lt;playerid&gt; playlist shuffle
+  [[Shuffle_By_Song]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist shuffle 1
+  [[Shuffle_By_Album]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist shuffle 2
+  [[Shuffle_None]]
+    type = bool
+    enforce_updates = true
+    visu = yes
+    squeezebox_send = &lt;playerid&gt; playlist shuffle 0
+</pre>
+
+# Visualisation
+
+This plugin provides an WebSocket interface for the smartVISU visualisation framework.
+Right now the WebSocket interface only supports unencrypted connections. Please use a internal network or VPN to connect to the service.
+
+# Requirements
+None.
+
+# Configuration
+
+## plugin.conf
+<pre>
+[visu]
+    class_name = WebSocket
+    class_path = plugins.visu
+#   ip='0.0.0.0'
+#   port=2424
+#   acl = ro
+#   smartvisu_dir = False
+</pre>
+
+This plugins listens by default on every IP address of the host on the TCP port 2424.
+It provides read only access to every item. By changing the `acl` attribute to `rw` or `no` you could modify this default 
+The `smartvisu_dir` attribute is described in the smartVISU section.
+
+## items.conf
+
+Simply set the visu_acl attribute to something to allow read/write access to the item.
+
+
+<pre>
+[example]
+    [[toggle]]
+        value = True
+        type = bool
+        visu_acl = rw
+</pre>
+
+## logic.conf
+You could specify the `visu_acl` attribute to every logic in your logic.conf. This way you could trigger the logic via the interface.
+<pre>
+[dialog]
+    filename = 'dialog.py'
+    visu_acl = true
+</pre>
+
+
+# smartVISU
+
+You could generate pages for the [smartVISU](http://code.google.com/p/smartvisu/) visualisation if you specify the `smartvisu_dir` which should be set to the root directory of your smartVISU installation.
+In the examples directory you could find a configuration with every supported element. `examples/items/smartvisu.conf` 
+
+The attribute keywords are:
+
+   * sv_page: to generate a page for this item. You have to specify `sv_page = room` to activate it. Every widget beneath this item will be included in the page.
+   * sv_img: with this attribute you could assign an icon or picture for a page or widget.
+   * sv_widget: This has to be a double quoted encapsulated string with the smartVISU widget. You could define multiple widgets by separating them by a comma. See the example below:
+
+<pre>
+[second]
+    [[sleeping]]
+        name = Sleeping Room
+        sv_page = room
+        sv_img = scene_sleeping.png
+        [[[light]]]
+            name = Light
+            type = bool
+            visu = yes
+            sv_widget = "&#123;&#123; device.dimmer('second.sleeping.light', 'Light', 'second.sleeping.light', 'second.sleeping.light.level') &#125;&#125;"
+            knx_dpt = 1
+            knx_listen = 3/2/12
+            knx_send = 3/2/12
+            [[[[level]]]]
+                type = num
+                visu = yes
+                knx_dpt = 5
+                knx_listen = 3/2/14
+                knx_send = 3/2/14
+</pre>
+
+But instead of giving the widget distinct options you could use `item` as a keyword.
+The page generator will replace it with the current path. This way you could easily copy widget calls and don't type the item path every time.
+<pre>
+[second]
+    [[sleeping]]
+        name = Sleeping Room
+        sv_page = room
+        sv_img = scene_sleeping.png
+        [[[light]]]
+            name = Light
+            type = bool
+            visu = yes
+            sv_widget = "&#123;&#123; device.dimmer('item', 'item.name', 'item', 'item.level') &#125;&#125;"
+            knx_dpt = 1
+            knx_listen = 3/2/12
+            knx_send = 3/2/12
+            [[[[level]]]]
+                type = num
+                visu = yes
+                knx_dpt = 5
+                knx_listen = 3/2/14
+                knx_send = 3/2/14
+</pre>
+
+
+# VR100
+
+# Requirements
+
+bluez
+
+install by
+<pre>
+apt-get install bluez
+</pre>
+
+## Supported Hardware
+
+A Vorwerk Kobold VR100 robotic vacuum cleaner with a retrofitted bluetooth module.
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[vr100]
+    class_name = VR100
+    class_path = plugins.vr100
+    bt_addr = 07:12:07:xx:xx:xx
+#    update_cycle = 60
+</pre>
+
+Description of the attributes:
+
+* __bt_addr__: MAC-address of the robot (find out with 'hcitool scan')
+* __update_cycle__: interval in seconds how often the data is read from the robot (default 60)
+
+## items.conf
+
+You can use all commands available by the serial interface.
+
+For a explanation of all available commands type 'help' when connected to robot
+
+Attributes:
+* __vr100_cmd__: used to set a comand string
+* __vr100_info__: used to get data from the robot - all but the last strings are send as a comand, the last string is read to get the value
+ 
+Fields:
+* __{}__: the value of the item is written to this placeholder (don't use if a fixed/no value is required)
+
+You should verify all your commands manually by using the serial interface.
+
+<pre>
+[VR100]
+  [[Reinigung]]
+    type = bool
+    vr100_cmd = Clean
+    [[[Spot]]]
+      type = bool
+      vr100_cmd = Clean Spot
+  [[Batterie]]
+    [[[Fuellstand]]]
+      type = num
+      sqlite = true
+      vr100_info = GetCharger FuelPercent
+    [[[Ladung_aktiv]]]
+      type = bool
+      vr100_info = GetCharger ChargingActive
+    [[[leer]]]
+      type = bool
+      vr100_info = GetCharger EmptyFuel
+    [[[Spannung]]]
+      type = num
+      sqlite = true
+      vr100_info = GetCharger VBattV
+</pre>
+
+# wetter.com
+
+# Requirements
+
+wetter.com account with project, recommended: 3 days, all data transmitted
+
+## Supported Hardware
+
+none
+
+# Configuration
+
+## plugin.conf
+
+<pre>
+[wettercom]
+    class_name = wettercom
+    class_path = plugins.wettercom
+    apikey = <enter your api code here>
+    project = <enter your project name here>
+</pre>
+
+add your project on wetter.com and paste API-key and project name
+in plugin.conf
+
+## items.conf
+
+none
+
+### Example
+
+<pre>
+# items/wetter.conf
+[wetter]
+    [[vorhersage]]
+        [[[heute]]]
+            [[[[frueh]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                    [[[[[[[text]]]]]]]
+                        type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+            [[[[mittag]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[spaet]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[nacht]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+        [[[morgen]]]
+            [[[[frueh]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+            [[[[mittag]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[spaet]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[nacht]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+        [[[uebermorgen]]]
+            [[[[frueh]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+            [[[[mittag]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[spaet]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+             [[[[nacht]]]]
+                [[[[[temperatur]]]]]
+                    [[[[[[max]]]]]]
+                        type = num
+                    [[[[[[min]]]]]]
+                        type = num
+                [[[[[text]]]]]
+                    type = str
+                [[[[[code]]]]]
+                    type = num
+                [[[[[wind]]]]]
+                    [[[[[[geschwindigkeit]]]]]]
+                        type = num
+                    [[[[[[richtung]]]]]]
+                        type = num
+                        [[[[[[[text]]]]]]]
+                            type = str
+                [[[[[niederschlag]]]]]
+                    type = num
+
+</pre>
+
+This structure will be filled by the example logic file (see below)
+
+## logic.conf
+
+none
+
+### Example
+
+<pre>
+#!/usr/bin/env python
+# parse weather data
+
+forecast = sh.wettercom.forecast('DE0003318')
+
+d0 = sh.now().date()
+d1 = (sh.now() + dateutil.relativedelta.relativedelta(days=1)).date()
+d2 = (sh.now() + dateutil.relativedelta.relativedelta(days=2)).date()
+
+items = { d0: sh.wetter.vorhersage.heute, d1: sh.wetter.vorhersage.morgen, d2: sh.wetter.vorhersage.uebermorgen}
+for date in forecast:
+    if date.date() in items:
+        base = items[date.date()]
+        if date.hour == 5:
+            frame = base.frueh
+        elif date.hour == 11:
+            frame = base.mittag
+        elif date.hour == 23:
+            frame = base.nacht
+        else:  # hour == 18
+            frame = base.spaet
+        frame.temperatur.min(forecast[date][0])
+        frame.temperatur.max(forecast[date][1])
+        frame.text(forecast[date][2])
+        frame.niederschlag(forecast[date][3])
+        frame.wind.geschwindigkeit(forecast[date][4])
+        frame.wind.richtung(forecast[date][5])
+        frame.wind.richtung.text(forecast[date][6])
+        frame.code(forecast[date][7])
+
+logger.info(forecast)
+ 
+</pre>
+
+This logic will parse the weather data and put it in the example items.conf
+above. Use etc/logic.conf for cyclic call (900s or so, requests are limited
+at 10000 / month)
+
+# Methods
+
+## search(location)
+Uses wetter.com to search for your city_code. method will return an
+empty dictionary if no match is found. If more than one match is found,
+the dictionary will contain at most 20 matches, best match first
+
+## forecast(city_code)
+Returns forecast data for your city_code (use search or wetter.com
+website to find it). Forecast data is returned as dictionary for each
+date/time (usually three days at four times). Values are min. temperature,
+max. temperature, weather condition text, condensation probability, 
+wind speed, wind direction in degree, wind direction text, 
+weather condition code (can be used to select appropriate icon)
+
+# XBMC
+
+Requirements
+============
+You only need one or more XBMC (12 a.k.a. Frodo or above) with
+System-Settings-Service "Allow programs on other systems to control XBMC" enabled.
+
+Configuration
+=============
+
+## plugin.conf
+
+<pre>
+[xbmc]
+    class_name = XBMC
+    class_path = plugins.xbmc
+</pre>
+
+## items.conf
+<pre>
+[living]
+    [[xbmc]]
+        type = str
+        xbmc_host = xbmc.home
+        # xbmc_port = 9090
+        xbmc_listen = state
+        [[[title]]]
+            type = str
+            xbmc_listen = title
+        [[[media]]]
+            type = str
+            xbmc_listen = media
+        [[[volume]]]
+            type = num
+            xbmc_listen = volume
+            xbmc_send = volume
+        [[[mute]]]
+            type = bool
+            xbmc_listen = mute
+            xbmc_send = mute
+</pre>
+
+### xbmc_host
+This attribute is mandatory. You have to provide the IP address or host name of the XBMC system.
+
+### xbmc_port
+You could specify a port to connect to. By default port 9090 is used.
+
+### xbmc_listen
+You could assign the following values to `xbmc_listen`:
+
+   * `volume` a numeric value (0 -100)
+   * `mute` a bool flag
+   * `title` a string with the name of the movie, song or picture
+   * `media` a string with the current media type (Video, Audio, Picture)
+   * `state` current state as string (Menu, Playing, Pause)
+
+### xbmc_send
+The following `xbmc_send` attributes could be defined to send changes to the system:
+
+   * `volume` a numeric value (0 -100)
+   * `mute` a bool flag
+
+
+## logic.conf
+
+Functions
+=========
+This plugin provides the function to send notification messages to xbmc. 
+`notify_all(title, message, picture)` to send the notification to all xbmc systems and extends the item with the notify method.
+The picture attribute is optional.
+
+<pre>
+sh.xbmc.notify_all('Phone', 'Sister in law calling', 'http://smarthome.local/img/phone.png') 
+# or for a dedicated xbmc
+sh.living.xbmc.notify('Door', 'Ding Dong')
+</pre>
+
+
+See http://mknx.github.io/smarthome/ for more information and documentation.
+
+## Directory and File Overview
+This should give you an overview of the most important files and directories.
+
+### etc/smarthome.conf
+This is a global configuration file where you could specify the location and timezone of your smart home.
+
+### etc/plugin.conf
+In this configuration file you configure the plugins and their attributes.
+
+### etc/logic.conf
+In the logic.conf you specify your logics and when they will be run.
+<pre>
+# etc/logic.conf
+[AtSunset]
+    filename = sunset.py
+    crontab = sunset
+</pre>
+
+### items/
+This directory contains one or more item configuration files. The filename does not matter, except it has to end with '.conf'.
+<pre>
+# items/global.conf
+[global]
+    [[sun]]
+        type = bool
+        attribute = foo
+</pre>
+
+### logics/
+This directory contains your logic files. Simple or sophisitcated python scripts. You could address your smarthome item by `sh.item.path`.
+If you want to read an item call `sh.item.path()` or to set an item `sh.item.path(Value)`.
+
+<pre>
+# logics/sunset.py
+if sh.global.sun():  # if sh.global.sun() == True:
+    sh.gloabl.sun(False)  # set it to False
+</pre>
+
+

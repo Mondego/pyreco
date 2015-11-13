@@ -1,0 +1,245 @@
+# Contributing to SickBeard
+
+1. [Getting Involved](#getting-involved)
+2. [How To Report Bugs](#how-to-report-bugs)
+3. [Tips For Submitting Code](#tips-for-submitting-code)
+
+
+
+## Getting Involved
+
+There are a number of ways to get involved with the development of SickBeard. Even if you've never contributed code to an Open Source project before, we're always looking for help identifying bugs, cleaning up code, writing documentation and testing.
+
+The goal of this guide is to provide the best way to contribute to the official SickBeard repository. Please read through the full guide detailing [How to Report Bugs](#how-to-report-bugs).
+
+## Discussion
+
+### Forum and IRC
+
+The SickBeard development team frequently tracks posts on the [SickBeard Forum](http://www.sickbeard.com/forums/). If you have longer posts or questions please feel free to post them there. If you think you've found a bug please [file it in the bug tracker](#how-to-report-bugs).
+
+Additionally most of the SickBeard development team can be found in the [#sickbeard](http://webchat.freenode.net/?channels=sickbeard) IRC channel on irc.freenode.net.
+
+
+## How to Report Bugs
+
+### Make sure it is a SickBeard bug
+
+Many bugs reported are actually issues with the user mis-understanding of how something works (there are a bit of moving parts to an ideal setup) and most of the time can be fixed by just changing some settings to fit the users needs.
+
+If you are new to SickBeard, it is usually a much better idea to ask for help first in the [Using SickBeard Forum](http://www.sickbeard.com/forums/) or the [SickBeard IRC channel](http://webchat.freenode.net/?channels=sickbeard). You will get much quicker support, and you will help avoid tying up the SickBeard team with invalid bug reports.
+
+[SickBeard Issue Tracker](http://code.google.com/p/sickbeard/issues/list)
+
+
+### Try the latest version of SickBeard
+
+Bugs in old versions of SickBeard may have already been fixed. In order to avoid reporting known issues, make sure you are always testing against the latest build/source. Also, we put new code in the `development` branch first before pushing down to the `master` branch (which is what the binary builds are built off of).
+
+
+## Tips For Submitting Code
+
+
+### Code
+
+**NEVER write your patches to the master branch** - it gets messy (I say this from experience!)
+
+**ALWAYS USE A "TOPIC" BRANCH!** Personally I like the `branch-feature_name` format that way its easy to identify the branch and feature at a glance. Also please make note of any forum post / google code issue number in the pull commit so we know what you are solving (it helps with cleaning up the related items later).
+
+
+Please follow these guidelines before reporting a bug:
+
+1. **Update to the latest version** &mdash; Check if you can reproduce the issue with the latest version from the `development` branch.
+
+2. **Use the SickBeard Forums search** &mdash; check if the issue has already been reported. If it has been, please comment on the existing issue.
+
+3. **Provide a means to reproduce the problem** &mdash; Please provide as much details as possible, e.g. SickBeard log files (obfuscate apikey/passwords), browser and operating system versions, how you started SickBeard, and of course the steps to reproduce the problem.
+
+
+### Feature requests
+
+Please follow the bug guidelines above for feature requests, i.e. update to the latest version and search for existing issues before posting a new request.
+
+### Pull requests
+
+[Pull requests](https://help.github.com/articles/using-pull-requests) are welcome and the preferred way of accepting code contributions.
+
+Please follow these guidelines before sending a pull request:
+
+1. Update your fork to the latest upstream version.
+
+2. Use the `development` branch to base your code off of.
+
+3. Follow the coding conventions of the original repository. Do not change line endings of the existing file, as this will rewrite the file and loses history.
+
+4. Keep your commits as autonomous as possible, i.e. create a new commit for every single bug fix or feature added.
+
+5. Always add meaningful commit messages. We should not have to guess at what your code is suppose to do.
+
+# `tvdb_api`
+
+`tvdb_api` is an easy to use interface to [thetvdb.com][tvdb]
+
+`tvnamer` has moved to a separate repository: [github.com/dbr/tvnamer][tvnamer] - it is a utility which uses `tvdb_api` to rename files from `some.show.s01e03.blah.abc.avi` to `Some Show - [01x03] - The Episode Name.avi` (which works by getting the episode name from `tvdb_api`)
+
+[![Build Status](https://secure.travis-ci.org/dbr/tvdb_api.png?branch=master)](http://travis-ci.org/dbr/tvdb_api)
+
+## To install
+
+You can easily install `tvdb_api` via `easy_install`
+
+    easy_install tvdb_api
+
+You may need to use sudo, depending on your setup:
+
+    sudo easy_install tvdb_api
+
+The [`tvnamer`][tvnamer] command-line tool can also be installed via `easy_install`, this installs `tvdb_api` as a dependancy:
+
+    easy_install tvnamer
+
+
+## Basic usage
+
+    import tvdb_api
+    t = tvdb_api.Tvdb()
+    episode = t['My Name Is Earl'][1][3] # get season 1, episode 3 of show
+    print episode['episodename'] # Print episode name
+
+## Advanced usage
+
+Most of the documentation is in docstrings. The examples are tested (using doctest) so will always be up to date and working.
+
+The docstring for `Tvdb.__init__` lists all initialisation arguments, including support for non-English searches, custom "Select Series" interfaces and enabling the retrieval of banners and extended actor information. You can also override the default API key using `apikey`, recommended if you're using `tvdb_api` in a larger script or application
+
+### Exceptions
+
+There are several exceptions you may catch, these can be imported from `tvdb_api`:
+
+- `tvdb_error` - this is raised when there is an error communicating with [thetvdb.com][tvdb] (a network error most commonly)
+- `tvdb_userabort` - raised when a user aborts the Select Series dialog (by `ctrl+c`, or entering `q`)
+- `tvdb_shownotfound` - raised when `t['show name']` cannot find anything
+- `tvdb_seasonnotfound` - raised when the requested series (`t['show name][99]`) does not exist
+- `tvdb_episodenotfound` - raised when the requested episode (`t['show name][1][99]`) does not exist.
+- `tvdb_attributenotfound` - raised when the requested attribute is not found (`t['show name']['an attribute']`, `t['show name'][1]['an attribute']`, or ``t['show name'][1][1]['an attribute']``)
+
+### Series data
+
+All data exposed by [thetvdb.com][tvdb] is accessible via the `Show` class. A Show is retrieved by doing..
+
+    >>> import tvdb_api
+    >>> t = tvdb_api.Tvdb()
+    >>> show = t['scrubs']
+    >>> type(show)
+    <class 'tvdb_api.Show'>
+
+For example, to find out what network Scrubs is aired:
+
+    >>> t['scrubs']['network']
+    u'ABC'
+
+The data is stored in an attribute named `data`, within the Show instance:
+
+    >>> t['scrubs'].data.keys()
+    ['networkid', 'rating', 'airs_dayofweek', 'contentrating', 'seriesname', 'id', 'airs_time', 'network', 'fanart', 'lastupdated', 'actors', 'ratingcount', 'status', 'added', 'poster', 'imdb_id', 'genre', 'banner', 'seriesid', 'language', 'zap2it_id', 'addedby', 'tms_wanted', 'firstaired', 'runtime', 'overview']
+
+Although each element is also accessible via `t['scrubs']` for ease-of-use:
+
+    >>> t['scrubs']['rating']
+    u'9.0'
+
+This is the recommended way of retrieving "one-off" data (for example, if you are only interested in "seriesname"). If you wish to iterate over all data, or check if a particular show has a specific piece of data, use the `data` attribute,
+
+    >>> 'rating' in t['scrubs'].data
+    True
+
+### Banners and actors
+
+Since banners and actors are separate XML files, retrieving them by default is undesirable. If you wish to retrieve banners (and other fanart), use the `banners` Tvdb initialisation argument:
+
+    >>> from tvdb_api import Tvdb
+    >>> t = Tvdb(banners = True)
+
+Then access the data using a `Show`'s `_banner` key:
+
+    >>> t['scrubs']['_banners'].keys()
+    ['fanart', 'poster', 'series', 'season']
+
+The banner data structure will be improved in future versions.
+
+Extended actor data is accessible similarly:
+
+    >>> t = Tvdb(actors = True)
+    >>> actors = t['scrubs']['_actors']
+    >>> actors[0]
+    <Actor "Zach Braff">
+    >>> actors[0].keys()
+    ['sortorder', 'image', 'role', 'id', 'name']
+    >>> actors[0]['role']
+    u'Dr. John Michael "J.D." Dorian'
+
+Remember a simple list of actors is accessible via the default Show data:
+
+    >>> t['scrubs']['actors']
+    u'|Zach Braff|Donald Faison|Sarah Chalke|Christa Miller|Aloma Wright|Robert Maschio|Sam Lloyd|Neil Flynn|Ken Jenkins|Judy Reyes|John C. McGinley|Travis Schuldt|Johnny Kastl|Heather Graham|Michael Mosley|Kerry Bish\xe9|Dave Franco|Eliza Coupe|'
+
+[tvdb]: http://thetvdb.com
+[tvnamer]: http://github.com/dbr/tvnamer
+
+Sick Beard
+=====
+
+*Sick Beard is currently an alpha release. There may be severe bugs in it and at any given time it may not work at all.*
+
+Sick Beard is a PVR for newsgroup users (with limited torrent support). It watches for new episodes of your favorite shows and when they are posted it downloads them, sorts and renames them, and optionally generates metadata for them. It currently supports NZBs.org, NZBMatrix, Bin-Req, NZBs'R'Us, EZTV.it, and any Newznab installation and retrieves show information from theTVDB.com and TVRage.com.
+
+Features include:
+
+* automatically retrieves new episode torrent or nzb files
+* can scan your existing library and then download any old seasons or episodes you're missing
+* can watch for better versions and upgrade your existing episodes (to from TV DVD/BluRay for example)
+* XBMC library updates, poster/fanart downloads, and NFO/TBN generation
+* configurable episode renaming
+* sends NZBs directly to SABnzbd, prioritizes and categorizes them properly
+* available for any platform, uses simple HTTP interface
+* can notify XBMC, Growl, or Twitter when new episodes are downloaded
+* specials and double episode support
+
+
+Sick Beard makes use of the following projects:
+
+* [cherrypy][cherrypy]
+* [Cheetah][cheetah]
+* [simplejson][simplejson]
+* [tvdb_api][tvdb_api]
+* [ConfigObj][configobj]
+* [SABnzbd+][sabnzbd]
+* [jQuery][jquery]
+* [Python GNTP][pythongntp]
+* [SocksiPy][socks]
+* [python-dateutil][dateutil]
+* [jsonrpclib][jsonrpclib]
+
+## Dependencies
+
+To run Sick Beard from source you will need Python 2.5+ and Cheetah 2.1.0+. The [binary releases][googledownloads] are standalone.
+
+## Bugs
+
+If you find a bug please report it or it'll never get fixed. Verify that it hasn't [already been submitted][googleissues] and then [log a new bug][googlenewissue]. Be sure to provide as much information as possible.
+
+[cherrypy]: http://www.cherrypy.org
+[cheetah]: http://www.cheetahtemplate.org/
+[simplejson]: http://code.google.com/p/simplejson/ 
+[tvdb_api]: http://github.com/dbr/tvdb_api
+[configobj]: http://www.voidspace.org.uk/python/configobj.html
+[sabnzbd]: http://www.sabnzbd.org/
+[jquery]: http://jquery.com
+[pythongntp]: http://github.com/kfdm/gntp
+[socks]: http://code.google.com/p/socksipy-branch/
+[dateutil]: http://labix.org/python-dateutil
+[googledownloads]: http://code.google.com/p/sickbeard/downloads/list
+[googleissues]: http://code.google.com/p/sickbeard/issues/list
+[googlenewissue]: http://code.google.com/p/sickbeard/issues/entry
+[jsonrpclib]: https://github.com/joshmarshall/jsonrpclib
+

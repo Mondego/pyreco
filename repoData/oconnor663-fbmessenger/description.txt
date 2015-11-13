@@ -1,0 +1,94 @@
+Arch users can install fbmessenger through the AUR, using the package named
+"fbmessenger-git". See https://aur.archlinux.org/packages/fbmessenger-git/
+
+To build the package here, just run:
+
+  makepkg
+
+Note that this will pull down fresh sources from GitHub, rather than using
+local sources. To build with local changes, do something like this:
+
+  mkdir src ; ln -s ../../../ src/fbmessenger ; makepkg -e
+
+First make sure you've installed setuptools for Python 3. You can probably do
+that with the command:
+
+    sudo apt-get install python3-setuptools
+
+The rest of the dependencies will get taken care of later by the package
+manager. Now, to create a .deb package for Debian/Ubuntu/etc, just run:
+
+    ./build-deb.sh
+
+That will create a package named something like "fbmessenger-0.2.0.deb" in the
+current directory. To install it, run:
+
+    sudo dpkg -i fbmessenger-0.2.0.deb
+
+The package manager will probably complain that you're missing some
+dependencies. To fix that, run:
+
+    sudo apt-get install -f
+
+Now you should be good to go. The app should show up in your desktop
+environment, or you can launch it with:
+
+    fbmessenger
+
+To install on Mac OS X, you'll want to use Homebrew. http://brew.sh/
+
+If you don't already have it, install it from their site. The instructions will
+tell you to run something like this:
+
+  ruby -e "$(curl -fsSL https://raw.github.com/mxcl/homebrew/go)"
+
+Now you can install fbmessenger and it's dependencies. This step will take
+several minutes. Note that python3 won't get installed automatically for you
+(not sure why), so you have to install it explicitly first:
+
+  brew install python3 && brew install ./fbmessenger.rb
+
+Now you can launch fbmessenger from the command line:
+
+  fbmessenger
+
+#####As of 13 February 2014 this app is deprecated.#####
+This app depends on old Facebook APIs that aren't going to be around much
+longer.  Thanks to all the folks who've used it, and especially everyone who's
+submitted patches. If a good replacement comes along, I will link to it here.
+
+##Facebook Messenger for Linux (and Mac!)
+![screenshot](https://github.com/oconnor663/fbmessenger/raw/master/resources/screenshot.png)
+
+A PyQt clone of [Facebook Messenger for
+Windows](https://www.facebook.com/about/messenger). It gives you a chat
+sidebar, chat popup windows, and notification toasts outside of the browser.
+
+If you have all the dependencies, you can launch the app straight from this
+repository with `./run.sh`. After you install it, you can launch it with
+`fbmessenger`. Ubuntu users can install from a PPA by following [the
+instructions
+here](http://www.webupd8.org/2013/04/fbmessenger-stand-alone-facebook.html)
+(thanks Alin Andrei). Arch users can [install from the
+AUR](https://aur.archlinux.org/packages/fbmessenger-git/).  There are packaging
+scripts included under `packaging/` for Linux (Debian/Ubuntu in `deb`, Red
+Hat/Fedora in `rpm`, and Arch) and OS X (using the Homebrew package manager).
+See the `README` files in packaging subdirectories for more specific
+instructions. You can also install with `sudo python3 setup.py install`, but
+that makes it hard to uninstall, so prefer to use the packaging scripts.
+
+The configuration file is `~/.fbmessenger/config.py`. There are a few settings
+that users might want to mess with:
+
+* Set values like `Zoom = 1.2` to make the fonts 20% bigger.
+* Set `SystemTray = False` to disable the system tray icon.
+* Normally the app will start minimized to the tray if it was minimized last
+  time it quit. To force it to always start minimized, set `MinimizedOnStart =
+  True`.
+
+####Dependencies
+* Python 3
+* PyQt4 for Python 3
+* Phonon (optional, for sound on Linux)
+* setuptools for Python 3
+

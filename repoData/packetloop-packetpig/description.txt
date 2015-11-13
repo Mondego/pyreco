@@ -1,0 +1,1846 @@
+# Packetpig Installation Instructions
+
+## Note
+
+I will expand this guide over time starting with Ubuntu and Mac OSX then adding
+Centos at some stage in the future.
+
+## Docker Container 
+
+The fastest way to experiment with Packetpig is to clone the Docker container or build it from a Dockerfile.
+
+To clone the container;
+
+    docker pull cloudjunky/packetpig
+
+To fully provision from the Dockerfile. Run this command from the same directory you have the Dockerfile;
+
+    docker build packetpig .
+
+To accomplish the same via a Vagrant image;
+
+    git clone https://github.com/dotcloud/docker.git
+    cd docker
+    vagrant up
+    vagrant ssh
+   
+    docker pull cloudjunky/packetpig 
+    *or
+    docker build packetpig .
+
+Once the container is provisioned you can access it via;
+
+    docker run -i -t packetpig /bin/bash
+    cd /src/packetpig
+
+Then run the demo scripts as normal;
+
+    pig -x local -f pig/examples/basic_http.pig -param pcap=data/web.pcap -param output=output
+
+## Ubuntu 11.10 and Cloudera CDH3
+
+Start off with a basic Ubuntu 11.10 32bit or 64bit desktop build. You
+can obviously achieve the same results on Ubuntu Server however the
+desktop comes pre-installed with an X environment allowing you to view
+visualisations in a browser quickly enough.
+
+Some packages in this install are now in the Ubuntu Universe repo. Edit /etc/apt/sources.list and add the following two lines;
+
+    deb http://us.archive.ubuntu.com/ubuntu/ precise universe
+    deb http://us.archive.ubuntu.com/ubuntu/ precise-updates universe
+
+Create a new apt source so that we can leverage the Cloudera
+distributions for Hadoop and Pig.
+
+    sudo vi /etc/apt/sources.list.d/cloudera.list
+
+Add the following lines.
+
+    deb http://archive.cloudera.com/debian maverick-cdh3 contrib
+    deb-src http://archive.cloudera.com/debian maverick-cdh3 contrib
+
+And then add the Cloudera key.
+
+    sudo apt-get install curl
+    sudo curl -s http://archive.cloudera.com/debian/archive.key | sudo apt-key add -
+
+Update the running system
+
+    sudo apt-get update
+
+Install all the required packages for the Packetpig platform and accept
+the dependencies.
+
+    sudo apt-get install build-essential hadoop-0.20 hadoop-pig git-core libnids-dev libnids1.21 libmagic-dev ipython python2.6-dev libnet1-dev python-pip flex bison libpcap0.8 libpcap0.8-dev openjdk-6-jdk libpcre3 libpcre3-dev pkg-config gettext
+
+(OPTIONAL) You may also want to install some additional software for the visualisations
+
+    sudo apt-get install chromium-browser r-base r-base-dev
+
+Install the following Python modules.
+
+    sudo pip install python-magic argparse
+
+Then you need to install libdnet, fix libdnet ;), snort, glib, p0f and pynids from source.
+
+    wget http://libdnet.googlecode.com/files/libdnet-1.12.tgz
+    tar -zxvf libdnet-1.12.tgz
+    cd libdnet-1.12/
+    ./configure && make
+    sudo make install
+
+Fixing libdnet
+
+    sudo cp /usr/local/lib/libdnet.1.0.1 /usr/local/lib/libdnet.so.1.0.1
+    sudo ldconfig
+    sudo updatedb
+
+Install DAQ
+
+    wget http://www.snort.org/downloads/1850
+    tar -zxvf 1850
+    cd daq-1.1.1/
+    ./configure && make
+    sudo make install
+
+Install Snort
+
+    wget http://www.snort.org/downloads/1862
+    tar -zxvf 1862
+    cd snort-2.9.3.1/
+    ./configure  --prefix /usr/local/snort --enable-ipv6 --enable-gre --enable-mpls --enable-targetbased  --enable-ppm --enable-perfprofiling   --enable-zlib --enable-reload
+    make
+    sudo make install
+    sudo groupadd snort
+    sudo useradd -g snort snort
+    sudo ln -s /usr/local/snort/bin/snort /usr/sbin/
+    sudo ln -s /usr/local/snort/etc /etc/snort
+    sudo mkdir -p /usr/local/snort/var/log
+    sudo chown snort:snort /usr/local/snort/var/log
+    sudo ln –s /usr/local/snort/var/log /var/log/snort
+    sudo ln -s /usr/local/snort/lib/snort_dynamicpreprocessor /usr/local/lib/snort_dynamicpreprocessor
+    sudo ln -s /usr/local/snort/lib/snort_dynamicengine /usr/local/lib/snort_dynamicengine
+    sudo mkdir /usr/local/snort/lib/snort_dynamicrules
+    sudo ln -s /usr/local/snort/lib/snort_dynamicrules /usr/local/lib/snort_dynamicrules
+    sudo chown -R snort:snort /usr/local/snort
+    sudo ldconfig 
+
+Installing the Snort Rules
+
+    Navigate to http://www.snort.org/snort-rules/ and create an account so you can download the "Registered User Release"
+    Download "snortrules-snapshot-2931.tar.gz" into ~/src/
+    cd /usr/local/snort
+    sudo tar -zxvf ~/src/snortrules-snapshot-2931.tar.gz
+    [For 32bit systems] sudo cp so_rules/precompiled/Ubuntu-10-4/i386/2.9.3.1/*.so /usr/local/lib/snort_dynamicrules/
+    [For 64bit systems] sudo cp so_rules/precompiled/Ubuntu-10-4/x86-64/2.9.3.1/*.so /usr/local/lib/snort_dynamicrules/
+    sudo snort -c /usr/local/snort/etc/snort.conf --dump-dynamic-rules=/usr/local/snort/so_rules
+    sudo vi /usr/local/snort/etc/snort.conf
+
+    Find the Reputation preprocessor section and comment it out;
+
+    # Reputation preprocessor. For more information see README.reputation
+    # preprocessor reputation: \
+    #   memcap 500, \
+    #   priority whitelist, \
+    #   nested_ip inner, \
+    #   whitelist $WHITE_LIST_PATH/white_list.rules, \
+    #   blacklist $BLACK_LIST_PATH/black_list.rules
+
+    Find the dynamic library rules section and uncomment all the dynamic rules.
+    # dynamic library rules
+    include $SO_RULE_PATH/bad-traffic.rules
+    include $SO_RULE_PATH/chat.rules
+    include $SO_RULE_PATH/dos.rules
+    include $SO_RULE_PATH/exploit.rules
+    include $SO_RULE_PATH/icmp.rules
+    include $SO_RULE_PATH/imap.rules
+    include $SO_RULE_PATH/misc.rules
+    include $SO_RULE_PATH/multimedia.rules
+    include $SO_RULE_PATH/netbios.rules
+    include $SO_RULE_PATH/nntp.rules
+    include $SO_RULE_PATH/p2p.rules
+    include $SO_RULE_PATH/smtp.rules
+    include $SO_RULE_PATH/snmp.rules
+    include $SO_RULE_PATH/specific-threats.rules
+    include $SO_RULE_PATH/web-activex.rules
+    include $SO_RULE_PATH/web-client.rules
+    include $SO_RULE_PATH/web-iis.rules
+    include $SO_RULE_PATH/web-misc.rules
+
+    Test the configuration
+    sudo snort -c /usr/local/snort/etc/snort.conf -T <-- you should see "Snort successfully validated the configuration!"
+
+Install glib
+
+    wget ftp://ftp.gtk.org/pub/gtk/v2.2/glib-2.2.3.tar.bz2
+    bunzip2 glib-2.2.3.tar.bz2
+    tar -xvf glib-2.2.3.tar
+    cd glib-2.2.3
+    ./configure && make
+    sudo make install
+
+Install p0f
+
+    wget http://lcamtuf.coredump.cx/p0f3/releases/p0f-3.06b.tgz
+    tar -zxvf p0f-3.06b.tgz
+    cd p0f-3.06b/
+    vi config.h and change the define FP_FILE line from "p0f.fp" to "/etc/p0f/p0f.fp"
+    make
+    sudo cp p0f /usr/local/bin/
+    sudo mkdir /etc/p0f
+    sudo cp p0f.fp /etc/p0f/
+
+Install pynids
+For 32 bit systems
+
+    wget http://jon.oberheide.org/pynids/downloads/pynids-0.6.1.tar.gz
+    tar -zxvf pynids-0.6.1.tar.gz
+    cd pynids-0.6.1
+    python setup.py build
+    sudo python setup.py install
+
+For 64bit systems
+
+    wget http://jon.oberheide.org/pynids/downloads/pynids-0.6.1.tar.gz
+    tar -zxvf pynids-0.6.1.tar.gz
+    cd pynids-0.6.1
+    tar -zxvf libnids-1.24.tar.gz
+    cd libnids-1.24/
+    ./configure CFLAGS=-fPIC --disable-libglib --disable-libnet --disable-shared && make
+    sudo make install
+    cd ..
+    python setup.py build
+    sudo python setup.py install
+
+(Optional) Once all the packages are installed the R packages for time series and
+plotting need to be installed.
+
+    sudo R
+    chooseCRANmirror()
+    install.packages(c("zoo", "xts","ggplot2"))
+
+Accept all defaults.
+
+Pig and Hadoop require the JAVA_HOME environment variable to be set.
+
+    sudo vi /etc/environment
+    #For 32 bit environments
+    JAVA_HOME=/usr/lib/jvm/java-6-openjdk/
+    #For 64 bit environments
+    JAVA_HOME=/usr/lib/jvm/java-6-openjdk-amd64/
+
+Now all the base software is installed we need to install the Packetpig
+platform and run some simple tests.
+
+    cd ~/
+    git clone https://github.com/packetloop/packetpig.git
+    cd packetpig
+    lib/scripts/tcp.py -r data/web.pcap -om http_headers -of tsv | less
+    lib/scripts/dns_parser.py -r data/web.pcap
+    mkdir out
+    sudo ln -s /usr/local/snort/ lib/snort
+    snort -c lib/snort/etc/snort.conf -A fast -y -l out -r data/web.pcap
+    more out/alert <-- will most likely contain no attacks but shows snort is working.
+
+Both tcp.py and dns_parser.py should extract information out of data/web.pcap and display it to the screen. Now you are ready to run some Packetpig queries.
+
+    pig -x local -f pig/examples/binning.pig -param pcap=data/web.pcap -param output=output
+
+This will result in something like this. 
+
+    2012-04-16 16:15:33,970 [main] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher - Success!
+
+You can confirm it has worked by.
+
+    more output/binning/part-r-00000
+    1322643600,171738,142808,338610
+
+## Mac OSX 10.7 (Lion)
+
+Before you start you need XCode installed or more specifically the XCode Command Line Tools. Within XCode Preferences there is a "Downloads" menu that allows you to install the command line tools.
+
+The next step is to make sure you have Java installed. I ran this command to check, if it doesn't find Java it prompts you to install it.
+
+    /usr/libexec/java_home --request
+
+After installing it you should set the JAVA_HOME environment variable using something like.
+
+    export JAVA_HOME=`/usr/libexec/java_home`
+
+The Homebrew package manager allows you to install most of the components required for Packetpig quickly and easily. To install Homebrew run this command.
+
+    /usr/bin/ruby -e "$(/usr/bin/curl -fksSL https://raw.github.com/mxcl/homebrew/master/Library/Contributions/install_homebrew.rb)"
+
+Once Homebrew is installed run the brew doctor and also the brew update command to make sure you have the latest brews.
+
+    brew doctor
+    brew update
+
+After running brew doctor I received a warning "Your Xcode is configured with an invalid path" to fix it I entered
+
+    sudo xcode-select -switch /Applications/Xcode.app/Contents/Developer/
+
+Once brew is working correctly you can install the bulk of the requirements for Packetpig.
+
+    brew install git hadoop pig libnids libmagic snort p0f wget
+
+For some of the Python modules you can't use Homebrew so I used the pip package mangaer.
+
+    sudo easy_install pip
+    sudo pip insatll ipython
+    sudo pip install python-magic
+
+Then lastly you need to install pynids from source.
+
+    sudo pip install http://jon.oberheide.org/pynids/downloads/pynids-0.6.1.tar.gz
+
+A good test to ensure that everything on the Python side is working is to clone the Packetpig repository and run the following commands from within the packetpig directory.
+
+    git clone https://github.com/packetloop/packetpig.git
+    cd packetpig
+    lib/scripts/tcp.py -r data/web.pcap -om http_headers -of tsv | less
+    lib/scripts/dns_parser.py -r data/web.pcap
+
+Both tcp.py and dns_parser.py should extract information out of data/web.pcap and display it to the screen. Now you are ready to run some Packetpig queries.
+
+    pig -x local -f pig/examples/binning.pig -param pcap=data/web.pcap -param output=output
+
+This will result in something like this. 
+
+    2012-04-16 16:15:33,970 [main] INFO  org.apache.pig.backend.hadoop.executionengine.mapReduceLayer.MapReduceLauncher - Success!
+
+You can confirm it has worked by.
+
+    more output/binning/part-r-00000
+    1322643600,171738,142808,338610
+
+For some of the visualisations you will want R and RStudio installed. Install the Mac OSX package for R at http://cran.us.r-project.org/ and the RStudio package from http://rstudio.org. Once you have R or RStudio installed you can manually install the 'zoo', 'xts' and 'ggplot2' packages.
+
+= Amazon Elastic Map Reduce Ruby Client Readme 
+
+Location of the Ruby Client: 
+
+  http://elasticmapreduce.s3.amazonaws.com/elastic-mapreduce-ruby.zip
+
+Welcome the Amazon Elastic MapReduce Ruby client. This package
+contains a pure Ruby client for the Amazon Elastic MapReduce Web
+Service. Amazon Elastic MapReduce is a service that makes it easy for
+researchers, data analysts, and developers to efficiently and
+cost-effectively process vast amounts of data using the Amazon EC2 service.
+The service launches the EC2 instances on your behalf to
+process data, monitor execution and, when the processing is over,
+shut down EC2 instances.
+
+It is assumed that the reader is already familiar with Hadoop and the
+creation of MapReduce jobs. Additional information on how to write
+Map Reduce jobs can be found at the Hadoop website
+(http://hadoop.apache.org/).
+
+The version of Hadoop used by Amazon Elastic MapReduce is 0.20.
+We also support Hadoop version 0.18.
+
+== Conventions Used in this Document 
+
+Commands that you execute from a bash shell are indented and begin
+with $.
+
+  $ echo "This is an example"
+  This is an example
+
+The output of the command is sometimes shown directly below the
+command.
+
+Sometimes examples contain a value that you should modify for your own
+situation, for example:
+
+  $ elastic-mapreduce --jobflow j-ABABABABAB --terminate
+
+In this example, you should replace j-ABABABABAB with the id of the
+jobflow that you wish to terminate. Another common example is
+s3://mybucket/input. You should replace this with a path in to S3
+that contains the data that you want to process.
+
+Other times a value for replacement will be enclosed in angle
+brackets. For example, <insert_your_aws_access_id_here>. You should
+replace this with your AWS access id including the angle brackets.
+For example:
+
+  "access-id": "<insert your AWS access id here>",
+
+becomes
+
+  "access-id": "AAAAAJABASBASBJASAAA",
+
+== Installation and Dependencies
+
+The Amazon Elastic MapReduce Ruby client requires Ruby version 1.8.
+It has been tested on Linux computers. The Ruby client can be run on Windows computers,  but has not been fully tested.
+
+To run the client you will need to have signed up for Amazon Elastic
+MapReduce Service at http://aws.amazon.com. Amazon Elastic MapReduce
+uses Amazon Elastic Compute Cloud (EC2) to run your job flows and Amazon
+Simple Storage Service (S3) to store and access your data.  After
+completing the sign-up process, you can use Amazon
+Elastic Compute Cloud and Simple Storage Service.
+
+=== Step 1: Download and Install Ruby
+
+If you already have Ruby installed, you can skip this step. On Ubuntu
+and Debian computers you install Ruby with:
+
+  $ apt-get install ruby1.8
+
+On Redhat computers you can install Ruby with
+
+  yum install ruby
+
+On Macintosh computersyou should already have Ruby installed.
+
+On Windows computers you can install Ruby using the 1-click Windows installer
+for Ruby. We recommend you install the final release available at:
+
+  http://rubyinstaller.rubyforge.org/wiki/wiki.pl
+
+You can verify that Ruby is installed by typing
+
+  ruby -v
+
+at the command prompt.
+
+=== Step 2: Download the Amazon Elastic MapReduce Ruby Client
+
+The latest version of the Ruby client can be obtained by
+
+  $ mkdir elastic-mapreduce-ruby
+  $ cd elastic-mapreduce-ruby
+  $ wget http://elasticmapreduce.s3.amazonaws.com/elastic-mapreduce-ruby.zip
+
+Unzip the archive
+
+  $ unzip elastic-mapreduce-ruby.zip
+
+=== Step 2a: Edit Your Path
+
+If you're running bash or zsh as your shell, then you can add the directory
+where you installed the elastic-mapreduce program to your path with the command:
+
+   $ export PATH=$PATH:<directory_where_you_unzipped_elastic_mapreduce_client>
+
+For csh or tcsh
+
+   $ set path = ($path <directory_where_you_unzipped_elastic_mapreduce_client>
+
+=== Step 3: Create a Credentials File
+
+Ensure you are already in the elastic-mapreduce-ruby
+directory. Use your AWS access key and private key in the
+following command. These credentials are available on the
+http://aws.amazon.com website under "Your Account/Access Identifiers"
+(top right).
+
+  $ cat > credentials.json
+  {
+    "access-id": "<insert your AWS access id here>",
+    "private-key": "<insert your AWS secret access key here>",
+    "key-pair": "<insert the name of your Amazon ec2 key-pair here>",
+    "key-pair-file": "<insert the path to the .pem file for your Amazon ec2 key pair here>",
+    "region": "<The region where you wish to launch your job flows. Should be one of us-east-1, us-west-1, us-west-2, eu-west-1, ap-southeast-1, or ap-northeast-1, sa-east-1>"    
+  }
+
+Windows Users: If you are running a Windows computer then create a
+credentials.json file using notepad.exe with the content above inserted between 
+the braces.
+
+You do not have to include a key-pair in the credentials file, but it
+is a good idea to include it so that when you run job flows you will
+be able to log onto the master node to see the log files.
+
+If you don't have an EC2 key-pair, you can create one at:
+
+  https://console.aws.amazon.com/ec2/home#c=EC2&s=KeyPairs
+
+Save the pem file somewhere safe for use later. You will need it to log onto
+the master node running your job flow.
+
+If region is not specified, the client will default to us-east-1. Because you 
+pay for cross-region data transfer, the region you create your job flows 
+should be the one where your S3 input data exists. 
+
+Note: If you have credentials in a file other than credentials.json which is located 
+in the current directory, then you can specify a credentials file on the command
+line with the following command:
+
+  $ elastic-mapreduce -c <yourcredentialsfile>.json --list
+
+Windows Users: Windows users must specify "ruby" on the command line
+instead of "./". The command would be:
+
+  C:\> ruby elastic-mapreduce -c <yourcredentialsfile>.json --list
+
+You can also specify and AWS access id and private key and key pair on the command line.
+
+  $ elastic-mapreduce -a <access-id> -k <private-key> --key-pair <key-pair> --list
+
+Similarly, you can specify a region on the command line.
+
+  $ elastic-mapreduce --region us-east-1 --list
+
+Note that job flow listings are region specific. If you create a job 
+flow with region eu-west-1 then you will not be able to see it in the list if you
+specify us-east-1. 
+
+== Basic Usage
+
+You can get a summary of supported command line options with:
+
+  $ elastic-mapreduce --help                             
+
+=== Listing Job Flows
+
+The web service supports the following operations: --list, --describe, 
+--create, --terminate, --stream, and --jar. To list job flows created in the
+last 2 days:
+
+  $ elastic-mapreduce --list
+  j-1YE2DN7RXJBWU     FAILED                                                      Example Job Flow
+     CANCELLED      Custom Jar                    
+  j-3GJ4FRRNKGY97     COMPLETED      ec2-67-202-3-73.compute-1.amazonaws.com      Example job flow
+  j-5XXFIQS8PFNW      COMPLETED      ec2-67-202-51-30.compute-1.amazonaws.com     demo 3/24 s1
+     COMPLETED      Custom Jar                    
+
+If you have not created any job flows in the last two days 
+no output returns from the command. 
+
+The example above shows three job flows created in the last two days. The
+indented lines are job flow steps. The columns for a job flow line are
+Job Flow Id, Job Flow State, Master Node DNS Name, and Job Flow
+Name. The columns for a job flow step line are Step State, and Step
+Name.
+
+To get more information about a specific job flow use --describe and
+supply the job flow id with the --jobflow parameters.
+
+  $ elastic-mapreduce --describe --jobflow <job_flow_id>
+  {
+    "JobFlows": [
+      {
+        "LogUri": null,
+        "Name": "Development Job Flow",
+        "ExecutionStatusDetail": {
+          "EndDateTime": 1237948135.0,
+          "CreationDateTime": 1237947852.0,
+          "LastStateChangeReason": null,
+          "State": "COMPLETED",
+          "StartDateTime": 1237948085.0,
+          "ReadyDateTime": 1237948085.0
+        },
+        "Steps": [],
+        "Instances": {
+          "Ec2KeyName": null,
+          "InstanceCount": 1.0,
+          "Placement": {
+            "AvailabilityZone": "us-east-1a"
+          },
+          "KeepJobFlowAliveWhenNoSteps": false,
+          "TerminationProtected": false,
+          "MasterInstanceType": "m1.small",
+          "SlaveInstanceType": "m1.small",
+          "MasterPublicDnsName": "ec2-67-202-3-73.compute-1.amazonaws.com",
+          "MasterInstanceId": "i-39325750",
+          "NormalizedInstanceHours": 6,
+          "InstanceCount": 3
+        },
+        "JobFlowId": "j-3GJ4FRRNKGY97"
+      }
+    ]
+  }
+
+You can also list running and starting jobs with:
+
+  $ elastic-mapreduce --list --active
+
+This will list job flows that are starting, running, or shutting
+down. You can also list job flows that are in one of several states
+with:
+
+  $ elastic-mapreduce --list --state RUNNING --state TERMINATED
+
+This will list job flows that are either running or terminated.
+
+=== Running a Development Job Flow
+
+When developing steps for a job flow it is handy to keep a job flow
+running and to add steps to it. This way if the step fails you can
+add another step without having to incur the startup cost of a
+job flow.
+
+The following command will start a job flow that will continue running and consuming resources until you terminate it.
+
+  $ elastic-mapreduce --create --alive --log-uri s3://my-example-bucket/logs
+  Created job flow j-36U2JMAE73054
+
+By default, this command will launch a job flow running on a single m1.small
+instance using Hadoop version 0.20. Later, when you have your steps 
+running correctly on small set of sample data, you will want to launch job flows 
+running on more instance. You can specify the number of instance and 
+the type of instance to run with the --num-instances and --instance-type 
+options.
+
+The --alive option tells the job flow to keep running even when it has
+finished all its steps. The log-uri specifies a location in Amazon S3 for
+the log files from your job flow to be pushed. 
+
+--alive option can be safely omitted if you have not yet created a bucket in Amazon
+S3. Log files are not pushed to Amazon S3 until 5 minutes after the
+step is complete. 
+
+For debugging sessions, you will likely log onto
+the master node of your job flow. Specifying a log-uri is required if
+you want to be able to read log files from Amazon S3 after the job flow has
+terminated.
+
+You can use Hadoop version 0.18 by specifying the --hadoop-version option.
+
+  $ elastic-mapreduce --create --alive --log-uri s3://my-example-bucket/logs \
+    --hadoop-version "0.18"
+
+Now that your job flow is created, you can add a streaming step
+to the job flow.
+
+  $ elastic-mapreduce --jobflow <j-insert your job id here> --stream
+  Added steps to <j-insert your job id here>
+
+Default parameters are added to the streaming step. The name is set to
+"Example Streaming Step". The action on failure is set to
+"CANCEL_AND_WAIT". This means that if the step fails then subsequent
+steps will be cancelled and the job flow will wait for additional
+steps to be added before proceeding. The streaming task is a word count
+example written in Python and reads input from:
+
+  s3://elasticmapreduce/samples/wordcount/input
+
+You can list the job flow to see the default parameters that have been
+set.
+
+  $ elastic-mapreduce --jobflow j-36U2JMAE73054 --describe
+  { "JobFlows": [{ 
+      "LogUri": null,
+      "Name": "Example job flow",
+      "ExecutionStatusDetail": { ... },
+      "Steps": [
+        { "StepConfig": { ... },
+          "ExecutionStatusDetail": { ... }
+        }
+      ],
+      "Instances": { ... }
+    }]
+  }
+
+=== Debugging a Failed Step
+
+First, add a step to the job flow that will fail. If you do not
+have a running job flow, look at the section on running job flows above to
+see how to start a job flow that will wait for you to add steps.
+
+  $ elastic-mapreduce --jobflow j-36U2JMAE73054 --stream --output hdfs://examples/output
+  Added steps to j-36U2JMAE73054
+
+This job will fail because the HDFS path is wrong. It should have
+three slashes rather than two after the colon. Now log onto the
+master node where the job flow is running to find the log files associated with this step.
+
+If you entered a keypair and a keypair file into the credentials
+file you can now log onto the master node with:
+
+  $ elastic-mapreduce --jobflow j-ABABABABABA --ssh 
+
+For this command to work, you are require to have an ssh client installed on
+your local computer. Most unix and linux
+machines have an ssh client installed. On a Windows computer you will need to install Cygwin, including the Ruby and
+openssh-client and execute the elastic-mapreduce client from within
+Cygwin.
+
+You can also use PuTTY, but this is significantly more work. See the
+tutorial at http://developer.amazonwebservices.com/connect/entry.jspa?externalID=2729.
+
+Once logged into the master node where your job flow is running, you can see log files for your steps in:
+
+  $ ls /mnt/var/log/hadoop/steps/
+  1
+  $ ls /mnt/var/log/hadoop/steps/1
+  controller  stderr  stdout  syslog
+  $ cat /mnt/var/log/hadoop/steps/1/syslog
+  2009-03-25 18:43:27,145 WARN org.apache.hadoop.mapred.JobClient (main): Use 
+    GenericOptionsParser for parsing the arguments. Applications should implement Tool for the same.
+  2009-03-25 18:43:28,828 ERROR org.apache.hadoop.streaming.StreamJob (main): Error 
+    Launching job : unknown host: examples
+  $ exit
+
+The error from Hadoop indicates that it was trying to look for a host
+called examples. Look back at our request and see that the output
+path was set to hdfs://examples/output. This is incorrect
+since we want Hadoop to access the local HDFS system with the path
+/examples/output. We need to specify hdfs:///examples/output,
+as below.
+
+To fix this, specify the output of the streaming job on the
+command line and submit another step to our job flow.
+
+  $ elastic-mapreduce --jobflow j-36U2JMAE73054 --stream --output hdfs:///examples/output
+
+Now list the job flows and watch it complete:
+
+  $ elastic-mapreduce --list -n 5 
+  j-36U2JMAE73054     WAITING        ec2-67-202-20-49.compute-1.amazonaws.com     Example job flow
+     FAILED         Example Streaming Step        
+     COMPLETED      Example Streaming Step        
+
+This time the job succeeded. We can run the job again but this time
+output the result to a bucket in Amazon S3. First, create a bucket
+in Amazon S3. Note that buckets in Amazon S3 are unique so you will
+need to choose a unique name for your bucket.
+
+You can create a bucket using s3cmd which is available on Debian and
+Ubuntu systems via apt-get, or using Amazon S3 Organizer which is a
+plug-in for Firefox.
+
+If you're not on a Debian or Ubuntu system then s3cmd can be
+downloaded from http://freshmeat.net/projects/s3cmd
+
+Amazon S3 Organizer is available at 
+https://addons.mozilla.org/en-US/firefox/addon/3247 
+
+To create an Amazon S3 bucket using s3cmd do the following:
+
+  $ s3cmd mb s3://my-example-bucket
+  Bucket 's3://my-example-bucket/' created
+
+Note: s3cmd requires s3 paths to be specified using the prefix s3://.
+Amazon Elastic MapReduce follows Hadoop’s convention which requires the
+prefix s3:// for files in stored in Amazon S3.
+
+Add a step to the job flow to put results into the bucket
+you created on S3:
+
+  $ elastic-mapreduce -j j-36U2JMAE73054 --stream \
+      --output s3://my-example-bucket/output/1
+  Added steps to j-36U2JMAE73054
+
+Note that the protocol of the output URL is s3. This tells Hadoop to
+use the S3 Native File System for the output location. The 'host' part
+of the URL is the bucket and this is followed by path.
+
+Once you've finished with your job flow, don't forget to terminate it with:
+
+  $ elastic-mapreduce --jobflow j-36U2JMAE73054 --terminate 
+
+And see that it is shutting down with:
+
+  $ elastic-mapreduce --list -n 5
+
+There are other options that you can specify when creating and adding
+steps to job flows. Use the "--help" option to list them.
+
+You can also list the log files from the last step in your jobflow
+using the --logs argument.
+
+  $ elastic-mapreduce --jobflow j-ABABABABABA --logs
+
+This command requires that you are running on a unix-like
+computer with access to an ssh client because it fetches the logs from
+the job flow. It also requires that the job flow is still running. If
+the job flow has shutdown then the client may hang while attempting to
+connect to the master node because the master node has already been
+shut down.
+
+==== Enabling Hadoop Debugging
+
+The Amazon Elastic MapReduce tab in the AWS Management Console
+(http://console.aws.amazon.com/elasticmapreduce/home) has a debugging
+feature that provides access to Hadoop jobs, tasks, and task attempts
+as well as log files for steps and task attempts.
+
+Note: To use this feature you must be signed up for SimpleDB. You can sign
+up your account for Simple DB at http://aws.amazon.com/simpledb/.
+
+Note: When enabling debugging, you must always specify a log-uri
+either in your credentials file, on the command line, or as an
+environment variable.
+
+To enable Hadoop Debugging on a job flow run your job flow with the
+--enable-debugging option.
+
+  $ elastic-mapreduce --create \
+      --name "$USER's Flow with Debugging Enabled" --alive \
+      --log-uri s3://mybucket/logs
+      --enable-debugging
+  Created jobflow j-ABABABABA
+
+Make sure that you sepcified a log-uri on the command line as above or
+in your credentials file. This command install a component on your job
+flow that pushes information from Hadoop into Amazon Simple DB.
+
+Next add a job flow step to your job flow
+
+  $ elastic-mapreduce --jobflow j-ABABABABA \
+    --stream --output hdfs:///output/1
+
+Now you can watch the progress of our job flow in Amazon Elastic
+MapReduce tab of the AWS Management Console, by first selecting the
+job flow (click refresh if your job flow has not appeared) and then
+clicking the "Debug" button.
+
+==== Adding a JAR Step
+
+To add a JAR step you should already have started a job flow. If you have not, see
+the "Running a Job Flow" section in this document. 
+
+First start a development job flow
+
+  $ elastic-mapreduce --list --active
+  j-36U2JMAE73054     WAITING        ec2-67-202-20-49.compute-1.amazonaws.com     Example job flow
+    FAILED         Example Streaming Step        
+    COMPLETED      Example Streaming Step        
+    COMPLETED      Example Streaming Step        
+
+You can add a JAR step to your job flow with:
+
+  $ elastic-mapreduce --job flow j-36U2JMAE73054 \
+    --jar s3://elasticmapreduce/samples/cloudburst/cloudburst.jar \
+    --arg s3://elasticmapreduce/samples/cloudburst/input/s_suis.br \
+    --arg s3://elasticmapreduce/samples/cloudburst/input/100k.br \
+    --arg hdfs:///cloudburst/output/1 \
+    --arg 36 --arg 3 --arg 0 --arg 1 --arg 240 --arg 48 --arg 24 \
+    --arg 24 --arg 128 --arg 16
+
+Windows Users: The Windows command-line interface does not allow multi-line
+commands using the “\” character. You will have to edit these multi-line
+examples in notepad to remove the “\” characters and the line breaks.
+
+This will run an example job flow step that downloads and runs the
+JAR file. The arguments are passed to the main function in the JAR file.
+
+If your JAR file doesn't have a manifest.mf specifying the main class you will
+need to specify the main class on the command line as:
+
+  $ elastic-mapreduce -j j-36U2JMAE73054 \
+    --jar        s3://my-example-bucket/wordcount.jar \
+    --main-class org.myorg.WordCount \
+    --arg        s3://elasticmapreduce/samples/wordcount/input/ \
+    --arg        hdfs:///wordcount/output/1
+
+If your job fails then log onto the master node as explained in the
+section "Running a JobFlow" and look at the log files to find out why.
+
+==== Adding a JobFlow from JSON
+
+The samples directory included in with Elastic Map Reduce Ruby Client
+contains several mutli-step job flows that can be run using the --json
+command.
+
+The json files contain variables for bucket names etc that you need to
+replace with your own bucket.
+
+  $ elastic-mapreduce -j j-36U2JMAE73054 \
+    --json   samples/similarity/lastfm_jobflow.json \
+    --param  '<bucket>=my-example-bucket'
+
+This will add the job flow steps described in
+samples/freebase/code/freebase_jobflow.json with <bucket> replaced by
+my-example-bucket.
+
+=== Samples
+
+The samples directory contains the following sample job flows:
+
+* LastFM Example
+** Description: Calculation of Artist Similarity using data From LastFM
+** URL: samples/similarity/lastfm_jobflow.json
+** Parameters
+*** <bucket>  : name of the output bucket
+
+* Freebase Example
+** Description: Load popular entries from Freebase into Amazon SimpleDB
+** URL: samples/freebase/code/freebase_jobflow.json
+** Parameters
+*** <bucket>  : name of the output bucket
+
+Additionally there are the following articles explaining how to use
+Amazon Elastic MapReduce.
+
+* Sample Job Flows
+    http://developer.amazonwebservices.com/connect/kbcategory.jspa?categoryID=263
+
+* CloudBurst Sample Job Flow 
+    http://developer.amazonwebservices.com/connect/entry.jspa?externalID=2272
+
+* WordCount Sample Job Flow 
+    http://developer.amazonwebservices.com/connect/entry.jspa?externalID=2273
+
+* Similarities Sample Job Flow 
+    http://developer.amazonwebservices.com/connect/entry.jspa?externalID=2274
+
+* Freebase Sample Job Flow 
+    http://developer.amazonwebservices.com/connect/entry.jspa?externalID=2275
+
+=== Running a Custom Jar
+
+This section assumes that you have already run a streaming jar and
+that you are comfortable starting and debugging job flows.
+
+==== Compiling and Uploading a Jar
+
+First download a copy of Hadoop 0.18.3 from the Hadoop website. 
+
+  http://hadoop.apache.org/core/
+
+Unpack the tar.gz archive somewhere handy like
+/home/name/hadoop-0.18.3 or c:\hadoop if you are running on windows.
+
+Download Eclipse from http://www.eclipse.org/downloads/, choosing the "Eclipse IDE
+for Java Developers" version.
+
+In Eclipse, create a new Java Project. In the libraries tab of the
+build path settings, add all of the Hadoop JAR files from the directory where
+you unpacked Hadoop.
+
+Next, create a main class in your project. An example main class is
+available here:
+
+  http://hadoop.apache.org/core/docs/r0.18.3/mapred_tutorial.html. 
+
+You can cut and paste the WordCount v1.0 source code from the browser
+into Eclipse.
+
+Now get Eclipse to export a JAR file by selecting "Export" from the File
+Menu and then choosing Jar. Select an output location for the JAR file on
+your disk and click through the next several pages until you are able to specify a
+Main-Class in the Java manifest. Choose the main function you added in
+the previous step.
+
+
+Upload your JAR file to s3. To upload a file, you can use s3cmd which is
+available under Debian and Ubuntu. On Windows computers, a good option is S3
+Organizer which is a Firefox plugin. For this example, I'm going to use
+s3cmd.
+
+You will have to select your own unique bucket name when running this
+example as the my-example-bucket already exists.
+
+  $ s3cmd mb s3://my-example-bucket
+  Bucket 's3://my-example-bucket/' created
+
+  $ s3cmd put --force build/wordcount.jar s3://my-example-bucket/wordcount.jar
+
+Note that by default s3cmd sets the access control on the created bucket
+and uploaded file to private which is probably what is wanted. If you want
+to make your step accessible to other people, you will need to set the
+access control on the bucket and the file to make them readable.
+
+Now you are ready to execute a jar step on one of your job flows. If you
+don't have job flow running, look at the section on running a job flow
+to learn how to start a job flow.
+
+Remember to replace your own job flow id and the name
+of your own bucket in the jar name and the second --arg parameter.
+
+  $ elastic-mapreduce --jobflow j-C019299B1X \
+    --jar s3://my-example-bucket/wordcount.jar \
+    --arg s3://elasticmapreduce/samples/wordcount/input 
+    --arg s3://my-example-bucket/output
+
+If you didn't specify the main-class in the manifest then you can
+specify that now on the command line with the --main-class option.
+
+  $ elastic-mapreduce --jobflow j-C019299B1X \
+    --jar        s3://my-example-bucket/wordcount.jar \
+    --main-class org.myorg.WordCount \
+    --arg        s3://elasticmapreduce/samples/wordcount/input \
+    --arg        s3://my-example-bucket/output
+
+You can watch the job flow by listing it.
+
+  $ elastic-mapreduce --list j-C019299B1X
+
+If the step fails then take a look at the section on debugging a
+job flow to find out how to log onto the master node and look at the
+logs.
+
+=== Running a Pig Program 
+
+Pig provides a high level data manipulation language called Pig
+Latin. Amazon Elastic MapReduce supports Pig version 0.3.0 See
+http://hadoop.apache.org/pig/ for additional details.
+
+==== Running Pig in Interactive Mode
+
+To run a pig program in interactive mode you need to create a jobflow
+that will stay alive until you terminate it.
+
+  $ elastic-mapreduce --create --alive --name "Testing PIG -- $USER" \
+      --num-instances 5 --instance-type c1.large \
+      --hive-interactive
+  Created jobflow j-ABABABABABAB
+
+Next ssh to the master node and run pig
+
+  $ elastic-mapreduce --jobflow j-ABABABABABAB --ssh 
+  ...
+  ec2-12.13.14 $ pig
+  grunt>
+
+You are now running Pig in interactive mode and can execute Pig Latin statements.
+
+==== Running Pig in Batch Mode
+
+To run Pig in batch mode by adding a step to a development job flow you
+run:
+
+  $ elastic-mapreduce --jobflow j-ABABABABABA \
+     --pig-script --args s3://mybucket/myscript.pig
+
+Or to run a job flow that will execute a Pig script run:
+
+  $ elastic-mapreduce --create \
+     --pig-script \
+       --args -p,INPUT=s3://mybucket/input,-p,OUTPUT=s3://mybucket/output \
+       --args s3://mybucket/myscript.pig
+
+Note that the script argument must come last, after the parameters that
+are passed to the script. These parameters become available within the
+Pig script being executed as $variable. In the above example, the
+script can make reference to $input and $output within Pig string
+literals.
+
+You can also execute multiple Pig scripts
+within a single job flow as
+
+  $ elastic-mapreduce --create \
+     --pig-script --step-name "Script 1" --args s3://mybucket/myscript.pig \
+     --pig-script --step-name "Script 2" --args s3://mybucket/mysecondscript.pig
+
+You can also specify multiple scripts to be added to a development
+Job flow in the same way.
+
+=== Running a Hive Program
+
+Hive is a high level data processing language quite similar to SQL but
+with a number of map reduce extensions. Amazon Elastic MapReduce
+supports Hive version 0.5 on Hadoop version 0.20 and Hive version 0.4
+on Hadoop version 0.18. For both the versions of Hive, we provide additional 
+patches that allow better integration with Amazon S3.
+
+Please note that Hive automatically defaults to 0.5 for Hadoop 0.20 and
+0.4 for Hadoop 0.18. Currently Amazon Elastic MapReduce does not support specifying the Hive
+version.
+
+Hive 0.5 provides additional features like Percentile function, faster
+recovery of partitions from S3, insert query results into an s3 directory
+location, and reading lzo, bzip compressed input files.
+
+==== Running Hive in Interactive Mode
+
+To run in interactive mode you need to create a job flow that will stay
+alive until you terminate it.
+
+  $ elastic-mapreduce --create --alive --name "Testing Hive -- $USER" \
+      --num-instances 5 --instance-type c1.large \
+      --hive-interactive
+  Created jobflow j-ABABABABABAB
+
+Next ssh to the master node and run hive
+
+  $ elastic-mapreduce --jobflow j-ABABABABABAB --ssh 
+  ...
+  ec2-12.13.14 $ hive
+  hive>
+
+You are now running Hive in interactive mode and execute Hive queries.
+
+==== Running Hive in Batch Mode
+
+To execute a Hive script stored in S3 as a part of a job flow create the
+Job flow with a step that executes the Hive script
+
+  $ elastic-mapreduce --create \
+     --hive-script --args s3://mybucket/myquery.q \
+     --args -d,INPUT=s3://mybucket/input,-d,OUTPUT=s3://mybucket/output
+
+The --args option provides arguments to the Hive script. The first
+argument is the location of the script on S3. Next,the -d argument provides a method to pass values into the script.
+
+Within Hive scripts these parameters are available as ${variable}. In the above example ${INPUT} and ${OUTPUT} would be replaced with
+the values that were passed in. These variables are substituted as a
+pre-processing step and so may occur anywhere within a Hive script.
+
+You can also add a Hive script to a development job flow, for example:
+
+  $ elastic-mapreduce --jobflow j-ABABABABABA \
+     --hive-script --args s3://mybucket/myquery.q \
+     --args -d,INPUT=s3://mybucket/input,-d,OUTPUT=s3://mybucket/output
+
+This is useful when developing and testing scripts as in the case where
+the script fails. You can add a new step to the development job flow
+without having to wait for a new job flow to start.
+
+=== Terminating a Job Flow
+
+All job flows that have been created with the --alive option will run,
+consuming instance hours until they are terminated.
+
+A job flow can be terminated by specifying the job flow id.
+
+  $ elastic-mapreduce --terminate --jobflow j-C019299B1X
+
+=== Environment Variables
+
+The command line client accepts configuration via environment
+variables. The following environment variables are supported:
+
+    ELASTIC_MAPREDUCE_ACCESS_ID
+    ELASTIC_MAPREDUCE_PRIVATE_KEY
+    ELASTIC_MAPREDUCE_KEY_PAIR
+    ELASTIC_MAPREDUCE_KEY_PAIR_FILE
+    ELASTIC_MAPREDUCE_LOG_URI
+    ELASTIC_MAPREDUCE_REGION
+    ELASTIC_MAPREDUCE_ENABLE_DEBUGGING
+
+The environment variables will override settings in the credentials
+file, but will be overridden by options passed in on the command line.
+
+=== Bootstrap Actions
+
+A bootstrap action is a script that is run on all nodes of a job flow
+prior to Hadoop starting on that node. A job flow will fail if
+bootstrap action fails by returning a non-zero exit code on the master
+node, or on more than 10% of the slave nodes. A job flow will also
+fail if Hadoop fails to start on the master node after the bootstrap
+action has run.
+
+For example, to execute a bootstrap action, first upload your script, called 
+action.sh, to your bucket in S3 called s3://mybucket
+
+  $ s3cmd put action.sh s3://mybucket/bootstrap-actions/action.sh
+
+Next, start a job flow and specify the bootstrap action:
+
+  $ elastic-mapreduce --create --alive \
+     --name "My Boostrap Action" \
+     --bootstrap-action s3://mybucket/bootstrap-actions/action.sh \
+     --arg first-argument \
+     --arg second-argument
+
+Bootstrap actions may only be specified when a job flow is
+created. This is different to steps which may be specified for a
+running job flow. When creating a job flow however one may combine
+several bootstrap actions and job flow steps. The bootstrap actions
+will be executed in the order they are presented.
+
+  $ BUCKET=s3://mybucket/
+  $ INPUT=$BUCKET/input
+  $ OUTPUT=$BUCKET/output
+  $ elastic-mapreduce --create \
+      --name "My Example Job Flow" \
+      --boostrap-action $BUCKET/bootstrap-actions/action.sh \
+        --arg hello  \
+        --arg world \
+      --hive-script \
+        --args s3://mybucket/hive-queries/myquery.q \
+        --args -d,INPUT=$INPUT,-d,OUTPUT=$OUTPUT \
+      --bootstrap-action $BUCKET/bootstrap-actions/action.sh \
+        --args hello,world
+
+Note that the bootstrap actions are always executed before steps and
+before Hadoop is running on the node.
+
+Log files from bootstrap actions are located on each node in the
+directory:
+
+  /mnt/var/log/bootstrap-actions/<action_number>
+
+where <action_number> is the number of the bootstrap action that was
+run. For example,. 1 for the first action, 2 for the second etc. The bootstrap
+action logs are also pushed to your LogURI if you specified one in
+the directory
+
+  s3://<log_uri>/<jobflow_id>/node/<node_id>/bootstrap-actions/<action_number>
+
+If a bootstap action fails, then an error message containing the
+failure condition is located in the LastStateChangeReason field
+available when using --describe on the job flow that failed.
+
+=== Example Bootstrap Actions
+
+This section contains a list of example bootstrap actions that are
+provided by Amazon Elastic MapReduce.
+
+==== Configure Hadoop
+
+The configure-hadoop bootstrap action allows you specify Hadoop site
+configuration that must be set before Hadoop starts. It may be called
+as:
+
+  $ elastic-mapreduce --create --alive \
+      --name "My Example Jobflow" \
+      --bootstrap-actions s3://elasticmapreduce/bootstrap-actions/configure-hadoop
+        --arg --site-config-file
+        --arg s3://mybucket/config.xml
+        --arg -s 
+        --arg mapred.tasktracker.map.tasks.maximum=2
+
+This will merge setting from the file s3://mybucket/config.xml into
+the Hadoop site config file and will additionally set the value of
+mapred.tasktracker.map.tasks.maximum to 2 in the Hadoop site config
+file.
+
+For more usage information you can download the script and run it
+with no arguments. In this case it will output its usage information.
+
+==== Configure Daemons
+
+The configure daemons script allows you to control the amount of
+memory allocated to different Hadoop daemons. It may be called as:
+
+  $ elastic-mapreduce --create --alive \
+      --name "My Example Jobflow" \
+      --bootstrap-actions s3://elasticmapreduce/bootstrap-actions/configure-daemons \
+       --arg --namenode-heap-size=2048 \
+       --arg --namenode-opts=-XX:GCTimeRatio=19 \
+
+This will set the heap size allocated to the NameNode to be 2048
+megabytes and it will set the GCTimeRatio used by the java's garbage
+collector to be 19.
+
+For more usage information you can download the script onto an
+instance and run it with no arguments. In this case it will output its
+usage information.
+
+==== Run-if
+
+The run-if script allows you to run another script conditionally. It may be called as:
+
+   elastic-mapreduce --create --alive \
+      --name "My Example Jobflow" \
+      --bootstrap-actions s3://elasticmapreduce/bootstrap-actions/run-if
+      --args instance.isMaster=true,s3://mybucket/myscript,hello,world
+
+This will run the script located at s3://mybucket/myscript, passing the
+arguments "hello" and "world" only on the master node. If myscript
+fails then run-if command will fail and so the job flow will fail.
+
+For more usage information, you can download the script onto an
+instance and run it with no arguments. In this case it will output its
+usage information onto screen.
+
+The first argument is a conditional that reads from one of the JSON
+configuration files available on every instance. The files contain
+information that may be useful for bootstrap action authors and with
+the run-if script. The file locations and their contents are listed
+below. When referencing files from the run-if script, you only need
+to specify the file name, excluding ".json".
+
+/mnt/var/lib/info/instance.json
+ boolean  isMaster
+ boolean  isRunningNameNode
+ boolean  isRunningDataNode
+ boolean  isRunningJobTracker
+ boolean  isRunningTaskTracker
+
+/mnt/var/lib/info/job-flow.json
+ string   jobFlowId
+ long     jobFlowCreationInstance
+ integer  instanceCount
+ string   masterInstanceId
+ string   masterPrivateDnsName
+ string   masterInstanceType
+ string   slaveInstanceType
+ string   hadoopVersion
+
+== Using the Ruby Client as a Library
+
+The program elastic-mapreduce is an example of how to use the
+Amazon Elastic MapReduce Ruby library. Most of the library is
+devoted to parsing command line arguments and translating them into
+web service calls. 
+
+To use the web service directly in your Ruby programs you need:
+
+  $LOAD_PATH << File.dirname(__FILE__)
+  require 'amazon/coral/elasticmapreduceclient'
+
+  config = {
+    :endpoint            => "https://elasticmapreduce.amazonaws.com",
+    :ca_file             => File.join(File.dirname(__FILE__), "cacert.pem"),
+    :aws_access_key      => my_access_id,
+    :aws_secret_key      => my_secret_key,
+    :signature_algorithm => :V2
+  }
+  client = Amazon::Coral::ElasticMapReduceClient.new_aws_query(config)
+
+  puts client.DescribeJobFlows.inspect
+  puts client.DescribeJobFlows('JobFlowId' => 'j-ABAYAS1019012').inspect
+
+You can use the retry delegator to make your client retry if it gets
+connection failures.
+
+  $LOAD_PATH << File.dirname(__FILE__)
+  require 'amazon/coral/elasticmapreduceclient'
+  require 'amazon/retry_delegator'
+
+  config = {
+    :endpoint            => "https://elasticmapreduce.amazonaws.com",
+    :ca_file             => File.join(File.dirname(__FILE__), "cacert.pem"),
+    :aws_access_key      => my_access_id,
+    :aws_secret_key      => my_secret_key,
+    :signature_algorithm => :V2
+  }
+  client = Amazon::Coral::ElasticMapReduceClient.new_aws_query(config)
+
+  is_retryable_error_response = Proc.new do |response| 
+    if response == nil then
+      false
+    else
+      ret = false
+      if response['Error'] then 
+        # don't retry on 'Timeout' because the call might have succeeded
+        ret ||= ['InternalFailure', 'Throttling', 'ServiceUnavailable'].include?(response['Error']['Code'])
+      end
+      ret 
+    end
+  end
+
+  client = Amazon::RetryDelegator.new(client, :retry_if => is_retryable_error_response)
+
+  puts client.DescribeJobFlows.inspect
+  puts client.DescribeJobFlows('JobFlowId' => 'j-ABAYAS1019012').inspect
+
+More information about the operations of the Amazon Elastic MapReduce
+Web Service is available in the technical documentation found at http://aws.amazon.com/documentation/elasticmapreduce/.
+
+
+This file is an extract from the the online documentation at
+http://oss.coresecurity.com/pcapy/.
+
+What is Impacket?
+=================
+
+Impacket is a collection of Python classes for working with network
+protocols. Impacket is mostly focused on providing low-level
+programmatic access to the packets, however some protocols (for
+instance NMB and SMB) are implemented in a higher level as a
+foundation for other protocols. Packets can be constructed from
+scratch, as well as parsed from raw data, and the object oriented API
+makes it simple to work with deep hierarchies of protocols.
+
+Impacket is most useful when used together with a packet capture
+utility or package such as Pcapy, an object oriented Python extension
+for capturing network packets.
+
+What protocols are featured?
+----------------------------
+
+ * Ethernet, Linux ``Cooked'' capture.
+ * IP, TCP, UDP, ICMP, IGMP, ARP.
+ * NMB and SMB (high-level implementations).
+ * DCE/RPC versions 4 and 5, over different transports: UDP (version 4
+   exclusively), TCP, SMB/TCP, SMB/NetBIOS and HTTP.
+ * Portions of the following DCE/RPC interfaces: Conv, DCOM, EPM,
+   SAMR, SvcCtl, WinReg.
+
+
+Getting Impacket
+================
+
+Current and past releases are available from
+http://oss.coresecurity.com/impacket/.
+
+
+Setup
+=====
+
+Quick start
+-----------
+
+Grab the latest stable release, unpack it and run 'python setup.py
+install' from the directory where you placed it. Isn't that easy?
+
+
+Requirements
+============
+
+ * A Python interpreter. Versions 2.0.1 and newer are known to work.
+ * A recent release of Impacket.
+
+Installing
+----------
+
+In order to install the source execute the following command from the
+directory where the Impacket's distribution has been unpacked: 'python
+setup.py install'. This will install the classes into the default
+Python's modules path; note that you might need special permissions to
+write there. For more information on what commands and options are
+available from setup.py, run 'python setup.py --help-commands'.
+
+
+Licensing
+=========
+
+This software is provided under under a slightly modified version of
+the Apache Software License. See the accompanying LICENSE file for
+more information.
+
+SMB and NetBIOS support based on Pysmb by Michael Teo.
+
+
+Contact Us
+==========
+
+Whether you want to report a bug, send a patch or give some
+suggestions on this package, drop us a few lines at
+oss@coresecurity.com.
+
+$Id: README 20 2003-10-27 17:46:46Z jkohen $
+
+<table><tr>
+<td><img width="100" height="100" src="https://raw.github.com/packetloop/packetpig/master/packetpig.png" />
+<td>
+<h1>Packetpig</h1>
+<p>An <b>Open Source Big Data Security Analytics</b> tool that analyses <a href="http://en.wikipedia.org/wiki/Pcap">pcap</a> files using <a href="http://pig.apache.org/">Apache Pig</a>.</p>
+<p>
+Created by <a href="https://www.packetloop.com/">Packetloop</a>.
+See the <a href="http://blog.packetloop.com/search/label/packetpig">Packetloop Blog</a> for Packetpig tips and tricks.
+</p>
+</table>
+
+## Note
+
+If Markdown is painful in your text editor, run lib/scripts/readme.py from this directory and it'll generate a README.html for you. You'll need the markdown python module installed.
+
+## Overview
+
+If you want to run the pig scripts you have to set the pcap parameter for the pcap you want to use.
+
+There is a small, test pcap file called data/web.pcap that you can test prior to running on your own pcaps.
+
+You can run locally:
+
+    pig -x local \
+        -f pig/examples/binning.pig \
+        -param pcap=data/web.pcap
+
+or with a cluster setup:
+
+    pig -x mapreduce \
+        -f hdfs://server/pig/binning.pig \
+        -param pcap=hdfs://server/pig/web.pcap
+
+You'll need to put files into HDFS to leverage the cluster setup.
+Also edit pig/include-hdfs.pig to specify your HDFS URI.
+
+## Packetloop Loaders
+
+### ConversationLoader
+
+A frontend to lib/scripts/tcp.py which gives you a record per TCP connection, along with src, dst, end state, timestamps of each packet, and intervals between each packet.
+
+### FingerprintLoader
+
+A frontend to p0f, giving you an operating system for each packet in a pcap.
+
+See pig/examples/p0f.pig for correlating Snort with p0f.
+
+### SnortLoader
+
+A frontend to Snort which produces a record for each alert triggered.
+
+## Packetloop UDFs
+
+##
+
+## Scripts
+
+### pigrun.py
+
+A lightweight wrapper around Pig. It is a handy tool when switching between local and mapreduce mode without having to change many arguments, e.g. HDFS paths. It also has a basic set of sane default arguements to help retyping them all the time. An example usage of pigrun:
+
+    # ./pigrun.py -f pig/charts/ngram-chart.pig
+
+This will generate the command:
+
+    pig -v -x local -f pig/charts/ngram-chart.pig -param pcap=data/web.pcap -param snortconfig=etc/snort.conf
+
+The list of available arguments are listed when running `--help` as an argument, and checking out the source code is handy too.
+
+### lib/run_emr
+
+    # lib/run_emr -f PIG_SCRIPT -r S3_LOCATION [-c INSTANCE_COUNT] [-t INSTANCE_TYPE] [-b BID_PRICE] [-i]
+
+    e.g.
+
+    # lib/run_emr -f s3://your-data/analyse.pig -r s3://your-data/captures/ -c 4 -t m1.large -b 0.01
+
+Specify -i to get an interactive pig shell on the emr cluster.
+Check -h for full options or refer to X for examples.
+
+The following environment variables will configure the emr credentials for you:
+
+    # AWS_ACCESS_KEY_ID
+    # AWS_SECRET_ACCESS_KEY
+    # EMR_KEYPAIR
+    # EMR_KEYPAIR_PATH
+    # EC2_REGION (optional, defaults to us-east-1)
+
+### put.sh
+
+Upload a single file into HDFS into a predetermined location. You should specify the env variable HDFS_MASTER to specify where the destination is. The env
+variable PREFIX determines the path to place the uploaded file.
+
+### prepare-hdfs.sh
+
+Uses `put.sh` to upload all `.pig` and `.jar` files into HDFS.
+
+## Visualisations
+
+### Overview
+
+The visualisations are pure HTML and JavaScript. You'll need to run a dumb web server that just serves files.
+
+Python does this well with a one-liner:
+
+    python -m SimpleHTTPServer 8888
+
+Run this in the root of the project, then access a visualisation via
+http://localhost:8888/vis/cube/cube.html for example.
+
+WebGL will require a browser that supports WebGL.
+
+### Globe (WebGL) ✔
+
+The globe is a WebGL visualisation which displays the Earth with lines extruding out from it. The colour of the lines represent average severity in Snort attacks and the height of the lines for number of attacks.
+
+It expects the format to be `"lat lon,avgsev,attacks"`.
+
+It's in `vis/globe/globe.html` and an example pig script is `pig/globe/globe.pig`.
+
+### Trigram Cube (WebGL)
+
+Trigram cube is a WebGL visualisation displaying 3 dimensions of data, designed for visualising trigrams.
+
+The `vis/cube/ngram.pig` file outputs a list of ngraphs. A trigram of 256 variations of bytes produces 16777216 values, which is quite a fair bit to visualise. To reduce this, this is a script called `lib/scripts/reduce-trigram.py` where it condenses the 16M values into a summarised output.
+
+First, run `vis/cube/ngram.pig' on a pcap, then run the `reduce-trigram.py` script over the output:
+
+    # pig -x local -f pig/cube/cube-ngram.pig -param pcap=data/web.pcap
+    # lib/scripts/reduce-trigram.py output/ngram/part-m-00000 > output/ngram/summarised
+
+The generated `output/ngram/summarised` file can now be used in the visualisation at `vis/cube/cube.html`.
+
+### DNS Directed Graph (Ubigraph)
+
+This is a visualisation that uses Ubigraph. It links domains by their subdomain parts.
+
+Download Ubigraph from http://ubietylab.net/ubigraph/content/Downloads/ then extract and run `bin/ubigraph_server`. This will create a window where the visualisation will appear. When that's running, execute the `vis/ubigraph/dns.py` with the output of `pig/ubigraph/dns.pig`, e.g.:
+
+    # vis/ubigraph/dns.py output/ubigraph-dns/part-m-00000
+
+### Side-by-Side Charts
+
+These charts allow you to compare different sets of data together.
+
+Use either histogram or timeseries data in this format:
+
+    filter,category,timestamp,value
+
+or
+
+    filter,category,title,value
+
+The vis is in `vis/charts/main.html`.
+
+#### Unigram
+
+The Unigram pig script at `pig/charts/ngram-chart.pig` runs multiple n-gram jobs over your pcap file. You'll need to concatenate all the files together using a command similar to this:
+
+  # ./pigrun.py -f pig/charts/ngram-chart.pig
+  # cat output/ngram-chart/*/* > output/ngram-chart/combined
+
+Note: If you inspect the output of `ngram-chart.pig`, you'll notice one of the output files, "ngram-chart/all", has no filter name. To fix this so that the charts all have labels, run this command over the output:
+
+  # sed 's/,,/,All Protocols,/g' output/ngram-chart/combined > output/ngram-chart/combined-tweaked
+
+Drag the combined-tweaked into the visualisation at `vis/charts/main.html`.
+
+### Choropleth
+
+Choropleth is a map of the Earth with countries shaded to a particular colour based on some data.
+
+The input expected for the Choropleth is "country code,value". Basically drag it into the drop zone and the countries get highlighted.
+
+It's in `vis/world/world.html` and an example pig script is `pig/choropleth/snort.pig`
+
+## Pig Scripts
+
+pig/examples/ contains various examples for you to try out.
+
+### pig/examples/attacker_useragents.pig
+
+For each web-related snort alert found in a set of captures, the attacker
+User-Agent header is discovered.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- time: the bin period (default: 60)
+- field: the http header to extract (default: user-agent)
+- snortconfig: the path to the snort config (default: built-in snort config)
+
+### pig/examples/bandwidth.pig
+
+Sum ip packet length per time bin.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- time: the bin period (default: 60)
+
+### pig/examples/binning.pig
+
+Collect packets into bins of $time seconds.
+Additionally group by tcp, udp, and bandwidth.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- time: the bin period (default: 60)
+
+### pig/examples/conversation_info.pig
+
+Conversation info, which includes a list of intervals within the conversation.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/conversations.pig
+
+Join conversations to packets and shows 4tuple + conversation length.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/dns.pig
+
+Shows DNS queries and responses.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/dns_response_ttl.pig
+
+Show DNS response TTLs.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/extract_files.pig
+
+Extract files out of conversations.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- path: directory to store files in
+
+### pig/examples/histogram.pig
+
+Create a packet length histogram.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/ngram.pig
+
+Create an ngram.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- filter: string in the format of 'proto:port' e.g. tcp:80
+- n: the 'n' in 'ngram'. 1 gives 0-255, 2 gives 0-65535 etc.
+
+### pig/examples/p0f.pig
+
+Find p0f fingerprints of snort attackers.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+- snortconfig: the path to the snort config (default: built-in snort config)
+
+### pig/examples/p0f_fingerprint.pig
+
+Show p0f fingerprints of packets.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+### pig/examples/protocol_size_histogram.pig
+
+Histogram for packets, ordered by the packet volume on dport.
+
+Arguments:
+
+- pcap: path to the capture (or directory of captures) to work on
+
+
+## World Boundaries
+
+These are derived from the public domain [Natural Earth](http://www.naturalearthdata.com/downloads/) cultural vector files, 110m resolution. Then, ogr2ogr was used to convert to GeoJSON. Lastly, the data was cleaned up slightly, removing extra properties and a degenerate edge from Antarctica.
+
+ collection.features.forEach(function(d, i) {
+   d.id = d.properties.ISO_A3;
+   d.properties = {name: d.properties.SOVEREIGNT};
+ });
+
+## United States Boundaries
+
+These are derived from the cartographic boundary files from the 2000 [U.S. Census](http://www.census.gov/geo/www/cob/bdy_files.html
+). Then, MapShaper was used to simplify the geometry, and ogr2ogr to convert the shapefiles to GeoJSON. Some additional work was done to preserve the FIPS codes, which are dropped from the shapefiles by MapShaper.
+
+The miserables.json file contains the weighted network of coappearances of
+characters in Victor Hugo's novel /Les Miserables/. Nodes represent characters
+as indicated by the labels, and edges connect any pair of characters that
+appear in the same chapter of the book. The values on the edges are the number
+of such coappearances. The data on coappearances were taken from D. E. Knuth,
+"The Stanford GraphBase: A Platform for Combinatorial Computing",
+Addison-Wesley, Reading, MA (1993).
+
+The group labels were transcribed from "Finding and evaluating community
+structure in networks" by M. E. J. Newman and M. Girvan.
+
+# D3
+
+**D3** is a small, free JavaScript library for manipulating HTML documents
+based on data. D3 can help you quickly visualize your data as HTML or SVG,
+handle interactivity, and incorporate smooth transitions and staged animations
+into your pages. You can use D3 as a visualization framework (like Protovis),
+or you can use it to build dynamic pages (like jQuery).
+
+### Browser Support
+
+D3 should work on any browser, with minimal requirements such as JavaScript
+and the [W3C DOM](http://www.w3.org/DOM/) API. By default D3 requires the
+[Selectors API](http://www.w3.org/TR/selectors-api/) Level 1, but you can
+preload [Sizzle](http://sizzlejs.com/) for compatibility with older browsers.
+Some of the included D3 examples use additional browser features, such as
+[SVG](http://www.w3.org/TR/SVG/) and [CSS3
+Transitions](http://www.w3.org/TR/css3-transitions/). These features are not
+required to use D3, but are useful for visualization! D3 is not a
+compatibility layer. The examples should work on Firefox, Chrome (Chromium),
+Safari (WebKit), Opera and IE9.
+
+Note: Chrome has strict permissions for reading files out of the local file
+system. Some examples use AJAX which works differently via HTTP instead of local
+files. For the best experience, load the D3 examples from your own machine via
+HTTP. Any static file web server will work; for example you can run Python's
+built-in server:
+
+    python -m SimpleHTTPServer 8888
+
+Once this is running, go to: <http://localhost:8888/examples/>
+
+### Development Setup
+
+This repository should work out of the box if you just want to create new
+visualizations using D3. On the other hand, if you want to extend D3 with new
+features, fix bugs, or run tests, you'll need to install a few more things.
+
+D3's test framework uses [Vows](http://vowsjs.org), which depends on
+[Node.js](http://nodejs.org/) and [NPM](http://npmjs.org/). If you are
+developing on Mac OS X, an easy way to install Node and NPM is using
+[Homebrew](http://mxcl.github.com/homebrew/):
+
+    brew install node
+    brew install npm
+
+Next, from the root directory of this repository, install D3's dependencies:
+
+    make install
+
+You can see the list of dependencies in package.json. NPM will install the
+packages in the node_modules directory.
+
+The **WebGL Globe** is an open platform for visualizing geographic
+information in WebGL enabled browsers.
+It supports data in JSON format, a sample of which you can find [here]
+(https://github.com/dataarts/dat.globe/raw/master/globe/population909500.json). dat.globe makes heavy use of the [Three.js](https://github.com/mrdoob/three.js/)
+library, and is still in early open development.
+
+
+### Data Format ###
+
+The following illustrates the JSON data format that the globe expects:
+
+```javascript
+var data = [
+  [
+    'seriesA', [ latitude, longitude, magnitude, latitude, longitude, magnitude, ... ]
+  ],
+  [
+    'seriesB', [ latitude, longitude, magnitude, latitude, longitude, magnitude, ... ]
+  ]
+];
+```
+
+### Basic Usage ###
+
+The following code polls a JSON file (formatted like the one above)
+for geo-data and adds it to an animated, interactive WebGL globe.
+
+```javascript
+// Where to put the globe?
+var container = document.getElementById( 'container' );
+
+// Make the globe
+var globe = new DAT.Globe( container );
+
+// We're going to ask a file for the JSON data.
+xhr = new XMLHttpRequest();
+
+// Where do we get the data?
+xhr.open( 'GET', 'myjson.json', true );
+
+// What do we do when we have it?
+xhr.onreadystatechange = function() {
+
+  // If we've received the data
+  if ( xhr.readyState === 4 && xhr.status === 200 ) {
+
+      // Parse the JSON
+      var data = JSON.parse( xhr.responseText );
+
+      // Tell the globe about your JSON data
+      for ( i = 0; i < data.length; i++ ) {
+        globe.addData( data[i][1], 'magnitude', data[i][0] );
+      }
+
+      // Create the geometry
+      globe.createPoints();
+
+      // Begin animation
+      globe.animate();
+
+    }
+
+  }
+
+};
+
+// Begin request
+xhr.send( null );
+```

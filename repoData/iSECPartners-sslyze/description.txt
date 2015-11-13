@@ -1,0 +1,134 @@
+SSLyze Changelog
+----------------
+
+## v0.9
+* Experimental support for Heartbleed detection; see --heartbleed. Heartbleed detection has also been added to --regular scans.
+* Capped the maximum number of concurrent connections to around 30 per server in order to avoid DOSing the scanned servers. Scans are slightly slower but a lot less aggressive, resulting in better scan results with less timeout and connection errors
+* Support for Basic Authentication when tunneling scans through an HTTPS proxy with --https_tunnel
+* Bug fixes for IPv6 and XMPP support
+* Updated OpenSSL to 1.0.1g
+* Updated the Apple, Microsoft, Mozilla and Java trust stores
+* Cleaned up the text output of PluginOpenSSLCipherSuites
+
+
+## v0.8
+* Additional certificate chain validation using the Apple, Microsoft and Java trust stores in addition to Mozilla's
+* Added support for StartTLS RDP; see --starttls=rdp
+* Greatly improved the reliability and accuracy of scan results by adding an exponential backoff algorithm to retry failed network connections. This will especially impact scans against servers that stop properly answering after several concurrent connections have already been opened. The number of retry attempts can be controlled using --nb_retries
+* Bug fixes including:
+    * Better results when the server requested a client certificate but none was supplied
+    * Clarified text and XML output
+    * Better HTTP Strict Transport Security plugin
+    * Fixed PluginCompression false negatives
+
+
+## v0.7
+* Complete rewrite of the OpenSSL wrapper as a C extension
+   * SSLyze is now statically linked with the latest version of OpenSSL instead of using the system's (potentially outdated/broken) OpenSSL library
+    * All of SSLyze's features are now available on all supported platforms (including SSL 2.0, TLS 1.1 and TLS 1.2)
+    * Scans are slightly faster
+    * Python 2.6 is no longer supported
+* Support for StartTLS FTP, POP, IMAP, LDAP and "auto". See --starttls
+* Support for OCSP Stapling. See --certinfo
+* Other various improvements that results in SSLyze being more robust
+
+
+## v0.6
+* Added support for Server Name Indication; see --sni
+* SSLyze now returns partial results when server requires mutual auth but no client certificate was provided
+* Preliminary IPv6 support
+* Various bug fixes and better support of client authentication and HTTPS tunneling
+
+
+## v0.5
+* XML output including full certificate parsing; see --xml_out
+* The list of servers to scan can be provided using a text file; see --targets_in
+* Improved certificate verification with hostname validation and EV certificates support
+* Clarified output and lots of bug fixes
+* OS X Mountain Lion is now officially supported
+* Support for compression / CRIME testing
+
+
+## v 0.4
+* Support for OpenSSL 1.0.1 and TLS 1.1 and 1.2 scanning. See –tlsv1_1 and –tlsv1_2.
+* Support for HTTP CONNECT proxies. See –https_tunnel.
+* Support for StartTLS with SMTP and XMPP. See –starttls.
+* Improved/clarified output.
+* Various bug fixes.
+
+
+## v 0.3
+Initial public release.
+
+SSLyze
+======
+
+Fast and full-featured SSL scanner.
+
+
+Description
+-----------
+
+SSLyze is a Python tool that can analyze the SSL configuration of a server by
+connecting to it. It is designed to be fast and comprehensive, and should help
+organizations and testers identify misconfigurations affecting their SSL
+servers.
+
+Key features include:
+* Multi-processed and multi-threaded scanning (it's fast)
+* SSL 2.0/3.0 and TLS 1.0/1.1/1.2 compatibility
+* Performance testing: session resumption and TLS tickets support
+* Security testing: weak cipher suites, insecure renegotiation, CRIME, Heartbleed and more
+* Server certificate validation and revocation checking through OCSP stapling
+* Support for StartTLS handshakes on SMTP, XMPP, LDAP, POP, IMAP, RDP and FTP
+* Support for client certificates when scanning servers that perform mutual authentication
+* XML output to further process the scan results
+* And much more !
+
+
+Installation
+------------
+
+SSLyze requires Python 2.7; the supported platforms are Windows 7 32/64 bits,
+Linux 32/64 bits and OS X 64 bits.
+
+SSLyze is statically linked with OpenSSL. For this reason, the easiest
+way to run SSLyze is to download one the pre-compiled packages available in
+the GitHub releases section for this project, at
+https://github.com/iSECPartners/sslyze/releases.
+
+
+Usage
+-----
+
+### Command line options
+
+The following command will provide the list of available command line options:
+	$ python sslyze.py -h
+
+
+### Sample command line:
+
+	$ python sslyze.py --regular www.isecpartners.com:443 www.google.com
+
+See the test folder for additional examples.
+
+
+Build / nassl
+-------------
+
+SSLyze is all Python code but since version 0.7, it uses a custom OpenSSL
+wrapper written in C called nassl. The pre-compiled packages for SSLyze
+contain a compiled version of this wrapper in sslyze/nassl. If you want to
+clone the SSLyze repo, you will have to get a compiled version of nassl from
+one of the SSLyze packages and copy it to sslyze-master/nassl, in order to get
+SSLyze to run.
+
+The source code for nassl is hosted at https://github.com/nabla-c0d3/nassl.
+
+
+License
+--------
+
+GPLv2 - See LICENSE.txt.
+

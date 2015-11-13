@@ -1,0 +1,1263 @@
+## API Reference
+
+Below is the public API reference, for details on how to use Flanker (as well as examples) and details on how
+its internals work see the [User Manual](User Manual.md).
+
+### Address Parsing
+
+#### Classes
+
+##### EmailAddress
+
+EmailAddress represents a fully parsed email address with built-in support for MIME
+encoding. Display names are always returned in Unicode, i.e. ready to be displayed on
+web forms.
+
+| Parameter	     | Type      |  Description                                |
+| -------------- | --------- | ------------------------------------------- |
+| mailbox        | Property  | localpart (part before the `@`)             |
+| hostname       | Property  | domain (part after the `@`)                 |
+| address        | Property  | Address spec                                |
+| display_name   | Property  | Display name                                |
+| full_spec()    | Method    | Display name and address. RFC-2822 compliant, safe to be included into MIME |
+| to_unicode()   | Method    | Display name and address in unicode         |
+
+
+##### UrlAddress
+
+Represents a parsed URL.
+
+| Parameter	     | Type      |  Description                                |
+| -------------- | --------- | ------------------------------------------- |
+| address        | Property  |                                             |
+| hostname       | Property  |                                             |
+| port           | Property  | Port of URL, typically 80 for webservices   |
+| scheme         | Property  |                                             |
+| path           | Property  |                                             |
+| full_spec()    | Method    | Full URL                                    |
+| to_unicode()   | Method    | Converts address to unicode                 |
+
+
+All of the following functions are in the `flanker.addresslib.address` module.
+
+#### Parse Single Address
+
+Parse a single address or URL. Can parse just the address spec or the full mailbox.
+
+```python
+parse(address, addr_spec_only=False)
+```
+
+| Parameter	     | Description                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| address        | An address to parse. (Maximum: 512 characters)                                             |
+| addr_spec_only | Boolean to set if only parsing the address, not the display name as well. (Default: False) |
+
+*Return Value*: An EmailAddress object or None.
+
+#### Parse Address List
+
+Parse a list of addresses., operates in strict or relaxed modes. Strict
+mode will fail at the first instance of invalid grammar, relaxed modes
+tries to recover and continue.
+
+```python
+parse_list(address_list, strict=False, as_tuple=False)
+```
+
+| Parameter      | Description                                                                                                 |
+| -------------- | ----------------------------------------------------------------------------------------------------------- |
+| address_list   | A delimiter (either `,` or `;`) separated list of addresses. (Maximum: 524288 characters)                   |
+| strict         | Operate parser in strict (stop at any error) or relaxed (attempt to recover and continue). (Default: False) |
+| as_tuple       | Return just the parsed list addresses, or also the unparsed portions. (Default: False)                      |
+
+*Return Value*: If opearting in strict mode, returns a list of parsed EmailAddress objects. If operating
+in relaxed mode, can return a tuple that contains the parsed addresses and unparsable portions or just
+the parsed addresses in a list.
+
+#### Validate Address
+
+Validates (parse, plus dns, mx check, and custom grammar) a single
+address spec. In the case of a valid address returns an EmailAddress
+object, otherwise returns None.
+
+```python
+validate_address(addr_spec)
+```
+
+| Parameter	     | Description                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| address        | An address to parse. (Maximum: 512 characters)                                             |
+
+*Return Value*: An EmailAddress object or None.
+
+#### Validate Address List
+
+Validates an address list, and returns a tuple of parsed and unparsed
+portions. Can parse syntax only mode (no dns, mx check, or custom
+grammar).
+
+```python
+validate_list(addr_list, as_tuple=True)
+```
+
+| Parameter      | Description                                                                               |
+| -------------- | ----------------------------------------------------------------------------------------- |
+| address_list   | A delimiter (either `,` or `;`) separated list of addresses. (Maximum: 524288 characters) |
+| as_tuple       | Return just the parsed list addresses, or also the unparsed portions. (Default: False)    |
+
+*Return Value*: If opearting in strict mode, returns a list of parsed EmailAddress objects. If operating
+in relaxed mode, can return a tuple that contains the parsed addresses and unparsable portions or just
+the parsed addresses in a list.
+
+### MIME Parsing
+
+#### Classes
+
+##### MimePart
+
+| Function       | Type   | Description                          |
+| -------------- | ------ | ------------------------------------ |
+| size           | Method | Returns message size in bytes        |
+| headers        | Method | Returns multi dictionary with headers converted to unicode |
+| content_type   | Method | Returns object with properties: main - main part of content type, sub - subpart of content type, params - dictionary with parameters |
+| content_disposition   | Method    |  |
+| content_encoding      | Method    |  |
+| body                  | Method    | Returns decoded body |
+| charset               | Property  |  |
+| message_id            | Property  |  |
+| subject               | Property  |  |
+| clean_subject         | Method    |  |
+| references            | Method    | Retunrs message-ids referencing the message in accordance to jwz threading algo |
+| detected_format       | Method    |  |
+| detected_subtype      | Method    |  |
+| detected_content_type | Method    | Returns content type based on the body, content, file name and original content type supplied inside the message |
+| is_root               | Method    | |
+| set_root              | Method    | |
+| to_string             | Method    | Returns MIME representation of the message |
+| to_stream             | Method    | Serialzes the message using file like object |
+| was_changed           | Method    | |
+| walk                  | Method    | Returns iterator object traversing through the message parts, if you want to include the top level part into the iteration, use 'with_self' parameter. If you don't want to include parts of enclosed messages, use 'skip_enclosed' parameter. Each part itself provides headers, content_type and body members.|
+| is_attachment         | Method      | |
+| is_body               | Method      | |
+| is_inline             | Method      | |
+| is_delivery_notification | Method   | Tells whether a message is a system delivery notification |
+| get_attached_message     | Method   | Returns attached message if found, None otherwize |
+| remove_headers           | Method   | Removes all passed headers name in one operation |
+| to_python_message        | Method   | |
+| bounce                   | Property | If the message is bounce, retuns bounce object|
+| is_bounce                | Method   | Determines whether the message is a bounce message based on given threshold. 0.3 is a good conservative base|
+| enclose                  | Method   | |
+| append                   | Method   | |
+| decode_body              | Method   | |
+|decode_transfer_encoding  | Method   | |
+|decode_charset            | Method   | |
+|encode_body               | Method   | |
+|encode_charset            | Method   | |
+|encode_transfer_encoding  | Method   | |
+|choose_text_encoding      | Method   | |
+|stronger_encoding         | Method   | |
+|has_long_lines            | Method   | Returns True if text contains lines longer than a certain length. Some SMTP servers (Exchange) refuse to accept messages "wider" than certain length. |
+
+
+##### MimeHeaders
+
+Dictionary-like object that preserves the order and supports multiple values for the same key, knows whether it has been changed after the creation
+
+| Function       | Type   | Description                          |
+| -------------- | ------ | ------------------------------------ |
+| prepend        | Method |                                      |
+| add            | Method | Adds header without changing the existing headers with same name |
+| keys           | Method | Returns the keys. (message header names) It remembers the order in which they were added, what is really important|
+| transform      | Method | Accepts a function, getting a key, val and returning a new pair of key, val and applies the function to all header, value pairs in the message. |
+| items          | Method | Returns header,val pairs in the preserved order. |
+| iteritems      | Method | Returns iterator header,val pairs in the preserved order. |
+| get            | Method | Returns header value (case-insensitive). |
+| getall         | Method | Returns all header values by the given header name (case-insensitive) |
+| have_changed   | Method | Tells whether someone has altered the headers after creation|
+| from_stream    | Method | Takes a stream and reads the headers, decodes headers to unicode dict like object |
+| to_stream      | Method | Takes a stream and serializes headers in a mime format |
+
+
+All of the following functions are in the `flanker.mime.create` module.
+
+#### Parsing a string into a `MIMEPart` object.
+
+If you are parsing MIME messages, the is the function you should be calling.
+
+```python
+from_string(string)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| string         | The string to parse into a MIMEPart object |
+
+*Return Value*: A MIMEPart object representing the parsed string.
+
+#### Creating a `MIMEPart` object
+
+The following methods are used to create various MIME objects. Examples of how to use them
+to create full MIME messages are in the [User Manual](User Manual.md).
+
+##### Create Multipart Message 
+
+Creates an empty multipart MIME message.
+
+```python
+multipart(subtype)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| subtype        | Subtype of message content (second part of `Content-Type`). Common subtypes are `plain`, `html`, `mixed`, `alternative`
+
+*Return Value*: `flanker.mime.message.part.MimePart` object.
+
+##### Create Multipart Message 
+
+Creates a message container.
+
+```python
+message_container(message)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| message        | MIME message                               |
+
+*Return Value*: `flanker.mime.message.part.MimePart` object.
+
+##### Create a MIME text content object
+
+Creates a MIME text content object.
+
+```python
+text(subtype, body, charset=None, disposition=None, filename=None)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| subtype        | Subtype of message content (second part of `Content-Type`). Common subtypes are `plain`, `html`, `mixed`, `alternative`
+| body           | The content itself                         |
+| charset        | The character set of the message. A common value is `ascii` |
+| disposition    | Specifies the presentation style. Common disposition values are `inline` and `attachment` |
+| filename       | Name of the file                           |
+
+*Return Value*: `flanker.mime.message.part.MimePart` object.
+
+##### Create a MIME binary content object
+
+Creates a MIME binary content object.
+
+```python
+binary(maintype, subtype, body, filename=None, disposition=None, charset=None)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| maintype       | Type of the message content (first part of `Content-Type`). Common values are `text`, `image`, and `multipart` |                                           |
+| subtype        | Subtype of message content (second part of `Content-Type`). Common subtypes are `plain`, `html`, `mixed`, `alternative`
+| body           | The content itself                         |
+| charset        | The character set of the message. A common value is `ascii` |
+| disposition    | Specifies the presentation style. Common disposition values are `inline` and `attachment` |
+| filename       | Name of the file                           |
+
+*Return Value*: `flanker.mime.message.part.MimePart` object.
+
+##### Create a MIME attachment content object
+
+Creates a MIME attachment content object.
+
+```python
+attachment(content_type, body, filename=None, disposition=None, charset=None)
+```
+
+| Parameter 	   | Description                                |
+| -------------- | ------------------------------------------ |
+| content_type   | Type of the message content. Common values are `text/plain` and `image/png` |
+| body           | The content itself                         |
+| charset        | The character set of the message. A common value is `ascii` |
+| disposition    | Specifies the presentation style. Common disposition values are `inline` and `attachment` |
+| filename       | Name of the file                           |
+
+*Return Value*: `flanker.mime.message.part.MimePart` object.
+
+## Benchmarks
+
+Below is a comparison between the default Python MIME parser and
+`flanker.mime` in Time, Memory, and Function calls as well as other
+benchmarks relating to Flanker performance.
+
+### Test Specification:
+
+* 2x Intel Core i7-3520M CPU @ 2.90GHz
+* 2 GB RAM
+* Results were averaged over 50 runs
+
+#### Time
+
+Full Message:
+
+| File Size | `email.parser` (seconds) | `flanker.mime` (seconds) | Speedup |
+| --------- | ------------------------ | ------------------------ | ------- |
+| 11 MB     | 0.601                    | 0.073                    | 8x      |
+| 1.8 MB    | 0.113                    | 0.011                    | 10x     |
+| 16 KB     | 0.001                    | 0.003                    | 0.33x   |
+
+Headers Only:
+
+| File Size | `email.parser` (seconds) | `flanker.mime` (seconds) | Speedup |
+| --------- | ------------------------ | ------------------------ | ------- |
+| 11 MB     | 0.601                    | 0.029                    | 20x     |
+| 1.8 MB    | 0.113                    | 0.009                    | 12x     |
+| 16 KB     | 0.001                    | 0.002                    | 0.5x    |
+
+
+#### Peak Memory Usage (including interpreter)
+
+Full Message:
+
+| File Size | `email.parser` (MB) | `flanker.mime` (MB) | Memory Difference |
+| --------- | ------------------- | ------------------- | ----------------- |
+| 11 MB     | 59.51               | 46.27               | 0.77x             |
+| 1.8 MB    | 30.55               | 28.52               | 0.93x             |
+| 16 KB     | 28.45               | 28.51               | 0x                |
+
+Headers Only:
+
+| File Size | `email.parser` (MB) | `flanker.mime` (MB) | Memory Difference |
+| --------- | ------------------- | ------------------- | ----------------- |
+| 11 MB     | 59.51               | 28.07               | 0.47x             |
+| 1.8 MB    | 30.55               | 28.52               | 0.93x             |
+| 16 KB     | 28.45               | 28.52               | 0x                |
+
+
+#### Function Calls
+
+Full Message:
+
+| File Size | `email.parser` (#) | `flanker.mime` (#) | Speedup |
+| --------- | ------------------ | ------------------ | ------- |
+| 11 MB     | 914,741            | 2,011              | 454x    |
+| 1.8 MB    | 195,062            | 11,046             | 17x     |
+| 16 KB     | 3,216              | 3,5842             | -1.1x   |
+
+Headers Only:
+
+| File Size | `email.parser` (#) | `flanker.mime` (#) | Speedup |
+| --------- | ------------------ | ------------------ | ------- |
+| 11 MB     | 914,741            | 1,253              | 730x    |
+| 1.8 MB    | 195,062            | 9,741              | 20x     |
+| 16 KB     | 3,216              | 2,476              | 1.2x    |
+
+
+#### Pinned Regex 
+
+Even though `master` does not use a pinned version of regex, we strongly recommend
+due to the 6x speedup compared to the latest version on PyPi (as of 4/15/14). It may
+not be an issue for someone that handles many small files, but is an issue for large
+files.
+
+| File Size | `regex.1.20110315` (seconds) | `regex 2014.04.10` (seconds) | Speedup |
+| --------- | ---------------------------- | ---------------------------- | ------- |
+| [11 MB](https://github.com/mailgun/flanker/blob/master/tests/fixtures/messages/big.eml) | 0.0720 | 0.4652 | 6x |
+
+## User Manual
+
+### Table of Contents
+
+* [Inroduction](#introduction)
+* [Address Parsing](#address-parsing)
+    * [Parsing](#parsing)
+        * [Grammar](#grammar)
+        * [Parsing Single Address](#parsing-single-address)
+        * [Parsing Address List](#parsing-address-list)
+    * [Validating](#validating)
+* [MIME Parsing](#mime-parsing)
+    * [Rationale](#rationale)
+    * [Drawbacks](#drawbacks)
+    * [Parsing MIME Messages](#parsing-mime-messages)
+    * [Creating MIME Messages](#creating-mime-messages)
+
+### Introduction
+
+Flanker is an open source parsing library written in Python by the Mailgun Team.
+Flanker currently consists of an address parsing library (`flanker.addresslib`) as
+well as a MIME parsing library (`flanker.mime`).
+
+This document provides an overview of both address parsing and MIME parsing capabilities.
+
+### Address Parsing
+
+`flanker.addresslib` can both parse addresses as well as validate addresses. Parsing
+simply consists of parsing the email address based off a context free grammar. Validation
+consists of the previous parsing step, but also includes DNS lookups on the domain,
+Mail Exchanger (MX) validation, and testing against custom grammar for the particular Email
+Service Provider (ESP) if it exists.
+
+#### Parsing
+
+The address parser is an implementation of a recursive descent parser for email addresses
+and urls. The grammar supported by the parser (as well as other limitations) are outlined
+below. For email addresses, the grammar tries to stick to RFC 5322 as much as possible,
+but includes relaxed (lax) grammar as well to support for common realistic uses of email
+addresses on the Internet.
+
+##### Grammar
+
+```
+address-list     -> address { delimiter address }
+mailbox          -> name-addr-rfc | name-addr-lax | addr-spec | url
+
+name-addr-rfc    -> [ display-name-rfc ] angle-addr-rfc
+display-name-rfc -> [ whitespace ] word { whitespace word }
+angle-addr-rfc   -> [ whitespace ] < addr-spec > [ whitespace ]
+
+name-addr-lax    -> [ display-name-lax ] angle-addr-lax
+display-name-lax -> [ whitespace ] word { whitespace word } whitespace
+angle-addr-lax   -> addr-spec [ whitespace ]
+
+addr-spec        -> [ whitespace ] local-part @ domain [ whitespace ]
+local-part       -> dot-atom | quoted-string
+domain           -> dot-atom
+
+word             -> word-ascii | word-unicode
+word-ascii       -> atom | quoted-string
+word-unicode     -> unicode-alphanum | unicode-qstring
+whitespace       -> whitespace-ascii | whitespace-unicode
+```
+
+Additional limitations on email addresses:
+
+1. local-part:
+    * Must not be greater than 128 octets
+2. domain:
+    * No more than 127 levels
+    * Each level no more than 63 octets
+    * Textual representation can not exceed 253 characters
+    * No level can begin or end with -
+3. Maximum mailbox length is len(local-part) + len('@') + len(domain) which
+is 64 + 1 + 253 = 318 characters. Allow 194 characters for a display
+name and the (very generous) limit becomes 512 characters. Allow 1024
+mailboxes and the total limit on a mailbox-list is 524288 characters.
+
+##### Parsing Single Address
+
+The parser can be used to parse mailboxes, here a mailbox is defined as a
+display name as well as a address spec. The parser can parse the entire
+mailbox (both display name and address spec) or the address spec alone.
+
+###### Example: Parsing a full mailbox
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.parse('Foo foo@example.com')
+Foo <foo@example.com>
+```
+
+###### Example: Parsing the address spec only
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.parse('foo@example.com', addr_spec_only=True)
+foo@example.com
+```
+
+###### Example: Parsing an invalid address
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> print address.parse('@example.com')
+None
+```
+
+##### Parsing Address List
+
+The address parser can also be used the parse a list of addresses. When given
+a string of email addresses and/or urls separated by a delimiter (comma `,` or
+semi-colon `;`), the parser will return returns an iterable list representing
+parsed email addresses and urls.
+
+The parser can operate in strict or relaxed modes. In strict mode the parser will
+quit at the first occurrence of error and return what has been parsed so far. In
+relaxed mode the parser will attempt to seek to to known valid location (the delimiter)
+and continue parsing. In relaxed mode the parser can return a tuple representing the
+valid parsed addresses and unparsable portions respectively.
+
+###### Example: Parse a list of addresses (relaxed mode)
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.parse_list('foo@example.com, bar@example.com, @example.com')
+[foo@example.com, bar@example.com]
+```
+
+###### Example: Parse a list of addresses (relaxed mode)
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.parse_list('foo@example.com, bar@example.com, @example.com', as_tuple=True)
+[foo@example.com, bar@example.com], ['@example.com']
+```
+
+###### Example: Parse a list of addresses (strict mode)
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.parse_list('foo@example.com, bar@example.com, @example.com', strict=True)
+[foo@example.com, bar@example.com]
+```
+
+#### Validating
+
+Validation includes the parsing steps outlined above, then:
+
+1. **DNS Lookup.** Once an address is parsed, the validator attempts a DNS lookup on the
+domain. MX records are checked first, if they don't exist, the validator will fall back to
+A records. If neither MX or A records exist, the address is considered invalid.
+
+    By default, `flanker` uses the `dnsq` library (also written by Mailgun) to perform DNS
+    lookups, however use of `dnsq` is not required. Any DNS lookup library can be used as
+    long as it conforms to the same interface as that of a `dict`. See 
+    [flanker/addresslib/drivers/dns_lookup.py](../flanker/addresslib/drivers/dns_lookup.py)
+    for an example.
+
+2. **MX Existance.** If the DNS lookup in the previous step returned a valid MX or A record
+that address is checked to ensure that a Mail Exchanger responds on port `25`. If no Mail
+Exchanger responds, the domain is considered invalid.
+
+    DNS Lookup then Mail Exchanger existence checks are expensive, and the result of the
+    above two steps can be cached to improve performance. `flanker` by default uses Redis
+    for this cache, but use of Redis is not required. Similar to the DNS lookup library,
+    any cache can be used here, as long as the interface as the same as that of a `dict`.
+    See [flanker/addresslib/drivers/redis_cache.py](../flanker/addresslib/drivers/redis_cache.py)
+    for an example.
+
+3. **Custom Grammar.** Large ESPs rarely if ever support the full grammar that the RFC allows
+for email addresses, in fact most have a fairly restrictive grammar. For example, a Yahoo! Mail
+address must be between 4-32 characters and can only use alphanum, dot `.` and underscore `_`.
+If the mail exchanger in the previous step matches the mail exchanger for a ESP with known
+grammar, then the validator will run that additional check on the localpart of the address.
+
+    Custom grammar can be added by adding a plugin for the specific ESP to the
+    `flanker/addresslib/plugins` directory. Then update
+    [flanker/addresslib/__init__.py](../flanker/addresslib/__init__.py) to include the MX pattern
+    for the ESP you wish to add and add it to the `CUSTOM_GRAMMAR_LIST`.
+
+4. **Alternate Suggestion.** A separate, though related step, is spelling correction on the
+domain portion of an email address. This can be used to correct common typos like `gmal.com`
+instead of `gmail.com`. The spelling corrector uses `difflib` which in turn uses the
+[Ratcliff-Obershelp](http://xlinux.nist.gov/dads/HTML/ratcliffObershelp.html) algorithm
+to compute the similarity of two strings. This is a very fast an accurate algorithm for
+domain spelling correction.
+
+###### Example: Validate a single email address
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.validate_address('foo@mailgun.com')
+foo@mailgun.com
+```
+
+###### Example: Validate an address list
+
+```python
+>>> from flanker.addresslib import address
+>>>
+>>> address.validate_list('foo@mailgun.com, bar@mailgun.com, @mailgun.com', as_tuple=True)
+([foo@mailgun.com, bar@mailgun.com], ['@mailgun.com'])
+```
+
+###### Example: Use the spelling corrector
+
+```python
+>>> from flanker.addresslib import validate
+>>> validate.suggest_alternate('foo@mailgu.net')
+'foo@mailgun.net'
+```
+
+###### Example: Use a custom DNS lookup library
+
+```python
+>>> import flanker.addresslib
+>>> flanker.addresslib.set_dns_lookup(custom_dns_lookup_library)
+```
+
+###### Example: Use a custom MX cache
+
+```python
+>>> import flanker.addresslib
+>>> flanker.addresslib.set_mx_cache(custom_mx_cache_library)
+```
+
+### MIME Parsing
+
+`flanker.mime` is a complete MIME handling package for parsing and creating MIME
+messages. `flanker.mime` is is faster and more memory efficient than the
+standard Python MIME parser. The parser also attempts to preserve encodings when
+possible.
+
+#### Rationale
+
+Mailgun parses a lot of MIME, and therefore requires a fast and efficient
+MIME handling package. Depending on the MIME message being processed, `flanker.mime`
+can be up to **20x faster** than the standard Python MIME parsing package,
+use **0.47x the memory**, and make up to **730x fewer function calls**.
+
+Where flanker really shines is header parsing. Flanker doesn't parse the entire
+message if you are only interested in the headers, this gives you fast
+access to headers if your MIME message is 1 KB or 10 MB.
+
+More details are provided on our [Benchmarking](Benchmarks.md) page.
+
+#### Some more differences
+
+| `email.parser`                           | `flanker.mime`                            |
+| ---------------------------------------- | ----------------------------------------- |
+| Splits the message into array of lines, then joins them after the parsing. | Stores the message in one string. |
+| Does not preserve the original encodings when altering the message. | Converts headers to unicode, detects and preserves encodings when possible. |
+| Does not return unchanged parts upon serialization. |Tracks changes and returns unchanged parts unchanged upon serialization. |
+
+#### Drawbacks
+
+If processing a broken MIME message, falls back to `flanker.mime.fallback.FallbackMessage`
+which relies on the standard Python parser `email.parser` to fix the broken MIME and
+force broken encodings in bodies and headers. However, beware that it
+can loose some information because of broken or unknown encodings.
+
+#### Parsing MIME messages
+
+For the following examples, the below MIME messages will be used as examples, they will be
+refered to as `message_singlepart` and `message_multipart` respectivly.
+
+**message_singlepart**:
+```
+MIME-Version: 1.0
+Content-Type: text/plain
+From: Bob <bob@example.com>
+To: Alice <alice@example.com>
+Subject: hello, singlepart message
+Date: Mon, 16 Sep 2013 12:43:03 -0700
+
+Hello Alice, this is a single part message.
+```
+
+**message_multipart**:
+```
+MIME-Version: 1.0
+Content-Type: multipart/alternative; boundary=001a11c1d71697c7f004e6856996
+From: Bob <bob@example.com>
+To: Alice <alice@example.com>
+Subject: hello, multipart message
+Date: Mon, 16 Sep 2013 12:43:03 -0700
+
+--001a11c1d71697c7f004e6856996
+Content-Type: text/plain; charset=us-ascii
+
+Hello, *Alice*
+
+--001a11c1d71697c7f004e6856996
+Content-Type: text/html; charset=us-ascii
+
+<p>Hello, <b>Alice</b></p>
+
+--001a11c1d71697c7f004e6856996--
+```
+
+###### Example: Parse MIME messages
+
+```python
+>>> from flanker import mime
+>>>
+>>> msg = mime.from_string(message_string)
+```
+
+###### Example: Print all MIME message headers
+
+```python
+>>> from flanker import mime
+>>>
+>>> # parse singlepart message
+>>> msg = mime.from_string(message_multipart)
+>>> msg.headers.items()
+[('Mime-Version', '1.0'),
+ ('Content-Type', ('text/plain', {})),
+ ('From', 'Bob <bob@example.com>'),
+ ('To', 'Alice <alice@example.com>'),
+ ('Subject', 'hello, singlepart message'),
+ ('Date', 'Mon, 16 Sep 2013 12:43:03 -0700')]
+>>>
+>>> # parse multipart message
+>>> msg = mime.from_string(message_multipart)
+>>> msg.headers.items()
+[('Mime-Version', '1.0'),
+ ('Content-Type',
+  ('multipart/alternative', {'boundary': u'001a11c1d71697c7f004e6856996'})),
+ ('From', 'Bob <bob@example.com>'),
+ ('To', 'Alice <alice@example.com>'),
+ ('Subject', 'hello, world'),
+ ('Date', 'Mon, 16 Sep 2013 12:43:03 -0700')]
+```
+
+###### Example: Find the content_type with predicates
+
+```python
+>>> from flanker import mime
+>>>
+>>> # parse the singlepart message
+>>> msg = mime.from_string(message_singlepart)
+>>> msg.content_type.is_singlepart()
+True
+>>> msg.content_type.is_multipart()
+False
+>>>
+>>> # parse the multipart message
+>>> msg = mime.from_string(message_multipart)
+>>> msg.content_type.is_singlepart()
+False
+>>> msg.content_type.is_multipart()
+True
+```
+
+###### Example: Decode the body of a message
+
+```python
+>>> from flanker import mime
+>>>
+>>> # parse singlepart message
+>>> msg = mime.from_string(message_singlepart)
+>>> msg.body
+u'Hello Alice, this is a single part message.\n'
+>>>
+>>> # parse multipart message
+>>> msg = mime.from_string(message_multipartpart)
+>>> for part in msg.parts:
+       print 'Content-Type: {} Body: {}'.format(part, part.body)
+
+Content-Type: (text/plain) Body: Hello, *Alice*
+Content-Type: (text/html) Body: <p>Hello, <b>Alice</b></p>
+```
+
+###### Example: Miscellaneous message properties
+
+```python
+>>> from flanker import mime
+>>>
+>>> # parse singlepart message
+>>> msg = mime.from_string(message_singlepart)
+>>> msg.content_type
+('text/plain', {})
+>>> msg.content_encoding
+('7bit', {})
+>>> msg.charset
+'ascii'
+>>> msg.subject
+'hello, singlepart message'
+>>>
+>>> # parse multipart message
+>>> msg = mime.from_string(message_multipartpart)
+>>> msg.content_type
+('multipart/alternative', {'boundary': u'001a11c1d71697c7f004e6856996'})
+>>> msg.content_encoding
+('7bit', {})
+>>> msg.charset
+'ascii'
+>>> msg.subject
+'hello, multipart message'
+```
+
+#### Creating MIME messages
+
+###### Example: Create simple singlepart message
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> message = create.text("plain", "hello, world")
+>>> message.headers['From'] = u'Alice <alice@example.com>'
+>>> message.headers['To'] = u'Bob <bob@example.com>'
+>>> message.headers['Subject'] = u"hey"
+>>> message = create.from_string(message.to_string())
+>>> print message.to_string()
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+From: Alice <alice@example.com>
+To: Bob <bob@example.com>
+Subject: hey
+Content-Transfer-Encoding: 7bit
+
+hello, world
+```
+
+###### Example: Create simple multipart message
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> message = create.multipart("mixed")
+>>> message.headers['From'] = u'Alice <alice@example.com>'
+>>> message.headers['To'] = u'Bob <bob@example.com>'
+>>> message.headers['Subject'] = u"hey"
+>>> message.append(
+   create.text("plain", "hello, world"),
+   create.text("html", "<html>hello, world</html>"))
+>>> print message.to_string()
+Content-Type: multipart/mixed; boundary="4061c73ddfd74b2fbd8e67d386408bc1"
+Mime-Version: 1.0
+From: Alice <alice@example.com>
+To: Bob <bob@example.com>
+Subject: hey
+
+--4061c73ddfd74b2fbd8e67d386408bc1
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+hello, world
+--4061c73ddfd74b2fbd8e67d386408bc1
+Mime-Version: 1.0
+Content-Type: text/html; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+<html>hello, world</html>
+--4061c73ddfd74b2fbd8e67d386408bc1--
+```
+
+###### Example: Create multipart message with attachment
+
+This example assumes you have a file on your disk called `hi.png`.
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> message = create.multipart("mixed")
+>>> message.headers['From'] = u'Alice <alice@example.com>'
+>>> message.headers['To'] = u'Bob <bob@example.com>'
+>>> message.headers['Subject'] = u"hey"
+>>> filename = "hi"
+>>> attach_file = open('hi.png').read()
+>>> message.append(
+       create.text("plain", "hello, world"),
+       create.text("html", "<html>hello, world</html>"),
+       create.binary(
+          "image", "png", attach_file,
+           filename, "attachment"))
+>>> print message.to_string()
+Content-Type: multipart/mixed; boundary="98f09b51060d48ecbdc780ffc1a66219"
+Mime-Version: 1.0
+From: Alice <alice@example.com>
+To: Bob <bob@example.com>
+Subject: hey
+
+--98f09b51060d48ecbdc780ffc1a66219
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+hello, world
+--98f09b51060d48ecbdc780ffc1a66219
+Mime-Version: 1.0
+Content-Type: text/html; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+<html>hello, world</html>
+--98f09b51060d48ecbdc780ffc1a66219
+Mime-Version: 1.0
+Content-Type: image/png; charset="ascii"; name="hi"
+Content-Disposition: attachment; filename="hi"
+Content-Transfer-Encoding: base64
+
+iVBORw0KGgoAAAANSUhEUgAAAAcAAAAGCAYAAAAPDoR2AAAALklEQVQI12P8////fwYcgImBgYGB
+kZERRRDGZ8KmA2YYE7JqmA4MndisZsTnIADHtg4MwlUWUgAAAABJRU5ErkJggg==
+--98f09b51060d48ecbdc780ffc1a66219--
+```
+
+###### Example: Create multipart nested message
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> message = create.multipart("mixed")
+>>> nested = create.multipart("alternative")
+>>> nested.append(
+    create.text("plain", u"hello, world"),
+    create.text("html", u"<html>hello, world</html>"))
+>>> message.append(
+    create.text("plain", "goodbye"),
+    nested)
+>>> message2 = create.from_string(message.to_string())
+>>> print message2.to_string()
+Content-Type: multipart/mixed; boundary="e171233d2cf24767b020b410eb0024a8"
+Mime-Version: 1.0
+
+--e171233d2cf24767b020b410eb0024a8
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+goodbye
+--e171233d2cf24767b020b410eb0024a8
+Content-Type: multipart/alternative; boundary="81690f11390b4d9f8d74c092183507f4"
+Mime-Version: 1.0
+
+--81690f11390b4d9f8d74c092183507f4
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+hello, world
+--81690f11390b4d9f8d74c092183507f4
+Mime-Version: 1.0
+Content-Type: text/html; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+<html>hello, world</html>
+--81690f11390b4d9f8d74c092183507f4--
+
+--e171233d2cf24767b020b410eb0024a8--
+```
+
+###### Example: Create enclosed message
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> message = create.text("plain", u"hello, world")
+>>> message.headers['From'] = u'Alice <alice@example.com>'
+>>> message.headers['To'] = u'Bob <bob@example.com>'
+>>> message.headers['Subject'] = u"hi"
+>>> message = create.message_container(message)
+>>> message2 = create.from_string(message.to_string())
+>>> print message2.to_string()
+Content-Type: message/rfc822
+Mime-Version: 1.0
+
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+From: Alice <alice@example.com>
+To: Bob <bob@example.com>
+Subject: hi
+Content-Transfer-Encoding: 7bit
+
+hello, world
+```
+
+###### Example: Create enclosed nested message
+
+```python
+>>> from flanker.mime import create
+>>>
+>>> nested = create.multipart("alternative")
+>>> nested.append(
+    create.text("plain", u"hello, world"),
+    create.text("html", u"<html>hello, world</html>"))
+>>> message = create.multipart("mailgun-recipient-variables")
+>>> variables = {"name": u"<b>Alice</b>"}
+>>> message.append(
+    create.binary("application", "json", json.dumps(variables)),
+    create.message_container(nested))
+>>> message2 = create.from_string(message.to_string())
+>>> print message2.to_string()
+Content-Type: multipart/mailgun-recipient-variables; boundary="13f551bddf2e4759b125f70674288048"
+Mime-Version: 1.0
+
+--13f551bddf2e4759b125f70674288048
+Mime-Version: 1.0
+Content-Type: application/json; charset="ascii"
+Content-Transfer-Encoding: base64
+
+eyJuYW1lIjogIjxiPkFsaWNlPC9iPiJ9
+--13f551bddf2e4759b125f70674288048
+Content-Type: message/rfc822
+Mime-Version: 1.0
+
+Content-Type: multipart/alternative; boundary="9b7c73fe7191458f8757e26dacffc966"
+Mime-Version: 1.0
+
+--9b7c73fe7191458f8757e26dacffc966
+Mime-Version: 1.0
+Content-Type: text/plain; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+hello, world
+--9b7c73fe7191458f8757e26dacffc966
+Mime-Version: 1.0
+Content-Type: text/html; charset="ascii"
+Content-Transfer-Encoding: 7bit
+
+<html>hello, world</html>
+--9b7c73fe7191458f8757e26dacffc966--
+
+--13f551bddf2e4759b125f70674288048--
+```
+
+Hacking
+=======
+
+### Installing
+
+See the [Quickstart Guide](README.md) for instructions on how to install Flanker.
+
+### Running Tests
+
+Call `nosetests` in the `tests` directory to run unit tests. Note, some (network based) tests use `mock`.
+
+```bash
+$ cd ~/flanker/tests
+$ nosetests
+S..S..S..S..S..S.............................................SS................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 223 tests in 2.256s
+
+OK (SKIP=8)
+````
+
+Call with `--no-skip` to run all tests.
+
+```bash
+$ cd ~/flanker/tests
+$ nosetests --no-skip
+...............................................................................................................................................................................................................................
+----------------------------------------------------------------------
+Ran 223 tests in 7.806s
+
+OK
+```
+
+### Discussion
+
+Please use GitHub issues to discuss bugs, feature requests, and any other issues you may have with Flanker.
+
+### Code Style Guidelines
+
+Try to stick as close as possible to PEP8.
+
+### Sending Pull Requests
+
+Please ensure that any changes you make to Flanker are covered by tests.
+
+.. image:: https://drone.io/github.com/mailgun/flanker/status.png
+
+*******
+Flanker
+*******
+
+Flanker is an open source parsing library written in Python by the Mailgun Team.
+Flanker currently consists of an address parsing library (`flanker.addresslib`) as
+well as a MIME parsing library (`flanker.mime`).
+
+Detailed documentation is provided in the `User Manual <https://github.com/mailgun/flanker/blob/master/docs/User%20Manual.md>`_ as well as the
+`API Reference <https://github.com/mailgun/flanker/blob/master/docs/API%20Reference.md>`_. A Quickstart Guide is provided below.
+
+Quickstart Guide
+################
+
+Installing
+**********
+
+**Flanker was built and tested with Python 2.7.2.**
+
+You can install flanker via `pip` or clone the repo from GitHub.
+
+You'll need Python headers files before you start working with flanker, so install them first:
+
+.. code-block:: bash
+
+   # ubuntu 
+   sudo apt-get install python-dev
+   # fedora 
+   sudo yum install python-devel
+
+If you are using `pip`, simply type:
+
+
+.. code-block:: bash
+
+   pip install flanker
+
+*Note about installing from PyPi. Installing without specifying a version number will
+install the latest version from PyPi that does not pin version dependences. This version
+of Flanker will most likely work, but is not guaranteed. If you want to run a guaranteed
+to work version of Flanker, run the version where we pin dependences, which is one lower
+major version number. For example, if the current release is `0.4.4` then the stabled
+pinned dependency version is `0.3.4`.*
+
+If you are cloning from GitHub, you can type:
+
+.. code-block:: bash
+
+   git clone git@github.com:mailgun/flanker.git
+   cd flanker
+   python setup.py install
+
+Address Parsing
+***************
+
+To parse a single mailbox (display name as well as email address):
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.parse('Foo foo@example.com')
+   Foo <foo@example.com>
+
+An invalid address is returned as `None`:
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> print address.parse('@example.com')
+   None
+
+To parse a single email address (no display name):
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.parse('foo@example.com', addr_spec_only=True)
+   foo@example.com
+
+To parse an address list:
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.parse_list('foo@example.com, bar@example.com, @example.com')
+   [foo@example.com, bar@example.com]
+
+To parse an address list as well as return a tuple containing the parsed 
+addresses and the unparsable portions
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.parse_list('foo@example.com, bar@example.com, @example.com', as_tuple=True)
+   [foo@example.com, bar@example.com], ['@example.com']
+
+To parse an address list in strict mode:
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.parse_list('foo@example.com, bar@example.com, @example.com', strict=True)
+   [foo@example.com, bar@example.com]
+
+To validate an email address (parse as well as DNS, MX existence, and ESP grammar checks):
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.validate_address('foo@mailgun.com')
+   foo@mailgun.com
+
+To validate an address list:
+
+.. code-block:: py
+
+   >>> from flanker.addresslib import address
+   >>>
+   >>> address.validate_list('foo@mailgun.com, bar@mailgun.com, @mailgun.com', as_tuple=True)
+   ([foo@mailgun.com, bar@mailgun.com], ['@mailgun.com'])
+
+MIME Parsing
+************
+
+For the following examples, `message_string` will be set to the following MIME message:
+
+::
+
+   MIME-Version: 1.0
+   Content-Type: multipart/alternative; boundary=001a11c1d71697c7f004e6856996
+   From: Bob <bob@example.com>
+   To: Alice <alice@example.com>
+   Subject: hello, world
+   Date: Mon, 16 Sep 2013 12:43:03 -0700
+   
+   --001a11c1d71697c7f004e6856996
+   Content-Type: text/plain; charset=us-ascii
+   
+   Hello, *Alice*
+   
+   --001a11c1d71697c7f004e6856996
+   Content-Type: text/html; charset=us-ascii
+   
+   <p>Hello, <b>Alice</b></p>
+   
+   --001a11c1d71697c7f004e6856996--
+   
+To parse a MIME message:
+
+.. code-block:: py
+
+   >>> from flanker import mime
+   >>>
+   >>> msg = mime.from_string(message_string)
+
+MIME message headers (unicode multi-value dictionary with headers):
+
+.. code-block:: py
+
+   >>> from flanker import mime
+   >>>
+   >>> msg = mime.from_string(message_string)
+   >>> msg.headers.items()
+   [('Mime-Version', '1.0'),
+    ('Content-Type',
+     ('multipart/alternative', {'boundary': u'001a11c1d71697c7f004e6856996'})),
+    ('From', 'Bob <bob@example.com>'),
+    ('To', 'Alice <alice@example.com>'),
+    ('Subject', 'hello, world'),
+    ('Date', 'Mon, 16 Sep 2013 12:43:03 -0700')]
+
+Useful content_type member with predicates:
+
+.. code-block:: py
+
+   >>> from flanker import mime
+   >>> msg = mime.from_string(message_string)
+   >>>
+   >>> msg.content_type.is_multipart()
+   True
+   >>>
+   >>> msg.content_type.is_singlepart()
+   False
+   >>>
+   >>> msg.content_type.is_message_container()
+   False 
+
+Decoded body of a message:
+
+.. code-block:: py
+
+   >>> from flanker import mime
+   >>> msg = mime.from_string(message_string)
+   >>>
+   >>> # None because message is multipart
+   >>> print msg.body
+   None
+   >>>
+   >>> for part in msg.parts:
+          print 'Content-Type: {} Body: {}'.format(part, part.body)
+
+   Content-Type: (text/plain) Body: Hello, *Alice*
+   Content-Type: (text/html) Body: <p>Hello, <b>Alice</b></p>
+
+   >>> # None because no enclosed messages exist
+   >>> print msg.enclosed
+   None
+

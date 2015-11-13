@@ -1,0 +1,265 @@
+Intro
+=====
+
+I've been interested in the [Emotiv EPOC](http://emotiv.com/) headset for a while; a $300 14-sensor EEG.  It's intended for gaming, but it's quite high quality.  There's a research SDK available for $750, but it's Windows-only and totally proprietary.  I decided to hack it, and open the consumer headset up to development.  Thanks to [donations](http://pledgie.com/campaigns/12906) I got some hardware in hand this weekend.
+
+I'm happy to announce the Emokit project, an open source interface to the EPOC.  The goal is to open it up to development and enable new products and research.  For the first time, we have access to a high-quality EEG for $300 -- this is huge.
+
+Code
+====
+
+The code is available on github on the [daeken/Emokit](http://github.com/daeken/Emokit) repository.  There's a Python library for interacting with the EPOC, as well as a renderer that will graph the sensor data.
+
+![Graph in debug mode](http://i53.tinypic.com/34yyy47.jpg)
+
+Where things are right now
+==========================
+
+You can access raw EEG data from the Emotiv EPOC on Windows, Linux, and OS X from Python. Sensor locations can be found at https://github.com/bschumacher/emokit-1/wiki/Sensor-Locations.  Word of warning: this project is less than 48 hours old (I just got hardware in my hands Saturday night) and has only been run by me on Windows due to a dead Linux box.  It's very much alpha quality right now -- don't trust it.
+
+How it happened
+===============
+
+The first step was to figure out how exactly the PC communicates with it.  This part was straightforward; it's a USB device with VID=21A1, PID=0001 (note: from walking through the device enum code in the EDK, it seems that PID=0002 might be the development headset, but that's totally unverified).  It presents two HID interfaces, "EPOC BCI" and "Brain Waves".  Reading data off the "Brain Waves" interface gives you reports of 32 bytes at a time; "EPOC BCI" I'm unsure about.
+
+Next step was to read some data off the wire and figure out what's going on.  I utilized the pywinusb.hid library for this.  It was immediately apparent that it's encrypted, so figuring out what the crypto was became the top priority.  This took a couple hours due to a few red herrings and failed approaches, but here's what it boiled down to:
+
+- Throw EmotivControlPanel.exe into IDA.
+- Throw EmotivControlPanel.exe into PeID and run the Krypto Analyzer plugin on it.
+- You'll see a Rijndael S-Box (used for AES encryption and key schedule initialization) come up from KAnal.
+- Using IDA, go to the S-Box address.
+- You'll see a single function that references the S-Box -- this is the key initialization code (*not* encryption, as I originally thought).
+- Use a debugger (I used the debugger built into IDA for simplicity's sake) and attach to the beginning of the key init function.
+- You'll see two arguments: a 16-byte key and an integer containing `16`.
+
+So that you don't have to do that yourself, here's the key: 31003554381037423100354838003750 or `1\x005T8\x107B1\x005H8\x007P`.  Given that, decrypting the data is trivial: it's simply 128-bit AES in ECB mode, block size of 16 bytes.
+
+The first byte of each report is a counter that goes from 0-127 then to 233, then cycles back to 0.  Once this was determined, I figured out the gyro data.  To do that, I broke out pygame and wrote a simple app that drew a rectangle at the X and Y coords coming from two bytes of the records.  I pretty quickly figured out that the X coord from the gyro is byte 29 and the Y coord is byte 30.  The EPOC has some sort of logic in it to reset the gyro baseline levels, but I'm not sure on the details there; the baseline I'm seeing generally (not perfect) is roughly 102 for X and 204 for Y.  This lets you get control from the gyro fairly easy.
+
+That accounts for 3 bytes of the packet, but we have 14 sensors.  If you assume that each sensor is represented by 2 bytes of data, that gives us 28 bytes for sensor data.  32 - 28 == 4, so what's the extra byte?  Looking at byte 15, it's pretty clear that it's (almost) always zero -- the only time it's non-zero is the very first report from the device.  I have absolutely no idea what this is.
+
+From here, all we have is data from the sensors.  Another quick script with pygame and boom, we have a graph renderer for this data.
+
+However, here's where it gets tough.  Figuring out which bytes correspond to which sensors is difficult, because effectively all the signal processing and filtering happens on the PC side, meaning it's not in this library yet.  Figuring out the high bytes (which are less noisy and change less frequently) isn't terribly difficult, and I've identified a few of them, but there's a lot of work to be done still.
+
+What needs to be done
+=====================
+
+Reversing-wise:
+
+- Determine which bytes correspond to which signals -- I'm sure someone more knowledgable than myself can do this no problem
+- Figure out how the sensor quality is transmitted -- according to some data on the research SDK, there's 4 bits per sensor that give you the signal quality (0=none, 1=very poor, 2=poor, 3=decent, 4=good, 5=very good)
+- Figure out how to read the battery meter
+
+Emokit-wise:
+
+- Linux and OS X support haven't been tested at all, but they should be good to go
+- Build a C library for working with the EPOC
+- Build an acquisition module for [OpenViBE](http://openvibe.inria.fr/)
+
+Get involved
+================
+
+Contact us
+----------
+
+I've started the [#emokit channel on Freenode](irc://irc.freenode.net/emokit) and I'm idling there (nick=Daeken).
+
+How you can help
+----------------
+
+I'm about to get started on an acquisition module for OpenViBE, but someone more knowledgable than myself could probably do this far more quickly.  However, the reversing side of things -- particularly figuring out the sensor bytes -- would be much more useful.
+
+Summary
+=======
+
+I hope that the Emokit project will open new research that was never possible before, and I can't wait to see what people do with this.  Let me know if you have any questions or comments.
+
+Happy Hacking,  
+- Cody Brocious (Daeken)
+
+Emokit FAQ
+==========
+
+* What data does emokit give me?
+
+The raw channels of the headset
+
+Battery power of the headset (in development at time of FAQ writing)
+
+Signal quality of each connection on the headset (in development at time of FAQ writing)
+
+* What data does emokit not give me?
+
+Processed data that can tell you moods or muscles or whatever.
+
+Basically, if you aren't up to doing a bit of DSP and aren't really
+educated in mathematics and neuroscience, you should use emokit under
+another library that will do the geekery for you. We publish emokit as
+a low level access tool, nothing more.
+
+* Does emokit work with all emotiv headsets?
+
+As far as we know, yes. If it doesn't work with yours, file an issue
+on the github project (http://github.com/openyou/emokit/issues)
+
+* I heard you need to know your key or something?
+
+That doesn't apply anymore. Emokit should work with all headsets and
+dongles. If it doesn't, file an issue (http://github.com/openyou/emokit/issues).
+
+* So I really don't need to know my key or whatever now?
+
+You shouldn't. It should "just work". So please stop asking.
+
+* OPTIONAL READING: The history of the key generation, and why you used to need keys
+
+When emokit first came out (For more information on this, check out
+Announcement.md in the doc directory), we only knew part of how the
+encryption worked, mainly because Daeken finished the first round,
+qDot took things over, and then neither of them had time to do
+anything for a while. So there was a lot of news that went around of
+"only certain headsets/keys work", so on and so forth.
+
+We managed to get lucky with the method for a while, because Emotiv
+was reusing keys on USB dongles, so one key would work for many
+headsets. Once Emotiv learned of this, they just had to switch out the
+firmware flashing on their keys, and emokit no longer worked.
+
+In late 2011, Daeken finished the key generation code, which means
+emokit should now work for any USB key. Note that the encryption
+happens on the USB KEY, not the headset. So it's actually tied to
+whatever you have plugged in regardless of the headset.
+
+
+Emokit
+======
+
+Reverse engineering and original code written by
+
+* Cody Brocious (http://github.com/daeken)
+* Kyle Machulis (http://github.com/qdot)
+
+Contributions by
+
+* Severin Lemaignan - Base C Library and mcrypt functionality
+* Sharif Olorin  (http://github.com/fractalcat) - hidapi support
+* Bill Schumacher (http://github.com/bschumacher) - Fixed the Python library
+
+Description
+===========
+
+Emokit is a set of language for user space access to the raw stream
+data from the Emotiv EPOC headset. Note that this will not give you
+processed data (i.e. anything available in the Emo Suites in the
+software), just the raw sensor data.
+
+The C library is backed by hidapi, and should work on any platform
+that hidapi also works on.
+
+Information
+===========
+
+FAQ (READ BEFORE FILING ISSUES): https://github.com/openyou/emokit/blob/master/FAQ.md
+
+If you have a problem not covered in the FAQ, file it as an
+issue on the github project.
+
+PLEASE DO NOT EMAIL OR OTHERWISE CONTACT THE DEVELOPERS DIRECTLY.
+Seriously. I'm sick of email and random facebook friendings asking for
+help. What happens on the project stays on the project.
+
+Issues: http://github.com/openyou/emokit/issues
+
+If you are using the Python library and a research headset you may have to change the type in emotiv.py's setupCrypto function. 
+
+Required Libraries
+==================
+
+Python
+------
+
+* pywinhid (Windows Only) - https://pypi.python.org/pypi/pywinusb/
+* pyusb (OS X, Optional for Linux) - http://sourceforge.net/projects/pyusb/
+* pycrypto - https://www.dlitz.net/software/pycrypto/
+* gevent - http://gevent.org
+* realpath - http://?   sudo apt-get install realpath
+
+C Language
+----------
+
+* CMake - http://www.cmake.org
+* libmcrypt - https://sourceforge.net/projects/mcrypt/
+* hidapi - http://www.signal11.us/oss/hidapi/
+
+Usage
+=====
+
+C library
+---------
+
+See epocd.c example
+
+Python library
+--------------
+
+  Code:
+  
+    import emotiv
+    import gevent
+
+    if __name__ == "__main__":
+      headset = emotiv.Emotiv()    
+      gevent.spawn(headset.setup)
+      gevent.sleep(1)
+      try:
+        while True:
+          packet = headset.dequeue()
+          print packet.gyroX, packet.gyroY
+          gevent.sleep(0)
+      except KeyboardInterrupt:
+        headset.close()
+      finally:
+        headset.close()
+
+Bindings
+========
+
+Go: https://github.com/fractalcat/emogo
+
+Platform Specifics Issues
+=========================
+
+Linux
+-----
+
+Due to the way hidapi works, the linux version of emokit can run using
+either hidraw calls or libusb. These will require different udev rules
+for each. We've tried to cover both (as based on hidapi's example udev
+file), but your mileage may vary. If you have problems, please post
+them to the github issues page (http://github.com/openyou/emokit/issues).
+
+Your kernel may not support /dev/hidraw devices by default, such as an RPi. 
+To fix that re-comiple your kernel with /dev/hidraw support
+
+Credits - Cody
+==============
+
+Huge thanks to everyone who donated to the fund drive that got the
+hardware into my hands to build this.
+
+Thanks to Bryan Bishop and the other guys in #hplusroadmap on Freenode
+for your help and support.
+
+And as always, thanks to my friends and family for supporting me and
+suffering through my obsession of the week.
+
+Credits - Kyle
+==============
+
+Kyle would like to thank Cody for doing the hard part. 
+
+He would also like to thank emotiv for putting emo on the front of
+everything because it's god damn hilarious. I mean, really, Emo
+Suites? Saddest hotel EVER.
+

@@ -1,0 +1,209 @@
+This app just serves to support a user on github.
+
+.. image:: https://secure.travis-ci.org/yourlabs/django-autocomplete-light.png?branch=master
+    :target: http://travis-ci.org/yourlabs/django-autocomplete-light
+.. image:: https://pypip.in/d/django-autocomplete-light/badge.png
+    :target: https://crate.io/packages/django-autocomplete-light
+.. image:: https://pypip.in/v/django-autocomplete-light/badge.png   
+    :target: https://crate.io/packages/django-autocomplete-light
+.. image:: https://coveralls.io/repos/yourlabs/django-autocomplete-light/badge.png 
+    :target: https://coveralls.io/r/yourlabs/django-autocomplete-light
+
+django-autocomplete-light's purpose is to enable autocompletes quickly and
+properly in a django project: it is the fruit of **years of R&D**. It was
+designed for Django so that every part overridable or reusable independently.
+It is stable, tested, documented and fully supported: it tries to be a good
+neighbour in Django ecosystem.
+
+**WARNING** you are currently on the v2 branch where new development happens.
+            master (v1) is still supported for BC.
+
+Features
+--------
+
+Features include:
+
+- charfield, foreign key, many to many autocomplete widgets,
+- generic foreign key, generic many to many autocomplete widgets,
+- remote API backed-autocompletes,
+- django template engine support for autocompletes, enabling you to include
+  images etc ...
+- 100% overridable HTML, CSS, Python and Javascript: there is no variable
+  hidden far down in the scope anywhere.
+- add-another popup supported outside the admin too.
+- keyboard is supported with enter, tab and
+  arrows by default.
+
+Each feature has a live example and is fully documented. It is also designed
+and documented so that you create your own awesome features too.
+
+v2
+--
+
+`v2 branch <https://github.com/yourlabs/django-autocomplete-light/tree/v2>`_ is
+under active development. You might want to use that instead, since it's much
+easier to work with and supports python3.
+
+In this case, please refer to the `v2 documentation
+<http://django-autocomplete-light.readthedocs.org/en/v2/>`_.
+
+**To upgrade to v2**, please enjoy the `v1 to v2 upgrade instructions
+<http://django-autocomplete-light.readthedocs.org/en/v2/1to2.html>`_ (documented with love !).
+
+- the Autocomplete class design hasn't changed at all.
+- ``yourlabsWidget()`` doesn't parses ``data-*`` options the same,
+- the django/form python code has been re-organised ie.
+  ``get_widgets_dict()`` is gone and ``autocomplete_light.ModelForm``
+  wraps around all features.
+
+Resources
+---------
+
+Resources include:
+
+- `**Documentation** graciously hosted
+  <http://django-autocomplete-light.rtfd.org>`_ by `RTFD
+  <http://rtfd.org>`_
+- `Live demo graciously hosted
+  <http://jpic.pythonanywhere.com/>`_ by `PythonAnywhere
+  <http://pythonanywhere.com/>`_,
+- `Video demo graciously hosted
+  <http://youtu.be/fJIHiqWKUXI>`_ by `Youtube
+  <http://youtube.com>`_,
+- `Mailing list graciously hosted
+  <http://groups.google.com/group/yourlabs>`_ by `Google
+  <http://groups.google.com>`_
+- `Git graciously hosted
+  <https://github.com/yourlabs/django-autocomplete-light/>`_ by `GitHub
+  <http://github.com>`_,
+- `Package graciously hosted
+  <http://pypi.python.org/pypi/django-autocomplete-light/>`_ by `PyPi
+  <http://pypi.python.org/pypi>`_,
+- `Continuous integration graciously hosted
+  <http://travis-ci.org/yourlabs/django-autocomplete-light>`_ by `Travis-ci
+  <http://travis-ci.org>`_
+
+README
+Быстрый старт
+-------------
+
+#. Подключить библиотеку django_autocomplete_light в зависимости виртуального окружения::
+
+  git+git@github.com:balmaster/django-autocomplete-light.git#egg=django-autocomplete-light
+
+#. Добавить приложение autocomplete_light в ``INSTALLED_APPS``
+
+#. В своем приложении сделать autocomplete_light_registry.py::
+
+  import autocomplete_light
+
+  from .models import *
+
+  autocomplete_light.register(МодельОбъектыКоторойБудутПоказанеВСпискеАвтозавершения, search_fields=('ПоляПоКоторымБудетПоиск',),
+    autocomplete_js_attributes={'placeholder': 'ПодсказкаКоторуюУвидитПользователь'})
+
+#. В admin.py надо перехватить генерацию формы для тех форм для кторых должен работать автокомплит::
+
+  import autocomplete_light
+
+  class МодельВФормеКоторойХотимИспользоватьПоляСАвтокомплитомAdmin(...):
+    form = autocomplete_light.modelform_factory(МодельВФормеКоторойХотимИспользоватьПоляСАвтокомплитом)
+    
+Это все, перерь при редактировании МодельВФормеКоторойХотимИспользоватьПоляСАвтокомплитом
+если в ней есть поля типа МодельОбъектыКоторойБудутПоказанеВСпискеАвтозавершения они автоматически 
+начнут поддерживать автодополнение      
+    
+
+test_project: basic features and examples
+=========================================
+
+Virtualenv is a great solution to isolate python environments. If necessary,
+you can install it from your package manager or the python package manager,
+ie.::
+
+    sudo easy_install virtualenv
+
+Install last release
+--------------------
+
+Install packages from PyPi and the test project from Github::
+
+    rm -rf django-autocomplete-light autocomplete_light_env/
+
+    virtualenv autocomplete_light_env
+    source autocomplete_light_env/bin/activate
+    git clone https://jpic@github.com/yourlabs/django-autocomplete-light.git
+    cd django-autocomplete-light/test_project
+    pip install -r requirements.txt
+    ./manage.py runserver
+
+Or install the development version
+----------------------------------
+
+Install directly from github::
+
+    AUTOCOMPLETE_LIGHT_VERSION="v2"
+
+    rm -rf autocomplete_light_env/
+
+    virtualenv autocomplete_light_env
+    source autocomplete_light_env/bin/activate
+    pip install -e git+git://github.com/yourlabs/django-autocomplete-light.git@$AUTOCOMPLETE_LIGHT_VERSION#egg=autocomplete_light
+    cd autocomplete_light_env/src/autocomplete-light/test_project
+    pip install -r requirements.txt
+    ./manage.py runserver
+
+Usage
+-----
+
+- Run the server,
+- Connect to `/admin/`, ie. http://localhost:8000/admin/,
+- Login with user "test" and password "test",
+- Try the many example applications,
+
+Database
+--------
+
+A working SQLite database is shipped, but you can make your own ie.::
+
+    cd test_project
+    rm -rf db.sqlite
+    ./manage.py syncdb --noinput
+    ./manage.py migrate
+    ./manage.py cities_light
+
+Note that `test_project/project_specific/models.py` filters cities from certain
+countries.
+
+test_remote_project: advanced features and examples
+===================================================
+
+The autocomplete can suggest results from a remote API - objects that do not
+exist in the local database.
+
+This project demonstrates how test_remote_project can provide autocomplete
+suggestions using the database from test_project.
+
+Usage
+-----
+
+In one console::
+
+    cd test_project
+    ./manage.py runserver
+
+In another::
+
+    cd test_remote_project
+    ./manage.py runserver 127.0.0.1:8001
+
+Now, note that there are `no or few countries in test_api_project database
+<http://localhost:8001/admin/cities_light/country/>`_.
+
+Then, connect to http://localhost:8001/admin/remote_autocomplete/address/add/
+and the city autocomplete should propose cities from both projects.
+
+If you're not going to use localhost:8000 for test_project, then you should
+update source urls in
+`test_remote_project/remote_autocomplete/autocomplete_light_registry.py`.
+

@@ -1,0 +1,164 @@
+Lazyboy
+=======
+
+Lazyboy is a Python library for accessing Cassandra, which wraps the Thrift client library and provides a nicer interface.
+
+
+Before We Start
+---------------
+
+Before you attempt to use Lazyboy, you should understand the Cassandra data model. If you've used relataional databases before, forget everything you know.
+
+First, let's consider key/value stores. Key/value stores are some of the simplest databases available, and have existed for decades. Also known as hashtables, they are so-called because you associate a single value with a single key, like so:
+
+    ieure:     Ian Eure
+    phatduckk: Arin Sarkassian
+    goffinet:  Chris Goffinet
+    sammy:     Sammy Yu
+
+If you look up the key `ieure`, you get the value `Ian Eure`, and so on. Each key maps to a single value. Each table (that is, the thing we're storing these keys and values in) maps from one kind of value to one other kind - in this example, from username to full name.
+
+Taking that a step further, you have *column-oriented* databases, like Cassandra. In Cassandra, each key maps to multiple values. Each of these values isn't just a string like "Ian Eure" or "Arin Sarkassian," but a data structure called a Column. Each Column is a triplet of name, value, and timestamp (we'll gloss over the timestamp for now). Each column needs a name so it can be uniquely addressed.
+
+So in Cassandra, this schema might look like:
+
+    ieure:     name=fullname, value=Ian Eure
+    phatduckk: name=fullname, value=Arin Sarkassian
+    goffinet:  name=fullname, value=Chris Goffinet
+    sammy:     name=fullname, value=Sammy Yu
+
+When you access a key, you don't get a single value back anymore; you get a list of Columns, each of which has it's own name and value. These lists are called *Rows*, and each row can have an unlimited number of columns. Unlike SQL databases, rows need not share the same set of possible column names. We could easily add to this dataset like this:
+
+    ieure:     name=fullname,       value=Ian Eure
+               name=lazyboy_author, value=yes
+    phatduckk: name=fullname,       value=Arin Sarkassian
+    goffinet:  name=fullname,       value=Chris Goffinet
+    sammy:     name=fullname,       value=Sammy Yu
+
+You can see that `ieure` is marked as an author of Lazyboy, while the others aren't. You don't have to add `lazyboy_author` columns for everyone, and you can add other columns to only some rows.
+
+In Lazyboy terms, each of those rows is called a Record. Records are objects which mimic Python dictionaries; each column name is a key, and it's value is returned when you access that key. If you imagine that you have a Record subclass called User which takes a username (that is, a row key) as it's first `__init__` argument, it might work like this:
+
+    user = User("ieure")
+    print user['fullname']
+    # -> "Ian Eure"
+    print user['lazyboy_author']
+    # -> "yes"
+
+Each Record contains every column in a row.
+
+The data we're storing here is about users, but we might want to use those keys to store other things, too, like a list of links to those users' sites. And that's a problem, because we're already using them for that user data. Enter the *Column Family*.
+
+Each set of row keys (and their associated row data) is arranged under column families. In the previous example, we might put those rows into the Users ColumnFamily. If we wanted to store links to their sites, we might do it like this:
+
+    Users:
+        ieure:     name=fullname,       value=Ian Eure
+                   name=lazyboy_author, value=yes
+        phatduckk: name=fullname,       value=Arin Sarkassian
+        goffinet:  name=fullname,       value=Chris Goffinet
+        sammy:     name=fullname,       value=Sammy Yu
+
+    UserSites
+        ieure:      name=blog,    value=http://atomized.org/
+                    name=digg,    value=http://digg.com/users/ieure/
+        phatduckk:  name=blog,    value=http://arin.me/
+        goffinet:   name=twitter, value=http://twitter.com/lenn0x
+
+If we want to get a list of links for a user, we use their username to look up a row in the `UserSites` column family. If we want information about them directly, we'd look that up in `Users`. Furthermore, each of these column families is stored in a *Keyspace*. In practice, you don't need to use multiple keyspaces very often, so we're going to gloss over this and use "Digg" as the keyspace for this example.
+
+Cassandra has two ways of addressing the objects we've discussed: *ColumnPath* and *ColumnParent*. A ColumnPath consists of a column family, row key, and column name; it addresses a single column somewhere in the database. A ColumnParent omits the column name, and therefore addresses a row. Neither include the Keyspace which the object resides in. Lazyboy builds on top this with *Key* objects, which extend ColumnPath and include the keyspace. Keys are used in Lazyboy for addressing Records.
+
+With me so far? Good, because Cassandra has one more trick up it's sleeve: SuperColumns.
+
+Each column family in Cassandra can be one of two types: normal or super. We've covered normal column families so far; these map a row key to a list of columns, each of which has that (key, value, timestamp) triplet.
+
+Super column families add another dimension. Rather mapping a row key to a list of Columns, they map that key to a list of SuperColumns.
+
+Plain CF:
+
+    ieure: [Column, column, column, ...]
+
+Super CF:
+
+    ieure: [SuperColumn, SuperColumn, SuperColumn, ...]
+
+
+A SuperColumn is much like a normal column, except it's value isn't a string, it's a *another list of columns*. This is hard to visualize, so let's look at another example. If we make Users a super column family, we might arrange it like this:
+
+    Users:
+        ieure:
+            profile:
+                name=fullname,       value=Ian Eure
+                name=lazyboy_author, value=yes
+            links:
+                name=blog,    value=http://atomized.org/
+                name=digg,    value=http://digg.com/users/ieure/
+
+The column family is `Users`; `ieure` is the row key; `profile` is the super column name; in that super column, there are two columns, named `fullname` and `lazyboy_author`. With this layout, we can store many different aspects of a particular thing in their own space. In practice, many of the things you would consider using supercolumns for can be implemented with normal column families. There are some significant drawbacks to using supercolumns, so don't use them unless you know what you're getting into.
+
+Lazyboy record objects cope with both normal CFs and super CFs. In the case of a super CF, the Key should include a super column name; the Record then contains all the columns from that SuperColumn.
+
+Records and Keys are the primary building blocks of Lazyboy, but it offers some additional tools.
+
+
+Record Sets
+-----------
+
+As the name implies, a RecordSet is a collection of Record objects. Cassandra offers batch operations, and RecordSets exist to minimize network requests when saving or loading multiple records at once.
+
+If you want to laod multiple Records at once, you can pass a list of Key objects to KeyRecordSet:
+
+    key = Key(keyspace="Digg", column_family="Users", key="ieure")
+    records = KeyRecordSet([key, key.clone(key="phatduckk"), ...])
+
+The individual records are accessed by their row keys:
+
+    print records['ieure']
+    # -> {'fullname': "Ian Eure", 'lazyboy_author': "yes"}
+
+Once you've made whatever changes you need, you can save them:
+
+    records.save()
+
+If you load your records some other way, you can add them to a plain RecordSet, then batch save:
+
+    records = RecordSet()
+    map(records.append, user_records)
+    records.save()
+
+Views
+-----
+
+Lazyboy's view classes provide a way to build secondary indexes into a column family. For example, you might create a view that has only Lazyboy authors from the Users table:
+
+    view_key = Key(keyspace="Digg", column_family="UserViews", key="lazyboy_authors")
+    record_key = view_key.clone(column_family="Users")
+    view = View(view_key, record_key, User)
+    view.append(User("ieure"))
+
+There are three things going on here.
+
+ 1. View key. This is the key to a row which stores the view. The value of each Column in the row is a row key for a record in the view.
+ 2. The record key. This is used as a template to load records.
+ 3. The record class (`User`). This is the Record subclass to load the view's records from.
+
+When you iterate over the view, it fetches a chunk of columns from the view row. It then iterates over those, loading a record for each row key, and yielding it.
+
+
+Partitioned Views
+-----------------
+
+Partitioned views work the same as regular views, except they are split across multiple rows. In terms of implementation, the PartitionedView class is akin to `itertools.chain`, in that it manages multiple view slices, which it then iterates over.
+
+
+Usage
+-----
+
+See the examples and unit tests for now.
+
+
+License
+-------
+
+Lazyboy is provided under the three-clause BSD License. See `LICENSE` for the specifics.
+

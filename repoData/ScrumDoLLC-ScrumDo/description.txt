@@ -1,0 +1,146 @@
+Example scripts that we run on the ScrumDo.com web server on a periodic basis.
+
+Our crontab looks something like this:
+
+10 22 * * * scrumdo/cron-scripts/record_backlog.sh
+11 22 * * * scrumdo/cron-scripts/site_stats.sh
+*/2 * * * * scrumdo/cron-scripts/send_email.sh
+1 1 * * * scrumdo/cron-scripts/resend_email.sh
+*/5 * * * * scrumdo/cron-scripts/extras_sync.sh
+2 1 * * * scrumdo/cron-scripts/extras_pull.sh
+
+Building documentation
+======================
+
+To build the documentation (from root of source tree)::
+
+    cd docs/
+    bash build_docs.sh
+
+This will create ``external/repos`` where it will checkout external
+repositories. It will create symlinks in ``external/`` pointing to the docs
+directories. This allows Sphinx to properly reference external documentation.
+
+Running ``build_docs.sh`` more than once is okay. It cleans up any previous
+runs.
+
+@@@ Don't do full checkouts on each run of ``build_docs.sh``.
+
+
+Building documentation on pinaxproject.com
+==========================================
+
+This section only applies to individuals wanting to build documentation on
+pinaxproject.com. To build the documentation (assuming working directory is
+``/home/pinax``)::
+
+    cd docs_build/pinax-master
+    git pull
+    cd docs/
+    bash build_docs.sh
+
+While ``build_docs.sh`` is running the online documentation goes down. Ideally
+we build in support to show a page indicating the rebuild while running.
+
+Pinax: a platform for rapidly developing websites
+http://pinaxproject.com/
+
+Pinax is an MIT-licensed, open-source platform built on the Django Web
+Framework.
+
+By integrating numerous reusable Django apps to take care of the things
+that many sites have in common, it let's you focus on what makes your
+site different.
+
+While our initial development was focused around a demo social
+networking site, Pinax is suitable for a wide variety of websites. We
+are working on number of editions tailored to intranets, event
+management, learning management, software project management and more.
+
+Most discussion about Pinax takes place on the IRC channel #pinax on
+Freenode or the pinax-users mailing list on Google Groups.
+
+
+INSTALLATION
+
+Read our INSTALL file to learn how to install Pinax.
+
+
+BUGS
+
+If you think you have discovered a bug in Pinax you should report it! We keep
+track of all bugs and features at http://code.pinaxproject.com/. Create an
+account and report the bug with as much information to help us reproduce it.
+
+
+FOLLOWING ALONG
+
+If you would like to keep up with current Pinax news/happenings you can follow
+our Twitter accounts:
+
+ * @pinaxproject — http://twitter.com/pinaxproject — news/happenings going on
+   in the Pinax development/community.
+ * @pinaxtracker — http://twitter.com/pinaxtracker — each commit published
+   as a tweet to stay the most up-to-date.
+
+This is a directory for a bunch of script for release and development
+bootstrapping.
+
+create-venv-script.py
+  Creates a virtualenv bootstrap script pinax-boot.py with the content of
+  _installer.py. Add installers/<version>.py to create version specific
+  bootstrap scripts pinax-boot-<version>.py
+
+_installer.py
+  Contains the installation mechanism for boostrapping the development version.
+
+pinax-boot.py
+  Is a full virtualenv.py and includes _installer.py, will install release
+  version, full release versions and developer versions.
+
+downloader.py
+  Parses the requirements in requirements/external_apps.txt and downloads the
+  source distribution of the packages mentioned, if possible. Will return a
+  list of other distributions that are only available as source code and
+  should be packaged up manually and moved to download/.
+
+# Agile Story Management Web Site
+
+Visit [ScrumDo.com](http://www.ScrumDo.com) to use it.
+
+Visit [ScrumDo.org](http://www.ScrumDo.org) to start developing.
+
+Follow us on [twitter](http://twitter.com/#!/ScrumDo)
+
+
+{% load activity_tags %}
+
+In <a href="{% url project_detail obj.project.slug %}">{{ obj.project.name }}</a>, {{ obj.user.username }} {{obj|activity_action}} {{ obj|activity_object }}<br/>
+On {{ obj.created }}.
+
+{% load activity_tags %}
+
+In <a href="{% url project_detail obj.project.slug %}">{{ obj.project.name }}</a>, {{ obj.user.username }} {{obj|activity_action}} {{ obj|activity_object }}<br/>
+On {{ obj.created }}.
+
+{% load activity_tags %}
+
+In <a href="{% url project_detail obj.project.slug %}">{{ obj.project.name }}</a>, {{ obj.user.username }} {{obj|activity_action}} {{ obj|activity_object }}<br/>
+On {{ obj.created }}.
+
+{% load projects_tags %}
+{% load avatar_tags %}
+{% load activity_tags %}
+
+{% silk obj.icon %} {% if obj.user %}{% avatar obj.user 32 %}{% endif %}
+{{obj.created|timesince}} ago {% if obj.user %}{{obj.user}}{% else %}ScrumDo{% endif %} {{obj.text|absolute_url|safe}}
+
+
+{% load projects_tags %}
+{% load avatar_tags %}
+{% load activity_tags %}
+
+{% silk obj.icon %} {% if obj.user %}{% avatar obj.user 32 %}{% endif %}
+{{obj.created|timesince}} ago {% if obj.user %}{{obj.user}}{% else %}ScrumDo{% endif %} {{obj.text|absolute_url|safe}}
+
+

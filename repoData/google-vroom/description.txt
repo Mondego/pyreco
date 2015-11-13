@@ -1,0 +1,116 @@
+## Contributor License Agreement ##
+
+Patches and contributions are welcome. Before we can accept them, though, we
+have to see to the legal details.
+
+Contributions to any Google project must be accompanied by a Contributor
+License Agreement. This is not a copyright **assignment**, it simply gives
+Google permission to use and redistribute your contributions as part of the
+project.
+
+  * If you are an individual writing original source code and you're sure you
+    own the intellectual property, then you'll need to sign an [individual
+    CLA][].
+
+  * If you work for a company that wants to allow you to contribute your work,
+    then you'll need to sign a [corporate CLA][].
+
+You generally only need to submit a CLA once, so if you've already submitted
+one (even if it was for a different project), you probably don't need to do it
+again.
+
+[individual CLA]: https://developers.google.com/open-source/cla/individual
+[corporate CLA]: https://developers.google.com/open-source/cla/corporate
+
+
+## Submitting a patch ##
+
+  1. It's generally best to start by opening a new issue describing the bug or
+     feature you're intending to fix. Even if you think it's relatively minor,
+     it's helpful to know what people are working on. Mention in the initial
+     issue that you are planning to work on that bug or feature so that it can
+     be assigned to you.
+
+  1. Follow the normal process of [forking][] the project, and setup a new
+     branch to work in.  It's important that each group of changes be done in
+     separate branches in order to ensure that a pull request only includes the
+     commits related to that bug or feature.
+
+  1. Any significant changes should almost always be accompanied by tests. The
+     project already has good test coverage, so look at some of the existing
+     tests (in the `vroom/` directory) if you're unsure how to go about it.
+
+  1. Do your best to have [well-formed commit messages][] for each change.
+     This provides consistency throughout the project, and ensures that commit
+     messages are able to be formatted properly by various git tools.
+
+  1. Finally, push the commits to your fork and submit a [pull request][].
+
+[forking]: https://help.github.com/articles/fork-a-repo
+[well-formed commit messages]: http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html
+[pull request]: https://help.github.com/articles/creating-a-pull-request
+
+# Vroom: Launch vim tests
+
+_**Vroom is experimental.** There are still some issues with vim that we
+haven't figured out how to work around. We reserve the right to make backwards
+incompatible changes in order to address these._
+
+Vroom is for testing vim.
+
+Let's say you're a vimscript author. You want to test your new plugin. You could
+find a nice vimscript test suite, but that only lets you test your vimscript
+functions. What you really want is a way to specify vim commands — actual input
+keys that that the user hits — and then verify vim's output.
+
+Enter vroom.
+
+    This is a vroom test.
+
+      > iHello, world!<ESC>
+      Hello, world!
+
+The above vroom test opens vim, sends the keys `iHello, world!<ESC>` and then
+verifies that the contents of the current buffer is `Hello, world!`.
+
+Things can get much more complex than this, of course. You need to be able to
+check the output of multiple buffers. You need to check what messages your
+functions echo. You need to sandbox vim, capture its system commands, and
+respond with dummy data. And a few shortcuts would be nice.
+
+Never fear! Vroom has it all. Check the examples for details and more
+documentation. examples/basics.vroom is a good place to start.
+
+Run `vroom -h` to learn about vroom's configuration options.
+
+Did you accidentally set off a giant vroom test that's running too fast to halt?
+Never fear! Pop open another terminal and `vroom --murder`.
+Make sure the `--servername` flag matches with the vroom you're trying to kill.
+You may need to run `reset` in the terminal with the murdered vroom.
+
+See the
+[Tips and Tricks page](https://github.com/google/vroom/wiki/Tips-and-Tricks)
+page for some strategies for getting the most out of vroom.
+
+## Installation
+
+The easiest way to install vroom is to cd into the vroom directory and run
+```sh
+python setup.py build && sudo python setup.py install
+```
+
+Vim syntax files for vroom can be found [here](https://github.com/google/vim-ft.vroom).
+
+## Known issues
+
+Vroom uses vim as a server. Unfortunately, we don't yet have a reliable way to
+detect when vim has finished processing commands. Vroom currently relies upon
+arbitrary delays. As such, tests run more slowly than is necessary. Furthermore,
+some lengthy commands in vroom tests require additional arbitrary delays in
+order to make the tests pass.
+
+We're still looking for workarounds. (If you, like us, wish vim had a sane
+client/server architecture, consider
+[supporting](https://www.bountysource.com/fundraisers/539-neovim-first-iteration)
+[neovim](https://github.com/neovim/neovim).)
+

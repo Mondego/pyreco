@@ -1,0 +1,155 @@
+This is a set of cassandra-dtest exclude configuration files for use with nose-test-select
+- https://github.com/EnigmaCurry/nose-test-select
+
+(This is also a TODO list of dtests that need TLC.. patches welcome :) )
+
+The files are for each C* branch and are run with:
+
+  nosetests --test-select-config=conf/${C_BRANCH}_test-select.cfg
+
+
+Setup instructions for cassandra-dtest
+======================================
+
+These are instructions for setting up dtests on a fresh install of Ubuntu Linux 12.04 LTS. If you use something else, you'll need to adapt these for your particular situation (or better yet, append to this file with your platform's requirements and send a pull request.)
+
+## Prerequisite Software:
+* Update software repositories:
+
+        sudo apt-get update
+
+* python
+
+        sudo apt-get install python python-setuptools python-dev python-pip
+
+* git
+
+        sudo apt-get install git
+
+## Install Oracle Java 7:
+* java and misc tools:
+
+        sudo apt-get install software-properties-common
+        sudo add-apt-repository ppa:webupd8team/java
+        sudo apt-get update
+        sudo apt-get install oracle-java7-installer
+
+* Ensure that java is a HotSpot 1.7.x version:
+
+        # java -version
+        java version "1.7.0_40"
+        Java(TM) SE Runtime Environment (build 1.7.0_40-b43)
+        Java HotSpot(TM) 64-Bit Server VM (build 24.0-b56, mixed mode)
+
+* install ant
+
+        sudo apt-get install ant
+
+## Create a git directory for holding several projects we'll use:
+
+        mkdir -p ~/git/cstar
+
+## Install companion tools / libraries:
+It's best to download the git source tree for these libraries as you
+will often need to modify them in some fashion at some later point:
+
+* ccm:
+
+        cd ~/git/cstar
+        git clone git://github.com/pcmanus/ccm.git
+        sudo pip install -e ccm
+        sudo pip install pyyaml
+
+* cql
+
+        cd ~/git/cstar
+        git clone https://code.google.com/a/apache-extras.org/p/cassandra-dbapi2/
+        sudo pip install -e cassandra-dbapi2
+
+* cassandra-dtest
+
+        cd ~/git/cstar
+        git clone git://github.com/riptano/cassandra-dtest.git
+
+* nose
+
+        sudo apt-get install python-nose    
+
+* cassandra
+
+        cd ~/git/cstar
+        git clone http://git-wip-us.apache.org/repos/asf/cassandra.git
+        cd cassandra
+        ant clean jar
+
+ Optionally, you can self-check cassandra at this point by running
+ it's unit tests:
+
+        ant test
+
+## Setup and run dtests
+* Install current python dependencies:
+
+        sudo pip install decorator
+
+* Set CASSANDRA_DIR environment variable.
+  Set the variable in your ~/.bashrc file once so that you don't have to keep setting it everytime you run dtests:
+
+        export CASSANDRA_DIR=~/git/cstar/cassandra
+
+* Run the full dtest suite (takes multiple hours, depending on your hardware):
+
+         cd ~/git/cstar/cassandra-dtest
+         nosetests
+
+* Run a single dtest, printing debug info, stopping at the first error encountered (if any):
+
+         cd ~/git/cstar/cassandra-dtest
+         PRINT_DEBUG=true nosetests -x -s -v putget_test.py
+
+Cassandra Distributed Tests
+===========================
+
+
+Prerequisite
+------------
+
+An up to date of ccm (https://github.com/pcmanus/ccm) should be installed.
+The tests are run using nosetests (http://readthedocs.org/docs/nose/en/latest/)
+which thus needs to be installed too. The python CQL driver also needs to be
+available (http://code.google.com/a/apache-extras.org/p/cassandra-dbapi2/).
+
+
+Usage
+-----
+
+Tests are ran by nostests, the only thing the framework needs to know is where
+is the (compliled) sources for Cassandra to use. There is two options:
+ * Use existing sources:
+     CASSANDRA_DIR=~/path/to/cassandra nosetests
+ * Use ccm ability to download/compile released sources from archives.apache.org:
+     CASSANDRA_VERSION=1.0.0 nosetests
+
+A convenient option if tests are regularly run against the same existing
+directory is to set a default_dir in ~/.cassandra-dtest. Create the file and
+set it to something like:
+  [main]
+  default_dir=~/path/to/cassandra
+The tests will use this directory by default, avoiding the need for any
+environment variable (that still have precedence if given though).
+
+Existing tests are probably the best place to start to look at how write
+tests.
+
+Each test spawns a new fresh cluster and tears it down after the test. If a
+test fails, the logs for the node are saved in a logs/<timestamp> directory
+for analysis (it's not perfect but have been good enough so far, I'm open to
+better suggestsions).
+
+Detailed Instructions
+---------------------
+
+See more detailed instructions in the included INSTALL file 
+(https://github.com/riptano/cassandra-dtest/blob/master/INSTALL.md)
+
+

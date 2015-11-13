@@ -1,0 +1,609 @@
+VERSION 0.2
+-------------
+
+* Add dry-run command
+
+* Webcam support
+
+* OpenGL support
+
+* Change code indention to two spaces
+
+* Add the describe command
+
+* Implemented new installed-programs.json format: issue #63
+
+* Added: new command 'print-dependency-matrix' Which can take similar to 'list' the arguments: available, installed or a list of subuser-programs
+
+* Improved Python Files I/O code
+
+* Implemented install-from-registry command which installs all of the programs listed in installed-programs.json file. #23
+
+* Implemented option to build base docker images from within subuser: 
+  for examples see: (https://github.com/subuser-security/subuser-examples)
+  issue #24, #49, #45, #41
+  
+* Added ability to print the dependency tree of any subuser program
+
+* subuser list available now includes information about each program in the listing output.
+
+* The last-update-time attribute in permissions.json is now optional.  You can easilly mark a program as needing to be updated with the command "subuser mark-as-needing-update program-name"
+
+* Can now set a container as privileged within the permissions.json file.
+
+* If an image required for running a program dissapears, ask the user if they want it automatically re-installed.
+
+* Got sound working thanks to [peter1000](https://github.com/timthelion/subuser/pull/22)
+
+VERSION 0.1
+-------------
+start of changelog
+
+Contributing
+------------
+
+Changes should be submitted in the form of a pull request.  If you do not have a github account, pull requests may be sent to the [my email](timothyhobbs@seznam.cz)
+
+There is no need to sign a contributor agreement.  All changes bellong to you and you agree to provide them to the world under the conditions of the LGPLv3 or later license agreement.
+
+Contributing programs to the database:
+--------------------------------------
+
+ * Every program should have a description and a maintainer.
+
+ * While a program may have a dependency in order to conserve space, always err on the side of reliability.  If there is a risk of a version conflict then keep your program self contained.
+
+ * When using the `FROM` command, you must not build your docker-image off a user uploaded image(even a verified one) you can only build off the official docker images.
+
+ * When a "program" does not declare an executable(aka, its only purpose is to provide a base image from which other programs are built) that program's name should be prefixed with the string "lib"
+
+Contributing code to the repository:
+------------------------------------
+
+ * One of the major aims of this project is to be as easy to install as possible while still maintaining a maintainable code base.  For this reason, I have chosen to aim for compatibility with all python versions later than 2.7 including the 3.x range.  Furthermore, there are to be NO EXTERNAL DEPENDENCIES!
+
+ * Do not maintain 80 collumn code formatting.  Any pull requests to refill to 80 collumns will be rejected.  Refilling is based on some meaningless and ancient standard.  I often use 60 collumn terminals which make 80 collumns hard to read, it is far easier to read line wrapped code that is of its natural length then to read line-wrapped filled code.
+
+ * Before writting comments read this article: http://rhodesmill.org/brandon/2012/one-sentence-per-line/
+
+ * Imports should be grouped into two groups.  The first group is for external imports, like importing modules from the standard library.  The seccond group is for subuser specific modules.  You can see how I do it by looking at one of the existing modules.
+
+ * Indentation is done with two spaces.
+
+ * Tabs are forbidden.
+
+ * Code blocks may not be stacked more than 4 levels deep.  That is a `dev` plus three `if`'s or other keyword.
+
+ * Avoid functions longer than 15 lines.
+
+ * Use human readable names for things.
+
+ * Do not shorten words/leave out vowels.
+
+   + There are a few cases in which I have used shortened versions of things: dir, arg.  These are cases where the short version is as widely known as the long version.
+
+The config.json file format
+--------------------------------
+
+In the context of subuser, a `config.json` file is a file which subuser settings.
+
+The `config.json` files are to be arranged into a fallback-hierarchy.  Subuser will first look up properties in the file `~/.subuser/config.json` falling back to:
+
+ * `/etc/subuser/config.json`
+
+ * `$SUBUSERDIR/config.json`
+
+Each config file may be partial.  That is, if the user wants to specify some options, but leave others as their default values, they can simply ommit those options that they do not wish to change.
+
+`$SUBUSERDIR` is the directory where the subuser source resides.  It corresponds to the root of this git repository.
+
+Each config.json file is to be a valid [json](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) file containing a single json object.
+
+Properties:
+-----------
+The defaults settings for these properties may be found in `$SUBUSERDIR/config.json`.
+
+**Note on paths**: Each path is to be absolute.  Any environment variables of the form `$VARIABLE_NAME` will be expanded.
+
+ * `bin-dir`: This is the directory where subuser "executables" are to be installed.  This directory should be in the user's path.
+
+  `type`: path to directory
+
+ * `installed-programs.json` : This is the path to the installed-programs registry file.
+
+ `type`: path to file
+
+ * `user-set-permissions-dir`: NOT YET IMPLEMENTED
+
+ `type`: path to directory
+
+ * `program-home-dirs-dir`: The directory where subuser is to store the home directories of each subuser program.
+
+ `type`: path to directory
+
+The installed-programs.json file format
+--------------------------------
+
+Each user is to have an `installed-programs.json` file which holds a registry of installed subuser programs and some NON-USER-SET attributes about those programs which are useful to subuser.  This is an autogenerated and non-user-editable file.  Do not edit it!
+
+Each installed-programs.json file is to be a valid [json](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) file containing a json object at the top level.
+
+This object maps program names to json objects which have the following attributes:
+
+ * `last-update-time`: This is the `last-update-time` that was listed in the programs permissions.json file when the program was installed, or the last time the program was updated.
+
+  Ex:
+
+  ````json
+   ,"last-update-time"                : "2014-02-12-12:59"
+  ````
+
+  **Note**: If the `permissions.json` file listed no `last-update-time` this will be the actual clock time at which the program was installed.
+
+ * `image-id`: This is the docker image id of the image associated with this installed program.
+
+  Ex:
+
+  ````json
+   ,"image-id"                        : "2a4c5c9f390f9f7c2485e93e3f25e2b94754487b5cf86fa1fd43d12bc180f371"
+  ````
+
+The permissions.json file format
+--------------------------------
+
+A permissions.json file is a file which describes the rights or permissions of a program running within a docker container.  These permissions pertain mainly to that program's ability to interact with it's host operating system.
+
+Each permissions.json file is to be a valid [json](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) file containing a single json object.
+
+The json object MUST have the following fields:
+-----------------------------------------
+
+ * `description`: This field describes what the program is/what it does.
+
+  Ex:
+
+  ````json
+   "description"                : "Simple universal text editor."
+  ````
+
+ * `maintainer`: This field marks who is responsible for the `permissions.json` file, and accompanying `Dockerfile`.  It does NOT mark who is responsible for the program itself.
+
+  Ex:
+  
+  ````json
+   ,"maintainer"                : "Timothy Hobbs <timothyhobbs (at) seznam dot cz>"
+  ````
+
+The json object MAY at your option contain the following additional fields:
+---------------------------------------------------------------------------
+
+**Note on optional fields**: Setting an optional field to an empty string is not a valid way of requesting it's default value.  If you want the default value, don't include the field at all.
+
+ * `last-update-time`: This field records the last time the program, or it's `Dockerfile` were known to be updated.  The purpose of this field is telling `subuser` if a program has been updated and must be re-installed.
+
+  Ex:
+
+  ````json
+   ,"last-update-time"          : "2014-02-12-12:59"
+  ````
+
+ * `executable`: This field denotes the absolute path within the Docker image where the given program's executable resides.
+
+  Ex:
+
+  ````json
+   ,"executable"                : "/usr/bin/vim"
+  ````
+
+ **Default**: The program has no executable and cannot be run(but it can be depended upon, as a library).
+
+ * `shared-home`: This field marks whether the program is to share it's home directory with another program installed by subuser.
+
+  Ex:
+
+  ````json
+   ,"shared-home"             : "emacs"
+  ````
+
+ **Default**: The program does not share it's home directory with any other program.
+
+ * `dependency`: Any program may depend upon at most one other program to provide a base image for it to build off of.
+
+  Ex:
+
+  ````json
+   ,"dependency"              : "some-program"
+  ````
+
+ **Default**: The program does not depend on any other program.
+
+ * `user-dirs`: A list of relative paths to user directories which are to be shared between the host and the given program. The program is given read-write access to any user directories listed.
+
+  Ex:
+
+  ````json
+   ,"user-dirs"                 : ["Downloads"]
+  ````
+
+  In this example, the program is able to access the `~/Downloads` directory on the host. 
+
+
+  **Default**: `[]`
+
+
+ * `system-dirs`: Absolute paths to system directories to be shared between the host operating system and the program.  The program is given read only access to these directories.
+
+  Ex:
+
+  ````json
+   ,"system-dirs"               : ["/etc/hosts"]
+  ````
+
+  **Default**: `[]`
+
+ * `x11`: The program is allowed to interact with the x11 server on the host.
+
+  Note: Known to be insecure!
+
+  Ex:
+
+  ````json
+   ,"x11"                       : true
+  ````
+
+  **Default**: `false`
+
+ * `graphics-card`: The program is allowed to access the graphics-card directly(OpenGL).
+
+  Ex:
+
+  ````json
+   ,"graphics-card"                       : true
+  ````
+
+  **Default**: `false`
+
+ * `sound-card`:  The program is allowed to access the soundcard on the host.
+
+Warning: This means, not only can the program play sounds, but it may listen to your microphone too!
+
+  Ex:
+
+  ````json
+   ,"sound-card"                : true
+  ````
+
+  **Default**: `false`
+
+ * `sound`: Depricated, see `sound-card`.
+
+ * `webcam`: The program is allowed to access the computer's webcam/USB webcams.
+
+  Ex:
+
+  ````json
+   ,"webcam"                     : true
+  ````
+
+  **Default**: `false`
+
+ * `inherit-working-directory`: The program is given read-write access to the host user's current working directory.
+
+  Ex:
+
+  ````json
+   ,"inherit-working-directory" : true
+  ````
+
+  **Default**: `false`
+
+ * `allow-network-access`: Should the program be allowed to access the network/internet?
+
+  Ex:
+
+  ````json
+   ,"allow-network-access"      : false
+  ````
+
+  **Default**: `false`
+
+ * `stateful-home`: Changes that the program makes to it's home directory should be saved to a special subuser-homes directory.
+
+  ````json
+   ,"stateful-home"             : false
+  ````
+
+  **Default**: `true`
+
+ * `as-root`: Run the program as the root user within the container.
+
+ Ex:
+
+ ````json
+  ,"as-root"                     : true
+ ````
+
+ **Default**: `false`
+
+ * `privileged`: Should the program's Docker container be run in `privileged` mode?
+
+  **Note**: Completely insecure!
+
+  Ex:
+
+  ````json
+   ,"privileged"                : false
+  ````
+
+  **Default**: `false`
+
+The repositories.json file format
+--------------------------------
+
+In the context of subuser, a `repositories.json` file is a file which describes where subuser programs may be installed from.
+
+The `repositories.json` files are to be arranged into a fallback-hierarchy.  Subuser will first look up properties in the file `~/.subuser/repositories.json` falling back to:
+
+ * `/etc/subuser/repositories.json`
+
+ * `$SUBUSERDIR/repositories.json`
+
+`$SUBUSERDIR` is the directory where the subuser source resides.  It corresponds to the root of this git repository.
+
+
+Each repositories.json file is to be a valid [json](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf) file containing a single json object.
+
+This object is a set of key value pairs where each key is the name of a subuser repository.  The value is a json object with the following properties:
+
+Properties:
+-----------
+**Note on paths**: Each path is to be absolute.  Any environment variables of the form `$VARIABLE_NAME` will be expanded.
+
+ * `path`: The path to the repository.
+
+ Ex:
+
+ ````
+ "path" : "$SUBUSERDIR/programsThatCanBeInstalled/"
+ ````
+
+Example repositories.json file:
+
+````
+{
+ "default" : {"path" : "$SUBUSERDIR/programsThatCanBeInstalled/"}
+}
+````
+
+This file states that there is one repository named `default` which can be found in the `$SUBUSERDIR/programsThatCanBeInstalled` directory.
+
+#!/usr/bin/env python
+# This file should be compatible with both Python 2 and 3.
+# If it is not, please file a bug report.
+
+#external imports
+import optparse
+#internal imports
+import subuserlib.describe,subuserlib.commandLineArguments
+
+def parseCliArgs():
+  usage = "usage: subuser %prog PROGRAM_NAME(s)"
+  description = """Show basic information about a program: Whether it is installed, what it's permissions are ect.
+Ex:
+$ subuser describe firefox
+<lots of info>
+"""
+  parser = optparse.OptionParser(usage=usage,description=description,formatter=subuserlib.commandLineArguments.HelpFormatterThatDoesntReformatDescription())
+  return parser.parse_args()
+
+(options,args) = parseCliArgs()
+
+for program in args:
+  subuserlib.describe.printInfo(program,True)
+
+Subuser - Securing the linux desktop with Docker
+--------------------------
+[**Video: What is subuser?**](http://www.youtube.com/watch?v=-9F8uXFcVFA)
+
+[![What is subuser?](http://img.youtube.com/vi/-9F8uXFcVFA/0.jpg)](http://www.youtube.com/watch?v=-9F8uXFcVFA)
+
+
+As free software developers we like to share.  We surf the web and discover new code.  We are eager to try it out.  We live out an orgy of love and trust, unafraid that some code we cloned from git might be faulty or malicious.  We live in the 60s, carefree hippies.
+
+This is utopia.
+
+But sharing code isn't safe.  Every time we try out some strangers script we put ourselves at risk.  Despite the ocational claim that linux is a secure operating system, haphazardly sharing programs is NOT secure.
+
+Docker promises to solve this problem.  Docker is not yet in a stable release, but with the help of subuser, we can already use it to make our computers more secure.
+
+Subuser turns docker containers into normal linux programs:
+------------------------------------------------------------
+
+Right now I'm editing this file in `vim`.  `vim` is not installed on my computer though.  It is installed in a docker container.  However, in order to edit this file, all I had to do was type:
+
+````
+$ vim README.md
+````
+
+Subuser turns a docker container into a normal program.  But this program is not fully privilaged.  It can only access the directory from which it was called, [not my entire home dir](http://xkcd.com/1200/).  The end goal of the project is to assign each application on your system a specific set of permissions, just like in Android.
+
+Subuser is just Docker in a pretty skirt:
+----------------------------------------
+
+Subuser is meant to be easilly installed and in and of itself technically insignificant.  It is *just* a wrapper around docker, nothing more.
+
+Subuser launches docker containers with [volumes](http://docs.docker.io/en/latest/use/working_with_volumes/) shared between the host and the child container. That's all.
+
+Installing subuser:
+-------------------
+
+**System Requirements**
+
+ * Docker(The latest version)
+
+ * Python >= 2.7
+
+**Instalation**
+
+1. Install [docker](http://www.docker.io/gettingstarted/#h_installation). Then [add yourself to the docker group](http://docs.docker.io/en/v0.7.3/use/basics/).
+
+2. Download this repository to your home directory:
+
+  ````
+  $ cd
+  $ git clone https://github.com/subuser-security/subuser
+  ````
+
+3. Add `~/subuser/bin` to your path by adding the line `PATH=$HOME/subuser/bin:$PATH` to the end of your `.bashrc` file.
+
+  - **Note**: Doing this will give `subuser` programs precedence over "normal" programs.  If you don't want this, you can add the `~/subuser/bin` directory to the END of your `$PATH` like so: `PATH=$PATH:$HOME/subuser/bin`.  Then, in order to run programs that are already installed on your computer with subuser you will have to use the `subuser run` command.
+
+4. Log out and then back in again.
+
+5. Done!
+
+[**Installation video:**](http://www.youtube.com/watch?v=ahgRx5U4V7E)
+
+[![Installing subuser](http://img.youtube.com/vi/ahgRx5U4V7E/0.jpg)](http://www.youtube.com/watch?v=ahgRx5U4V7E)
+
+Using subuser:
+--------------
+
+[Video:](http://www.youtube.com/watch?v=KZrs8KngN68)
+
+[![Using subuser](http://img.youtube.com/vi/KZrs8KngN68/0.jpg)](http://www.youtube.com/watch?v=KZrs8KngN68)
+
+Installing a program with subuser:
+----------------------------------
+
+You can see a list of instalable programs by doing:
+
+````
+$ subuser list available
+````
+
+You can install one of these programs with:
+
+````
+$ subuser install vim
+````
+
+Run the program by typing it's name at the command line.
+
+````
+$ vim SomeTextFileToEdit
+````
+
+Installing programs not yet in the database:
+----------------------------------------
+
+Add a new installation directory for your program to the `programsThatCanBeInstalled` directory.
+
+````
+$ cd ~/subuser/programsThatCanBeInstalled
+$ mkdir executable-name
+$ cd executable-name
+$ mkdir docker-image
+````
+
+Create an `permissions.json` file.  Here is an example:
+
+````json
+{
+ "description"                : "Simple universal text editor."
+ ,"maintainer"                : "Timothy Hobbs <timothyhobbs (at) seznam dot cz>"
+ ,"executable"                : "/usr/bin/vim"
+    // Path to executable within the docker image.
+ ,"user-dirs"                 : []
+    // Optional: A list of directories in the users home directory that this application should have read-write access to.
+    //These are relative paths, Ex: "Downloads" instead of "$HOME/Downloads".
+ ,"system-dirs"               : []
+    // Optional: A list of directories that this application should have read only access to.  Absolute paths: Ex: "/usr"
+ ,"x11"                       : false
+    // Optional: This program is allowed to display x11 windows.
+ ,"sound-card"                : false
+    // Optional: Give this program access to your soundcard?
+ ,"inherit-working-directory" : true
+    // Should this program be able to read-write to the directory from which it was called.
+ ,"allow-network-access"      : false
+    // Optional: Should this program be allowed to access the internet?
+}
+````
+
+You can find a full specification for the `permissions.json` file format [here](docs/permissions-dot-json-file-format.md).
+
+**Note**: Listing every permission is not necesary.  All permissions always default to their more secure variant.
+
+Now create a directory called `docker-image` and add a `Dockerfile` to that directory.  This docker file shoule describe a container with vim installed in it.
+
+Updating programs:
+------------------
+
+You can update your subuser programs with:
+
+````
+$ cd ~/subuser
+$ git pull
+$ subuser update all
+````
+
+Or, if you happen to know that a program is out of date(say you've installed it through git in your dockerfile...)
+
+````
+$ subuser update vim-git
+````
+
+
+Uninstalling programs:
+----------------------
+
+To uninstall the docker images and remove vim from your `PATH` run:
+
+````
+$ subuser uninstall vim
+````
+
+To remove any settings and configuration files:
+
+````
+$ rm -r ~/subuser/homes/vim
+````
+
+Support:
+--------
+You can contact us on the [subuser mailing list](https://groups.google.com/forum/#!forum/subuser).
+
+Design flaws/bugs in subuser:
+------------------------
+
+* Application startup time is significantly slowed
+
+* Certain things involving sharing of data between applications, like the clipboard in `vim`, just won't work.
+
+* The security advantages of running x11 apps in docker is *very* iffy at best.
+
+* DBUS/gsettings don't work
+
+* Inheriting the $PWD is a generally shitty idea.  If I run `vim` in my home dir, it can see and edit all of my files.  The only security advantage is if I run `vim` in some subdirectory.
+ - I hope this will be fixed by something more sophisticated like giving access only to paths specified in the command line arguments.
+
+* Disk usage is several times greater when installing one container per application due to the reduced ability to share dependencies
+ - This can be aleviated by stacking docker images or using shared read only volumes.
+
+See also links:
+---------------
+
+ * [Qubes OS](http://qubes-os.org/trac)
+
+ * [Java Web Start](http://en.wikipedia.org/wiki/Java_Web_Start)
+
+ * [The sub-identity toolkit](https://www3.nd.edu/~ccl/software/subid/)
+
+ * [AppArmor](http://en.wikipedia.org/wiki/AppArmor)
+
+ * [SELinux](http://en.wikipedia.org/wiki/Security-Enhanced_Linux)
+ 
+ * [Android permissions](http://developer.android.com/guide/topics/security/permissions.html)
+
+ * [Jails](http://en.wikipedia.org/wiki/Jail_%28computer_security%29)
+

@@ -1,0 +1,980 @@
+Benchmarking Centrifuge
+=======================
+
+Scalability benchmark
+---------------------
+
+![scalability](https://raw.github.com/FZambia/centrifuge/master/benchmarks/scalability.png "scalability benchmark")
+
+[Google spreedsheet with this chart and data](https://docs.google.com/spreadsheet/ccc?key=0Ao60NPCQC6LgdDkxU1JNQjE3NUpORjM4Yk0wSFdOZ3c&usp=drive_web#gid=1)
+
+Command used to run benchmark:
+
+```bash
+go run benchmark.go ws://localhost:8080/connection/websocket PROJECT_ID SECRET_KEY 4000 200 50
+```
+
+Nginx was used as load balancer and websocket proxy.
+
+Description:
+
+This test was made to show how Centrifuge scales when new instances added. One message was sent to every connected
+client, then average time of message delivery calculated.
+
+There was no a goal of load testing Centifuge in this benchmark, I just wanted to show that when new instances of Centrifuge added message latency reduces.
+
+Conclusions:
+
+* More instances of Centrifuge reduce message latency
+* Redis is the winner
+* ZeroMQ surprisingly slow
+* XSUB/XPUB proxy choice isn't important when there is no high loads.
+
+Ace (Ajax.org Cloud9 Editor)
+============================
+
+Ace is a code editor written in JavaScript.
+
+This repository has only generated files.
+If you want to work on ace please go to https://github.com/ajaxorg/ace instead.
+
+
+here you can find pre-built files for convenience of embedding.
+it contains 4 versions
+ * [src](https://github.com/ajaxorg/ace-builds/tree/master/src)              concatenated but not minified
+ * [src-min](https://github.com/ajaxorg/ace-builds/tree/master/src-min)      concatenated and minified with uglify.js
+ * [src-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-noconflict)      uses ace.require instead of require
+ * [src-min-noconflict](https://github.com/ajaxorg/ace-builds/tree/master/src-min-noconflict)      -
+
+
+For a simple way of embedding ace into webpage see https://github.com/ajaxorg/ace-builds/blob/master/editor.html
+To see ace in action go to [kitchen-sink-demo](http://ajaxorg.github.com/ace-builds/kitchen-sink.html), [scrollable-page-demo](http://ajaxorg.github.com/ace-builds/scrollable-page.html), or [minimal demo](http://ajaxorg.github.com/ace-builds/editor.html) 
+
+
+
+v0.5.4
+======
+
+* fix anonymous field updating via API
+
+
+v0.5.3
+======
+
+* register anonymous connections, do not check anonymous connection expiration
+* add `anonymous access` option to project/namespace settings
+
+
+v0.5.2
+======
+
+* Centrifuge now collects various metrics and has an option to log them or to export them into Graphite
+* New optional `--name` launch option to give your node human readable unique name (will be used in web interface and Graphite data path)
+* History for inactive channels now expires to prevent permanent memory grows (expiration time is configurable via project/namespace settings).
+* Tox for testing
+
+At moment Centrifuge collects following metrics:
+
+* broadcast - time in milliseconds spent to broadcast messages (average, min, max, count of broadcasts)
+* connect - amount and rate of connect attempts to Centrifuge
+* messages - amount and rate of messages published
+* channels - amount of active channels
+* clients - amount of connected clients
+* unique_clients - amount of unique clients connected
+* api - count and rate of admin API calls
+
+
+v0.5.1
+======
+
+* Redis engine now supports redis_url command line option
+
+v0.5.0
+======
+
+As usual I've broken backwards compatibility again! I'm so sorry for this, but this is all for the great good.
+
+Here is a list of changes:
+
+* MIT license instead of BSD.
+* ZeroMQ is not supported by main repository anymore. You can write your own engine though.
+* Engine backends which now combine state and PUB/SUB - there are two of them: Memory engine and Redis engine.
+* Engine and structure storage backend are now set up via environment variables when starting Centrifuge.
+* Connection parameters must contain `timestamp` - Unix seconds as string.
+* Experimental support for expiring connections. Connections can now expire if project option `connection_check` turned on.
+* Centrifuge admin api can now work with list of messages instead of single one.
+* Javascript client now supports message batching.
+* New client API `ping` method to prevent websocket disconnects on some hosting platforms (ex. Heroku)
+* New admin API `disconnect` method - disconnect user by user ID. Note, that this prevents official javascript client from reconnecting. But user can theoretically reconnect to Centrifuge immediately and his connection will be accepted. This is where connection check mechanism required.
+* No more namespaces in protocol. Now namespaces are virtual - i.e. if channel name starts with `namespace_name:` then Centrifuge backend will search for its settings.
+* Tornado updated to version 3.2 - this means that websockets become faster due to Tornado Websocket C module
+* MongoDB and PostgreSQL structure backends must be installed from their own packages from Pypi.
+* And really sweet - private channels for users without sending POST request to your web app
+
+As you can see there are lots of important changes, so I hope you forgive me for migration inconveniences.
+
+Migration notes:
+
+* read updated documentation
+* update Cent client to the latest version
+* update javascript client to the latest version
+* it's recommended to flush your structure database
+* fix your configuration file to fit new changes
+* `magic_project_param` configuration setting renamed to `owner_api_project_param`
+* `magic_project_id` configuration setting renamed to `owner_api_project_id` - no more magic.
+
+#### What does it mean that there are no namespaces in protocol anymore?
+
+In the earliest versions of Centrifuge to publish message you should send something like this
+via admin API:
+
+```javascript
+{"namespace": "private", "channel": "secrets", "data": {"message": "42"}}
+```
+
+Now you must do the same in this way:
+
+```javascript
+{"channel": "private:secrets", "data": {"message": "42"}}
+```
+
+I.e. like from browser.
+
+#### Why the hell you dropped ZeroMQ support?
+
+
+Because of several reasons:
+
+* ZeroMQ is hard to configure, it has nice features like brokerless etc but I think that it is not a big win in case of using with Centrifuge.
+* It's relatively slow. Redis is much much faster for real-time staff.
+* To have history and presence support you will anyway need Redis.
+
+#### How can I make private channel for user without sending POST request to my web app?
+
+This is very simple - just add user ID as part of channel name to subscribe!
+
+For example you have a user with ID "user42". Then private channel for him will be
+`news#user42` - i.e. main channel name plus `#` separator plus user ID.
+
+`#` in this case special symbol which tells Centrifuge that everything after it
+must be interpreted as user ID which only can subscribe on this channel.
+
+Moreover you can create a channel like `dialog#user42,user43` to create private channel
+for two users.
+
+BUT! Your fantasy here is limited by maximum channel length - 255 by default (can be changed
+via configuration file option `max_channel_length`).
+
+
+### Where can I found structure backends for MongoDB and PostgreSQL
+
+MongoDB backend: https://github.com/centrifugal/centrifuge-mongodb
+
+PostgreSQL backend: https://github.com/centrifugal/centrifuge-postgresql
+
+
+v0.4.2
+======
+
+* it's now possible to specify Redis auth password for state and pubsub backends [pull request by Filip Wasilewski](https://github.com/FZambia/centrifuge/pull/23)
+* it's now possible to specify PostgreSQL connection params as database url [pull request by Filip Wasilewski](https://github.com/FZambia/centrifuge/pull/24)
+* now Centrifuge can be deployed on Heroku backed with Redis and PostgreSQL
+
+The recipe of deploying Centrifuge on Heroku can be found here: https://github.com/nigma/heroku-centrifuge
+
+The final result is available here: [centrifuge.herokuapp.com](https://centrifuge.herokuapp.com/)
+
+v0.4.1
+======
+
+* python 3 fixes (thanks to [Filip Wasilewski](https://github.com/nigma))
+
+v0.4.0
+======
+
+Backwards incompatible! But there is a possibility to migrate without losing your current
+structure. Before updating Centrifuge go to `/dumps` location in admin interface and copy and save
+output. Then update Centrifuge. Create your database from scratch. Then run Centrifuge, go to `/loads`
+location and paste saved output into textarea. After clicking on submit button your previous structure
+must be loaded.
+
+Also now structure backends are classes, so you should change your configuration file according
+to [current documentation](http://centrifuge.readthedocs.org/en/latest/content/configuration.html#configuration-file).
+
+* Structure storage refactoring
+* Fix API bugs when editing project ot namespace
+* Node information and statistics in web interface
+
+v0.3.8
+======
+
+Security fix! Please, upgrade to this version or disable access to `/dumps` location.
+
+* auth now required for structure dump handler
+
+v0.3.7
+======
+
+Backwards incompatible! Cent 0.1.3 required.
+
+* no base64 decode for incoming API requests
+* it's now possible to override sockjs-tornado settings from Centrifuge config file using `sockjs_settings` dictionary
+* attempt to fix some possible races
+
+v0.3.6
+======
+
+* handling exceptions when sending messages to client
+* fix bug in application connections - which resulted in incorrect unsubscribe command behaviour
+
+v0.3.5
+======
+
+* pyzmq 14.0.1
+
+v0.3.4
+======
+
+* pyzmq 14.0.0
+* added timestamp to message
+* info connection parameter support for dom plugin
+* some important fixes in documentation
+
+v0.3.3
+======
+
+Backwards incompatible! Cent 0.1.2 required.
+
+* extra parameter `info` to provide information about user during connect to Centrifuge.
+* history messages now include all client's information
+* fix Python 3 TypeError when sending message as dictionary.
+* change sequence token generation steps to be more semantically correct.
+
+This release contains important fixes and improvements. Centrifuge client must
+be updated to repository version to work correctly.
+
+Now you can provide extra parameter `info` when connecting to Centrifuge:
+
+```javascript
+var centrifuge = new Centrifuge({
+    url: 'http://centrifuge.example.com',
+    token: 'token',
+    project: '123',
+    user: '321',
+    info: '{"first_name": "Alexandr", "last_name": "emelin"}'
+});
+```
+
+To prevent client sending wrong `info` this JSON string must be used
+while generating token:
+
+```python
+def get_client_token(secret_key, project_id, user, user_info=None):
+    sign = hmac.new(six.b(str(secret_key)))
+    sign.update(six.b(project_id))
+    sign.update(six.b(user))
+    if user_info is not None:
+        sign.update(six.b(user_info))
+    token = sign.hexdigest()
+    return token
+```
+
+If you don't want to use `info` - you can omit this parameter. But if you omit
+it make sure that it does not affect token generation - in this case you need
+to generate token without `sign.update(six.b(user_info))`.
+
+
+v0.3.2
+======
+* Base State - run single instance of Centrifuge with in-memory state storage
+
+Now single instance of Centrifuge can work without any extra dependencies
+on ZeroMQ or Redis. This can be done using Base PUB/SUB mechanism and
+Base State class.
+
+To use Base PUB/SUB mechanism you need to use `--base` command line option
+when running Centrifuge's instance:
+
+```bash
+centrifuge --config=centrifuge.json --base
+```
+
+To use Base State for presence and history you should properly fill `state`
+section of configuration JSON file:
+
+```javascript
+{
+    "password": "admin",
+    "cookie_secret": "secret",
+    "api_secret": "secret",
+    "state": {
+        "storage": "centrifuge.state.base.State",
+        "settings": {}
+    }
+}
+```
+
+One more time - Base options will work only when you use SINGLE INSTANCE of
+Centrifuge. If you want to use several instances you need to use Redis or
+ZeroMQ PUB/SUB and Redis State class (`centrifuge.state.redis.State`).
+
+v0.3.1
+======
+* web interface css improvements
+* fullMessage option for centrifuge.dom.js jQuery plugin
+* use absolute imports instead of relative
+* fix installation when set up without extra dependencies on mongodb
+
+v0.3.0
+======
+* centrifuge.dom.js - jQuery plugin to add real-time even easier.
+* Base Pub/Sub for single node.
+* Refactor web interface, make it more mobile and human friendly, add 'actions' section to make channel operations.
+* A couple of API methods to get project and namespace by name.
+* fix UnicodeDecodeError in web interface.
+
+v0.2.9
+======
+* fix API bug
+
+v0.2.8
+======
+* experimental structure API support
+* experimental Redis support for PUB/SUB
+* setup.py options to build Centrifuge without ZeroMQ, PostgreSQL, MongoDB or Redis support.
+* javascript client now lives on top of repo in a folder `javascript`
+* rpm improvements
+
+v0.2.7
+======
+* fix unique constraints for SQLite and PostgreSQL
+* add client_id to default user info
+
+v0.2.6
+======
+* fix handling control messages
+
+v0.2.5
+======
+* fix AttributeError when Redis not configured
+* doc improvements
+* fix possible error in SockJS handler
+
+v0.2.4
+======
+* fix unsubscribe Client method
+* decouple ZeroMQ specific code into separate file
+* use ":" instead of "/" as namespace and channel separator.
+
+v0.2.3
+======
+* use only one ZeroMQ SUB socket for process instead of having own socket for every client.
+* join/leave events for channels (structure affected).
+* fix bug with Centrifuge javascript client when importing with RequireJS.
+* possibility to provide structure in configuration file (useful for tests and non-dynamic structure configuration)
+
+v0.2.2
+======
+* fix project settings caching in Client's instance class.
+* fix unsubscribe admin API command behaviour.
+* repo clean ups.
+
+v0.2.1
+======
+* ping fix
+
+v0.2.0
+======
+* global code refactoring.
+* presence support for channels.
+* history support for channels.
+* Simple javascript client to communicate with Centrifuge.
+* Bootstrap 3.0 for web interface.
+* SQLite for structure store - now no need in installing PostgreSQL or MongoDB.
+* Categories renamed into namespaces.
+* Possibility to set default namespace.
+
+v0.1.2
+======
+* use SockJS for admin connections instead of pure Websockets(lol, see v0.0.7)
+
+v0.1.1
+======
+* Update Motor version
+
+v0.1.0
+======
+* As SockJS-Tornado can handle raw websockets - WebsocketConnection class
+was removed, examples and Nginx configuration updated.
+
+v0.0.9
+======
+* State class to keep current application's data in memory instead of
+using database queries every time.
+* Small code refactoring in rpc.py
+
+v0.0.8
+======
+* small admin web interface improvements
+
+v0.0.7
+======
+* use Websockets in admin interface instead of SockJS
+
+v0.0.6
+======
+* completely remove user management
+
+v0.0.4
+======
+* changes to run on Python 3
+* authentication via Github OAuth2.
+* exponential backoff within tornado process.
+* allow empty permissions while authentication to give full rights to client.
+* PostgreSQL database support.
+* different bug fixes.
+
+
+v0.0.1
+=====
+Initial non-stable release.
+
+
+Description
+===========
+
+.. _description:
+
+Overview
+~~~~~~~~
+
+Here I'll try to explain how Centrifuge actually works.
+
+In a few words - clients from browsers connect to Centrifuge, after connecting clients
+subscribe on channels. And every message which was published into channel will be sent
+to all clients which are currently subscribed on this channel.
+
+When you start Centrifuge instance you start Tornado instance on a certain port number.
+That port number can be configured using command-line option ``--port`` . By default it is 8000.
+
+In general you should provide path to JSON configuration file when starting Centrifuge instance
+using ``--config`` option. You can start Centrifuge without configuration file but this is
+not secure and must be used only during development. Configuration file must contain valid JSON.
+But for now let's omit configuration file. By default Centrifuge will use insecure cookie secret,
+no administrative password, local SQLite storage as structure database and Memory engine (more
+about what is structure and what is engine later).
+
+So the final command to start one instance of Centrifuge will be
+
+.. code-block:: bash
+
+    centrifuge --config=config.json
+
+Or just
+
+.. code-block:: bash
+
+    centrifuge
+
+You can run more instances of Centrifuge using Redis engine. But for most cases one instance is more
+than enough.
+
+Well, you started one instance of Centrifuge - clients from web browsers can start connecting
+to it.
+
+There are two endpoints for connections - ``/connection`` for SockJS and
+``/connection/websocket`` for pure Websocket connections. On browser side you now know the
+url to connect - for our simple case it is ``http://localhost:8000/connection`` in case of
+using SockJS library and ``ws://localhost:8000/connection/websocket`` in case of using
+pure Websockets.
+
+To communicate with Centrifuge from browser you should use javascript client which comes
+with Centrifuge (find it `in repository <https://github.com/FZambia/centrifuge/tree/master/javascript>`_) and provides simple API. Please, read a chapter about
+client API to get more information.
+
+Sometimes you need to run more instances of Centrifuge and load balance clients between them.
+As was mentioned above when you start default instance of Centrifuge - you start it with
+Memory Engine. Centrifuge holds all state in memory. But to run several Centrifuge instances
+we must have a way to share current state between instances. For this purpose Centrifuge
+utilizes Redis. To run Centrifuge using Redis you should run centrifuge with Redis Engine
+instead of default Memory Engine.
+
+First, install and run Redis.
+
+Now you can start several instances of Centrifuge. Let's start 2 instances.
+
+Open terminal and run first instance:
+
+.. code-block:: bash
+
+    CENTRIFUGE_ENGINE=redis centrifuge --port=8000
+
+I.e. you tell Centrifuge to use Redis Engine providing environment variable
+``CENTRIGUGE_ENGINE`` when launching it.
+
+Explore available command line options specific for Redis engine using ``--help``:
+
+.. code-block:: bash
+
+    CENTRIFUGE_ENGINE=redis centrifuge --help
+
+``CENTRIFUGE_ENGINE`` can be ``memory``, ``redis`` or pythonic path to custom engine
+like ``path.to.custom.Engine``
+
+Then open another terminal window and run second instance using another tornado port:
+
+.. code-block:: bash
+
+    CENTRIFUGE_ENGINE=redis centrifuge --port=8001
+
+Now two instances running and connected via Redis. Cool!
+
+But what is an url to connect from browser - ``http://localhost:8000/connection`` or
+``http://localhost:8001/connection``?
+
+None of them, because Centrifuge must be kept behind proper load balancer such as Nginx.
+Nginx must be configured in a way to balance client connections from browser between our
+two instances. You can find Nginx configuration example in repo.
+
+New client can connect to any of running instances. If client sends message we must
+send that message to other clients including those who connected to another instance
+at this moment. This is why we need Redis PUB/SUB here. All instances listen to special
+Redis channels and receive messages from those channels.
+
+
+In Centrifuge you can create projects and namespaces in projects. This information
+must be stored somewhere and shared between all running instances. To achieve this by
+default Centrifuge uses SQLite database. If all your instances running on the
+same machine - it's OK. But if you deploy Centrifuge on several machines
+it is impossible to use SQLite database. In this case you can use `PostgreSQL backend <https://github.com/centrifugal/centrifuge-postgresql>`_ or
+`MongoDB backend <https://github.com/centrifugal/centrifuge-mongodb>`_. You can also use
+PostgeSQL or MongoDB backends if your web site already uses them.
+
+To avoid making query to database on every request all structure information loaded into memory and then updated when something
+in structure changed and periodically to avoid inconsistency. There is also an option
+to set all structure in configuration file and go without any database (no database, no
+dependencies - but structure can not be changed via API or web interface).
+
+You can choose structure backend in the same way as engine - via environment variable
+``CENTRIFUGE_STORAGE``:
+
+.. code-block:: bash
+
+    CENTRIFUGE_STORAGE=sqlite centrifuge --path=/tmp/centrifuge.db
+
+Use default SQLite database.
+
+Or:
+
+.. code-block:: bash
+
+    CENTRIFUGE_STORAGE=file centrifuge --port=8001 --path=/path/to/json/file/with/structure
+
+Use structure from JSON file.
+
+Or:
+
+.. code-block:: bash
+
+    CENTRIFUGE_STORAGE=centrifuge_mongodb.Storage centrifuge --mongodb_host=localhost
+
+To use installed MongoDB backend.
+
+Or:
+
+.. code-block:: bash
+
+    CENTRIFUGE_STORAGE=centrifuge_postgresql.Storage centrifuge
+
+As in case of engine you can use ``--help`` to see available options for each of
+structure storage backends.
+
+
+Projects
+~~~~~~~~
+
+When you have running Centrifuge's instance and want to create web application using it -
+first you should do is to add your project into Centrifuge. It's very simple - just fill
+the form.
+
+**project name** - unique project name, must be written using ascii letters, numbers, underscores or hyphens.
+
+**display name** - project's name in web interface.
+
+**connection check** - turn on connection check mechanism. When clients connect to Centrifuge
+they provide timestamp - the UNIX time when their token was created. Every connection in project has
+connection lifetime (see below). If connection check turned on - Centrifuge will periodically search
+for expired connections and ask your web application which of expired clients must be dropped.
+This mechanism is disabled by default because it needs extra endpoint to be written in your
+application (at ``connection check url address`` - see below).
+
+One more time: every connection has a time of expiration which is configurable via project settings.
+Centrifuge periodically searches for expired connections and sends POST request to your web app with
+list of user IDs whose connections expired. Your web app must filter this list  and return a list of
+deactivated users - Centrifuge immediately disconnects them. There is a possibility though that client
+will try to reconnect with his credentials right after he was disconnected. If his credentials already
+expired - his connection will be paused until next check request. If his credentials are not expired
+- connection will be accepted by Centrifuge. But when connection expire your web application will
+tell Centrifuge that this user is deactivated - so connection will be dropped forever. As you can see
+there is a little compromise in security model which you should be aware of - deactivated user can
+theoretically listen to channels until his connection expire. The time of connection expiration is
+configurable (see below).
+
+**connection lifetime in seconds** - this is a time interval in seconds for connection to expire.
+Keep it as large as possible in your case.
+
+**connection check url address** - Centrifuge will send a list of users whose connections expired to
+this address (POST request).
+
+**minimum connection check interval** - you can configure minimum interval between connection check POST requests to
+``connection check url address`` (in seconds)
+
+**max auth attempts** - amount of attempts Centrifuge will try to validate user's permissions
+sending POST request to ``auth address``
+
+**back off interval** - at the moment when Centrifuge restarts your web application can
+have lots of active connected clients. All those client will reconnect and Centrifuge will
+send authorization request to your web application's ``auth address``. For such cases Centrifuge
+has `exponential back-off <http://en.wikipedia.org/wiki/Exponential_backoff>`_ support to reduce
+load on your application. This is time of back of minimum interval in milliseconds.
+
+**back off max timeout** - maximum time in milliseconds for backoff timeout (time before client
+connects to Centrifuge and sending authorization request to ``auth address``).
+
+**is watching** - publish messages into admin channel (messages will be visible in web interface).
+Turn it off if you expect high load in channels.
+
+**is private** - authorize every subscription on channel using POST request to provided auth address (see below)
+
+**auth url address** - url for authorization purposes, when your web application's client
+joins to Centrifuge - you can provide user id. Also you must provide permissions for
+every connected user. More about user id and permissions later. Anyway this is an address
+of your web application that will be used to authorize new client's connection. Centrifuge
+sends POST request with user id and permissions to this url and your application must decide
+to allow authorization or not.
+
+**publish** - allow clients to publish messages in channels (your web application never receive those messages)
+
+**anonymous access** - allow anonymous (with empty USER ID) clients to subscribe on channels
+
+**presence** - enable/disable presence information
+
+**history** - enable/disable history of messages
+
+**history size** - Centrifuge keeps all history in memory. In process memory in case of using Memory Engine
+and in Redis (which also in-memory store) in case of using Redis Engine. So it's very important to limit
+maximum amount of messages in channel history. This setting is exactly for this.
+
+**history expire** - as all history is storing in memory it is also very important to get rid of old history
+data for unused (inactive for a long time) channels. This is interval in seconds to keep history for channel
+after last publishing into it. If you set this setting to 0 - history will never expire but it is not
+recommended due to design of Centrifuge.
+
+**join/leave messages** - enable/disable sending join(leave) messages when client subscribes
+on channel (unsubscribes from channel)
+
+Channels
+~~~~~~~~
+
+The central part of Centrifuge is channels. Channels is a route for messages. Clients subscribe on
+channels, messages are being published into channels, channels everywhere.
+
+Channel is just a string - `news`, `comments`, `red fox` are valid channel names.
+
+BUT! You should remember several things.
+
+First, channel name length is limited by 255 characters by default (can be changed via configuration file option ``max_channel_length``)
+
+Second, ``:`` and ``#`` symbols has a special role in channel names!
+
+``:`` - is a separator for namespace (see what is namespace below).
+
+So if channel name is ``public:chat`` - then Centrifuge will search for namespace ``public``.
+
+``#`` is a separator to create private channels for users without sending POST request to
+your web application. For example if channel is ``news#user42`` then only user with id ``user42``
+cab subscribe on this channel.
+
+Moreover you can provide several user IDs in channel name separated by comma: ``dialog#user42,user43`` -
+in this case only ``user42`` and ``user43`` will be able to subscribe on this channel.
+
+
+Namespaces
+~~~~~~~~~~
+
+Centrifuge allows to configure channel's settings using namespaces.
+
+You can create new namespace, configure its settings and after that every
+channel which belongs to this namespace will have these settings. It's flexible and
+provides a great control over channel behaviour. You can reduce the amount of messages
+travelling around dramatically by configuring namespace (for example disable join/leave)
+messages if you don't need them.
+
+Namespace has several parameters - they are the same as project's settings. But with extra
+one:
+
+**namespace name** - unique namespace name: must consist of letters, numbers, underscores or hyphens
+
+As was mentioned above if you want to attach channel to namespace - you must include namespace
+name into channel name with ``:`` as separator:
+
+For example:
+
+``public:news``
+
+``private:news``
+
+Where ``public`` and ``private`` are namespace names.
+
+krTheme Sphinx Style
+====================
+
+This repository contains sphinx styles Kenneth Reitz uses in most of 
+his projects. It is a drivative of Mitsuhiko's themes for Flask and Flask related
+projects.  To use this style in your Sphinx documentation, follow
+this guide:
+
+1. put this folder as _themes into your docs folder.  Alternatively
+   you can also use git submodules to check out the contents there.
+
+2. add this to your conf.py: ::
+
+	sys.path.append(os.path.abspath('_themes'))
+	html_theme_path = ['_themes']
+	html_theme = 'flask'
+
+The following themes exist:
+
+**kr**
+	the standard flask documentation theme for large projects
+
+**kr_small**
+	small one-page theme.  Intended to be used by very small addon libraries.
+
+
+Centrifuge with Django
+======================
+
+Simple demo site to display events on Google map in real-time.
+
+To run demo
+
+1) Clone this repo
+
+2) Install requirements
+
+```bash
+pip install -r requirements.txt
+```
+
+3) Add your Centrifuge (must be already running) parameters in `settings.py`:
+
+```python
+CENTRIFUGE_ADDRESS = 'http://localhost:8000'
+CENTRIFUGE_PROJECT_ID = '1d88332ec09e4ed3805fc1999379bcfd'
+CENTRIFUGE_PROJECT_SECRET = '1ee93d4ac83e4ccf87d2bbd0e447275b'
+CENTRIFUGE_TIMEOUT = 5
+```
+
+4) Make sure that `anonymous access` allowed in project settings in Centrifuge - as all users anonymous in our case.
+
+5) Run Django server
+
+```bash
+python manage.py runserver 0:8080
+```
+
+6) Go to http://localhost:8080
+
+
+You will see a map and you can start sending events into `map` channel:
+
+```bash
+python manage.py publish --lat=34 --long=54 --content="test"
+```
+
+Where:
+
+`--lat` - latitude
+`--long` - longitude
+`--content` - content of Info Window
+
+Or via `cent`:
+
+```bash
+echo '{"channel": "map", "data": {"lat": 33, "long": 55, "content": "I am testing Centrifuge"}}'|cent map publish
+```
+
+The contents of my `~/.centrc` file in this case:
+
+```bash
+[map]
+address = http://localhost:8000/api
+project_id = 1d88332ec09e4ed3805fc1999379bcfd
+secret_key = 1ee93d4ac83e4ccf87d2bbd0e447275b
+```
+
+After this all connected clients will see new event on map.
+
+Follow this link to see simplified websocket demo chat example on JSFiddle:
+
+http://jsfiddle.net/FZambia/yG7Uw/
+
+If it does not work then please mail me.
+
+Centrifuge client's application example
+=======================================
+
+First, run Centrifuge, create new project and namespace `public` in it with `publish` permission
+and then run this app with correct Centrifuge address, project id and project secret key:
+
+```bash
+python main.py --port=3000 --centrifuge=localhost:8000 --project_id=PROJECT_ID --secret_key=SECRET
+```
+
+Then visit `http://localhost:3000` and select SockJS or pure websocket example.
+
+CENTRIFUGE
+==========
+
+Simple real-time messaging in web applications.
+
+In a few words: clients (users of your web application/site) connect to Centrifuge from browser,
+after connecting clients subscribe on channels. Every message which was published into that
+channel will be delivered to all clients which are currently subscribed on that channel.
+
+To connect to Centrifuge from browser pure [Websockets](http://en.wikipedia.org/wiki/WebSocket)
+or [SockJS](https://github.com/sockjs/sockjs-client) library can be used. So it works in both
+modern and old browsers (IE 7 supported). Centrifuge has [javascript client](https://github.com/FZambia/centrifuge/tree/master/javascript) with simple API.
+
+Backend is built on top of [Tornado](http://www.tornadoweb.org/en/stable/) - fast and mature
+asynchronous web server which can handle thousands of simultaneous connections.
+
+Centrifuge scales using [Redis](http://redis.io/) PUB/SUB capabilities.
+Single full-featured instance of Centrifuge run by default without extra dependency
+on Redis.
+
+Centrifuge comes with administrative web interface to manage project/namespace
+structure and monitor important messages in real-time.
+
+Persistent data (projects, namespaces) by default stored in [SQLite](http://www.sqlite.org/) database.
+When running Centrifuge instance processes on different machines [MongoDB](https://github.com/centrifugal/centrifuge-mongodb)
+or [PostgreSQL](https://github.com/centrifugal/centrifuge-postgresql) backends can be used instead of SQLite. There is an option
+to hard-code all these settings in JSON file and go without any dependency on database.
+
+
+Main features
+-------------
+
+* Asynchronous backend on top of Tornado
+* SockJS and pure Websockets connection endpoints
+* Simple javascript client
+* Presence information, message history, join/leave events for channels
+* Web interface to manage your projects
+* Flexible channel settings via namespaces
+* Language agnostic - you can go with Centrifuge even if your site built in Perl, PHP, Ruby etc.
+* Easily integrates with existing web site.
+
+To get more information:
+
+* read the [documentation](https://centrifuge.readthedocs.org/en/latest/)
+* look at [examples](https://github.com/FZambia/centrifuge/tree/master/examples).
+
+Various packages and tools related to Centrifuge located in [Centrifugal](https://github.com/centrifugal)
+organization here on Github.
+
+![admin_web_interface](https://raw.github.com/FZambia/centrifuge/master/docs/content/img/centrifuge.png "scheme")
+
+Similar projects / alternatives:
+
+* [Pusher](http://pusher.com/) (cloud service)
+* [Pubnub](http://www.pubnub.com/) (cloud service)
+* [Faye](http://faye.jcoglan.com/)
+
+
+Basic usage from browser
+------------------------
+
+```javascript
+var centrifuge = new Centrifuge({
+    url: 'http://localhost:8000/connection',  // Centrifuge SockJS connection endpoint
+    project: 'PROJECT_ID', // project ID from Centrifuge admin interface
+    user: 'USER_ID', // your application user ID (can be empty for anonymous access)
+    timestamp: '1395086390', // current UNIX timestamp (number of seconds as string)
+    token: 'TOKEN', // HMAC token based on project's secret key, project ID, user ID and timestamp
+});
+
+centrifuge.on('connect', function() {
+
+    console.log('connected');
+
+    var subscription = centrifuge.subscribe('django', function(message) {
+        // message from channel received
+        console.log(message);
+    });
+
+    subscription.on('ready', function(){
+        subscription.presence(function(message) {
+            // information about who connected to channel at moment received
+        });
+        subscription.history(function(message) {
+            // information about last messages sent into channel received
+        });
+        subscription.on('join', function(message) {
+            // someone connected to channel
+        });
+        subscription.on('leave', function(message) {
+            // someone disconnected from channel
+        });
+    });
+
+});
+
+centrifuge.on('disconnect', function(){
+    console.log('disconnected');
+});
+
+centrifuge.connect();
+```
+
+For more information about javascript client API see [documentation chapter](https://centrifuge.readthedocs.org/en/latest/content/client_api.html)
+
+Admin web interface
+-------------------
+
+![admin_web_interface](https://raw.github.com/FZambia/centrifuge/master/docs/content/img/main.png "admin web interface")
+
+
+Tests
+-----
+
+IMPORTANT! At moment tests require Redis running and clear database on every running. Be aware of this!
+
+```bash
+pip install tox
+tox
+```
+
+or just
+
+```bash
+python setup.py test
+```
+
+Contributing
+------------
+
+Pull requests are welcome! But, please, follow next principles:
+
+* keep things simple
+* pep8 friendly
+* python 2.6, 2.7, 3.3 and 3.4 compatible
+
+LICENSE
+-------
+
+MIT
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/FZambia/centrifuge/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+[![Requirements Status](https://requires.io/github/FZambia/centrifuge/requirements.png?branch=master)](https://requires.io/github/FZambia/centrifuge/requirements/?branch=master)
+

@@ -1,0 +1,951 @@
+# TodoFlow
+
+[Alfred][] 2 (beta) workflow for interacting with plain text todo lists with [TaskPaper][] syntax.
+
+
+**[Download][]**
+
+## Basic usage
+
+
+### Keyword: *t*
+
+Set path to your master todo list in config.py (one_filepath). When you type **t** keyword Alfred will display all task from that list.
+
+![All tasks][basic]
+
+Typing query filters tasks. You can use it to show only tasks with given tag.
+
+![Querying tasks][query]
+
+It works with regular expressions too! (I'm not sure if it useful in any way).
+
+![Querying tasks with regexp][regexp]
+
+Pressing *return* tags task as done.
+Adding date value after tag can be configured.
+Pressing *cmd+return* opens file containing task.
+
+You can also add task to that list. There are 3 options: prepend, append and insert into Inbox project. That can be configured inside workflow in third script from the top.
+
+## Advanced usage
+
+Work with multiple files.
+
+### Keyword: *tt*
+
+Lists tasks from multiple lists.
+Paths of lists are stored in active_lists (path to that file can be configured).
+Paths to lists can be added to active_lists manually or by file action *Activate list aa* and removed by *Deactivate list dd*.
+Max number of tasks from one list can be configured.
+
+*Update 18.01.13:*
+
+More explonation:
+It's useful if you want to display limited number of tasks for multiple lists. For example I use it to list tasks for projects that I'm working at the moment that are kept in separate files.
+Workflow need to know paths to those lists, so it's stores them in file placed at *active_lists_path*. That path can be just 'active_lists' to store it in workflow folder. When you run *Activate list aa* file action path to that file is stored in file at *active_lists_path*.
+
+### Keyword: *ttt*    
+
+Lists all tasks from list given be query - query is path to file with that list. Constant prefix and sufix of path can be configured.
+For example if you allways use one extension for lists you can
+set it as constant sufix so you won't need to type it. The same works with prefixes - useful for home directory or when you store all lists in one folder.
+
+## Configuration
+
+All configs (except one) are stored in config.py and are commented there. If you use only one file you probably should remove *tt* and *ttt* tags from workflow to not polute searches.
+
+[Alfred]: http://www.alfredapp.com
+[TaskPaper]: http://www.hogbaysoftware.com/products/taskpaper
+[basic]: http://bvsc.nazwa.pl/img/TodoFlow/basic.png
+[query]: http://bvsc.nazwa.pl/img/TodoFlow/query.png
+[regexp]: http://bvsc.nazwa.pl/img/TodoFlow/regexp.png
+[Download]: https://github.com/bevesce/TodoFlow/raw/master/TodoFlow.alfredworkflow
+
+# Topy / TodoFlow #
+
+# Overview #
+
+Topy module provides API for interacting with todo lists in plain text files with [taskpaperlike][] format with powerful query syntax. It provides functions to modify lists and to convert them to markdown, html and XML used in [Alfred2][] workflow. See utilities for examples of what can be done with it.
+
+# Project Maturity #
+
+This is something that I use everyday and works as it is but I add things when I have new ideas or notice opportunity for improvement.
+
+# Changelog #
+
+- 2013-08-10 - added actions for **@remind** tag
+- 2013-08-10 - added actions for **@followup** tag
+- 2013-08-10 - added todify - iOS pythonista script that adds task tagged with *@today* to notification center
+- 2013-05-19 - minor improvement in how abbreviations in queries are expanded
+- 2013-05-14 - fixed bug in sublime package (bad changing type of item when project has trailing tags)
+- 2013-05-11 - new utility - qr_to_drafts
+- 2013-05-04 - new utility - tabs_as_tasks
+- 2013-05-03 - added separate coloring for @today, @next and @due tags
+- 2013-05-02 - Drafts Inbox actions added
+- 2013-05-02 - added version for Pythonista iOS app
+- 2013-05-02 - added editing from topy and Alfred workflow
+- 2013-05-02 - better encoding handling
+- 2013-05-02 - start of change log
+
+# Usage #
+
+##### topy #####
+
+Use *from_file* and *from_files** functions to create object that represents todo list. Module also provides functions for basic modifications of list using items id (*do*, *tag*, *remove*, *get_content*, *add_new_subtask*).
+
+\* when creating one list from multiple files each list is packed into project with title identical to name of source file.
+
+##### topy.lists #####
+
+Provides functions to add, remove and retrieve globally available list of path to active todo lists. Those paths are stored in tab-separated text file, its location can be specified in config.py.  
+
+##### topy.todolist #####
+
+Defines classes TodoList, Note, Project, Task and operations on them.
+
+For more read comments in source files.
+
+## List Syntax ##
+
+- Task is line that begins with '- ', can be indented with tabs.
+- Project is every line that is not task and ends with ':' with eventual trailings tags after that colon.
+- Every other line is a note.
+- Tag is word preceded by '@' with eventual parameter in parenthesis (e.g. **@today**, **@done(2013-03-01)**).
+- Structure of list is defined by indentation levels of items.
+
+## Query Syntax ##
+
+You can filter items in the list by searching for the words, tags (e.g. **@today**) or using argument-operator-value syntax.
+
+##### Arguments:
+
+- project - title of any parent project in hierarchy
+- uniqueid
+- content - line without formatting and trailing tags
+- type - task / note / "project"
+- level - indentation level
+- parent - any parent in hierarchy
+- index - index in list, relative to closest parent, starts with 0. For example:
+
+		Parent project:
+			- task1
+			subproject:
+				- task2
+				- task3
+			- task4
+
+Both task1 and task2 have index 0, subproject and task3 have index 1, task4 has index 2.
+
+- tag - parameter of tag
+
+##### Operators: #####
+
+- =
+- !=
+- \< - values are compared lexicographically (it just string comparison)
+- \>
+- \<=
+- \>=
+- matches - match with regexp
+- contains, $ (those are synonyms)
+
+Two queries joined by *and* are query, two queries joined by *or* are query, query can be negated with *not* operator. Words that are part of syntax can be escaped by putting them in double quotes "".
+
+Full grammar is in filterpredicate.py source file.
+
+# Installation & Configuration #
+
+For now I'm not providing *setup.py*, so to use it from anywhere you need to add directory that contains topy folder to python path. Main configuration file is in *topy/config.py*, options are described there. Several utilities require additional configuration.
+
+# Utilities #
+
+Some examples what can be done with this module and other tools for working with plain text todo lists. Those are scripts I use on daily basis with my todo list (Projects.todo, Onhold.todo and Inbox.todo).
+
+## tp ##
+
+	Command line interface.
+	
+	usage: tp [-h] [-q QUERY] [-p [PATHS [PATHS ...]]] [--not-colored]
+			  [--markdown] [--with-ids] [--html] [--css CSS] [--countdown	]	
+			 [--dont-indent	
+	
+	Filter todo list.
+	
+	optional arguments:
+	  -h, --help            show this help message and exit
+	  -q QUERY, --query QUERY
+							predicate to filter with
+	  -p [PATHS [PATHS ...]], --paths [PATHS [PATHS ...]]
+							paths to files containg todo list, defaults 	to paths	
+								stored in topy.lists (see config.py)	
+	  --not-	colored, -nc    not colored output	
+	  --mark	down, -md       print as markdown	
+	  --with	-ids, -ids      print with items	ids	
+	  --html	                print as html	
+	  --css CSS             css stylesheet, only valid with --html	
+	  --countdown, -cd      print as countdown
+	  --dont-indent         don't indent lines
+
+![tp_screen_shot](http://jerry.mydevil.net/img/tp.png)
+
+## SublimeTodoFlow ##
+
+SublimeText 2 package, read more in [its readme][SublimeReadme].
+
+## TodoFlow2 Alfred 2 Workflow ##
+
+*Requires additional configuration of paths in config.py inside workflow folder*
+
+##### *q* keyword
+
+Displays all tasks in active lists, you can filter them by typing query.
+
+- ↩ - tags task as **@done**
+- ⌘+↩ - **new, experimental feature** performs action depending on tags of task, at the moment to change behaviour you need to modify tag_dependent_action function in main.py
+	- if task has tag **@file** or **@web** tries to open parameter of that tag
+	- if task has tag **@search** or **@research** opens Alfred 2 with query *g {content of task}* (for googling)
+	- if task has tag **@download** or **@tvseries** opens Alfred 2 with query  *pb {content of task}*
+	- always puts content of task to clipboard
+- fn+↩ - start editing selected task, Alfred will open reopen itself with *editq* keyword and content of selected item. You can then edit text to change item or remove text completely to remove item from list.
+
+![alfred-q](http://jerry.mydevil.net/img/TodoFlow2-q.png)
+
+In config.py you can set dictionary of one-letter abbreviations for queries. To use them type **q** and then previously defined  abbreviation (without space). Abbreviations can be chained with *and*.
+
+Examples:
+
+	quick_query_abbreviations = {
+    		'n': '@next',
+    		'd': 'not @done',
+    	}
+
+- **qn** - search for tasks tagged with **@next**
+- **qd** - search for tasks *not* tagged with **@done**
+- **qnd** - search for tasks tagged with **@next** *and not* tagged with **@done** 
+	
+
+##### *a* keyword #####
+
+
+Displays list of all projects in active lists.
+Type task and hit ↩ to append task to selected project, you can filter projects by typing query after ';'.
+
+![alfred-a](http://jerry.mydevil.net/img/TodoFlow2-a.png)
+
+##### *remove list* keywords #####
+
+- ↩ - remove list from active lists
+
+##### *add list* file action #####
+
+Adds list to active lists
+
+##### icons #####
+
+- ![task](http://jerry.mydevil.net/img/task.png) - task
+- ![done](http://jerry.mydevil.net/img/done.png) - item tagged as **@done**
+- ![project](http://jerry.mydevil.net/img/project.png) - project
+- ![note](http://jerry.mydevil.net/img/note.png) - note
+
+## Inbox Alfred 2 Workflow ##
+
+*Requires additional configuration of paths in inbox.py inside workflow folder*
+
+##### *in* keyword & fallback search ######
+
+Appends typed task with date stamp to Inbox.todo. 
+
+![alfred-in](http://jerry.mydevil.net/img/TodoFlow2-in.png)
+
+##### first hotkey #####
+
+Appends selected text to Inbox.todo with date stamp. 
+
+##### second hotkey #####
+
+Appends selected mails in Mail.app to Inbox.todo, see [mail-to-inbox]()
+
+---
+
+*You can configure following scripts in **utilities/config.py**. That includes path to todo lists, what is very important.*
+
+---
+
+### open_html
+
+	usage: open_html.py [-h] [-q QUERY] [-p [PATHS [PATHS ...]]] [--css CSS]
+	
+	Open page with todo list in default browser.
+	
+	optional arguments:
+		-h, --help            show this help message and exit
+		-q QUERY, --query QUERY
+						predicate to filter with
+		-p [PATHS [PATHS ...]], --paths [PATHS [PATHS ...]]
+						paths to files containg todo list, defaults to paths
+						stored in topy.lists (see config.py)
+		--css CSS             css stylesheet, only valid with --html
+
+3 css styles are included.
+
+### archive ###
+
+Moves **@done** tasks from active todo lists to Archive.todo.
+
+### inbox ###
+
+Appends tasks to Inbox.todo with date stamp as parameter of **@in** tag.
+
+### mail-to-inbox ###
+
+AppleScript that's puts selected tasks in Mail.app to Inbox.todo in following format:
+
+- subject **@in(**date received**)** **@person(**sender**)** **@mail(**message://...**)**
+
+Requires additional configuration in script itself. I know nothing about AppleScript so it may be not very pretty.
+
+### inbox with Drafts ###
+
+[Drafts](http://agiletortoise.com/drafts/) action that appends draft with timestamp to Inbox.todo file. Requires path adjustment.
+
+	drafts://x-callback-url/import_action?type=dropbox&name=Inbox&path=%2FTODO%2F&filenametype=2&filename=Inbox.todo&ext=&writetype=2&template=-%20%5B%5Bdraft%5D%5D%20%40in%28%5B%5Bdate%5D%5D%29%0A
+
+Version that also adds clipboard content:
+
+	drafts://x-callback-url/import_action?type=dropbox&name=Clipboard%20-%3E%20Inbox&path=%2FTODO%2F&filenametype=2&filename=Inbox.todo&ext=&writetype=2&template=-%20%5B%5Bclipboard%5D%5D%20%5B%5Bdraft%5D%5D%20%40in%28%5B%5Bdate%5D%5D%29%0A
+
+And bookmarklet that gets page title and url and launches this action in Drafts and returns to Safari:
+
+	javascript:if(window.getSelection()!='')%7Bvar%20selected=encodeURIComponent(window.getSelection());var%20selected='%250A%250A%253E%2520'+selected.replace(/%250A/g,'%250A%253E%2520');%7Delse%7Bvar%20selected='';%7Dlocation.href='drafts://x-callback-url/create?'+'text='+encodeURIComponent(document.title)+'%20@web('+encodeURIComponent(location.href)+')'+selected+'&action='+'Inbox'+'&x-success='+encodeURIComponent(location.href);
+
+### qr_to_drafts ###
+
+Ok, now it's just crazy. Inspired by [David Sparks post](http://macsparky.com/blog/2013/5/omnifocus-task-creation-via-qr-code)
+about workflow of [Jonas Bergenudd](http://urbanism.se).
+
+Script creates QR code with given text that when scanned puts that text in Drafts and launches Inbox action. 
+
+### log_to_day_one ###
+
+Creates entry in [Day One][] with tasks that were done today.
+
+### tvcal ###
+
+Adds titles of tv series that will air in upcoming 24 hours to Inbox.todo, requires account at <http://www.pogdesign.co.uk/cat/> and icalendar python module.
+
+### tabs_as_task ###
+
+Gets urls and titles of opened pages in Safari and prints them in following format:
+
+	- title1 @web(url1)
+	- title2 @web(url2)
+
+### update_lists ###
+
+Provides functions to update recurring tasks.
+
+* Tasks in Onhold.todo with tag **@waiting(some-date-in-ISO-8601-format)** are added to Inbox.todo at that date.
+* Tasks in Onhold.todo tagged with **@weekly(some-day-of-the-week)** are added to Inbox.todo at that day. 
+* Tag **@done** is removed from tasks in Daily project in main todo list.
+* When some task is tagged with **@done(YYYY-MM-DD)** and with **@followup(X example task text)** to Onhold.todo will be added new task with structure: 
+
+	*- example task text **@waiting(YYYY-MM-DD + X days)** **@following(text of orginal task without tags)***
+
+At the moment no tasks are removed from Onhold.todo.
+
+### end_the_day
+
+Joins several of other scripts. Launchd runs it for me at the and of the day.
+
+### reminders_to_topy ###
+
+Imports items from *Inbox* list in Reminders.app to Inbox file,
+some path must be adjusted in AppleScript *reminders_to_topy.applescript*.
+
+It allows to put items into Inbox with Siri on iOS (just put reminder in *Inbox* list and import it when on Mac or set this script in launchd).
+
+### remind
+
+Adds items tagged with **@remind(YYYY-MM-DD)** to Reminders.app and changes tag to **@willremind(YYYY-MM-DD)**.
+
+### itopy, utopy, qtopy, todify ###
+
+Version of script to use in [Pythonista](http://omz-software.com/pythonista/) iOS app. Most of the source was merged to not clutter scripts list in app.  Requires [seamless dropbox](https://github.com/bevesce/Seamless-Dropbox)
+
+**itopy** - the main code, 
+
+**todify** - script that puts task returned by query *@today and not @done* to iOSs notification center. It's looks like this:
+
+![ todify ](http://jerry.mydevil.net/img/todify.png)
+
+Best launched with url scheme:
+
+	pythonista://todify?action=run
+
+**utopy** - merged version of *update_lists*
+
+**qtopy** is for querying and working with lists. This is [Drafts](http://agiletortoise.com/drafts/) action to start this script with draft as the query:
+
+	drafts://x-callback-url/import_action?type=URL&name=itopy&url=pythonista%3A%2F%2Fqtopy%3Faction%3Drun%26args%3D%5B%5Bdraft%5D%5D
+
+After querying script keeps running end waits for input:
+
+- **d item_id** tags item as done
+- **c item_id** puts content of item to clipboard
+- **m item_1_id > item_2_id** removes item 1 from current position and appends it to subtask of item 2
+- **a item_id** tag dependant action, with x-url schemes it can be pretty powerful
+	- *@search* and *research* - search for content of item with Bang On iOS app
+	- *@web* opens browser with parameter of the tag as url
+	- *@mail* open Mail app with content of tag *@osoba* as address	
+
+## NerdTool / GeekTools ##
+
+Scripts I use to put todo lists on Desktop with Nerd tools.
+
+### NerdTool Exported Logs ###
+
+It looks like this:
+
+![nerd_tools](http://jerry.mydevil.net/img/nerdtool.png)
+
+### print_next ###
+
+Prints actionable tasks.
+
+### print_today ###
+
+Prints tasks planned for today.
+
+### print_deadlines
+
+Prints tasks that have due date with count of days that left to that date.
+
+### count_inbox ###
+
+Prints out number of items in Inbox.todo.
+
+
+© 2013 Piotr Wilczyński
+[@bevesce][]
+
+[taskpaperlike]: http://www.hogbaysoftware.com/products/taskpaper
+[SublimeReadme]: https://github.com/bevesce/TodoFlow/tree/master/utilities/SublimeTodoFlow
+[Day One]: http://dayoneapp.com
+[tp_screen_shot]: http://bvsc.nazwa.pl/img/TodoFlow/tp.png "tp iTerm screenshot"
+[nerd_tools]: http://bvsc.nazwa.pl/img/TodoFlow/nerdtool.png "NerdTool screenshot"
+[Alfred2]: http://v2.alfredapp.com
+[alfred-a]: http://bvsc.nazwa.pl/img/TodoFlow/TodoFlow2-a.png
+[alfred-q]: http://bvsc.nazwa.pl/img/TodoFlow/TodoFlow2-q.png
+[alfred-in]: http://bvsc.nazwa.pl/img/TodoFlow/TodoFlow2-in.png
+[@bevesce]: https://twitter.com/@bevesce
+[done]: http://bvsc.nazwa.pl/img/TodoFlow/done.png
+[task]: http://bvsc.nazwa.pl/img/TodoFlow/task.png
+[project]: http://bvsc.nazwa.pl/img/TodoFlow/project.png
+[note]: http://bvsc.nazwa.pl/img/TodoFlow/note.png
+
+
+# SublimeTodoFlow #
+
+# Overview #
+
+SublimeText2 package for working with todo lists in plain text files with [taskpaperlike][] [format][]. It's designed to work with every color scheme. I don't like when packages overwrite my theme.
+
+![sublime1](http://jerry.mydevil.net/img/sublime1.png) ![sublime2](http://jerry.mydevil.net/img/sublime2.png) ![sublime3](http://jerry.mydevil.net/img/sublime3.png) ![sublime4](http://jerry.mydevil.net/img/sublime4.png)
+
+# Key Binding & Commands #
+
+- ⌘+⌃+↩ / *ctrl+alt+enter* - toggle between **@next** / **@today** / **@done(YYYY-MM-DD)** / … tags. ⌘+D is for selecting words, how could anyone overwrite that?
+- ⌘+↩ / *ctrl+enter* - insert new task
+- ⌘+⌃+, / *ctrl+alt+,* - change type of current line (toggle between task / project / note)
+- ⌘+⌃+. / *ctrl+alt+.* - add tag from quick panel, list of tags is created from tags in current file, tags **@in**, **@due**, **@done** are not included.
+
+![sublime5](http://jerry.mydevil.net/img/sublime5.png)
+
+- ⌘+⌃+⌥+↑ / *super+ctrl+alt+↑* - increase date (or insert today if cursor is not on date), what is increased (year, month, day) depends  on what part of date cursor is on 
+- ⌘+⌃+⌥+↓ / *super+ctrl+alt+↓* - decrease date
+
+# File format [format]#
+
+Package automatically works with files with .todo and .taskpaper extension.
+
+- Task is line that begins with '- ', can be indented with tabs.
+- Project is every line that is not task and ends with ':' with eventual trailings tags after that colon.
+- Every other line is a note.
+- Tag is word preceded by '@' with eventual parameter in parenthesis (e.g. **@today**, **@done(2013-03-01)**).
+- Structure of list is defined by indentation levels of items.
+
+© 2013 Piotr Wilczyński
+[@bevesce][]
+
+[@bevesce]: https://twitter.com/@bevesce
+[taskpaperlike]: http://www.hogbaysoftware.com/products/taskpaper
+[sublime1]: http://bvsc.nazwa.pl/img/TodoFlow/sublime3.png
+[sublime2]: http://bvsc.nazwa.pl/img/TodoFlow/sublime2.png
+[sublime3]: http://bvsc.nazwa.pl/img/TodoFlow/sublime1.png
+[sublime4]: http://bvsc.nazwa.pl/img/TodoFlow/sublime4.png
+[sublime5]: http://bvsc.nazwa.pl/img/TodoFlow/sublime5.png
+[dategif]: http://bvsc.nazwa.pl/img/TodoFlow/dateincr.gif
+
+# todoflow 3
+
+Todoflow is Python module that provides functions to parse, filter, update, modify and save todo lists stored in plain text files with TaskPaper syntax.
+
+Using it I made several tools:
+
+- CLI for searching
+- GeekTool/NerdTool extension
+- Alfred workflow
+- Editorial.app workflows
+- version for Pythonista.app
+- lists updater
+- Day One logger
+- Sublime Text 3 package
+- Reminders.app exporter & importer
+- HTML exporter
+- some other stuff...
+
+Many workflows are probably too personal to use for anybody than me, but they can be adjusted and give example of what can be done.
+
+# Changelog
+
+- 2014-03-15
+    + added propagate_done utility in workflows - just to show off apparently
+    + added someting that I should have done long time ago - search method that returns list of exact matched (contraty to filter which returns new Todolist object)
+    + added not properly tested stuff to end_the_day
+        * for every item with *@remind* tag creates coresponding task in Reminders.app
+        * for every item with *@done* or *@due* tag creates coresponding event in Calendar.app
+- 2014-03-11
+    + updates to Editorial workflows
+        * fixed problems with encoding
+        * added Agenda workflow
+        * dark and light theme for outputs
+        * now tapping item in search result will move to proper line in source file
+    + added print_agenda for Pythonista.app
+- 2014-02-12
+    + added sequential projects
+- 2014-02-08
+    + added stodoflow - Sublime Text 3 package
+    + added Move to project and Tags Toggle Editorial workflows
+- 2014-02-06
+    + **big changes** Ok, so this will be longer story. For several months I experimented with different syntax (something more like github flavored markdown, because I don't like that in TaskPaper it's not easy to distinguish done tasks without syntax highlighting), to do that I made major refactoring of the codebase. Now I decided that I want to come back to TaskPaper to be able to use other peoples tools. Instead of using old code I modified refactored one. Now code is cleaner (is it?), better organized (I think so), has some bugs fixed, but I dropped some parts that I was no longer using. I spread previously long readme through several folders, closer to code that it describe. Also I dropped attempts to change that horrible name - todoflow. Also Editorial workflow. I don't know if anybody is really using todoflow but if so beware.
+- 2013-08-10 
+    + added actions for @remind tag
+- 2013-08-10 
+    + added actions for @followup tag
+- 2013-08-10 
+    + added todify - iOS pythonista script that adds task tagged with *@today* to notification center
+- 2013-05-19 
+    + minor improvement in how abbreviations in queries are expanded
+- 2013-05-14 
+    + fixed bug in sublime package (bad changing type of item when project has trailing tags)
+- 2013-05-11
+    + new utility - qr_to_drafts
+- 2013-05-04 
+    + new utility - tabs_as_tasks
+- 2013-05-03 
+    + added separate coloring for @today, @next and @due tags
+- 2013-05-02 
+    + Drafts Inbox actions added
+- 2013-05-02 
+    + added version for Pythonista iOS app
+- 2013-05-02 
+    + added editing from topy and Alfred workflow
+- 2013-05-02 
+    + better encoding handling
+- 2013-05-02 
+    + start of change log
+
+# Installation
+
+To install todoflow just download repository and put it somewhere on python path. After that read through and change config.py file. Probably most important is to set *files_list_path* and *files_list_name* variables. They point to file that should store path to every file with todo list that you want to be reachable from todoflow.
+
+# Basics
+
+Parsing lists:
+
+    import todoflow
+    todo_list = todoflow.all_lists()
+
+Second line will creates object that represents all lists listed in file mentioned in *installation*. That list can be printed:
+
+    # just as plain text:
+    print todo_list 
+    # or using one of the specific printers:
+    from todoflow.printers import ColorPrinter
+    ColorPrinter().pprint(todo_list) 
+
+For each file new project is created, with title same as name of file.
+To filter lists you can use:
+
+    some_query = '@next and not @done'
+    filtered_todo_list = todo_list.filter(some_query)
+
+Filtering returns new todo list, object of the same class as original. Not only exact matches are part of this result, but whole projects structure (like in TaskPaper.app) - meaning that parents of matched item are also returned.
+
+Instead of *filter* you can use method *search*, it returns list (as in *[]*) of exact matches (instead of todo list (as in *'<todoflow.src.todolist.TodoList object at 0x107a61fd0>*)). 
+    
+    todo_list.search(some_query)
+    >>> [<todoflow.src.item.Project object at 0x107b50450>, <todoflow.src.item.Task object at 0x107b51710>, <todoflow.src.item.Task object at 0x107b517d0>]
+
+In my experience *search* is more useful when editing list.
+
+In my experinece
+
+Parsed list can be iterated over and modified, for example we can add some tags:
+
+    for task in todo_list:
+        if task.type == 'task':
+            task.add_tag('done')
+
+and than save list to source file:
+
+    todoflow.save(todo_list)
+
+For more you'll need to read source code.
+
+# Searching & Filtering
+
+Todoflow supports most of the query syntax of TaskPaper with few additions:
+
+### syntax
+
+Adds operator *?* that is synonym for *contains*.
+
+### shortcuts
+
+Shortcut are stored and configured in todoflow.config in *quick_query_abbreviations* dict. If every letter in first word of query is in this dict those letters will be expanded and joined with *quick_query_abbreviations_conjuction* (*and* is default).
+
+For example with shortcuts defined as:
+
+    quick_query_abbreviations = {
+        't': '@today',
+        'n': '@next',
+        'd': 'not @done',
+    }
+
+Expanding will result in:
+
+    >>> import todoflow as tf
+    >>> tf.expand_shortcuts('dt')
+    'not @done and @today'
+    >>> tf.expand_shortucts('dt mac')
+    'not @done and @today and mac'
+
+If shortcuts conflict with some other query you can precede it with white space:
+
+    >>> tf.expand_shortcuts(' dt mac')
+    'dt mac'
+
+### dates
+
+Relative and natural*ish* language date and time expressions enclosed in *{}*.
+
+Uses [parsedatetime](https://github.com/bear/parsedatetime), todoflow should not break when this module is not available to import, but it's cool so instal it.
+
+    >>> tf.expand_dates('@due < {now + 7d}')
+    '@due < 2014-02-13T13:22:07' # tags parameters are compared lexicographically
+
+Both shortcuts and dates can be expanded using one function:
+
+    >>> tf.expand_query('d @due < {next sunday}')
+    'not @done and @due < 2014-02-09T14:07:08'
+
+and both can be turned off in todoflow.config (*should_expand_dates* and *should_expand_shortcuts*)
+
+### sequential projects
+
+I wanted to add this for some time, I tried with numbered tasks, but it was problematic. Now I stolen much better idea from [Phillip Gruneich](http://philgr.com/blog/why-i-moved-my-tasks-to-plain-text) - project is declared as sequential in project title. Every project thats ends with two colons *::* instead of one is sequential (specific string can be chenged in config).
+
+    This is sequential project::
+        - task0 @done
+        - task1
+        - task2
+    This is not sequential:
+        - task0 @done
+        - task1
+        - task2
+
+Only first not @done task will be returned in search (if it meets criteria):
+
+    query: task
+    ___________
+    This is sequential project::
+        - task1
+
+    This is not sequential:
+        - task0 @done
+        - task1
+        - task2
+
+
+    query: task2
+    ____________
+    This is not sequential:
+        - task2
+
+# Project overview
+
+- config.py - configuration file for todoflow and all workflows, you should remove parts you're not using
+- printers - module with classes that can take todoflow todo list and return them as formatted string (*pformat*) or print them (*pprint*), modeled after pprint module
+- src
+    - main.py - functions to create and manage todo lists
+    - todolist.py - class that represents parsed todo list
+    - item.py - classes that represent single items on todo list, like task, project or note
+    - query.py - parser, lexer and class of search queries
+    - fileslist.py - module to manage list of files that contain todo lists
+    - parser.py
+    - lexer.py
+    - utils.py
+- workflows - all the stuff
+- archive - previous major versions
+
+# Workflows
+
+Readmes for specific workflows are in their folders.
+
+
+
+
+
+# Alfred todoflow
+
+Workflow for searching TaskPaper list in Alfred. 
+
+![q keyword](http://procrastinationlog.net/img/alfredq.png)
+
+## Installation
+
+1. Install todoflow
+2. Change path to alfredq.py in *Script Filter* in Alfred inside Alfred
+3. Probably you'll need to do something to make todoflow module visible from Alfred in *Add list* file action, you can set path in config.py in workflow folder
+
+# Alfred todoflow inbox
+
+Workflow to insert new tasks to Inbox file. Uses *Keyword*, *Fallback Search* and *Hotkey* to insert selected text.
+
+Action:
+
+![in keyword](http://procrastinationlog.net/img/inbox.png)
+
+will insert:
+
+    - write readme for todoflow @in(2014-02-06)
+
+If you using *Mail.app* you can also use *Hotkey* to insert selected mail and it will insert something like this:
+
+    - mail subject @from(name <address>) @mail(message://link_to_mail) @in(2014-02-06)
+
+## Installation
+
+1. Install todoflow
+2. Set path to inbox.py in first *Run Script*
+3. Set path to Inbox TaskPaper list in AppleScript in second *Run Script*
+# To Calendar
+
+For every task tagged with *@due* or *@date* creates coresponding event in Calendar.app in proper calendar. After running this *@calendar* tag is added to item so it won't create duplicates. More event details can be specified using other tags:
+
+- *@due(YYYY-MM-DD)* or *@remind(YYYY-MM-DD)*
+- *at(hh:mm)* or *at(hh:mm-hh:mm)* - start time and optional end time, default duration is one hour, if no start time is provided it's assumed that it is all day event
+- @place(location)
+
+# Search Workflow
+
+This is workflow that uses todoflow to filter todo lists inside Editorial.app.
+When used it will display list of predefined queries in format:
+    
+    title | query
+
+they can be set in workflow. Last position on list - *Query* is for single use queries (you'll be asked for input). 
+
+![editorial query](http://procrastinationlog.net/img/editorialquery2.png)
+
+Result will be displayed as html in in-app browser. Each item on list is also a link that will open source file in Editorial when activated. In workflows/html/css are several styles that can be used (paste them in workflow).
+
+![editorial query](http://procrastinationlog.net/img/editoriall2.png)
+
+## Installation
+
+### Excuses
+
+Ok, installation is a little bit painful. There are few reasons for that:
+
+1. I don't know any simple way to install multi-file python module in Editorial
+2. I don't want to maintain several versions of todoflow (for Unix, for Editorial, for Pythonista...)
+3. I didn't plan for that at the beginning
+
+### Installing todoflow
+
+You need to move whole files structure of todoflow to Editorial, probably there is better way but I do this like that:
+
+1. Install and configure [seamless dropbox](https://github.com/bevesce/Seamless-Dropbox/blob/master/seamless_dropbox.py), you'll need app key and secret from [dropbox developer site](https://www.dropbox.com/developers/apps) (probably you should read what seamless dropbox does)
+    - to do this you can download seamless dropbox from repo, configure it and put in clipboard
+    - then install it using [this workflow](http://editorial-app.appspot.com/workflow/6442061712588800/hOafIlNIhTI), it asks for path (just *seamless_dropbox.py*) and creates file using content of clipboard
+2. Put configured todoflow in your dropbox
+2. Paste content of *import todoflow.py* to Python scratchpad
+3. Set variables *path_to_folder_synced_in_editorial* and *path_to_todoflow_in_dropbox* 
+4. Run it
+
+### Installing parsedatetime
+
+1. Similar to todoflow, after installing seamless dropbox download parsedatetime to your dropbox
+2. Paste content of *import parsedatetime.py* to Python scratchpad
+3. Set variables *path_to_folder_synced_in_editorial* and *path_to_parsedatetime_in_dropbox* 
+4. Run it
+
+### Installing workflow
+
+1. After installing todoflow and parsedatetime probably you'll need to restart app
+2. Install workflow from [here](http://editorial-app.appspot.com/workflow/5806813232496640/fWXVsgFK8x8)
+3. And install this simple workflow from [here](http://editorial-app.appspot.com/workflow/5863197563158528/j4dZ5y1vnUk), it's used to select proper line when link in search results is activated
+
+### Installing todoflow in some other way
+
+If you have better idea how to do this
+
+1. Let me know
+2. Read *import todoflow.py* before because there is some hacky stuff going on there
+
+#### Hacky stuff
+
+Obviously using *open* in Editorial won't work when using path from OSX, so before downloading every file with *import todoflow.py* I prepend it with this code:
+
+    import editor
+
+    def open(path, mode='r'):
+        editorial_path = path.replace(path_to_folder_synced_in_editorial, '')
+        content = editor.get_file_contents(editorial_path, 'dropbox')
+        return FakeFile(content)
+        
+    class FakeFile(object):
+        def __init__(self, content):
+            self.content = content
+            
+        def __enter__(self):
+            return self
+            
+        def __exit__(self, *args):
+            pass
+            
+        def read(self):
+            return self.content
+            
+        def readlines(self):
+            return self.content.split('\\n')
+
+it overwrites *open* from standard library with *open* that will work in Editorial (only for reading, at least for now).
+
+# Agenda
+
+Requires todoflow. Shows Agenda view, similar to the one in CLI:
+
+- *@due* tasks sorted by due date
+- *@working* tasks
+- *@next* tasks
+
+You can install it from [here](http://editorial-app.appspot.com/workflow/5846893867302912/cI8nPxKUVr0)
+
+# ✓ Toggle tags workflow
+
+Requires todoflow. Toggles between *@next*, *@working* and *@done* tags.
+
+You can install it from [here](http://editorial-app.appspot.com/workflow/5883366729580544/xx6KWCCP_Kg)
+
+# ↱ Move to Project
+
+Requires todoflow. Gets selected text, displays list of all projects and moves selection to chosen one - prepends new tasks.
+
+You can install it from [here](http://editorial-app.appspot.com/workflow/5790251838603264/luMurs5X_zw)
+
+Uses *Repeat* and *Save file contents* blocks to work around [this bug in editor.set_file_contents](http://omz-forums.appspot.com/editorial/post/5925732018552832).
+
+![editorial query](http://procrastinationlog.net/img/editorialm2.png)
+
+# HTMLq
+
+Script takes query, filters all lists and prints HTML to stdout. CSS used can be configured in *todoflow.config*. Style is included inside HTML to it can be moved between devices.
+
+![dark style](http://procrastinationlog.net/img/darkhtml.png)
+
+![light style](http://procrastinationlog.net/img/lighthtml.png)
+
+# qtodoflow
+
+Script that takes arguments, filters TaskPaper lists and prints them in Pythonista console.
+
+![pythonista](http://procrastinationlog.net/img/pythonista2.png)
+
+Can be launched from Launch Center Pro with url scheme:
+
+    pythonista://qtodoflow?action=run&args={query}
+
+## Installation
+
+1. Install and configure [seamless dropbox](https://github.com/bevesce/Seamless-Dropbox/blob/master/seamless_dropbox.py), you'll need app key and secret from [dropbox developer site](https://www.dropbox.com/developers/apps) (probably you should read what seamless dropbox does)
+2. Install todoflow - you can do this running *import todolow.py* or manually (if so read about Hacky stuff at the end of readme)
+3. Install parsedatetime if you want to use it, manually or using *import parsedatetime.py*
+4. Copy qtodoflow.py
+5. Done
+
+### Hacky stuff
+
+Obviously using *open* in Pythonista won't work when using path from OSX, so before downloading every file with *import todoflow.py* I prepend it with this code:
+
+    from seamless_dropbox import open
+
+it overwrites *open* from standard library with *open* from *seamless_dropbox* that will work in Pythonista (only for reading, at least for now), it downloads files from dropbox (it can take a while).
+# tp
+
+CLI search. Takes query and prints colored result.
+
+![agenda output](http://procrastinationlog.net/img/tp.png)
+
+# print agenda
+
+Prints deadlines with due dates, *@working* tasks and *@next* tasks.
+
+![agenda output](http://procrastinationlog.net/img/agenda.png)
+# Remind
+
+Creates task in Reminders.app for every task tagged with *@remind(date)* (example: *@remind(YYYY-MM-DD*), time can be specified using *@at* tag (*@at(hh:mm)*, default is 23:59), after running this *@remind* is changed to *@willremind* (so it won't create duplicates).
+# stodoflow
+
+Few utilities to work with TaskPaper list in **Sublime Text 3**. Syntax highlighting is designed to work with any color scheme, I don't like when packages overwrite my theme.
+
+
+## Toggle tags
+
+^ + ⌘ + ↩ - toggles between @next, @working and @done tags
+
+## Change date
+
+- ^ + ⌥ + ⌘ + ↑ - increases date by one year, month or day depending on where is caret
+- ^ + ⌥ + ⌘ + ↓ - decreases date by one year, month or day depending on where is caret
+
+
+
+## Move to Project
+
+^ + ⌥ + ⌘ + m - displays list of all projects and moves selected tasks to chosen one
+
+
+
+## Installation
+
+1. Install todoflow
+2. Put stodoflow folder in Packages directory in ST3
+
+# Updater
+
+Collections of script that I run at the end of the day to update lists.
+
+- log_to_day_one - logs tasks done in that day to Day One
+- update_lists
+    - update_daily - adds tag *@workingg* to every task in *Daily* project
+    - update_waiting - copies tasks tagged with *@waiting(today_date)* to Inbox from Onhold project
+    - update_weekly - copies tasks tagged with *@weekly(today_weekday)* to Inbox from Onhold project
+    - update_blocked - there are two tags *@blocker(id)* and *@blocked(id)*, when *@blocker(id)* task is *@done* tag *@blocked(id)* is removed from tasks, *id* can be any text
+    - update_incremental - if task is tagged with *@v(i)* and *@inc(j)* parameter of *@v* is changed to *i + j*.
+    - update_followups - when task with tag *@followup(i task_text)* is *@done* then adds task *- task_text @waiting(today + i days) @following(original_task_text_without_tags)* to Onhold project
+- tvcal - adds shows that I watch to Inbox on day when they air, uses [TV Calendar](http://www.pogdesign.co.uk/cat/)
+- end_the_day - One to rule them all

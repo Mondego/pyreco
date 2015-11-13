@@ -1,0 +1,889 @@
+.. role:: file(literal)
+
+=======================
+Giovanni Giorgi's files
+=======================
+
+.. contents::
+.. sectnum::
+
+This page documents the :file:`contrib/Giorgi/` subdirectory of the
+Pymacs distribution.  First install Pymacs from the top-level of the
+distribution, this has the side-effect of adjusting a few files in this
+directory.  Once this done, return to this directory, then run ``python
+setup.py install``.
+
+Here, you'll find miscellaneous files contributed by Giovanni Giorgi,
+to be sorted, documented, maybe deleted, at least pondered in one way
+or another.  The remainder of this page comes from Giovanni's writing,
+waiting for Giovanni to revise its contents.
+
+Introduction
+============
+
+ChangeLog
+---------
+
+Pymacs last version was 0.22, written by Francois Pinard.  Giovanni
+Giorgi took this version and evolved it.  This new development is marked
+"2.0" and is it always distributed under GNU General Public License 2.0
+
+Feel free to send comments suggestions and so on to Giovanni's email
+address: mailto:jj@objectsroot.com
+
+What's new in Pymacs 2.0
+------------------------
+
+Giovanni Giorgi (the Author) has taken Pymacs 0.99 and has decided to
+write some extensions.  The final product is named Pymacs 2.0.
+
+Improved documentation and examples
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+In Pymacs 2.0 has been added a medium sized example.
+
+The documentation offers a `Troubleshooting`_ section, to solve most
+common issue, also for helping newbie emacs user.
+
+Improved API
+,,,,,,,,,,,,
+
+Pymacs 2.0 offers a magic save_excursion(f) method which mimics the one
+found on lisp side.
+
+Logging Support and Regression Tests
+,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+
+The Pymacs/utility.py module offers a useful EmacsLog class.
+
+The basictests.py module offers a list of regression tests Pymacs 2.0
+has been tested on::
+
+  GNU Emacs 21.4.1 (i686-redhat-linux-gnu, X toolkit, Xaw3d scroll bars)
+  GNU Emacs 22.1.1 (i686-pc-linux-gnu,     X toolkit, Xaw3d scroll bars)
+
+XMLRPC Server
+,,,,,,,,,,,,,
+
+In Pymacs 2.0 has been added a XMLRPC server to play with.  Is not yet
+production-ready!
+
+Redesigned Web Site
+,,,,,,,,,,,,,,,,,,,
+
+It is provided a new website at http://blog.objectsroot.com/pymacs
+
+History
+-------
+
+The ChangeLog Reports the first release of 9th September 2001.  Giovanni
+Giorgi started working on Pymacs on 6th March 2007 for its own personal
+use.  This is the first public release, published as final at 23th of
+February 2008.
+
+Evolving Emacs
+--------------
+
+One of the main goal of Pymacs 2.0 is to evolve emacs.  Other editors
+have a very poor support for scripting.
+
+The protocol specification is quite frozen, and python offers always a
+good retro-compatibility, so you can develop to the python site with
+ease.
+
+Emacs instead has a very powerful lisp engine, but it is difficult to
+understand and learn.  Python is very easy to understand, and there
+are plenty of library for it.  Pymacs is quite efficient and very easy
+to use.  I have successful written some functions in Pymacs in an
+evening.  Best, emacs is a powerful platform for accessing remote files,
+parsing XML stuff and so on.  There are equally powerful editor:
+
+Eclipse
+,,,,,,,
+
+Very powerful but difficult to program.  Lacks an easy scripting
+language for common tasks (like small macro-recording actions).  Plug-in
+architecture is very stable, and even if some plug-in crashes, the user
+is well protected.  But Emacs is more stable even then eclipse!
+
+JEdit
+,,,,,
+
+Very easy to script, but too decoupled.  To get a minimum of emacs
+functionality you need to load a huge amount of plug-in.  The plug-in
+model is good, but they don't play nicely between them.  A typical bug
+is a "user focus war" and the frequent errors mess up things.  This is
+unacceptable in a production environment
+
+Vim
+,,,
+
+Smaller and equally powerful, it has only a problem: cryptic sequence
+of keys needed to learn.  And typing your name after launching Vim can
+destroy your file in a snap!  Okay I am joking.  There is a well-known
+war between emacs and vi.  And if you are reading this document, you are
+on my side, young Jedi :-)
+
+Magic save_excursion(f) method
+------------------------------
+
+In Pymacs 2.0 has been added a magical save_excursion() method to the
+lisp object.  For example, instead of::
+
+  l=Let()
+  l.push_excursion()
+  myFantasticFunction()
+  l.pop_excursion()
+
+You can write a more Emacs Lisp-like code::
+
+  lisp.save_excursion(myFantasticFunction)
+
+This lead to a simpler code.  The new save_excursion() method executes
+pop_excursion even in case of errors, so myFantasticFunction() need not
+worry of them.
+
+Useful Extension
+================
+
+Enanched Python Mode
+--------------------
+
+Under the extensions folder you find a modified version of python-mode,
+provided as file :file:`python-mode.diffs`.  These diffs are relative to
+:file:`python-mode-1.0.tar.gz` as found at:
+
+  http://sourceforge.net/projects/python-mode/
+
+Last released version is dated at the end of 2005, so it seems to me
+quite frozen.  For an usage example execute the Emacs Lisp function
+"pycomplete-test"
+
+Emacs Server as XMLRPC
+----------------------
+
+Warning: this is an unsafe and very very experimental feature.
+
+Is it possible to publish emacs as a python XMLRPC server.  You will be
+virtually able to control emacs remotely, and spread the Stallman verb
+to the Universe :) Okay I am joking here.
+
+First of all, import into emacs the rpcserver.py found in the extensions
+folder::
+
+  (pymacs-load "pymacs-2.0/extensions.rpcserver")
+
+then activate it issuing the command M-x rpcserver-publish-XMLRPC-Server
+
+Emacs will freeze, waiting requests.
+
+Open a python prompt and try something like::
+
+  import xmlrpclib
+  s = xmlrpclib.Server('http://127.0.0.1:9000')
+  s.message("hi emacs, I am remoted hosted")
+  s.closeConnection()
+
+You can find a more complex example in extensions/rpcTest.py Keep in
+mind emacs will froze while the server is running.  I have not yet tested
+the server on a long-running procedure, so please do some tests before
+using it heavily.
+
+Troubleshooting
+===============
+
+I see a lot of "Garbage Collecting..." messages blinking on the emacs side
+--------------------------------------------------------------------------
+
+This messages aren't a problem, but can slow down a bit your emacs
+side.  If you have plenty of RAM, try executing something like::
+
+  lisp("""
+             (setq gc-cons-threshold 3558000)
+     """)
+
+pymacs-load "path-to-mymodule"  seems working only the first time
+-----------------------------------------------------------------
+
+This problem was reported on python 2.5 at the moment.  Usually is
+solved putting a dot in the last part of the filename parameter.
+
+Suppose you have a package "myPackage" and a file "utils.py" inside it.
+
+You should write::
+
+  (pymacs load "/home/jj/emacs/myPackage.utils")
+
+this syntax works well every time.  To avoid the "ImportError: No module
+named extensions2.0.pycomplete-serverice" message, remember to add an
+empty __init__.py file in the /home/jj/emacs/myPackage directory
+
+fp-maybe-pymacs-reload emits an error and stop working.
+-------------------------------------------------------
+
+This problem is reported on emacs 21.4 on Linux Fedora Core 6.  I have
+noticed this bug disappears if the callback function is put as the last
+hook::
+
+  (add-hook 'after-save-hook 'fp-maybe-pymacs-reload 'append)
+
+It seems there is a problem calling a Pymacs function inside an hook
+callback function.  This bug is hardly to find because frequently you
+define only an hook for after-save-hook.
+
+Can you give me a .emacs to play with?
+--------------------------------------
+
+If you use the new customization feature of the latest emacs releases,
+you will not need a big .emacs.
+
+First of all, my advice is to develop a separate config.el file.  Load
+the config.el in the .emacs, because emacs tends to write at the end of
+.emacs its customization.
+
+Then stick with emacs, and for the first times avoid XEmacs: I have
+found far more packages working for emacs, and the two programs have
+some incompatibilities.
+
+You can find a huge list of init file at
+http://www.emacswiki.org/cgi-bin/wiki/CategoryDotEmacs
+
+Have fun!
+
+.. role:: code(strong)
+.. role:: file(literal)
+
+================================
+Various examples of Pymacs usage
+================================
+
+.. contents::
+.. sectnum::
+
+This page documents the :file:`contrib/Perez/` subdirectory of the
+Pymacs distribution.  It has been contributed by Fernando Pérez on
+2002-04-09, in the form of an email to the ``python-list`` forum.
+Fernando writes:
+
+  Since the included examples are very sparse, here's some sample code
+  to get you going (some of it is useful, other will at least show you
+  how to do basic stuff).
+
+These examples are available as a single Python file, see:
+
+  http://pymacs.progiciels-bpi.ca/contrib/Perez/pym.py
+
+.. role:: file(literal)
+
+====================================
+Contents of Pymacs' :file:`contrib/`
+====================================
+
+Each subdirectory of :file`contrib/` contains its own :file:`README` file.
+
+.. role:: code(strong)
+.. role:: file(literal)
+
+================================================
+Handling of boxed comments in various box styles
+================================================
+
+.. contents::
+.. sectnum::
+
+This page documents the :file:`contrib/rebox/` subdirectory of the
+Pymacs distribution.  First install Pymacs from the top-level of the
+distribution, this has the side-effect of adjusting a few files in this
+directory.  Once this done, return to this directory, then run ``python
+setup.py install``.  Also read `Emacs usage`_ below.
+
+Introduction
+============
+
+For comments held within boxes, it is painful to fill paragraphs, while
+stretching or shrinking the surrounding box "by hand", as needed.  This piece
+of Python code eases my life on this.  It may be used interactively from
+within Emacs through the Pymacs interface, or in batch as a script which
+filters a single region to be reformatted.  I find only fair, while giving
+all sources for a package using such boxed comments, to also give the
+means I use for nicely modifying comments.  So here they are!
+
+As a user tool
+==============
+
+Box styles
+----------
+
+First, a quick reminder:
+
+  ======   ===============================================
+  Number   Meaning
+  ======   ===============================================
+  100      Language: unknown
+  200      Language: /* and \*\ /
+  300      Language: //
+  400      Language: #
+  500      Language: ;
+  600      Language: %
+  010      Quality: straight, or 1-wide
+  020      Quality: rounded, or 2-wide
+  030      Quality: starred, or 3-wide
+  040      Quality: starred, or 4-wide
+  001      Type: left \|-shaped border
+  002      Type: U-shaped border, simple lines
+  003      Type: O-shaped border, simple lines
+  004      Type: U-shaped border, doubled lines
+  005      Type: O-shaped border, doubled lines
+  006      Type: [-shaped border, simple lines
+  007      Type: [-shaped border, doubled lines
+  111      No box at all
+  221      Usual simple C comments
+  ======   ===============================================
+
+Each supported box style has a number associated with it.  This number is
+arbitrary, yet by *convention*, it holds three non-zero digits such the the
+hundreds digit roughly represents the programming language, the tens digit
+roughly represents a box quality (or weight) and the units digit roughly
+a box type (or figure).  An unboxed comment is merely one of box styles.
+Language, quality and type are collectively referred to as style attributes.
+
+When rebuilding a boxed comment, attributes are selected independently
+of each other.  They may be specified by the digits of the value given
+as Emacs commands argument prefix, or as the ``-s`` argument to the
+:code:`rebox` script when called from the shell.  If there is no such
+prefix, or if the corresponding digit is zero, the attribute is taken
+from the value of the default style instead.  If the corresponding digit
+of the default style is also zero, than the attribute is recognised and
+taken from the actual boxed comment, as it existed before prior to the
+command.  The value 1, which is the simplest attribute, is ultimately
+taken if the parsing fails.
+
+A programming language is associated with comment delimiters.  Values are
+100 for none or unknown, 200 for ``/*`` and ``*/`` as in plain C, 300 for ``//``
+as in C++, 400 for ``#`` as in most scripting languages, 500 for ``;`` as in
+Lisp, Scheme, assembler and 600 for ``%`` as in TeX, PostScript, Erlang.
+
+Box quality differs according to language. For unknown languages (100) or
+for the C language (200), values are 10 for simple, 20 for rounded, and
+30 or 40 for starred.  Simple quality boxes (10) use comment delimiters
+to left and right of each comment line, and also for the top or bottom
+line when applicable. Rounded quality boxes (20) try to suggest rounded
+corners in boxes.  Starred quality boxes (40) mostly use a left margin of
+asterisks or X'es, and use them also in box surroundings.  For all others
+languages, box quality indicates the thickness in characters of the left
+and right sides of the box: values are 10, 20, 30 or 40 for 1, 2, 3 or 4
+characters wide.  With C++, quality 10 is not useful, it is not allowed.
+
+Box type values are 1 for fully opened boxes for which boxing is done
+only for the left and right but not for top or bottom, 2 for half
+single lined boxes for which boxing is done on all sides except top,
+3 for fully single lined boxes for which boxing is done on all sides,
+4 for half double lined boxes which is like type 2 but more bold,
+or 5 for fully double lined boxes which is like type 3 but more bold.
+
+The special style 221 is for C comments between a single opening ``/*``
+and a single closing ``*/``.  The special style 111 deletes a box.
+
+Batch usage
+-----------
+
+Usage is ``rebox [OPTION]... [FILE]``.  By default, FILE is reformatted
+to standard output by refilling the comment up to column 79, while
+preserving existing boxed comment style.  If FILE is not given, standard
+input is read.  Options may be:
+
+  -n         Do not refill the comment inside its box, and ignore -w.
+  -s STYLE   Replace box style according to STYLE, as explained above.
+  -t         Replace initial sequence of spaces by TABs on each line.
+  -v         Echo both the old and the new box styles on standard error.
+  -w WIDTH   Try to avoid going over WIDTH columns per line.
+
+So, a single boxed comment is reformatted by invocation. :code:`vi`
+users, for example, would need to delimit the boxed comment first,
+before executing the ``!}rebox`` command (is this correct? my :code:`vi`
+recollection is far away).
+
+Batch usage is also slow, as internal structures have to be reinitialised
+at every call.  Producing a box in a single style is fast, but recognising
+the previous style requires setting up for all possible styles.
+
+Emacs usage
+-----------
+
+For most Emacs language editing modes, refilling does not make sense
+outside comments, one may redefine the ``M-q`` command and link it to this
+Pymacs module.  For example, I use this in my :file:`.emacs` file::
+
+     (add-hook 'c-mode-hook 'fp-c-mode-routine)
+     (defun fp-c-mode-routine ()
+       (local-set-key "\M-q" 'rebox-comment))
+     (autoload 'rebox-comment "rebox" nil t)
+     (autoload 'rebox-region "rebox" nil t)
+
+with a "rebox.el" file having this single line::
+
+     (pymacs-load "Pymacs.rebox")
+
+Install Pymacs from https://github.com/pinard/Pymacs .
+
+The Emacs function :code:`rebox-comment` automatically discovers the extent of
+the boxed comment near the cursor, possibly refills the text, then adjusts
+the box style.  When this command is executed, the cursor should be within
+a comment, or else it should be between two comments, in which case the
+command applies to the next comment.  The function :code:`rebox-region` does
+the same, except that it takes the current region as a boxed comment.
+Both commands obey numeric prefixes to add or remove a box, force a
+particular box style, or to prevent refilling of text.  Without such
+prefixes, the commands may deduce the current box style from the comment
+itself so the style is preserved.
+
+The default style initial value is nil or 0.  It may be preset to
+another value through calling :code:`rebox-set-default-style` from Emacs
+Lisp, or changed to anything else though using a negative value for a
+prefix, in which case the default style is set to the absolute value of
+the prefix.
+
+A ``C-u`` prefix avoids refilling the text, but forces using the default
+box style.  ``C-u -`` lets the user interact to select one attribute at
+a time.
+
+Adding new styles
+-----------------
+
+Let's suppose you want to add your own boxed comment style, say::
+
+    //--------------------------------------------+
+    // This is the style mandated in our company.
+    //--------------------------------------------+
+
+You might modify :file:`rebox.py` but then, you will have to edit
+it whenever you get a new release of :file:`pybox.py`.  Emacs users
+might modify their :file:`.emacs` file or their :file:`rebox.el`
+bootstrap, if they use one.  In either cases, after the ``(pymacs-load
+"Pymacs.rebox")`` line, merely add::
+
+    (rebox-Template NNN MMM ["//-----+"
+                             "// box  "
+                             "//-----+"])
+
+If you use the :code:`rebox` script rather than Emacs, the simplest is
+to make your own.  This is easy, as it is very small.  For example,
+the above style could be implemented by using this script instead of
+:code:`rebox`::
+
+    #!/usr/bin/env python
+    import sys
+    from Pymacs.Rebox import rebox
+    rebox.Template(226, 325, ('//-----+',
+                              '// box  ',
+                              '//-----+'))
+    rebox.main(*sys.argv[1:])
+
+In all cases, NNN is the style three-digit number, with no zero digit.
+Pick any free style number, you are safe with 911 and up.  MMM is the
+recognition priority, only used to disambiguate the style of a given boxed
+comments, when it matches many styles at once.  Try something like 400.
+Raise or lower that number as needed if you observe false matches.
+
+On average, the template uses three lines of equal length.  Do not worry if
+this implies a few trailing spaces, they will be cleaned up automatically
+at box generation time.  The first line or the third line may be omitted
+to create vertically opened boxes.  But the middle line may not be omitted,
+it ought to include the word ``box``, which will get replaced by your actual
+comment.  If the first line is shorter than the middle one, it gets merged
+at the start of the comment.  If the last line is shorter than the middle
+one, it gets merged at the end of the comment and is refilled with it.
+
+As a Pymacs example
+===================
+
+This example tool comes in two parts: a batch script :file:`rebox` and a
+:code:`Pymacs.rebox` module.  Go to the :file:`contrib/rebox/` directory
+of the distribution and use ``python setup.py install`` there.  To check
+that both are properly installed, type ``rebox </dev/null`` in a shell;
+you should not receive any output nor see any error.
+
+The problem
+------------
+
+For comments held within boxes, it is painful to fill paragraphs, while
+stretching or shrinking the surrounding box *by hand*, as needed.
+This piece of Python code eases my life on this.  It may be used
+interactively from within Emacs through the Pymacs interface, or in
+batch as a script which filters a single region to be reformatted.
+
+In batch, the reconstruction of boxes is driven by command options and
+arguments and expects a complete, self-contained boxed comment from
+a file.  Emacs function :code:`rebox-region` also presumes that the
+region encloses a single boxed comment.  Emacs :code:`rebox-comment` is
+different, as it has to chase itself the extent of the surrounding boxed
+comment.
+
+Python side
+-----------
+
+The Python code is too big to be inserted in this documentation:
+see file :file:`Pymacs/rebox.py` in the Pymacs distribution.  You
+will observe in the code that Pymacs specific features are used
+exclusively from within the :code:`pymacs_load_hook` function and the
+:code:`Emacs_Rebox` class.  In batch mode, :code:`Pymacs` is not even
+imported.  Here, we mean to discuss some of the design choices in the
+context of Pymacs.
+
+In batch mode, as well as with :code:`rebox-region`, the text to
+handle is turned over to Python, and fully processed in Python, with
+practically no Pymacs interaction while the work gets done.  On the
+other hand, :code:`rebox-comment` is rather Pymacs intensive: the
+comment boundaries are chased right from the Emacs buffer, as directed
+by the function :code:`Emacs_Rebox.find_comment`.  Once the boundaries
+are found, the remainder of the work is essentially done on the Python
+side.
+
+Once the boxed comment has been reformatted in Python, the
+old comment is removed in a single delete operation, the new
+comment is inserted in a second operation, this occurs in
+:code:`Emacs_Rebox.process_emacs_region`.  But by doing so, if point
+was within the boxed comment before the reformatting, its precise
+position is lost.  To well preserve point, Python might have driven all
+reformatting details directly in the Emacs buffer.  We really preferred
+doing it all on the Python side: as we gain legibility by expressing the
+algorithms in pure Python, the same Python code may be used in batch or
+interactively, and we avoid the slowdown that would result from heavy
+use of Emacs services.
+
+To avoid completely loosing point, I kludged a :code:`Marker` class,
+which goal is to estimate the new value of point from the old.
+Reformatting may change the amount of white space, and either delete or
+insert an arbitrary number characters meant to draw the box.  The idea
+is to initially count the number of characters between the beginning
+of the region and point, while ignoring any problematic character.
+Once the comment has been put back in a box, point is advanced from
+the beginning of the region until we get the same count of characters,
+skipping all problematic characters.  This :code:`Marker` class works
+fully on the Python side, it does not involve Pymacs at all, but it does
+solve a problem that resulted from my choice of keeping the data on the
+Python side instead of handling it directly in the Emacs buffer.
+
+We want a comment reformatting to appear as a single operation, in the
+context of Emacs Undo.  The method :code:`Emacs_Rebox.clean_undo_after`
+handles the general case for this.  Not that we do so much in
+practice: a reformatting implies one :code:`delete-region` and
+one :code:`insert`, and maybe some other little adjustments at
+:code:`Emacs_Rebox.find_comment` time.  Even if this method scans and
+modifies an Emacs Lisp list directly in the Emacs memory, the code doing
+this stays neat and legible.  However, I found out that the undo list
+may grow quickly when the Emacs buffer use markers, with the consequence
+of making this routine so Pymacs intensive that most of the CPU is spent
+there.  I rewrote that routine in Emacs Lisp so it executes in a single
+Pymacs interaction.
+
+Function :code:`Emacs_Rebox.remainder_of_line` could have been
+written in Python, but it was probably not worth going away from this
+one-liner in Emacs Lisp.  Also, given this routine is often called by
+:code:`find_comment`, a few Pymacs protocol interactions are spared this
+way.  This function is useful when there is a need to apply a regular
+expression already compiled on the Python side, it is probably better
+fetching the line from Emacs and do the pattern match on the Python
+side, than transmitting the source of the regular expression to Emacs
+for it to compile and apply it.
+
+For refilling, I could have either used the refill algorithm built
+within in Emacs, programmed a new one in Python, or relied on Ross
+Paterson's :code:`fmt`, distributed by GNU and available on most
+Linuxes.  In fact, :code:`refill_lines` prefers the latter.  My own
+Emacs setup is such that the built-in refill algorithm is *already*
+overridden by GNU :code:`fmt`, and it really does a much better job.
+Experience taught me that calling an external program is fast enough
+to be very bearable, even interactively.  If Python called Emacs to
+do the refilling, Emacs would itself call GNU :code:`fmt` in my case,
+I preferred that Python calls GNU :code:`fmt` directly.  I could have
+reprogrammed GNU :code:`fmt` in Python.  Despite interesting, this is an
+uneasy project: :code:`fmt` implements the Knuth refilling algorithm,
+which depends on dynamic programming techniques; Ross did carefully fine
+tune them, and took care of many details.  If GNU :code:`fmt` fails,
+for not being available, say, :code:`refill_lines` falls back on a dumb
+refilling algorithm, which is better than none.
+
+Emacs side
+----------
+
+The Emacs recipe appears under the `Emacs usage`_ section, above.
+
+History
+=======
+
+I first observed rounded corners, as in style 223 boxes, in code from
+Warren Tucker, a previous maintainer of the :code:`shar` package, circa
+1980.
+
+Except for very special files, I carefully avoided boxed comments for
+real work, as I found them much too hard to maintain.  My friend Paul
+Provost was working at Taarna, a computer graphics place, which had
+boxes as part of their coding standards.  He asked that we try something
+to get him out of his misery, and this is how :file:`rebox.el` was
+originally written.  I did not plan to use it for myself, but Paul was
+so enthusiastic that I timidly started to use boxes in my things, very
+little at first, but more and more as time passed, still in doubt that
+it was a good move.  Later, many friends spontaneously started to use
+this tool for real, some being very serious workers.  This convinced me
+that boxes are acceptable, after all.
+
+I do not use boxes much with Python code.  It is so legible that boxing
+is not that useful.  Vertical white space is less necessary, too.
+I even often avoid white lines within functions.  Comments appear
+prominent enough when using highlighting editors like Emacs or nice
+printer tools like :code:`enscript`.
+
+After Emacs could be extended with Python, in 2001, I translated
+:file:`rebox.el` into :file:`rebox.py`, and added the facility to use it
+as a batch script.  The least old copy I could find of :file:`rebox.el`
+is also provided here, to ease pondering and comparisons with the Python
+translation and adaptation.
+
+.. role:: code(strong)
+.. role:: file(literal)
+
+================================
+A simple example of Pymacs usage
+================================
+
+.. contents::
+.. sectnum::
+
+This page documents the :file:`contrib/Winkler/` subdirectory of the
+Pymacs distribution.
+
+The problem
+===========
+
+This problem has been submitted by Paul Winkler, and the text below has
+been reformatted from our email exchanges.
+
+Let's say I have a module, call it :file:`manglers.py`, containing this
+simple python function::
+
+  def break_on_whitespace(some_string):
+      words = some_string.split()
+      return '\n'.join(words)
+
+The goal is telling Emacs about this function so that I can call it on a
+region of text and replace the region with the result of the call.  And
+bind this action to a key, of course, let's say :code:`[f7]`.
+
+The Emacs buffer ought to be handled in some way.  If this is not on the
+Emacs Lisp side, it has to be on the Python side, but we cannot escape
+handling the buffer.  So, there is an equilibrium in the work to do for
+the user, that could be displaced towards Emacs Lisp or towards Python.
+
+Python side
+===========
+
+Here is a first draft for the Python side of the problem::
+
+  from Pymacs import lisp
+
+  def break_on_whitespace():
+      start = lisp.point()
+      end = lisp.mark(True)
+      if start > end:
+          start, end = end, start
+      text = lisp.buffer_substring(start, end)
+      words = text.split()
+      replacement = '\n'.join(words)
+      lisp.delete_region(start, end)
+      lisp.insert(replacement)
+
+  interactions = {break_on_whitespace: ''}
+
+For various stylistic reasons, this could be rewritten into::
+
+  from Pymacs import lisp
+  interactions = {}
+
+  def break_on_whitespace():
+      start, end = lisp.point(), lisp.mark(True)
+      words = lisp.buffer_substring(start, end).split()
+      lisp.delete_region(start, end)
+      lisp.insert('\n'.join(words))
+
+  interactions[break_on_whitespace] = ''
+
+The above relies, in particular, on the fact that for those Emacs Lisp
+functions used here, ``start`` and ``end`` may be given in any order.
+
+Emacs side
+==========
+
+On the Emacs side, one would do::
+
+  (pymacs-load "manglers")
+  (global-set-key [f7] 'manglers-break-on-whitespace)
+
+#+TITLE: Pymacs — Notes
+#+OPTIONS: H:2
+
+#+BEGIN_QUOTE
+  Known translations
+
+  | Document      | Language    | Translator          | Date         |
+  |---------------+-------------+---------------------+--------------|
+  | This file     | [[http://www.movavi.com/opensource/pymacs-be][Belorussian]] | [[mailto:bukhovko@gmail.com][Paul Bukhovko]]       |              |
+  | This file     | [[http://uhrenstore.de/blog/readmedateifurpymacs][German]]      | [[mailto:romanova.anastasyia@gmail.com][Anastasiya Romanova]] | [2012-04-09] |
+  | Pymacs manual | [[http://webhostinggeeks.com/science/pymacs-framework-ro][Romanian]]    | [[mailto:alovsov@gmail.com][Alexander Ovsov]]     |              |
+#+END_QUOTE
+
+Pymacs is a powerful tool which, once started from Emacs, allows
+both-way communication between Emacs Lisp and Python.  Pymacs aims
+Python as an extension language for Emacs rather than the other way
+around, and this asymmetry is reflected in some design choices.
+Within Emacs Lisp code, one may load and use Python modules.  Python
+functions may themselves use Emacs services, and handle Emacs Lisp
+objects kept in Emacs Lisp space.
+
+The Pymacs manual (either in [[http://pymacs.progiciels-bpi.ca/pymacs.html][HTML format]] or [[http://pymacs.progiciels-bpi.ca/pymacs.pdf][PDF format]]) has
+installation instructions, a full description of the API, pointers to
+documented examples, to resources, and to other Pymacs sites or
+projects.  The distribution also includes the Poor's Python
+Pre-Processor (*pppp*) and its manual (either in [[http://pymacs.progiciels-bpi.ca/pppp.html][HTML format]] or [[http://pymacs.progiciels-bpi.ca/pppp.pdf][PDF
+format]]).
+
+Source files and various distributions are available through
+https://github.com/pinard/Pymacs/.  Please report problems, comments
+and suggestions to [[mailto:pinard@iro.umontreal.ca][François Pinard]].
+
+** Notes for 0.25
+ <<2012-05-07>> [2012-05-07 lun] Hi everybody.
+
+Pymacs 0.25 is now available.  You may fetch it as one of:
+
+- [[https://github.com/pinard/Pymacs/tarball/v0.25]]
+- https://github.com/pinard/Pymacs/zipball/v0.25
+
+depending on if you want a /tar/ or /zip/ archive.
+
+The installation process was modified:
+
+  - Python 3 is now supported.  This required new installation
+    mechanics, and a Python pre-processor written for the circumstance
+    (named *pppp*).
+
+  - Pymacs now installs a single Python file instead of a Python
+    module.  This does not affect users — except maybe a few who chose
+    to depend on undocumented internals.
+
+The specifications are pretty stable.  A few additions occurred:
+
+  - Variable *pymacs-python-command* may select which Python interpreter
+    to use.
+
+  - A *pymacs-auto-restart* variable lets the user decide what to do if
+    the Pymacs helper aborts.
+
+  - The *Let* class got a *pops* method which pops everything in a single
+    call.
+
+  - A new API function *pymacs-autoload* serves lazy imports.
+
+There also are miscellaneous changes:
+
+  - Some errors have been corrected, both in the code and in the
+    manual.
+
+  - The Emacs Lisp source has been massaged so to become uploadable in
+    ELPA's (Emacs Lisp Packages Archives).
+
+XEmacs support seems to be broken, and Jython 2.2 support does not
+work yet.  As I am not much of a user of either, this is kept on ice
+currently.  Interested collaborators and testers, contact me if you
+feel like pushing in these areas!
+
+Nice thanks to Pymacs contributors.  It was much fun working with you
+all!
+
+** Notes for 0.24
+
+Whenever I tag a version =-betaN= or such, it might not be fully ready
+for public distribution, this is a welcome defect that ELPA cannot
+grok such versions.  Someone wanting to upload Pymacs nevertheless
+found his way around the limitation by renaming the version, I guess
+from =0.24-beta2= to =0.24=.  Undoubtedly, it would have been polite to
+check with me first… As beta releases come before real releases, it
+should really have been =0.23=.  Anyway, Marmelade now has a Pymacs
+0.24.  For avoiding any more confusion, I'm skipping =0.24= — such a
+version does not officially exist.
+
+** Notes for 0.23
+
+<<2008-02-15>> [2008-02-15 ven] Hello to everybody, and Emacs users in
+the Python community.
+
+Here is Pymacs 0.23!  There has been a while, so I advise current
+Pymacs users to switch with caution.  All reported bugs have been
+squashed, if we except one about Emacs quit (*C-g*) not being obeyed
+gracefully.  A few suggestions have been postponed, to be pondered
+later.
+
+The manual is now in reST format, and everything Allout is gone.
+Postscript and PDF files are not anymore part of the distribution, you
+may find them on the Web site, or use the Makefile if you have needed
+tools.  Examples have been moved out of the manual into a new contrib/
+subdirectory, which also holds a few new contributions.  The example
+of a Python back-end for Emacs Gnus has been deleted.
+
+Python 1.5.2 compatibility has been dropped; use Python 2.2 or better.
+The Pymacs manual explains installation procedure, now simplified.
+The pymacs-services script is gone, this should ease installing Pymacs
+on MS Windows.  There is also a small, still naive validation suite.
+
+The communication protocol has been revised: more clarity, less magic.
+Zombie objects are less dreadful by default.  The API now supports
+False and True constants, and Unicode strings (within limits set by
+Emacs).
+
+Special thanks to those who helped me at creating or testing this
+release.
+
+* Informal notes
+
+** <<2012-05-06>> python-mode.el difficulty
+
+[2012-05-07 lun] After I recently acquired a new machine and installed
+a flurry of software on it, I was saluted with:
+
+  : pymacs-report-error: Pymacs helper did not start within 30 seconds
+
+The problem turns out to come from *python-mode.el* (a development
+copy), which insists on providing and using its own older copy of
+Pymacs.  The problem shows in the Pymacs communication buffer: a
+failed attempt at importing =Pymacs/__init__.py=.  Indeed, this file
+does not exist anymore.  Pymacs now stands as a single file on the
+Python side, not as a module.  This yields confusion at run time.  The
+problem vanishes if I comment out *python-mode.el* initialization, or
+more simply (thanks [[https://github.com/holmboe][holmboe]]) if *py-load-pymacs-p* is set to *nil*.  I'll
+talk to Andreas Röhler about this.
+
+** <<2012-05-07>> Using packagers
+
+[2012-05-07 lun] [[https://github.com/gleber][Gleb Peregud]] suggests [[https://github.com/pinard/Pymacs/issues/18][on GitHub]] that we prepare an
+ELPA/Marmalade package for Pymacs.  There is also a Python side to be
+addressed, and I've been lucky enough to recently meet Éric Araujo,
+the *distutils2* / *packaging* maintainer.  The time might be proper to
+push a bit on the idea on getting Pymacs on installers.
+
+I saved a few notes on [[file:Emacs.org::*Packaging][Emacs Packaging]].  After having pondering them,
+I'll follow Gleb's advice, at least to get started and experiment.
+Emacs packagers do not care about Python, and Python packagers ignore
+Emacs Lisp installation problems.  The pre-processing step in Pymacs
+is another source of concern.  In a word, I'll save the bottle of
+champagne for some later time! ☺
+
+There is some complexity in installers, both on Emacs and Python
+sides.  It's quite amusing: proponents of either side want an
+installer, and dismiss as trivial the problem of installing the other
+side.  Emacs users tell me: /Set PYTHONPATH approprietely and forget
+about it/.  Python users tell me: /Just put pymacs.el somewhere it will
+work, or ask the user/.  My feeling is that to do nicely implies both
+an Emacs installer and a Python installer.  There is difference of
+perspective as well: for users, simplicity means /both/; for the
+maintainer, simplicity means /neither/ ☺.
+

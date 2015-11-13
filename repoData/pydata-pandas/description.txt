@@ -1,0 +1,604 @@
+Travis is a ci service that's well-integrated with github.
+The following ypes of breakage should be detected
+by travis builds:
+
+1) Failing tests on any supported version of python.
+2) Pandas should install and the tests should run if no optional deps are installed.
+That also means tests which rely on optional deps need to raise SkipTest()
+if the dep is missing.
+3) unicode related fails when running under exotic locales.
+
+We tried running the vbench suite for a while, but with varying load
+on travis machines, that wasn't useful.
+
+Travis currently (4/2013) has a 5-job concurrency limit. Exceeding it
+basically doubles the total runtime for a commit through travis, and
+since dep+pandas installation is already quite long, this should become
+a hard limit on concurrent travis runs.
+
+###Guidelines
+
+All contributions, bug reports, bug fixes, documentation improvements,
+enhancements and ideas are welcome.
+
+The [GitHub "issues" tab](https://github.com/pydata/pandas/issues)
+contains some issues labeled "Good as first PR"; Look those up if you're
+looking for a quick way to help out.
+
+#### Bug Reports
+
+  - Please include a short, self-contained Python snippet reproducing the problem.
+  You can have the code formatted nicely by using [GitHub Flavored Markdown](http://github.github.com/github-flavored-markdown/) :
+
+        ```python
+
+        print("I ♥ pandas!")
+
+        ```
+
+  - Include the full version string of pandas and it's dependencies. In recent (>0.12) versions
+    of pandas you can use a built in function:
+
+    ```python
+    >>> from pandas.util.print_versions import show_versions
+    >>> show_versions()
+    ```
+
+    and in 0.13.1 onwards:
+    ```python
+    >>> pd.show_versions()
+    ```
+
+  - Explain what the expected behavior was, and what you saw instead.
+
+#### Pull Requests
+
+  - **Make sure the test suite passes** on your box, Use the provided `test_*.sh` scripts or tox.
+  - Use [proper commit messages](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html):
+    - a subject line with `< 80` chars.
+    - One blank line.
+    - Optionally, a commit message body.
+  - Please reference relevant Github issues in your commit message using `GH1234`
+    or `#1234`. Either style is fine but the '#' style generates noise when your rebase your PR.
+  - `doc/source/release.rst` and `doc/source/vx.y.z.txt` contain an ongoing
+    changelog for each release. Add entries to these files
+    as needed in a separate commit in your PR: document the fix, enhancement,
+    or (unavoidable) breaking change.
+  - Keep style fixes to a separate commit to make your PR more readable.
+  - An informal commit message format is in effect for the project. Please try
+    and adhere to it. Check `git log` for examples. Here are some common prefixes
+    along with general guidelines for when to use them:
+      - **ENH**: Enhancement, new functionality
+      - **BUG**: Bug fix
+      - **DOC**: Additions/updates to documentation
+      - **TST**: Additions/updates to tests
+      - **BLD**: Updates to the build process/scripts
+      - **PERF**: Performance improvement
+      - **CLN**: Code cleanup
+  - Maintain backward-compatibility. Pandas has lots of users with lots of existing code. Don't break it.
+    - If you think breakage is required clearly state why as part of the PR.
+    - Be careful when changing method signatures.
+    - Add deprecation warnings where needed.
+  - Performance matters. Make sure your PR hasn't introduced perf regressions by using `test_perf.sh`.
+  - Docstrings follow the [numpydoc](https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt) format.
+  - Write tests.
+  - When writing tests, use 2.6 compatible `self.assertFoo` methods. Some polyfills such as `assertRaises`
+    can be found in `pandas.util.testing`.
+  - Do not attach doctrings to tests. Make the test itself readable and use comments if needed.
+  - Generally, pandas source files should not contain attributions. You can include a "thanks to..."
+    in the release changelog. The rest is `git blame`/`git log`.
+  - When you start working on a PR, start by creating a new branch pointing at the latest
+    commit on github master.
+  - **Do not** merge upstream into a branch you're going to submit as a PR.
+    Use `git rebase` against the current github master.
+  - For extra brownie points, you can squash and reorder the commits in your PR using `git rebase -i`.
+    Use your own judgment to decide what history needs to be preserved. If git frightens you, that's OK too.
+  - Use `raise AssertionError` over `assert` unless you want the assertion stripped by `python -o`.
+  - The pandas copyright policy is detailed in the pandas [LICENSE](https://github.com/pydata/pandas/blob/master/LICENSE).
+  - On the subject of [PEP8](http://www.python.org/dev/peps/pep-0008/): yes.
+  - On the subject of a massive PEP8-storm touching everything: not too often (once per release works).
+
+### Notes on plotting function conventions
+
+https://groups.google.com/forum/#!topic/pystatsmodels/biNlCvJPNNY/discussion
+
+####More developer docs
+
+* See the [developers](http://pandas.pydata.org/developers.html) page on the
+  project website for more details.
+* [`pandas` wiki](https://github.com/pydata/pandas/wiki)
+* [Tips and tricks](https://github.com/pydata/pandas/wiki/Tips-&-Tricks)
+* [Git tips and tricks](https://github.com/pydata/pandas/wiki/Using-Git)
+* [Testing advice and best practices in `pandas`](https://github.com/pydata/pandas/wiki/Testing)
+
+.. _contributing.docs:
+
+Contributing to the documentation
+=================================
+
+If you're not the developer type, contributing to the documentation is still
+of huge value. You don't even have to be an expert on
+*pandas* to do so! Something as simple as rewriting small passages for clarity
+as you reference the docs is a simple but effective way to contribute. The
+next person to read that passage will be in your debt!
+
+Actually, there are sections of the docs that are worse off by being written
+by experts. If something in the docs doesn't make sense to you, updating the
+relevant section after you figure it out is a simple way to ensure it will
+help the next person.
+
+.. contents:: Table of contents:
+   :local:
+
+
+About the pandas documentation
+------------------------------
+
+The documentation is written in **reStructuredText**, which is almost like writing
+in plain English, and built using `Sphinx <http://sphinx.pocoo.org/>`__. The
+Sphinx Documentation has an excellent `introduction to reST
+<http://sphinx.pocoo.org/rest.html>`__. Review the Sphinx docs to perform more
+complex changes to the documentation as well.
+
+Some other important things to know about the docs:
+
+- The pandas documentation consists of two parts: the docstrings in the code
+  itself and the docs in this folder ``pandas/doc/``.
+
+  The docstrings provide a clear explanation of the usage of the individual
+  functions, while the documentation in this filder consists of tutorial-like
+  overviews per topic together with some other information (whatsnew,
+  installation, etc).
+
+- The docstrings follow the **Numpy Docstring Standard** which is used widely
+  in the Scientific Python community. This standard specifies the format of
+  the different sections of the docstring. See `this document
+  <https://github.com/numpy/numpy/blob/master/doc/HOWTO_DOCUMENT.rst.txt>`_
+  for a detailed explanation, or look at some of the existing functions to
+  extend it in a similar manner.
+
+- The tutorials make heavy use of the `ipython directive
+  <http://matplotlib.org/sampledoc/ipython_directive.html>`_ sphinx extension.
+  This directive lets you put code in the documentation which will be run
+  during the doc build. For example:
+
+  ::
+
+      .. ipython:: python
+
+          x = 2
+          x**3
+
+  will be renderd as
+
+  ::
+
+      In [1]: x = 2
+
+      In [2]: x**3
+      Out[2]: 8
+
+  This means that almost all code examples in the docs are always run (and the
+  ouptut saved) during the doc build. This way, they will always be up to date,
+  but it makes the doc building a bit more complex.
+
+
+How to build the pandas documentation
+-------------------------------------
+
+Requirements
+^^^^^^^^^^^^
+
+To build the pandas docs there are some extra requirements: you will need to
+have ``sphinx`` and ``ipython`` installed. `numpydoc
+<https://github.com/numpy/numpydoc>`_ is used to parse the docstrings that
+follow the Numpy Docstring Standard (see above), but you don't need to install
+this because a local copy of ``numpydoc`` is included in the pandas source
+code.
+
+Furthermore, it is recommended to have all `optional dependencies
+<http://pandas.pydata.org/pandas-docs/dev/install.html#optional-dependencies>`_
+installed. This is not needed, but be aware that you will see some error
+messages. Because all the code in the documentation is executed during the doc
+build, the examples using this optional dependencies will generate errors.
+Run ``pd.show_version()`` to get an overview of the installed version of all
+dependencies.
+
+.. warning::
+
+   Building the docs with Sphinx version 1.2 is broken. Use the
+   latest stable version (1.2.1) or the older 1.1.3.
+
+Building pandas
+^^^^^^^^^^^^^^^
+
+For a step-by-step overview on how to set up your environment, to work with
+the pandas code and git, see `the developer pages
+<http://pandas.pydata.org/developers.html#working-with-the-code>`_.
+When you start to work on some docs, be sure to update your code to the latest
+development version ('master')::
+
+    git fetch upstream
+    git rebase upstream/master
+
+Often it will be necessary to rebuild the C extension after updating::
+
+    python setup.py build_ext --inplace
+
+Building the documentation
+^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+So how do you build the docs? Navigate to your local  the folder
+``pandas/doc/`` directory in the console and run::
+
+    python make.py html
+
+And then you can find the html output in the folder ``pandas/doc/build/html/``.
+
+The first time it will take quite a while, because it has to run all the code
+examples in the documentation and build all generated docstring pages.
+In subsequent evocations, sphinx will try to only build the pages that have
+been modified.
+
+If you want to do a full clean build, do::
+
+    python make.py clean
+    python make.py build
+
+
+Staring with 0.13.1 you can tell ``make.py`` to compile only a single section
+of the docs, greatly reducing the turn-around time for checking your changes.
+You will be prompted to delete unrequired `.rst` files, since the last commited
+version can always be restored from git.
+
+::
+
+    #omit autosummary and api section
+    python make.py clean
+    python make.py --no-api
+
+    # compile the docs with only a single
+    # section, that which is in indexing.rst
+    python make.py clean
+    python make.py --single indexing
+
+For comparison, a full doc build may take 10 minutes. a ``-no-api`` build
+may take 3 minutes and a single section may take 15 seconds.
+
+Where to start?
+---------------
+
+There are a number of issues listed under `Docs
+<https://github.com/pydata/pandas/issues?labels=Docs&sort=updated&state=open>`_
+and `Good as first PR
+<https://github.com/pydata/pandas/issues?labels=Good+as+first+PR&sort=updated&state=open>`_
+where you could start out.
+
+Or maybe you have an idea of you own, by using pandas, looking for something
+in the documentation and thinking 'this can be improved', let's do something
+about that!
+
+Feel free to ask questions on `mailing list
+<https://groups.google.com/forum/?fromgroups#!forum/pydata>`_ or submit an
+issue on Github.
+
+=====================================
+numpydoc -- Numpy's Sphinx extensions
+=====================================
+
+Numpy's documentation uses several custom extensions to Sphinx.  These
+are shipped in this ``numpydoc`` package, in case you want to make use
+of them in third-party projects.
+
+The following extensions are available:
+
+  - ``numpydoc``: support for the Numpy docstring format in Sphinx, and add
+    the code description directives ``np:function``, ``np-c:function``, etc.
+    that support the Numpy docstring syntax.
+
+  - ``numpydoc.traitsdoc``: For gathering documentation about Traits attributes.
+
+  - ``numpydoc.plot_directive``: Adaptation of Matplotlib's ``plot::``
+    directive. Note that this implementation may still undergo severe
+    changes or eventually be deprecated.
+
+
+numpydoc
+========
+
+Numpydoc inserts a hook into Sphinx's autodoc that converts docstrings
+following the Numpy/Scipy format to a form palatable to Sphinx.
+
+Options
+-------
+
+The following options can be set in conf.py:
+
+- numpydoc_use_plots: bool
+
+  Whether to produce ``plot::`` directives for Examples sections that
+  contain ``import matplotlib``.
+
+- numpydoc_show_class_members: bool
+
+  Whether to show all members of a class in the Methods and Attributes
+  sections automatically.
+
+- numpydoc_class_members_toctree: bool
+
+  Whether to create a Sphinx table of contents for the lists of class
+  methods and attributes. If a table of contents is made, Sphinx expects
+  each entry to have a separate page.
+
+- numpydoc_edit_link: bool  (DEPRECATED -- edit your HTML template instead)
+
+  Whether to insert an edit link after docstrings.
+
+sphinxext
+=========
+
+This directory contains copies of different sphinx extensions in use in the
+pandas documentation. These copies originate from other projects:
+
+- ``numpydoc`` - Numpy's Sphinx extensions: this can be found at its own
+  repository: https://github.com/numpy/numpydoc
+- ``ipython_directive`` and ``ipython_console_highlighting`` in the folder
+  `ipython_sphinxext` - Sphinx extensions from IPython: these are included
+  in IPython: https://github.com/ipython/ipython/tree/master/IPython/sphinxext
+
+.. note::
+
+    These copies are maintained at the respective projects, so fixes should,
+    to the extent possible, be pushed upstream instead of only adapting our
+    local copy to avoid divergence between the the local and upstream version.
+
+# pandas: powerful Python data analysis toolkit
+
+![Travis-CI Build Status](https://travis-ci.org/pydata/pandas.svg)
+
+[![Scatter-CI Status page](http://scatterci.github.io/scatterci48.jpg)](http://scatterci.github.io/pydata/pandas)
+
+## What is it
+
+**pandas** is a Python package providing fast, flexible, and expressive data
+structures designed to make working with "relational" or "labeled" data both
+easy and intuitive. It aims to be the fundamental high-level building block for
+doing practical, **real world** data analysis in Python. Additionally, it has
+the broader goal of becoming **the most powerful and flexible open source data
+analysis / manipulation tool available in any language**. It is already well on
+its way toward this goal.
+
+## Main Features
+Here are just a few of the things that pandas does well:
+
+  - Easy handling of [**missing data**][missing-data] (represented as
+    `NaN`) in floating point as well as non-floating point data
+  - Size mutability: columns can be [**inserted and
+    deleted**][insertion-deletion] from DataFrame and higher dimensional
+    objects
+  - Automatic and explicit [**data alignment**][alignment]: objects can
+    be explicitly aligned to a set of labels, or the user can simply
+    ignore the labels and let `Series`, `DataFrame`, etc. automatically
+    align the data for you in computations
+  - Powerful, flexible [**group by**][groupby] functionality to perform
+    split-apply-combine operations on data sets, for both aggregating
+    and transforming data
+  - Make it [**easy to convert**][conversion] ragged,
+    differently-indexed data in other Python and NumPy data structures
+    into DataFrame objects
+  - Intelligent label-based [**slicing**][slicing], [**fancy
+    indexing**][fancy-indexing], and [**subsetting**][subsetting] of
+    large data sets
+  - Intuitive [**merging**][merging] and [**joining**][joining] data
+    sets
+  - Flexible [**reshaping**][reshape] and [**pivoting**][pivot-table] of
+    data sets
+  - [**Hierarchical**][mi] labeling of axes (possible to have multiple
+    labels per tick)
+  - Robust IO tools for loading data from [**flat files**][flat-files]
+    (CSV and delimited), [**Excel files**][excel], [**databases**][db],
+    and saving/loading data from the ultrafast [**HDF5 format**][hdfstore]
+  - [**Time series**][timeseries]-specific functionality: date range
+    generation and frequency conversion, moving window statistics,
+    moving window linear regressions, date shifting and lagging, etc.
+
+
+   [missing-data]: http://pandas.pydata.org/pandas-docs/stable/missing_data.html#working-with-missing-data
+   [insertion-deletion]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html#column-selection-addition-deletion
+   [alignment]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html?highlight=alignment#intro-to-data-structures
+   [groupby]: http://pandas.pydata.org/pandas-docs/stable/groupby.html#group-by-split-apply-combine
+   [conversion]: http://pandas.pydata.org/pandas-docs/stable/dsintro.html#dataframe
+   [slicing]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#slicing-ranges
+   [fancy-indexing]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#advanced-indexing-with-ix
+   [subsetting]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#boolean-indexing
+   [merging]: http://pandas.pydata.org/pandas-docs/stable/merging.html#database-style-dataframe-joining-merging
+   [joining]: http://pandas.pydata.org/pandas-docs/stable/merging.html#joining-on-index
+   [reshape]: http://pandas.pydata.org/pandas-docs/stable/reshaping.html#reshaping-and-pivot-tables
+   [pivot-table]: http://pandas.pydata.org/pandas-docs/stable/reshaping.html#pivot-tables-and-cross-tabulations
+   [mi]: http://pandas.pydata.org/pandas-docs/stable/indexing.html#hierarchical-indexing-multiindex
+   [flat-files]: http://pandas.pydata.org/pandas-docs/stable/io.html#csv-text-files
+   [excel]: http://pandas.pydata.org/pandas-docs/stable/io.html#excel-files
+   [db]: http://pandas.pydata.org/pandas-docs/stable/io.html#sql-queries
+   [hdfstore]: http://pandas.pydata.org/pandas-docs/stable/io.html#hdf5-pytables
+   [timeseries]: http://pandas.pydata.org/pandas-docs/stable/timeseries.html#time-series-date-functionality
+
+## Where to get it
+The source code is currently hosted on GitHub at:
+http://github.com/pydata/pandas
+
+Binary installers for the latest released version are available at the Python
+package index
+
+    http://pypi.python.org/pypi/pandas/
+
+And via `easy_install`:
+
+```sh
+easy_install pandas
+```
+
+or  `pip`:
+
+```sh
+pip install pandas
+```
+
+## Dependencies
+- [NumPy](http://www.numpy.org): 1.6.1 or higher
+- [python-dateutil](http://labix.org/python-dateutil): 1.5 or higher
+- [pytz](http://pytz.sourceforge.net)
+    - Needed for time zone support with ``pandas.date_range``
+
+### Highly Recommended Dependencies
+- [numexpr](http://code.google.com/p/numexpr/)
+   - Needed to accelerate some expression evaluation operations
+   - Required by PyTables
+- [bottleneck](http://berkeleyanalytics.com/bottleneck)
+   - Needed to accelerate certain numerical operations
+
+### Optional dependencies
+- [Cython](http://www.cython.org): Only necessary to build development version. Version 0.17.1 or higher.
+- [SciPy](http://www.scipy.org): miscellaneous statistical functions
+- [PyTables](http://www.pytables.org): necessary for HDF5-based storage
+- [SQLAlchemy](http://www.sqlalchemy.org): for SQL database support. Version 0.8.1 or higher recommended.
+- [matplotlib](http://matplotlib.sourceforge.net/): for plotting
+- [statsmodels](http://statsmodels.sourceforge.net/)
+   - Needed for parts of `pandas.stats`
+- For Excel I/O:
+  - [xlrd/xlwt](http://www.python-excel.org/)
+     - Excel reading (xlrd) and writing (xlwt)
+  - [openpyxl](http://packages.python.org/openpyxl/)
+     - openpyxl version 1.6.1 or higher, but lower than 2.0.0, for
+       writing .xlsx files
+     - xlrd >= 0.9.0
+  - [XlsxWriter](https://pypi.python.org/pypi/XlsxWriter)
+     - Alternative Excel writer.
+- [Google bq Command Line Tool](https://developers.google.com/bigquery/bq-command-line-tool/)
+  - Needed for `pandas.io.gbq`
+- [boto](https://pypi.python.org/pypi/boto): necessary for Amazon S3 access.
+- One of the following combinations of libraries is needed to use the
+  top-level [`pandas.read_html`][read-html-docs] function:
+  - [BeautifulSoup4][BeautifulSoup4] and [html5lib][html5lib] (Any
+    recent version of [html5lib][html5lib] is okay.)
+  - [BeautifulSoup4][BeautifulSoup4] and [lxml][lxml]
+  - [BeautifulSoup4][BeautifulSoup4] and [html5lib][html5lib] and [lxml][lxml]
+  - Only [lxml][lxml], although see [HTML reading gotchas][html-gotchas]
+    for reasons as to why you should probably **not** take this approach.
+
+#### Notes about HTML parsing libraries
+- If you install [BeautifulSoup4][BeautifulSoup4] you must install
+  either [lxml][lxml] or [html5lib][html5lib] or both.
+  `pandas.read_html` will **not** work with *only* `BeautifulSoup4`
+  installed.
+- You are strongly encouraged to read [HTML reading
+  gotchas][html-gotchas]. It explains issues surrounding the
+  installation and usage of the above three libraries.
+- You may need to install an older version of
+  [BeautifulSoup4][BeautifulSoup4]:
+    - Versions 4.2.1, 4.1.3 and 4.0.2 have been confirmed for 64 and
+      32-bit Ubuntu/Debian
+- Additionally, if you're using [Anaconda][Anaconda] you should
+  definitely read [the gotchas about HTML parsing][html-gotchas]
+  libraries
+- If you're on a system with `apt-get` you can do
+
+  ```sh
+  sudo apt-get build-dep python-lxml
+  ```
+
+  to get the necessary dependencies for installation of [lxml][lxml].
+  This will prevent further headaches down the line.
+
+   [html5lib]: https://github.com/html5lib/html5lib-python "html5lib"
+   [BeautifulSoup4]: http://www.crummy.com/software/BeautifulSoup "BeautifulSoup4"
+   [lxml]: http://lxml.de
+   [Anaconda]: https://store.continuum.io/cshop/anaconda
+   [NumPy]: http://numpy.scipy.org/
+   [html-gotchas]: http://pandas.pydata.org/pandas-docs/stable/gotchas.html#html-table-parsing
+   [read-html-docs]: http://pandas.pydata.org/pandas-docs/stable/generated/pandas.io.html.read_html.html#pandas.io.html.read_html
+
+## Installation from sources
+To install pandas from source you need Cython in addition to the normal
+dependencies above. Cython can be installed from pypi:
+
+```sh
+pip install cython
+```
+
+In the `pandas` directory (same one where you found this file after
+cloning the git repo), execute:
+
+```sh
+python setup.py install
+```
+
+or for installing in [development mode](http://www.pip-installer.org/en/latest/usage.html):
+
+```sh
+python setup.py develop
+```
+
+Alternatively, you can use `pip` if you want all the dependencies pulled
+in automatically (the `-e` option is for installing it in [development
+mode](http://www.pip-installer.org/en/latest/usage.html)):
+
+```sh
+pip install -e .
+```
+
+On Windows, you will need to install MinGW and execute:
+
+```sh
+python setup.py build --compiler=mingw32
+python setup.py install
+```
+
+See http://pandas.pydata.org/ for more information.
+
+## License
+BSD
+
+## Documentation
+The official documentation is hosted on PyData.org: http://pandas.pydata.org/
+
+The Sphinx documentation should provide a good starting point for learning how
+to use the library. Expect the docs to continue to expand as time goes on.
+
+## Background
+Work on ``pandas`` started at AQR (a quantitative hedge fund) in 2008 and
+has been under active development since then.
+
+## Discussion and Development
+Since pandas development is related to a number of other scientific
+Python projects, questions are welcome on the scipy-user mailing
+list. Specialized discussions or design issues should take place on
+the pystatsmodels mailing list / Google group, where
+``scikits.statsmodels`` and other libraries will also be discussed:
+
+http://groups.google.com/group/pystatsmodels
+
+Release Notes
+=============
+
+The list of changes to pandas between each release can be found
+[here](http://pandas.pydata.org/pandas-docs/dev/release.html). For full
+details, see the commit logs at http://github.com/pydata/pandas.
+
+This is a collection of windows batch scripts (and a python script)
+to rebuild the binaries, test, and upload the binaries for public distribution
+upon a commit on github.
+
+Obviously requires that these be setup on windows
+Requires an install of Windows SDK 3.5 and 4.0
+Full python installs for each version with the deps
+
+Currently supporting
+
+26-32,26-64,27-32,27-64,33-32,33-64,34-32,34-64
+
+Note that 33 and 34 use the 4.0 SDK, while the other suse 3.5 SDK
+
+I installed these scripts in C:\Builds
+
+Installed libaries in C:\Installs
+

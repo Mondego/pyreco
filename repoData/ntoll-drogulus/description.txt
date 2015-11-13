@@ -1,0 +1,207 @@
+Papers
+======
+
+Contains copies of the academic papers whose ideas contributed to Drogulus.
+
+Drogulus Documentation
+======================
+
+Documentation for Drogulus is built using the sphinx project (see:
+http://sphinx.pocoo.org/ for more information). To install sphinx simply use
+pip::
+
+    $ pip install sphinx
+
+To build the documentation, make sure you're in this directory and run the
+following command::
+
+    $ make html
+
+Alternatively, from the root directory of this project (one level up from this
+one) run the following command::
+
+    $ make docs
+
+The resulting HTML can be found in the ``_build/html`` directory.
+
+PDF copies of academic papers used / referenced within the Drogulus project
+can be found in the ``papers`` directory.
+
+``drogulus.dht``
+================
+
+Contains a simple implementation of the Kademlia distributed hash table.
+
+* contact.py - defines a contact (another node) on the network.
+* datastore.py - contains basic data storage classes for storing k/v pairs.
+* kbucket.py - defines the "k-buckets" used to track contacts in the network.
+* node.py - defines the local node within the DHT network.
+* routingtable.py - defines the routing table abstraction that contains information about other nodes and their associated states on the DHT network.
+
+``drogulus.logos``
+======================
+
+Logos is a Lisp-like language for giving Drogulus instructions. It is:
+
+* Simple
+* Easy to read
+* Easy to understand
+* Easy to share
+* Homoiconic (code is expressed as data)
+* Functional (there are no side effects when calling a function)
+* Distributed
+* Paxos-like
+* Provides useful core data structures
+
+Core Concepts
+-------------
+
+All data is immutable.
+
+Comments start with a ";" sign (like Lisp).
+
+An atom can be any of the following::
+
+    ; A name that evaluates to itself
+    name
+    123-a-name
+    &*£%^anothERNamE!!!
+    ; Strings of unicode characters
+    "String"
+    'String'
+    ; Numbers, both integer or floating point
+    12345
+    1.2345
+    ; Boolean
+    true
+    false
+    ; Datetime - shorthand for a dictionary structure
+    2012-08-19:23-50-22
+    ; Geolocation - shorthand for a dictionary structure
+    -longitude|latitude^elevation
+
+There are two types of collection, both of which are iterable sequences::
+
+    (lists 'of' 12345 true "atoms)
+    {dictionary-like: 'objects', 12345: true}
+
+S-expressions are built as lists::
+
+    (def something 'a value')
+
+Quote like in Lisp::
+
+    `(def something 'a value')
+
+Functions are created with lambda::
+
+    (def func-name (lambda (a b c)(;some code)))
+    ; shorthand macro
+    (def func-name (a b c) as (; some code)))
+    ; all functions are actually objects
+    (def func-name {
+        args: (a, b, c),
+        docs: "A document string",
+        test: (; some tests),
+        lambda: (; some code)
+    })
+
+Reference lists like this::
+
+    ... TBD
+
+Reference dictionaries like this::
+
+    ... TBD
+
+Logos includes tail call optimization::
+
+    ... TBD
+
+Logos is homoiconic and provides Lisp-y macros::
+
+    ... TBD
+
+Logos comes with batteries included for manipulating data in Drogulus::
+
+    ... TDB
+    (set ...)
+    (get ...)
+    (who-is? ...)
+    (where-is? ...)
+    (alias ...)
+    (run ... ...)
+    (out ...)
+    (err ...)
+    (import ...)
+
+``drogulus.net``
+================
+
+Networking layer for the Drogulus.
+
+* messages.py - internal representations of messages and functions needed to serialise them.
+* protocol.py - contains the low level networking code needed for communication between nodes on the network.
+* validators.py - functions used to validate messages received from other nodes on the network.
+
+Source Code
+===========
+
+* dht - The distributed hash table module.
+* logos - The simple Lisp like language used for computation.
+* net - The low level network functionality.
+* constants.py - defines constants used by the Kademlia DHT network.
+* crypto.py - contains functions used for cryptographically validating / signing messages.
+* utils.py - generic utillity functions used in various different parts of the implementation of the distributed hash table.
+* version.py - defines the current version of this source code.
+
+Please remember:
+
+* Use pep8 coding standards (see: http://www.python.org/dev/peps/pep-0008/ for more information about what this means).
+* Use the ``pep8`` and ``pyflakes`` commands to ensure you stick to the code standards and produce correct Python.
+* If in doubt, read the docs.
+
+Drogulus
+========
+
+**NB: This is an unfinished work in progress and does not yet work.**
+
+Check out the project's website for more details: http://drogul.us
+
+Drogulus is a programmable peer-to-peer data store designed for simplicity,
+security, openness and fun. It's also an exercise in practical philosophy.
+
+It's influenced by ideas from Fluidinfo (an openly writable data store),
+Kademlia (a distributed hash table), Lisp, public/private key cryptography with
+a dash of Xanadu thrown in for inspiration. It is implemented in Python and
+requires very few external dependencies.
+
+It'll probably all come to nothing. ;-)
+
+Current status: the distributed hash table is almost finished. Crypto based
+work is done. Lisp implementation is an (uncommitted) toy which requires
+further work although the design is pretty much done.
+
+If in doubt, please ask. :-)
+
+Should you wish to contribute please make sure you read CONTRIBUTE file. By
+making a contribution you are agreeing to the terms described therein.
+
+Developer Quick Start
+---------------------
+
+* Clone the repository: ``git clone git://github.com/ntoll/drogulus.git``
+* I suggest you create a virtualenv for development purposes (see: https://pypi.python.org/pypi/virtualenv).
+* Make sure you have a clean virtualenv. Then, within the resulting ``drogulus`` directory, type ``pip install -r requirements.txt`` to install all the project's requirements. This may take some minutes since the packages need to be downloaded from the internet. You may need to have the Python development headers installed for your system (on Debian based environments this is the python-dev package) otherwise see the http://python.org/ website for more information.
+* Next, type ``make check`` to run various code quality checks and the test suite. You should see a bunch of green ``OK`` messages scroll past. If you see errors, just ask.
+* To build the documentation locally type ``make docs``. As the script will tell you, the resulting docs (as HTML) can be found in ``drogulus/docs/_build/html/index.html``.
+* A simple demo application is coming soon...
+
+Distributed Hash Tables Presentation
+====================================
+
+A copy of the HTML based presentation given at PyconUK 2013 in Coventry.
+
+Uses the *really cool* Javascript presentation library ``reveal.js``
+(https://github.com/hakimel/reveal.js) by Hakim El Hattab, http://hakim.se.
+

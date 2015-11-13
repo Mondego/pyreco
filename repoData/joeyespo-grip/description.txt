@@ -1,0 +1,358 @@
+Authors
+=======
+
+[Grip][home] is written and maintained by Joe Esposito,
+along with the following contributors:
+
+- Vlad Wing ([@vladwing](https://github.com/vladwing))
+- Ismail Badawi ([@isbadawi](https://github.com/isbadawi))
+- Joe Littlejohn ([@joelittlejohn](https://github.com/joelittlejohn))
+- Brian Cappello ([@briancappello](https://github.com/briancappello))
+- John Gallagher ([@jgallagher](https://github.com/jgallagher))
+- Ilya Rumyantsev ([@iliggio](https://github.com/iliggio))
+
+[home]: README.md
+
+Grip Changelog
+==============
+
+
+Version 2.0.0 (2013-09-26)
+--------------------------
+
+- Feature: Styles are now cached (from the not-yet-released offline rendering) (thanks, [@isbadawi][]!)
+- Feature: Add user/pass options for GitHub auth (thanks, [@joelittlejohn][]!)
+- Feature: Add export to single HTML file (thanks, [@iliggio][]!)
+- Enhancement: Better HTML titles by normalizing the path, always providing a title
+- Enhancement: Allow styles to be overridden, with examples in static directory
+- Enhancement: Relay GitHub API HTTP errors to browser for debuggability
+- Enhancement: Extract render_app and add create_app in API
+- Bugfix: Fix manual installs using setup.py (thanks, [@briancappello][]!)
+- Bugfix: Fix rendering rendering local images (thanks, [@jgallagher][]!)
+- Bugfix: Handle File Not Found errors as 404 when given a directory
+- Rename and re-arrange the configuration files
+- Update README.md with new features
+- Update AUTHORS.md format
+- Upgrade requirements
+- Simplify code
+
+
+Version 1.2.0 (2013-03-17)
+--------------------------
+
+- Add AUTHORS.md for attributing credit.
+- Feature: Can now click hyperlinks to render other files
+  without re-running (thanks, [@vladwing][]!)
+- Update GitHub CSS regular expression.
+
+
+Version 1.1.1 (2013-01-05)
+--------------------------
+
+- Upgrade path-and-address.
+- Use exact versions in requirements.
+
+
+Version 1.1 (2013-01-04)
+------------------------
+
+- Readme: Clarify and add examples.
+- Bugfix: Typo in requirements.
+- Clean up setup.py
+
+
+Version 1.0 (2012-12-08)
+------------------------
+
+- CLI: now accepts an address, not just a port.
+- CLI: now accepts --gfm and --context=<repo> arguments for rendering
+  GitHub Flavored Markdown.
+- API: `serve` function now accepts `None` for its arguments to
+  indicate 'use default'.
+- API: `serve` function now accepts a 'host'.
+- API: `serve` now resolves the default file when given a path.
+- Now using docopt for more advanced argument processing.
+- Now using path-and-address for humanistic path / address handling.
+
+
+Version 0.2.1 (2012-12-02)
+--------------------------
+
+- Issue #5: Fixed the installer to work in the case where
+  the requirements are not already installed.
+
+
+Version 0.2 (2012-12-01)
+------------------------
+
+- Github styles are now retrieved dynamically when run,
+  instead of using the outdated styles from the config.
+
+
+Version 0.1.1 (2012-11-20)
+--------------------------
+
+- Added the port command-line argument.
+
+
+Version 0.1 (2012-11-19)
+------------------------
+
+First public preview release.
+
+
+[@vladwing]: https://github.com/vladwing
+[@isbadawi]: https://github.com/isbadawi
+[@joelittlejohn]: https://github.com/joelittlejohn
+[@briancappello]: https://github.com/briancappello
+[@jgallagher]: https://github.com/jgallagher
+[@iliggio]: https://github.com/iliggio
+
+Grip Static Files
+=================
+
+This is a placeholder directory for static files. You can
+place CSS files here to override styles locally.
+
+For example, to use [example.css](example.css), which makes
+all headers red and gives paragraphs a red background, do
+the following.
+
+1. Create a `settings_local.py` file in the application root. That is,
+   in the same directory that `settings.py` is.
+2. Add `STYLE_URLS = ['/static/example.css']`
+
+That's all there is to it.
+
+Grip -- GitHub Readme Instant Preview
+=====================================
+
+Render local readme files before sending off to GitHub.
+
+Grip is a command-line server application written in Python that uses the
+[GitHub markdown API][markdown] to render a local readme file. The styles also
+come directly from GitHub, so you'll know exactly how it will appear.
+
+
+Motivation
+----------
+
+Sometimes you just want to see the exact readme
+result before committing and pushing to GitHub.
+
+Especially when doing [Readme-driven development][rdd].
+
+
+Installation
+------------
+
+To install grip, simply:
+
+```bash
+$ pip install grip
+```
+
+
+Usage
+-----
+
+To render the readme of a repository:
+
+```bash
+$ cd myrepo
+$ grip
+ * Running on http://localhost:5000/
+```
+
+Now open a browser and visit [http://localhost:5000](http://localhost:5000/).
+
+You can also specify a port:
+
+```bash
+$ grip 80
+ * Running on http://localhost:80/
+```
+
+Or an explicit file:
+
+```bash
+$ grip AUTHORS.md
+ * Running on http://localhost:5000/
+```
+
+Alternatively, you could just run `grip` and visit [localhost:5000/AUTHORS.md][AUTHORS.md]
+since grip supports relative URLs.
+
+You can even bypass the server and export to a single HTML:
+
+```bash
+$ grip --export AUTHORS.md
+```
+
+GitHub-Flavored Markdown is also supported, with an optional repository context for linking to issues:
+
+```bash
+$ grip --gfm --context=joeyespo/grip
+ * Running on http://localhost:5000/
+```
+
+For more details, see the help:
+
+```bash
+$ grip -h
+```
+
+
+API
+---
+
+You can access the API directly with Python, using it in your own projects:
+
+```python
+from grip import serve
+
+serve(port=8080)
+ * Running on http://localhost:8080/
+```
+
+Or access the underlying Flask application for even more flexibility:
+
+```python
+from grip import create_app
+
+grip_app = create_app(gfm=True)
+# Use in your own app
+```
+
+
+### Documentation
+
+#### serve
+
+Runs a local server and renders the Readme file located
+at `path` when visited in the browser.
+
+```python
+serve(path='file-or-directory', host='localhost', port=5000, gfm=False, context=None, username=None, password=None, render_offline=False)
+```
+
+- `path`: The filename to render, or the directory containing your Readme file
+- `host`: The host to serve on
+- `port`: The port to serve on
+- `gfm`: Whether to render using [GitHub Flavored Markdown][gfm]
+- `context`: The project context to use when `gfm` is true, which
+             takes the form of `username/project`
+- `username`: The user to authenticate with GitHub to extend the API limit
+- `password`: The password to authenticate with GitHub to extend the API limit
+- `render_offline`: Whether to render locally using [Python-Markdown][] (Note: this is a work in progress)
+
+
+#### export
+
+Writes the specified Readme file to an HTML file with styles inlined.
+
+```python
+export(path='file-or-directory', gfm=False, context=None, username=None, password=None, render_offline=False, out_filename=None)
+```
+
+- `path`: The filename to render, or the directory containing your Readme file
+- `gfm`: Whether to render using [GitHub Flavored Markdown][gfm]
+- `context`: The project context to use when `gfm` is true, which
+             takes the form of `username/project`
+- `username`: The user to authenticate with GitHub to extend the API limit
+- `password`: The password to authenticate with GitHub to extend the API limit
+- `render_offline`: Whether to render locally using [Python-Markdown][] (Note: this is a work in progress)
+- `out_filename`: The filename to write to, `<in_filename>.html` by default
+
+
+#### create_app
+
+Creates a Flask application you can use to render and serve the Readme files.
+This is the same app used by `serve` and `export` and initializes the cache,
+using the cached styles when available.
+
+```python
+create_app(path='file-or-directory', gfm=False, context=None, username=None, password=None, render_offline=False, render_inline=False)
+```
+
+- `path`: The filename to render, or the directory containing your Readme file
+- `gfm`: Whether to render using [GitHub Flavored Markdown][gfm]
+- `context`: The project context to use when `gfm` is true, which
+             takes the form of `username/project`
+- `username`: The user to authenticate with GitHub to extend the API limit
+- `password`: The password to authenticate with GitHub to extend the API limit
+- `render_offline`: Whether to render locally using [Python-Markdown][] (Note: this is a work in progress)
+- `render_inline`: Whether to inline the styles within the HTML file
+
+
+#### render_app
+
+```python
+render_app(app, route='/')
+```
+
+- `app`: The Flask application to render
+- `route`: The route to render, '/' by default
+
+
+#### render_content
+
+Renders the specified markdown text without caching.
+
+```python
+render_content(text, gfm=False, context=None, username=None, password=None, render_offline=False)
+```
+
+- `text`: The content to render
+- `gfm`: Whether to render using [GitHub Flavored Markdown][gfm]
+- `context`: The project context to use when `gfm` is true, which
+             takes the form of `username/project`
+- `username`: The user to authenticate with GitHub to extend the API limit
+- `password`: The password to authenticate with GitHub to extend the API limit
+- `render_offline`: Whether to render locally using [Python-Markdown][] (Note: this is a work in progress)
+
+
+#### render_page
+
+Renders the specified markdown text without caching and outputs an HTML
+page that resembles the GitHub Readme view.
+
+```python
+render_page(text, filename=None, gfm=False, context=None, username=None, password=None, render_offline=False, style_urls=[], styles=[])
+```
+
+- `text`: The content to render
+- `gfm`: Whether to render using [GitHub Flavored Markdown][gfm]
+- `context`: The project context to use when `gfm` is true, which
+             takes the form of `username/project`
+- `username`: The user to authenticate with GitHub to extend the API limit
+- `password`: The password to authenticate with GitHub to extend the API limit
+- `render_offline`: Whether to render offline using [Python-Markdown][] (Note: this is a work in progress)
+- `style_urls`: A list of URLs that contain CSS to include in the rendered page
+- `styles`: A list of style content strings to inline in the rendered page
+
+
+#### default_filenames
+
+This constant contains the names Grip looks for when no file is given to.
+
+```python
+default_filenames = ['README.md', 'README.markdown']
+```
+
+
+Contributing
+------------
+
+1. Check the open issues or open a new issue to start a discussion around
+   your feature idea or the bug you found
+2. Fork the repository, make your changes, and add yourself to [Authors.md][]
+3. Send a pull request
+
+
+[markdown]: http://developer.github.com/v3/markdown
+[rdd]: http://tom.preston-werner.com/2010/08/23/readme-driven-development.html
+[gfm]: http://github.github.com/github-flavored-markdown
+[python-markdown]: https://github.com/waylan/Python-Markdown
+[authors.md]: AUTHORS.md
+

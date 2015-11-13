@@ -1,0 +1,574 @@
+__FILENAME__ = exceptions
+class SocketIOError(Exception):
+    pass
+
+
+class ConnectionError(SocketIOError):
+    pass
+
+
+class TimeoutError(SocketIOError):
+    pass
+
+
+class PacketError(SocketIOError):
+    pass
+
+########NEW FILE########
+__FILENAME__ = tests
+import logging
+import time
+from unittest import TestCase
+
+from . import SocketIO, BaseNamespace, find_callback
+from .transports import TIMEOUT_IN_SECONDS
+
+
+HOST = 'localhost'
+PORT = 8000
+DATA = 'xxx'
+PAYLOAD = {'xxx': 'yyy'}
+logging.basicConfig(level=logging.DEBUG)
+
+
+class BaseMixin(object):
+
+    def setUp(self):
+        self.called_on_response = False
+
+    def tearDown(self):
+        del self.socketIO
+
+    def on_response(self, *args):
+        for arg in args:
+            if isinstance(arg, dict):
+                self.assertEqual(arg, PAYLOAD)
+            else:
+                self.assertEqual(arg, DATA)
+        self.called_on_response = True
+
+    def test_disconnect(self):
+        'Disconnect'
+        self.assertTrue(self.socketIO.connected)
+        self.socketIO.disconnect()
+        self.assertFalse(self.socketIO.connected)
+        # Use context manager
+        with SocketIO(HOST, PORT, Namespace) as self.socketIO:
+            namespace = self.socketIO.get_namespace()
+            self.assertFalse(namespace.called_on_disconnect)
+            self.assertTrue(self.socketIO.connected)
+        self.assertTrue(namespace.called_on_disconnect)
+        self.assertFalse(self.socketIO.connected)
+
+    def test_message(self):
+        'Message'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.message()
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, 'message_response')
+
+    def test_message_with_data(self):
+        'Message with data'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.message(DATA)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, DATA)
+
+    def test_message_with_payload(self):
+        'Message with payload'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.message(PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.response, PAYLOAD)
+
+    def test_message_with_callback(self):
+        'Message with callback'
+        self.socketIO.message(callback=self.on_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_message_with_callback_with_data(self):
+        'Message with callback with data'
+        self.socketIO.message(DATA, self.on_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_emit(self):
+        'Emit'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit')
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_response': (),
+        })
+
+    def test_emit_with_payload(self):
+        'Emit with payload'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit_with_payload', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_with_payload_response': (PAYLOAD,),
+        })
+
+    def test_emit_with_multiple_payloads(self):
+        'Emit with multiple payloads'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('emit_with_multiple_payloads', PAYLOAD, PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'emit_with_multiple_payloads_response': (PAYLOAD, PAYLOAD),
+        })
+
+    def test_emit_with_callback(self):
+        'Emit with callback'
+        self.socketIO.emit('emit_with_callback', self.on_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_emit_with_callback_with_payload(self):
+        'Emit with callback with payload'
+        self.socketIO.emit(
+            'emit_with_callback_with_payload', self.on_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_emit_with_callback_with_multiple_payloads(self):
+        'Emit with callback with multiple payloads'
+        self.socketIO.emit(
+            'emit_with_callback_with_multiple_payloads', self.on_response)
+        self.socketIO.wait_for_callbacks(seconds=self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_emit_with_event(self):
+        'Emit to trigger an event'
+        self.socketIO.on('emit_with_event_response', self.on_response)
+        self.socketIO.emit('emit_with_event', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertTrue(self.called_on_response)
+
+    def test_ack(self):
+        'Trigger server callback'
+        namespace = self.socketIO.define(Namespace)
+        self.socketIO.emit('ack', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(namespace.args_by_event, {
+            'ack_response': (PAYLOAD,),
+            'ack_callback_response': (PAYLOAD,),
+        })
+
+    def test_wait_with_disconnect(self):
+        'Exit loop when the client wants to disconnect'
+        self.socketIO.define(Namespace)
+        self.socketIO.emit('wait_with_disconnect')
+        timeout_in_seconds = 5
+        start_time = time.time()
+        self.socketIO.wait(timeout_in_seconds)
+        self.assertTrue(time.time() - start_time < timeout_in_seconds)
+
+    def test_namespace_emit(self):
+        'Behave differently in different namespaces'
+        main_namespace = self.socketIO.define(Namespace)
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        news_namespace = self.socketIO.define(Namespace, '/news')
+        news_namespace.emit('emit_with_payload', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(main_namespace.args_by_event, {})
+        self.assertEqual(chat_namespace.args_by_event, {})
+        self.assertEqual(news_namespace.args_by_event, {
+            'emit_with_payload_response': (PAYLOAD,),
+        })
+
+    def test_namespace_ack(self):
+        'Trigger server callback'
+        chat_namespace = self.socketIO.define(Namespace, '/chat')
+        chat_namespace.emit('ack', PAYLOAD)
+        self.socketIO.wait(self.wait_time_in_seconds)
+        self.assertEqual(chat_namespace.args_by_event, {
+            'ack_response': (PAYLOAD,),
+            'ack_callback_response': (PAYLOAD,),
+        })
+
+
+class Test_WebsocketTransport(TestCase, BaseMixin):
+
+    def setUp(self):
+        super(Test_WebsocketTransport, self).setUp()
+        self.socketIO = SocketIO(HOST, PORT, transports=['websocket'])
+        self.wait_time_in_seconds = 0.1
+
+
+class Test_XHR_PollingTransport(TestCase, BaseMixin):
+
+    def setUp(self):
+        super(Test_XHR_PollingTransport, self).setUp()
+        self.socketIO = SocketIO(HOST, PORT, transports=['xhr-polling'])
+        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
+
+
+class Test_JSONP_PollingTransport(TestCase, BaseMixin):
+
+    def setUp(self):
+        super(Test_JSONP_PollingTransport, self).setUp()
+        self.socketIO = SocketIO(HOST, PORT, transports=['jsonp-polling'])
+        self.wait_time_in_seconds = TIMEOUT_IN_SECONDS + 1
+
+
+class Namespace(BaseNamespace):
+
+    def initialize(self):
+        self.response = None
+        self.args_by_event = {}
+        self.called_on_disconnect = False
+
+    def on_disconnect(self):
+        self.called_on_disconnect = True
+
+    def on_message(self, data):
+        self.response = data
+
+    def on_event(self, event, *args):
+        callback, args = find_callback(args)
+        if callback:
+            callback(*args)
+        self.args_by_event[event] = args
+
+    def on_wait_with_disconnect_response(self):
+        self.disconnect()
+
+########NEW FILE########
+__FILENAME__ = transports
+import json
+import logging
+import re
+import requests
+import six
+import socket
+import time
+import websocket
+from itertools import izip
+
+from .exceptions import SocketIOError, ConnectionError, TimeoutError
+
+
+TRANSPORTS = 'websocket', 'xhr-polling', 'jsonp-polling'
+BOUNDARY = six.u('\ufffd')
+TIMEOUT_IN_SECONDS = 3
+_log = logging.getLogger(__name__)
+
+
+class _AbstractTransport(object):
+
+    def __init__(self):
+        self._packet_id = 0
+        self._callback_by_packet_id = {}
+        self._wants_to_disconnect = False
+        self._packets = []
+
+    def disconnect(self, path=''):
+        if not path:
+            self._wants_to_disconnect = True
+        if not self.connected:
+            return
+        if path:
+            self.send_packet(0, path)
+        else:
+            self.close()
+
+    def connect(self, path):
+        self.send_packet(1, path)
+
+    def send_heartbeat(self):
+        self.send_packet(2)
+
+    def message(self, path, data, callback):
+        if isinstance(data, basestring):
+            code = 3
+        else:
+            code = 4
+            data = json.dumps(data, ensure_ascii=False)
+        self.send_packet(code, path, data, callback)
+
+    def emit(self, path, event, args, callback):
+        data = json.dumps(dict(name=event, args=args), ensure_ascii=False)
+        self.send_packet(5, path, data, callback)
+
+    def ack(self, path, packet_id, *args):
+        packet_id = packet_id.rstrip('+')
+        data = '%s+%s' % (
+            packet_id,
+            json.dumps(args, ensure_ascii=False),
+        ) if args else packet_id
+        self.send_packet(6, path, data)
+
+    def noop(self, path=''):
+        self.send_packet(8, path)
+
+    def send_packet(self, code, path='', data='', callback=None):
+        packet_id = self.set_ack_callback(callback) if callback else ''
+        packet_parts = str(code), packet_id, path, data
+        packet_text = ':'.join(packet_parts)
+        self.send(packet_text)
+        _log.debug('[packet sent] %s', packet_text)
+
+    def recv_packet(self):
+        try:
+            while self._packets:
+                yield self._packets.pop(0)
+        except IndexError:
+            pass
+        for packet_text in self.recv():
+            _log.debug('[packet received] %s', packet_text)
+            try:
+                packet_parts = packet_text.split(':', 3)
+            except AttributeError:
+                _log.warn('[packet error] %s', packet_text)
+                continue
+            code, packet_id, path, data = None, None, None, None
+            packet_count = len(packet_parts)
+            if 4 == packet_count:
+                code, packet_id, path, data = packet_parts
+            elif 3 == packet_count:
+                code, packet_id, path = packet_parts
+            elif 1 == packet_count:
+                code = packet_parts[0]
+            yield code, packet_id, path, data
+
+    def _enqueue_packet(self, packet):
+        self._packets.append(packet)
+
+    def set_ack_callback(self, callback):
+        'Set callback to be called after server sends an acknowledgment'
+        self._packet_id += 1
+        self._callback_by_packet_id[str(self._packet_id)] = callback
+        return '%s+' % self._packet_id
+
+    def get_ack_callback(self, packet_id):
+        'Get callback to be called after server sends an acknowledgment'
+        callback = self._callback_by_packet_id[packet_id]
+        del self._callback_by_packet_id[packet_id]
+        return callback
+
+    @property
+    def has_ack_callback(self):
+        return True if self._callback_by_packet_id else False
+
+
+class _WebsocketTransport(_AbstractTransport):
+
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
+        super(_WebsocketTransport, self).__init__()
+        url = '%s://%s/websocket/%s' % (
+            'wss' if is_secure else 'ws',
+            base_url, socketIO_session.id)
+        try:
+            self._connection = websocket.create_connection(url)
+        except socket.timeout as e:
+            raise ConnectionError(e)
+        except socket.error as e:
+            raise ConnectionError(e)
+        self._connection.settimeout(TIMEOUT_IN_SECONDS)
+
+    @property
+    def connected(self):
+        return self._connection.connected
+
+    def send(self, packet_text):
+        try:
+            self._connection.send(packet_text)
+        except websocket.WebSocketTimeoutException as e:
+            message = 'timed out while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise TimeoutError(e)
+        except socket.error as e:
+            message = 'disconnected while sending %s (%s)' % (packet_text, e)
+            _log.warn(message)
+            raise ConnectionError(message)
+
+    def recv(self):
+        try:
+            yield self._connection.recv()
+        except websocket.WebSocketTimeoutException as e:
+            raise TimeoutError(e)
+        except websocket.SSLError as e:
+            raise ConnectionError(e)
+        except websocket.WebSocketConnectionClosedException as e:
+            raise ConnectionError('connection closed (%s)' % e)
+        except socket.error as e:
+            raise ConnectionError(e)
+
+    def close(self):
+        self._connection.close()
+
+
+class _XHR_PollingTransport(_AbstractTransport):
+
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
+        super(_XHR_PollingTransport, self).__init__()
+        self._url = '%s://%s/xhr-polling/%s' % (
+            'https' if is_secure else 'http',
+            base_url, socketIO_session.id)
+        self._connected = True
+        self._http_session = _prepare_http_session(kw)
+        # Create connection
+        for packet in self.recv_packet():
+            self._enqueue_packet(packet)
+
+    @property
+    def connected(self):
+        return self._connected
+
+    @property
+    def _params(self):
+        return dict(t=int(time.time()))
+
+    def send(self, packet_text):
+        _get_response(
+            self._http_session.post,
+            self._url,
+            params=self._params,
+            data=packet_text,
+            timeout=TIMEOUT_IN_SECONDS)
+
+    def recv(self):
+        response = _get_response(
+            self._http_session.get,
+            self._url,
+            params=self._params,
+            timeout=TIMEOUT_IN_SECONDS)
+        response_text = response.text
+        if not response_text.startswith(BOUNDARY):
+            yield response_text
+            return
+        for packet_text in _yield_text_from_framed_data(response_text):
+            yield packet_text
+
+    def close(self):
+        _get_response(
+            self._http_session.get,
+            self._url,
+            params=dict(self._params.items() + [('disconnect', True)]))
+        self._connected = False
+
+
+class _JSONP_PollingTransport(_AbstractTransport):
+
+    RESPONSE_PATTERN = re.compile(r'io.j\[(\d+)\]\("(.*)"\);')
+
+    def __init__(self, socketIO_session, is_secure, base_url, **kw):
+        super(_JSONP_PollingTransport, self).__init__()
+        self._url = '%s://%s/jsonp-polling/%s' % (
+            'https' if is_secure else 'http',
+            base_url, socketIO_session.id)
+        self._connected = True
+        self._http_session = _prepare_http_session(kw)
+        self._id = 0
+        # Create connection
+        for packet in self.recv_packet():
+            self._enqueue_packet(packet)
+
+    @property
+    def connected(self):
+        return self._connected
+
+    @property
+    def _params(self):
+        return dict(t=int(time.time()), i=self._id)
+
+    def send(self, packet_text):
+        _get_response(
+            self._http_session.post,
+            self._url,
+            params=self._params,
+            data='d=%s' % requests.utils.quote(json.dumps(packet_text)),
+            headers={'content-type': 'application/x-www-form-urlencoded'},
+            timeout=TIMEOUT_IN_SECONDS)
+
+    def recv(self):
+        'Decode the JavaScript response so that we can parse it as JSON'
+        response = _get_response(
+            self._http_session.get,
+            self._url,
+            params=self._params,
+            headers={'content-type': 'text/javascript; charset=UTF-8'},
+            timeout=TIMEOUT_IN_SECONDS)
+        response_text = response.text
+        try:
+            self._id, response_text = self.RESPONSE_PATTERN.match(
+                response_text).groups()
+        except AttributeError:
+            _log.warn('[packet error] %s', response_text)
+            return
+        if not response_text.startswith(BOUNDARY):
+            yield response_text.decode('unicode_escape')
+            return
+        for packet_text in _yield_text_from_framed_data(
+                response_text, parse=lambda x: x.decode('unicode_escape')):
+            yield packet_text
+
+    def close(self):
+        _get_response(
+            self._http_session.get,
+            self._url,
+            params=dict(self._params.items() + [('disconnect', True)]))
+        self._connected = False
+
+
+def _negotiate_transport(
+        client_supported_transports, session,
+        is_secure, base_url, **kw):
+    server_supported_transports = session.server_supported_transports
+    for supported_transport in client_supported_transports:
+        if supported_transport in server_supported_transports:
+            _log.debug('[transport selected] %s', supported_transport)
+            return {
+                'websocket': _WebsocketTransport,
+                'xhr-polling': _XHR_PollingTransport,
+                'jsonp-polling': _JSONP_PollingTransport,
+            }[supported_transport](session, is_secure, base_url, **kw)
+    raise SocketIOError(' '.join([
+        'could not negotiate a transport:',
+        'client supports %s but' % ', '.join(client_supported_transports),
+        'server supports %s' % ', '.join(server_supported_transports),
+    ]))
+
+
+def _yield_text_from_framed_data(framed_data, parse=lambda x: x):
+    parts = [parse(x) for x in framed_data.split(BOUNDARY)]
+    for text_length, text in izip(parts[1::2], parts[2::2]):
+        if text_length != str(len(text)):
+            warning = 'invalid declared length=%s for packet_text=%s' % (
+                text_length, text)
+            _log.warn('[packet error] %s', warning)
+            continue
+        yield text
+
+
+def _get_response(request, *args, **kw):
+    try:
+        response = request(*args, **kw)
+    except requests.exceptions.Timeout as e:
+        raise TimeoutError(e)
+    except requests.exceptions.ConnectionError as e:
+        raise ConnectionError(e)
+    except requests.exceptions.SSLError as e:
+        raise ConnectionError('could not negotiate SSL (%s)' % e)
+    status = response.status_code
+    if 200 != status:
+        raise ConnectionError('unexpected status code (%s)' % status)
+    return response
+
+
+def _prepare_http_session(kw):
+    http_session = requests.Session()
+    http_session.headers.update(kw.get('headers', {}))
+    http_session.auth = kw.get('auth')
+    http_session.proxies.update(kw.get('proxies', {}))
+    http_session.hooks.update(kw.get('hooks', {}))
+    http_session.params.update(kw.get('params', {}))
+    http_session.verify = kw.get('verify')
+    http_session.cert = kw.get('cert')
+    http_session.cookies.update(kw.get('cookies', {}))
+    return http_session
+
+########NEW FILE########

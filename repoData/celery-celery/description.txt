@@ -1,0 +1,870 @@
+=================================
+ celery - Distributed Task Queue
+=================================
+
+.. image:: http://cloud.github.com/downloads/celery/celery/celery_128.png
+
+.. include:: ../includes/introduction.txt
+
+.. include:: ../includes/installation.txt
+
+.. include:: ../includes/resources.txt
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/celery/celery/trend.png
+    :alt: Bitdeli badge
+    :target: https://bitdeli.com/free
+
+==============================
+ Example Celery->HTTP Gateway
+==============================
+
+This is an example service exposing the ability to apply tasks and query
+statuses/results over HTTP.
+
+Some familiarity with Django is recommended.
+
+`settings.py` contains the celery settings, you probably want to configure
+at least the broker related settings.
+
+To run the service you have to run the following commands::
+
+    $ python manage.py syncdb # (if running the database backend)
+
+    $ python manage.py runserver
+
+
+The service is now running at http://localhost:8000
+
+
+You can apply tasks, with the `/apply/<task_name>` URL::
+
+    $ curl http://localhost:8000/apply/celery.ping/
+    {"ok": "true", "task_id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}
+
+Then you can use the resulting task-id to get the return value::
+
+    $ curl http://localhost:8000/e3a95109-afcd-4e54-a341-16c18fddf64b/status/
+    {"task": {"status": "SUCCESS", "result": "pong", "id": "e3a95109-afcd-4e54-a341-16c18fddf64b"}}
+
+
+If you don't want to expose all tasks there are a few possible
+approaches. For instance you can extend the `apply` view to only
+accept a whitelist. Another possibility is to just make views for every task you want to
+expose. We made on such view for ping in `views.ping`::
+
+    $ curl http://localhost:8000/ping/
+    {"ok": "true", "task_id": "383c902c-ba07-436b-b0f3-ea09cc22107c"}
+
+==============================================================
+ Example Django project using Celery
+==============================================================
+
+Contents
+========
+
+``proj/``
+---------
+
+This is the project iself, created using
+``django-admin.py startproject proj``, and then the settings module
+(``proj/settings.py``) was modified to add ``demoapp`` to
+``INSTALLED_APPS``
+
+``proj/celery.py``
+----------
+
+This module contains the Celery application instance for this project,
+we take configuration from Django settings and use ``autodiscover_tasks`` to
+find task modules inside all packages listed in ``INSTALLED_APPS``.
+
+``demoapp/``
+------------
+
+Example generic app.  This is decoupled from the rest of the project by using
+the ``@shared_task`` decorator.  This decorator returns a proxy that always
+points to the currently active Celery instance.
+
+
+Starting the worker
+===================
+
+.. code-block:: bash
+
+    $ celery -A proj worker -l info
+
+==================================
+  Example using the Eventlet Pool
+==================================
+
+Introduction
+============
+
+This is a Celery application containing two example tasks.
+
+First you need to install Eventlet, and also recommended is the `dnspython`
+module (when this is installed all name lookups will be asynchronous)::
+
+    $ pip install eventlet
+    $ pip install dnspython
+    $ pip install requests
+
+Before you run any of the example tasks you need to start
+the worker::
+
+    $ cd examples/eventlet
+    $ celery worker -l info --concurrency=500 --pool=eventlet
+
+As usual you need to have RabbitMQ running, see the Celery getting started
+guide if you haven't installed it yet.
+
+Tasks
+=====
+
+* `tasks.urlopen`
+
+This task simply makes a request opening the URL and returns the size
+of the response body::
+
+    $ cd examples/eventlet
+    $ python
+    >>> from tasks import urlopen
+    >>> urlopen.delay("http://www.google.com/").get()
+    9980
+
+To open several URLs at once you can do::
+
+    $ cd examples/eventlet
+    $ python
+    >>> from tasks import urlopen
+    >>> from celery import group
+    >>> result = group(urlopen.s(url)
+    ...                     for url in LIST_OF_URLS).apply_async()
+    >>> for incoming_result in result.iter_native():
+    ...     print(incoming_result, )
+
+* `webcrawler.crawl`
+
+This is a simple recursive web crawler.  It will only crawl
+URLs for the current host name.  Please see comments in the
+`webcrawler.py` file.
+
+======================
+ Webhook Task Example
+======================
+
+This example is a simple Django HTTP service exposing a single task
+multiplying two numbers:
+
+The multiply http callback task is in `views.py`, mapped to a URL using
+`urls.py`.
+
+There are no models, so to start it do::
+
+    $ python manage.py runserver
+
+To execute the task you could use curl::
+
+    $ curl http://localhost:8000/multiply?x=10&y=10
+
+which then gives the expected JSON response::
+
+    {"status": "success": "retval": 100}
+
+
+To execute this http callback task asynchronously you could fire up
+a python shell with a properly configured celery and do:
+
+    >>> from celery.task.http import URL
+    >>> res = URL("http://localhost:8000/multiply").get_async(x=10, y=10)
+    >>> res.wait()
+    100
+
+
+That's all!
+
+=================
+ Celery Examples
+=================
+
+
+* pythonproject
+
+Example Python project using celery.
+
+* httpexample
+
+Example project using remote tasks (webhook tasks)
+
+* celery_http_gateway
+
+Example HTTP service exposing the ability to apply tasks and query the
+resulting status/return value.
+
+
+=========================
+ Celery Stresstest Suite
+=========================
+
+.. contents::
+    :local:
+
+Introduction
+============
+
+These tests will attempt to break the worker in different ways.
+
+The worker must currently be started separately, and it's encouraged
+to run the stresstest with different configuration values.
+
+Ideas include:
+
+1)  Frequent maxtasksperchild, single process
+
+::
+
+    $ celery -A stress worker -c 1 --maxtasksperchild=1
+
+2) Frequent scale down & maxtasksperchild, single process
+
+::
+
+    $ AUTOSCALE_KEEPALIVE=0.01 celery -A stress worker --autoscale=1,0 \
+                                                       --maxtasksperchild=1
+
+3) Frequent maxtasksperchild, multiple processes
+
+::
+
+    $ celery -A stress worker -c 8 --maxtasksperchild=1``
+
+4) Default, single process
+
+::
+
+    $ celery -A stress worker -c 1
+
+5) Default, multiple processes
+
+::
+
+    $ celery -A stress worker -c 8
+
+6) Processes termianted by time limits
+
+::
+
+    $ celery -A stress worker --time-limit=1
+
+7) Frequent maxtasksperchild, single process with late ack.
+
+::
+
+    $ celery -A stress worker -c1 --maxtasksperchild=1 -Z acks_late
+
+
+8) Worker using eventlet pool.
+
+    Start the worker::
+
+        $ celery -A stress worker -c1000 -P eventlet
+
+    Then must use the `-g green` test group::
+
+        $ python -m stress -g green
+
+9) Worker using gevent pool.
+
+It's also a good idea to include the ``--purge`` argument to clear out tasks from
+previous runs.
+
+Note that the stress client will probably hang if the test fails, so this
+test suite is currently not suited for automatic runs.
+
+Configuration Templates
+-----------------------
+
+You can select a configuration template using the `-Z` command-line argument
+to any :program:`celery -A stress` command or the :program:`python -m stress`
+command when running the test suite itself.
+
+The templates available are:
+
+* default
+
+    Using amqp as a broker and rpc as a result backend,
+    and also using json for task and result messages.
+
+* redis
+
+    Using redis as a broker and result backend
+
+* acks_late
+
+    Enables late ack globally.
+
+* pickle
+
+    Using pickle as the serializer for tasks and results
+    (also allowing the worker to receive and process pickled messages)
+
+
+You can see the resulting configuration from any template by running
+the command::
+
+    $ celery -A stress report -Z redis
+
+
+Example running the stress test using the ``redis`` configuration template::
+
+    $ python -m stress -Z redis
+
+Example running the worker using the ``redis`` configuration template::
+
+    $ celery -A stress worker -Z redis
+
+
+You can also mix several templates by listing them separated by commas::
+
+    $ celery -A stress worker -Z redis,acks_late
+
+In this example (``redis,acks_late``) the ``redis`` template will be used
+as a configuration, and then additional keys from the ``acks_late`` template
+will be added on top as changes::
+
+    $ celery -A stress report -Z redis,acks_late,pickle
+
+Running the client
+------------------
+
+After the worker is running you can start the client to run the complete test
+suite::
+
+    $ python -m stress
+
+You can also specify which tests to run:
+
+    $ python -m stress revoketermfast revoketermslow
+
+Or you can start from an offset, e.g. to skip the two first tests use
+``--offset=2``::
+
+    $ python -m stress --offset=2
+
+See ``python -m stress --help`` for a list of all available options.
+
+
+Options
+=======
+
+Using a different broker
+------------------------
+You can set the environment ``CSTRESS_BROKER`` to change the broker used::
+
+    $ CSTRESS_BROKER='amqp://' celery -A stress worker # …
+    $ CSTRESS_BROKER='amqp://' python -m stress
+
+Using a different result backend
+--------------------------------
+
+You can set the environment variable ``CSTRESS_BACKEND`` to change
+the result backend used::
+
+    $ CSTRESS_BACKEND='amqp://' celery -A stress worker # …
+    $ CSTRESS_BACKEND='amqp://' python -m stress
+
+Using a custom queue
+--------------------
+
+A queue named ``c.stress`` is created and used by default,
+but you can change the name of this queue using the ``CSTRESS_QUEUE``
+environment variable.
+
+=================================
+ celery - Distributed Task Queue
+=================================
+
+.. image:: http://cloud.github.com/downloads/celery/celery/celery_128.png
+
+:Version: 3.2.0a1 (Cipater)
+:Web: http://celeryproject.org/
+:Download: http://pypi.python.org/pypi/celery/
+:Source: http://github.com/celery/celery/
+:Keywords: task queue, job queue, asynchronous, async, rabbitmq, amqp, redis,
+  python, webhooks, queue, distributed
+
+--
+
+What is a Task Queue?
+=====================
+
+Task queues are used as a mechanism to distribute work across threads or
+machines.
+
+A task queue's input is a unit of work, called a task, dedicated worker
+processes then constantly monitor the queue for new work to perform.
+
+Celery communicates via messages, usually using a broker
+to mediate between clients and workers.  To initiate a task a client puts a
+message on the queue, the broker then delivers the message to a worker.
+
+A Celery system can consist of multiple workers and brokers, giving way
+to high availability and horizontal scaling.
+
+Celery is a library written in Python, but the protocol can be implemented in
+any language.  So far there's RCelery_ for the Ruby programming language, and a
+`PHP client`, but language interoperability can also be achieved
+by using webhooks.
+
+.. _RCelery: http://leapfrogdevelopment.github.com/rcelery/
+.. _`PHP client`: https://github.com/gjedeer/celery-php
+.. _`using webhooks`:
+    http://docs.celeryproject.org/en/latest/userguide/remote-tasks.html
+
+What do I need?
+===============
+
+Celery version 3.0 runs on,
+
+- Python (2.5, 2.6, 2.7, 3.2, 3.3)
+- PyPy (1.8, 1.9)
+- Jython (2.5, 2.7).
+
+This is the last version to support Python 2.5,
+and from Celery 3.1, Python 2.6 or later is required.
+The last version to support Python 2.4 was Celery series 2.2.
+
+*Celery* is usually used with a message broker to send and receive messages.
+The RabbitMQ, Redis transports are feature complete,
+but there's also experimental support for a myriad of other solutions, including
+using SQLite for local development.
+
+*Celery* can run on a single machine, on multiple machines, or even
+across datacenters.
+
+Get Started
+===========
+
+If this is the first time you're trying to use Celery, or you are
+new to Celery 3.0 coming from previous versions then you should read our
+getting started tutorials:
+
+- `First steps with Celery`_
+
+    Tutorial teaching you the bare minimum needed to get started with Celery.
+
+- `Next steps`_
+
+    A more complete overview, showing more features.
+
+.. _`First steps with Celery`:
+    http://docs.celeryproject.org/en/latest/getting-started/first-steps-with-celery.html
+
+.. _`Next steps`:
+    http://docs.celeryproject.org/en/latest/getting-started/next-steps.html
+
+Celery is...
+==========
+
+- **Simple**
+
+    Celery is easy to use and maintain, and does *not need configuration files*.
+
+    It has an active, friendly community you can talk to for support,
+    including a `mailing-list`_ and and an IRC channel.
+
+    Here's one of the simplest applications you can make::
+
+        from celery import Celery
+
+        app = Celery('hello', broker='amqp://guest@localhost//')
+
+        @app.task
+        def hello():
+            return 'hello world'
+
+- **Highly Available**
+
+    Workers and clients will automatically retry in the event
+    of connection loss or failure, and some brokers support
+    HA in way of *Master/Master* or *Master/Slave* replication.
+
+- **Fast**
+
+    A single Celery process can process millions of tasks a minute,
+    with sub-millisecond round-trip latency (using RabbitMQ,
+    py-librabbitmq, and optimized settings).
+
+- **Flexible**
+
+    Almost every part of *Celery* can be extended or used on its own,
+    Custom pool implementations, serializers, compression schemes, logging,
+    schedulers, consumers, producers, autoscalers, broker transports and much more.
+
+It supports...
+============
+
+    - **Message Transports**
+
+        - RabbitMQ_, Redis_,
+        - MongoDB_ (experimental), Amazon SQS (experimental),
+        - CouchDB_ (experimental), SQLAlchemy_ (experimental),
+        - Django ORM (experimental), `IronMQ`_
+        - and more...
+
+    - **Concurrency**
+
+        - Prefork, Eventlet_, gevent_, threads/single threaded
+
+    - **Result Stores**
+
+        - AMQP, Redis
+        - memcached, MongoDB
+        - SQLAlchemy, Django ORM
+        - Apache Cassandra, IronCache
+
+    - **Serialization**
+
+        - *pickle*, *json*, *yaml*, *msgpack*.
+        - *zlib*, *bzip2* compression.
+        - Cryptographic message signing.
+
+.. _`Eventlet`: http://eventlet.net/
+.. _`gevent`: http://gevent.org/
+
+.. _RabbitMQ: http://rabbitmq.com
+.. _Redis: http://redis.io
+.. _MongoDB: http://mongodb.org
+.. _Beanstalk: http://kr.github.com/beanstalkd
+.. _CouchDB: http://couchdb.apache.org
+.. _SQLAlchemy: http://sqlalchemy.org
+.. _`IronMQ`: http://iron.io
+
+Framework Integration
+=====================
+
+Celery is easy to integrate with web frameworks, some of which even have
+integration packages:
+
+    +--------------------+------------------------+
+    | `Django`_          | not needed             |
+    +--------------------+------------------------+
+    | `Pyramid`_         | `pyramid_celery`_      |
+    +--------------------+------------------------+
+    | `Pylons`_          | `celery-pylons`_       |
+    +--------------------+------------------------+
+    | `Flask`_           | not needed             |
+    +--------------------+------------------------+
+    | `web2py`_          | `web2py-celery`_       |
+    +--------------------+------------------------+
+    | `Tornado`_         | `tornado-celery`_      |
+    +--------------------+------------------------+
+
+The integration packages are not strictly necessary, but they can make
+development easier, and sometimes they add important hooks like closing
+database connections at ``fork``.
+
+.. _`Django`: http://djangoproject.com/
+.. _`Pylons`: http://pylonshq.com/
+.. _`Flask`: http://flask.pocoo.org/
+.. _`web2py`: http://web2py.com/
+.. _`Bottle`: http://bottlepy.org/
+.. _`Pyramid`: http://docs.pylonsproject.org/en/latest/docs/pyramid.html
+.. _`pyramid_celery`: http://pypi.python.org/pypi/pyramid_celery/
+.. _`django-celery`: http://pypi.python.org/pypi/django-celery
+.. _`celery-pylons`: http://pypi.python.org/pypi/celery-pylons
+.. _`web2py-celery`: http://code.google.com/p/web2py-celery/
+.. _`Tornado`: http://www.tornadoweb.org/
+.. _`tornado-celery`: http://github.com/mher/tornado-celery/
+
+.. _celery-documentation:
+
+Documentation
+=============
+
+The `latest documentation`_ with user guides, tutorials and API reference
+is hosted at Read The Docs.
+
+.. _`latest documentation`: http://docs.celeryproject.org/en/latest/
+
+.. _celery-installation:
+
+Installation
+============
+
+You can install Celery either via the Python Package Index (PyPI)
+or from source.
+
+To install using `pip`,::
+
+    $ pip install -U Celery
+
+To install using `easy_install`,::
+
+    $ easy_install -U Celery
+
+.. _bundles:
+
+Bundles
+-------
+
+Celery also defines a group of bundles that can be used
+to install Celery and the dependencies for a given feature.
+
+You can specify these in your requirements or on the ``pip`` comand-line
+by using brackets.  Multiple bundles can be specified by separating them by
+commas.
+::
+
+    $ pip install "celery[librabbitmq]"
+
+    $ pip install "celery[librabbitmq,redis,auth,msgpack]"
+
+The following bundles are available:
+
+Serializers
+~~~~~~~~~~~
+
+:celery[auth]:
+    for using the auth serializer.
+
+:celery[msgpack]:
+    for using the msgpack serializer.
+
+:celery[yaml]:
+    for using the yaml serializer.
+
+Concurrency
+~~~~~~~~~~~
+
+:celery[eventlet]:
+    for using the eventlet pool.
+
+:celery[gevent]:
+    for using the gevent pool.
+
+:celery[threads]:
+    for using the thread pool.
+
+Transports and Backends
+~~~~~~~~~~~~~~~~~~~~~~~
+
+:celery[librabbitmq]:
+    for using the librabbitmq C library.
+
+:celery[redis]:
+    for using Redis as a message transport or as a result backend.
+
+:celery[mongodb]:
+    for using MongoDB as a message transport (*experimental*),
+    or as a result backend (*supported*).
+
+:celery[sqs]:
+    for using Amazon SQS as a message transport (*experimental*).
+
+:celery[memcache]:
+    for using memcached as a result backend.
+
+:celery[cassandra]:
+    for using Apache Cassandra as a result backend.
+
+:celery[couchdb]:
+    for using CouchDB as a message transport (*experimental*).
+
+:celery[couchbase]:
+    for using CouchBase as a result backend.
+
+:celery[beanstalk]:
+    for using Beanstalk as a message transport (*experimental*).
+
+:celery[zookeeper]:
+    for using Zookeeper as a message transport.
+
+:celery[zeromq]:
+    for using ZeroMQ as a message transport (*experimental*).
+
+:celery[sqlalchemy]:
+    for using SQLAlchemy as a message transport (*experimental*),
+    or as a result backend (*supported*).
+
+:celery[pyro]:
+    for using the Pyro4 message transport (*experimental*).
+
+:celery[slmq]:
+    for using the SoftLayer Message Queue transport (*experimental*).
+
+.. _celery-installing-from-source:
+
+Downloading and installing from source
+--------------------------------------
+
+Download the latest version of Celery from
+http://pypi.python.org/pypi/celery/
+
+You can install it by doing the following,::
+
+    $ tar xvfz celery-0.0.0.tar.gz
+    $ cd celery-0.0.0
+    $ python setup.py build
+    # python setup.py install
+
+The last command must be executed as a privileged user if
+you are not currently using a virtualenv.
+
+.. _celery-installing-from-git:
+
+Using the development version
+-----------------------------
+
+With pip
+~~~~~~~~
+
+The Celery development version also requires the development
+versions of ``kombu``, ``amqp`` and ``billiard``.
+
+You can install the latest snapshot of these using the following
+pip commands::
+
+    $ pip install https://github.com/celery/celery/zipball/master#egg=celery
+    $ pip install https://github.com/celery/billiard/zipball/master#egg=billiard
+    $ pip install https://github.com/celery/py-amqp/zipball/master#egg=amqp
+    $ pip install https://github.com/celery/kombu/zipball/master#egg=kombu
+
+With git
+~~~~~~~~
+
+Please the Contributing section.
+
+.. _getting-help:
+
+Getting Help
+============
+
+.. _mailing-list:
+
+Mailing list
+------------
+
+For discussions about the usage, development, and future of celery,
+please join the `celery-users`_ mailing list.
+
+.. _`celery-users`: http://groups.google.com/group/celery-users/
+
+.. _irc-channel:
+
+IRC
+---
+
+Come chat with us on IRC. The **#celery** channel is located at the `Freenode`_
+network.
+
+.. _`Freenode`: http://freenode.net
+
+.. _bug-tracker:
+
+Bug tracker
+===========
+
+If you have any suggestions, bug reports or annoyances please report them
+to our issue tracker at http://github.com/celery/celery/issues/
+
+.. _wiki:
+
+Wiki
+====
+
+http://wiki.github.com/celery/celery/
+
+.. _contributing-short:
+
+Contributing
+============
+
+Development of `celery` happens at Github: http://github.com/celery/celery
+
+You are highly encouraged to participate in the development
+of `celery`. If you don't like Github (for some reason) you're welcome
+to send regular patches.
+
+Be sure to also read the `Contributing to Celery`_ section in the
+documentation.
+
+.. _`Contributing to Celery`:
+    http://docs.celeryproject.org/en/master/contributing.html
+
+.. _license:
+
+License
+=======
+
+This software is licensed under the `New BSD License`. See the ``LICENSE``
+file in the top distribution directory for the full license text.
+
+.. # vim: syntax=rst expandtab tabstop=4 shiftwidth=4 shiftround
+
+
+.. image:: https://d2weczhvl823v0.cloudfront.net/celery/celery/trend.png
+    :alt: Bitdeli badge
+    :target: https://bitdeli.com/free
+
+
+========================
+ pip requirements files
+========================
+
+
+Index
+=====
+
+* :file:`requirements/default.txt`
+
+    Default requirements for Python 2.7+.
+
+* :file:`requirements/jython.txt`
+
+    Extra requirements needed to run on Jython 2.5
+
+* :file:`requirements/security.txt`
+
+    Extra requirements needed to use the message signing serializer,
+    see the Security Guide.
+
+* :file:`requirements/test.txt`
+
+    Requirements needed to run the full unittest suite.
+
+* :file:`requirements/test-ci.txt`
+
+    Extra test requirements required by the CI suite (Tox).
+
+* :file:`requirements/doc.txt`
+
+    Extra requirements required to build the Sphinx documentation.
+
+* :file:`requirements/pkgutils.txt`
+
+    Extra requirements required to perform package distribution maintenance.
+
+* :file:`requirements/dev.txt`
+
+    Requirement file installing the current master branch of Celery and deps.
+
+Examples
+========
+
+Installing requirements
+-----------------------
+
+::
+
+    $ pip install -U -r requirements/default.txt
+
+
+Running the tests
+-----------------
+
+::
+
+    $ pip install -U -r requirements/default.txt
+    $ pip install -U -r requirements/test.txt
+

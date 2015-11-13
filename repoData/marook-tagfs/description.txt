@@ -1,0 +1,468 @@
+The demo subdirectory contains the file structure for a little example. It shows
+what tagfs is doing and how you can use it.
+
+---------------------------------------------------------------------
+tagfs is used to organize your documents using tags. tagfs requires you to
+keep your files in a simple directory structure.
+
+In our example we are organizing some holiday pictues from india and south korea.
+So we create two item directories below the events directory:
+* 2008-03-29 - holiday south korea
+* 2008-12-25 - holiday india
+
+The names of the item directories can be anything you want but it's recommended
+to add date timestamps. These timestamps allow you to have a look at your
+documents in a chronological order and prevent you from specifying duplicate
+names. For tagfs the timestamp is irrelevant.
+
+Now that we have created the item directories below the event directory we can
+tag them. To do so we add .tag files within them. And to make it more exciting
+we add some images which represent our documents. Then we have a directory
+structure like this:
+
+events/
+|-- 2008-03-29 - holiday south korea
+|   |-- .tag
+|   `-- 00_IMG008.jpg
+`-- 2008-12-25 - holiday india
+    |-- .tag
+    `-- cimg1029.jpg
+
+In this example the directory structure below the item directories is flat. In
+the real world the content and directory structure below the item directories
+is not limited. Except that the tag file must be named .tag.
+
+As already mentioned the .tag files contain the tags. The .tag file for the
+south korea holiday looks like this:
+
+holiday
+airport
+korea
+
+As you can imagine we have applied three tags: holiday, airport and korea. The
+tags are newline separated and can contain spaces too. Empty lines are ignored.
+For the india holiday we use the following .tag file:
+
+holiday
+airport
+india
+
+Now that we have organized our documents and applied tags on them we can start
+to search for our data. To do so we first mount the tagfs. Open your bash, enter
+the demo directory and execute the following:
+
+$ tagfs.py -i events tags
+
+This will mount the tagfs below the tags directory. The event directory contains
+the item directories which will be parsed for tags. As a result you will get the
+following directory tree below the tags directory:
+
+tags/
+|-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|-- airport
+|   |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |-- holiday
+|   |   |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   |-- india
+|   |   |   `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   `-- korea
+|   |       `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |-- india
+|   |   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   `-- holiday
+|   |       `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   `-- korea
+|       |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|       `-- holiday
+|           `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|-- holiday
+|   |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |-- airport
+|   |   |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   |-- india
+|   |   |   `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   `-- korea
+|   |       `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|   |-- india
+|   |   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   `-- airport
+|   |       `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   `-- korea
+|       |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|       `-- airport
+|           `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+|-- india
+|   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |-- airport
+|   |   |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   |   `-- holiday
+|   |       `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|   `-- holiday
+|       |-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+|       `-- airport
+|           `-- 2008-12-25 - holiday india -> /demo/events/2008-12-25 - holiday india
+`-- korea
+    |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+    |-- airport
+    |   |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+    |   `-- holiday
+    |       `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+    `-- holiday
+        |-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+        `-- airport
+            `-- 2008-03-29 - holiday south korea -> /demo/events/2008-03-29 - holiday south korea
+
+OK... that's a lot! The idea behind the tagfs is a simple directory based filter
+system. If you want to see anything relevant for the tags india you type:
+
+$ ls -1 tags/india
+
+The output will be:
+
+2008-12-25 - holiday india
+airport
+holiday
+
+The output will show you all item directories as links which are tagged with
+india. Additionally you will see all tags which can be further combined with
+india and show you further results. The tag korea is not shown as there would
+be no results if you filter by india and korea.
+
+Filtering for multiple tags at once can be done like this:
+
+$ ls -1 tags/india/holiday
+
+You will get the output:
+
+2008-12-25 - holiday india
+airport
+
+I hope this explains the concept. Now it's your turn :-) Try tagfs yourself!
+
+tagfs - tag file system
+
+1) Introduction
+2) Requirements
+3) Installation
+4) Tagging Files
+5) Usage
+6) Configuration
+6.1) Options
+6.1.1) tagFileName
+6.1.2) enableValueFilters
+6.1.3) enableRootItemLinks
+7) Freebase Integration
+8) Bugs
+9) Further Reading
+10) Contact
+
+
+---------------------------------------------------------------------
+Introduction
+
+tagfs is used to organize your files using tags.
+
+This document contains basic usage instructions for users. To develop or debug
+tagfs see the README.dev file.
+
+
+---------------------------------------------------------------------
+Requirements
+
+* python 2.5, 2.6, 2.7
+* Linux kernel with fuse enabled
+* python-fuse installed
+* python-matplotlib
+
+
+---------------------------------------------------------------------
+Installation
+
+To install tagfs into your home directory type the following:
+
+$ python setup.py test e2e_test install --home ~/.local
+
+If you haven't already extended your local python path then add the following
+to your environment configuration script. For example to your ~/.bashrc:
+
+$ export PYTHONPATH=~/.local/lib/python:$PYTHONPATH
+
+You may also need to add ~/.local/bin to your PATH environment variable:
+
+$ export PATH=~/.local/bin:$PATH
+
+
+---------------------------------------------------------------------
+Tagging Files
+
+Before you can filter anything using tagfs you need to tag your items. An item
+is a directory which contains a file called .tag. All items must be below one
+directory.
+
+Let's create a simple item structure.
+
+First we create the root directory for all items:
+$ mkdir items
+
+Then we create our first item:
+$ mkdir items/Ted
+
+We tag the 'Ted' item as movie:
+$ echo movie >> items/Ted/.tag
+
+We also tag 'Ted' as genre comedy:
+$ echo 'genre: comedy' >> items/Ted/.tag
+
+Then we add a second item:
+$ mkdir items/banana
+$ echo fruit >> items/banana/.tag
+$ echo 'genre: delicious' >> items/banana/.tag
+
+Modifying .tag files using echo, grep, sed may be a little hard sometimes.
+There are some convenience scripts available through the tagfs-utils project.
+See https://github.com/marook/tagfs-utils for details.
+
+
+---------------------------------------------------------------------
+Usage
+
+After installation tagfs can be started the following way.
+
+Mount a tagged directory:
+$ tagfs -i /path/to/my/items/directory /path/to/my/mount/point
+
+Unmount a tagged directory: 
+$ fusermount -u /path/to/my/mount/point
+
+Right now tagfs reads the taggings only when it's getting mounted. So if you
+modify the tags after mounting you will not see any changes in the tagfs file
+system.
+
+In general tagfs will try to reduce the number of filter directories below the
+virtual file system. That's why you may not see some filters which would not
+reduce the number of selected items.
+
+
+---------------------------------------------------------------------
+Configuration
+
+tagfs can be configured through configuration files. Configuration files are
+searched in different locations by tagfs. The following locations are used.
+Locations with higher priority come first:
+- <items directory>/.tagfs/tagfs.conf
+- ~/.tagfs/tagfs.conf
+- /etc/tagfs/tagfs.conf
+
+Right now the following configuration options are supported.
+
+
+---------------------------------------------------------------------
+Configuration - Options - tagFileName
+
+Through this option the name of the parsed tag files can be specified. The
+default value is '.tag'.
+
+Example:
+
+[global]
+tagFileName = ABOUT
+
+
+---------------------------------------------------------------------
+Configuration - Options - enableValueFilters
+
+You can enable or disable value filters. If you enable value filters you will
+see filter directories for each tag value. For value filters the tag's
+context can be anyone. The default value is 'false'.
+
+Example:
+
+[global]
+enableValueFilters = true
+
+
+---------------------------------------------------------------------
+Configuration - Options - enableRootItemLinks
+
+To show links to all items in the tagfs '/' directory enable this option. The
+default value is 'false'.
+
+Example:
+
+[global]
+enableRootItemLinks = true
+
+
+---------------------------------------------------------------------
+Freebase Integration
+
+Freebase is an open graph of people, places and things. See
+http://www.freebase.com/ for details. tagfs allows you to extend your own
+taggings with data directly from the freebase graph.
+
+WARNING! Freebase support is currently experimental. It is very likely that the
+freebase syntax within the .tag files will change in future releases of tagfs.
+
+In order to use freebase you need to install the freebase-python bindings. They
+are available via https://code.google.com/p/freebase-python/
+
+To extend an item's taggings with freebase data you have to add a freebase query
+to the item's .tag file. Here's an example:
+
+_freebase: {"id": "/m/0clpml", "type": "/fictional_universe/fictional_character", "name": null, "occupation": null}
+
+tagfs uses the freebase MQL query format which is described below the following
+link http://wiki.freebase.com/wiki/MQL
+
+The query properties with null values are added as context/tag pairs to the
+.tag file's item.
+
+Generic freebase mappings for all items can be specified in the file
+'<items directory>/.tagfs/freebase'. Every line is one freebase query. You can
+reference tagged values via the '$' operator. Here's an example MQL query with
+some demo .tag files:
+
+<items directory>/.tagfs/freebase:
+{"type": "/film/film", "name": "$name", "genre": null, "directed_by": null}
+
+<items directory>/Ted/.tag:
+name: Ted
+
+<items directory>/Family Guy/.tag:
+name: Family Guy
+
+When mounting this example the genre and director will be fetched from freebase
+and made available as filtering directories.
+
+
+---------------------------------------------------------------------
+Bugs
+
+Viewing existing and reporting new bugs can be done via the github issue
+tracker:
+https://github.com/marook/tagfs/issues
+
+
+---------------------------------------------------------------------
+Further Reading
+
+Using a file system for my bank account (Markus Pielmeier)
+http://pielmeier.blogspot.com/2010/08/using-file-system-for-my-bank-account.html
+
+
+---------------------------------------------------------------------
+Contact
+
+* homepage: http://wiki.github.com/marook/tagfs
+* user group: http://groups.google.com/group/tagfs
+* author: Markus Peröbner <markus.peroebner@gmail.com>
+
+tagfs - tag file system
+developer readme
+
+1) Roadmap
+2) Logging
+3) Profiling
+4) Tracing
+5) Distribution
+5.1) tar Distribution
+6) Tests
+7) Code Coverage
+8) End-To-End Tests
+
+
+---------------------------------------------------------------------
+Roadmap
+
+The upcomming tagfs features are listed in the 'backlog' file. The file is
+best viewed using emacs org-mode.
+
+
+---------------------------------------------------------------------
+Logging
+
+You can enable logging by setting a debug environment variable before you
+launch tagfs:
+$ export DEBUG=1
+
+tagfs will log to the console and the file /tmp/tagfs.log
+
+
+---------------------------------------------------------------------
+Profiling
+
+You can enable profiling by setting a profile environment variable before you
+launch tagfs:
+$ export PROFILE=1
+
+After unmounting your tagfs file system a profile file will be written. The
+profile file will be written to the current directory. The profile file will
+be named 'tagfs.profile'.
+
+
+---------------------------------------------------------------------
+Tracing
+
+Tracing is done via the log output. There is a utility script to analyze the
+log files. To analyze a log file execute the following
+
+$ util/trace_logfiles.py /tmp/tagfs.log
+
+The tracing script will output some statistics.
+
+
+---------------------------------------------------------------------
+tar Distribution
+
+The tagfs project contains scripts for creating source distribution packages.
+To create a tar distribution package you execute the following:
+
+$ make distsnapshot
+
+The make call will create an archive within the target directory. The created
+tar file is used for tagfs source distribution.
+
+
+---------------------------------------------------------------------
+Tests
+
+You can execute the test cases via the setup.py script in the project's root
+directory.
+
+$ python setup.py test
+
+
+---------------------------------------------------------------------
+Code Coverage
+
+The tagfs unit tests can be executed with code coverage measurement enabled.
+setup.py will measure the code coverage if the coverage lib is installed.
+
+The coverage lib is available here: http://nedbatchelder.com/code/coverage
+
+If you're a debian user you can try:
+$ apt-get install python-coverage
+
+The code coverage will be written below the reports directory after executing
+the test cases:
+$ python setup.py test
+
+
+---------------------------------------------------------------------
+End-To-End Tests
+
+tagfs contains some end-to-end tests. The end-to-end tests first mount an
+items directory and afterwards execute a shell script which can assert certain
+conditions in the mounted tagfs.
+
+The end-to-end tests can be run via the setup.py:
+
+$ python setup.py e2e_test
+
+The end-to-end tests are located below the test/e2e directory.
+

@@ -1,0 +1,122 @@
+__FILENAME__ = close_other_tabs
+import sublime, sublime_plugin
+
+class CloseOtherTabs(sublime_plugin.TextCommand):
+  def run(self, edit):
+    window = self.view.window()
+    group_index, view_index = window.get_view_index(self.view)
+    window.run_command("close_others_by_index", { "group": group_index, "index": view_index})
+
+########NEW FILE########
+__FILENAME__ = copy_path_to_clipboard
+import sublime, sublime_plugin
+import os
+
+class CopyPathToClipboard(sublime_plugin.TextCommand):
+  def run(self, edit):
+    line_number, column = self.view.rowcol(self.view.sel()[0].begin())
+    line_number += 1
+    path = self.view.file_name() + ":" + str(line_number)
+    sublime.set_clipboard(path)
+    sublime.status_message("Copied " + path)
+
+
+########NEW FILE########
+__FILENAME__ = expand_tabs_on_save
+import sublime, sublime_plugin
+
+class ExpandTabs(sublime_plugin.EventListener):
+    def on_pre_save(self, view):
+        view.run_command('expand_tabs')
+
+########NEW FILE########
+__FILENAME__ = rspec
+import sublime
+import sublime_plugin
+import os, errno
+import re
+
+def get_twin_path(path):
+  spec_file = path.find("/spec/") >= 0
+
+  if spec_file:
+    if path.find("/lib/") > 0:
+      return path.replace("/spec/lib/","/lib/").replace("_spec.rb", ".rb")
+    else:
+      return path.replace("/spec/","/app/").replace("_spec.rb", ".rb")
+  else:
+    if path.find("/lib/") > 0:
+      return path.replace("/lib/", "/spec/lib/").replace(".rb", "_spec.rb")
+    else:
+      return path.replace("/app/", "/spec/").replace(".rb", "_spec.rb")
+
+class OpenRspecFileCommand(sublime_plugin.WindowCommand):
+  def run(self, option):
+    self.views = []
+    window = self.window
+    current_file_path = self.window.active_view().file_name()
+
+    spec_file = current_file_path.find("/spec/") > 0
+    twin_path = get_twin_path(current_file_path)
+    path_parts = twin_path.split("/")
+    dirname = "/".join(path_parts[0:-1])
+    basename = path_parts[-1]
+
+    if not os.path.exists(twin_path) and sublime.ok_cancel_dialog(basename + " was not found. Create it?"):
+      self.mkdir_p(dirname)
+      twin_file = open(twin_path, "w")
+
+      constant_name = self.camelize(basename.replace(".rb", "").replace("_spec", ""))
+
+      if spec_file:
+        twin_file.write("class " + constant_name + "\nend")
+      else:
+        twin_file.write("require \"spec_helper\"\n\ndescribe " + constant_name + " do\nend")
+      twin_file.close()
+
+    if os.path.exists(twin_path):
+      view = window.open_file(twin_path)
+      view.run_command("revert")
+    else:
+      sublime.status_message("Not found: " + twin_path)
+
+
+  def mkdir_p(self, path):
+      try:
+          os.makedirs(path)
+      except OSError as exc: # Python >2.5
+          if exc.errno == errno.EEXIST:
+              pass
+          else: raise
+
+  def camelize(self, string):
+      return re.sub(r"(?:^|_)(.)", lambda x: x.group(0)[-1].upper(), string)
+
+class RunTests(sublime_plugin.TextCommand):
+  def run(self, edit, single):
+    path = self.view.file_name()
+
+    if path.find("/spec/") < 0:
+      twin_path = get_twin_path(path)
+      if os.path.exists(twin_path):
+        path = twin_path
+      else:
+        return sublime.error_message("You're not in a spec, bro.")
+
+    root_path = re.sub("\/spec\/.*", "", path)
+
+    if single:
+      line_number, column = self.view.rowcol(self.view.sel()[0].begin())
+      line_number += 1
+      path += ":" + str(line_number)
+      command = "bundle exec rspec"
+    else:
+      command = "bundle exec rspec"
+
+    cmd = 'osascript '
+    cmd += '"' + sublime.packages_path() + '/User/run_command.applescript"'
+    cmd += ' "cd ' + root_path + ' && ' + command + ' ' + path + '"'
+    cmd += ' "Ruby Tests"'
+    os.system(cmd)
+
+########NEW FILE########

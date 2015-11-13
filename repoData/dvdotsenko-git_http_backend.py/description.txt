@@ -1,0 +1,227 @@
+Summary:
+git_http_backend.py - is both, a Python module and an executable. When ran
+on a command line, it starts ChrryPy's WSGI server packaged together with
+this git server and runs against it.
+The simplest way to run the server is to "double-click" on 
+git_http_backend.py file in your file browser. 
+See output of "--help" for options.
+
+Installation and running instructions:
+
+Versions above 1.0 of this project rely on modules several Python modules. 
+We use git submodules to pull those Python modules' files into our project
+tree. Don't forget to "git submodule init" , "git submodule update"
+
+1. Check out latest git_http_backend.py repo:
+	git clone git://github.com/dvdotsenko/git_http_backend.py.git ghbpy
+	git submodule init
+	git submodule update
+	cd ghbpy
+2. Run the script with "--help" option to see the list of options and examples.
+	git_http_backend.py --help
+3. Run the same script with chosen options (or without any) to run the server.
+	mkdir c:\temp\repo_folders_go_here
+	git_http_backend.py --content_path c:\temp\repo_folders_go_here
+
+This project's code is designed to fulfill several deployment scenarios. 
+These are *some* of the targeted scenarios:
+
+- command-line execution (blocks console until keyboard interrupt)
+- Deployment with various WSGI servers like:
+	- Cherrypy, WSGI mode.
+	- Apache mod_WSGI (*nix, Windows)
+	- Microsoft IIS 6,7.x (ISAPI_WSGI + cPython, NWSGI + IronPython)
+
+See individual folders under EXAMPLES folder for deployment instructions.
+
+General notes:
+1. This project uses git submodules. If you pull this project with git, 
+please, ensure that after you do the 'git clone' you do:
+ git submodule init
+ git submodule update
+ 
+2. This project relies on a git executable to be present and visible on the path.
+There is no way to tell the server the path to git executable.
+Please, ensure that running "git" in the console produces git executable output. 
+On *nix-like systems, installing git package usually exposes that by default.
+On Windows, you have choice - cygwin or MSysGit. I prefer cygwin. Either way,
+make sure to add git.exe's folder to the PATH list.
+Summary:
+git_http_backend.py - is not a real web server. It's a WSGI-compatible
+component for an WSGI-compatible web server. Thus, when we run this
+Git_Http_Backend (aka Git Smart HTTP server), what you actually do is
+run some other web server that serves this code as a web application.
+
+The installation is almost as easy as double-click.
+
+Installation and running instructions:
+
+1. Get:
+Versions above 1.0 of this project rely on modules several Python modules. 
+We use git submodules to pull those Python modules' files into our project
+tree. Don't forget to "git submodule init" , "git submodule update"
+
+Check out latest git_http_backend.py repo to a place where you would
+normally keep binaries (c:\bin\,  c:\program files\ etc):
+	git clone git://github.com/dvdotsenko/git_http_backend.py.git ghbpy
+	git submodule init
+	git submodule update
+	cd ghbpy
+
+You can skip this next step and play around with sys.path in the file, but
+moving the file is easier.
+Move file git_http_backend_winservice.py from .\examples\windows_service
+two levels up, to the same folder where git_http_backend.py is located.
+    move .\examples\windows_service\git_http_backend_winservice.py .
+
+2. Configure:
+Look into git_http_backend_winservice.py and read the notations on the 
+server variables. 
+If you don't change anything, the server will run with --port 8888 
+--_uri_marker = "" --content_path = some randomly chosen temp dir.
+When service shuts down, the temp dir will be removed.
+
+This is good for ad hoc and testing needs, but you'll probably need 
+a more stable set up, so go and change _content_path to some real, 
+writable path. Changing rest is purely optional.
+
+3. Install Service:
+To run this code as a "Windows Service" you could run any WSGI-compatible
+web server as a service and slap this WSGI application on top. However,
+since we ship one such WSGI server with us - CherryPy WSGI Server - 
+we will run that - CherryPy WSGI Server - as a service and configure it
+to run us as the single WSGI application.
+
+All of the above - the setting up of CherryPy WSGI Server, the configuring
+or CherryPy WSGI server to server Git_HTTP_Backend as an application - 
+is accomplished with one command on a command promt:
+    git_http_backend_winservice.py install
+
+Note, windows may complain about "Authorization denied" This means you
+need to run the mentioned script as an Administrator. Choose your preferred
+"run as Administrator" way, but mine is to run it in Admin level console:
+    Windows key > "cmd" > CTRL + SHIFT + ENTER
+
+4. Run:
+The service will be installed, but NOT started. (It's set to "Manual" start
+policy by default). So, after installing, go to the usual "Services" 
+windows and start a service whose name starts with "Git Smart HTTP Server"
+or do this in the same console:
+    git_http_backend_winservice.py start
+
+The name of the service as it appears in "Services" list gives some tips
+about the settings chosen for the server.
+
+5. Test:
+If you did not play with the settings in step 2, you can test it out by running 
+    test_git_http_backend.py --client 127.0.0.1:8888
+
+If you did not play with the settings in step 2, you can push new repos to
+the URI http://localhost:8888/ like so (in the folder of any local git repo):
+    git push http://localhost:8888/mynewrepo.git master
+( Note 1: mynewrepo.git folder will be automatically created on the server
+  Note 2: you don't need ".git" at all in the name of the folder, but all 
+          the cool kids are doing it)
+
+git_http_backend.py - Git "Smart HTTP" (git-http-backend) server implementation
+ in Python for WSGI server architecture.
+===============================================
+
+
+About git-http-backend:
+
+A special "Smart HTTP" git-specific RPC implementation allowing one to push data to remote
+repo and pull data from remote repo in a very efficient way, over regular HTTP (using POSTs and GETs)
+
+"Smart HTTP" RPC support was introduced in git client starting with v.1.6.6.
+
+The essense of "Smart HTTP" RPC is that it's a transport for communication between client
+and server's git-upload-pack and git-receive-pack - the commands ran on server when client,
+respectively, "pulls" and "pushes."
+
+"Screen-scraped" raw outputs of the commands are gzipped and are sent around as HTTP 
+POSTs / replies. Some RPC-specific control strings and HTTP headers are introduced into
+communication stream to signal to git client that server supports "Smart HTTP"
+Client signals to the server that it supports "Smart HTTP" by talking over HTTP POST (vs. GET)
+
+PRC supports Basic Auth over HTTP and rudimentary, server-side (not file-system-side) ACL features.
+
+There is no published documentation on the RPC protocol. Per direct, personal inquiry with the
+author of the protocol and code I confirmed that the only published "documentaion" 
+is the comment-less C code in the Git repo proper.
+
+
+About this project:
+
+The project is largely a translation of similar effort done in Ruby, 
+called Grack - http://github.com/schacon/grack - by Scott Chacon <schacon@gmail.com> et al.
+(This readme file is modeled on the readme file in Grack)
+
+This project aims to supplement the C-based git-http-backend CGI handler
+distributed in mainline Git with a Python WSGI-compatible application.
+
+The default git-http-backend only runs under CGI on Apache. Furthermore, Git 
+packagesbinaries containing http-backend.cgi are not availableon Windows 
+(as of May 18, 2010. Checked in Cygwin).
+
+Python, WSGI-based git-http-backend implementation may run on practically any server,
+on almost any OS. Look for server-specific WSGI modules or wrap WSGI app into a Fast/S/CGI.
+At the most basic level, the application can be ran against Python's built-in WSGI server. 
+
+Since there is no published documentation on Git's "Smart HTTP" RPC protocol, this
+implementation is largely a guess of how it works based on my reading of original C and
+Grack's Ruby code.
+
+Dependencies
+========================
+* Python 2.6.x, 2.7.x (3.x is very likely NOT to work.)
+* Git >= 1.6.6 (On the server and on the client side.)
+
+Installation
+========================
+See Examples folter.
+
+License
+========================
+See file named COPYING.LESSER for license terms governing over the entire 
+project. 
+
+(Some, explisitely labeled so constituent files/works are licensed under
+separate, more-permissive terms. See disclaimers at the start of the files for details.)
+
+
+This file is covered by the following copyright and permission notice(s):
+/*  
+ *     Copyright (c) 2010  Daniel Dotsenko <dotsa@hotmail.com>  
+ *  
+ *     Copying and distribution of this file, with or without modification,
+ *     are permitted in any medium without royalty provided the copyright
+ *     notice and this notice are preserved. This file is offered as-is,
+ *     without any warranty.
+ *  
+ * This file incorporates work covered by the following copyright and  
+ * permission notice:  
+ *  
+ *		(The MIT License)
+ *
+ *		Copyright (c) 2009 Scott Chacon <schacon@gmail.com>
+ *
+ *		Permission is hereby granted, free of charge, to any person obtaining
+ *		a copy of this software and associated documentation files (the
+ *		'Software'), to deal in the Software without restriction, including
+ *		without limitation the rights to use, copy, modify, merge, publish,
+ *		distribute, sublicense, and/or sell copies of the Software, and to
+ *		permit persons to whom the Software is furnished to do so, subject to
+ *		the following conditions:
+ *
+ *		The above copyright notice and this permission notice shall be
+ *		included in all copies or substantial portions of the Software.
+ *
+ *		THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+ *		EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ *		MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+ *		IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+ *		CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+ *		TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+ *		SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.  
+ */

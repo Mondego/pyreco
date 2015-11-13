@@ -1,0 +1,380 @@
+# API overview and implementation details
+
+regenwolken currently supports (see <http://developer.getcloudapp.com/>):
+
+#### Account
+
+- [Change Default Security](http://developer.getcloudapp.com/change-default-security)
+- [Change Email](http://developer.getcloudapp.com/change-email)
+- [Change Password](http://developer.getcloudapp.com/change-password)
+- [Register](http://developer.getcloudapp.com/register)
+- [View Account Details](http://developer.getcloudapp.com/view-account-details)
+- [View Account Stats](http://developer.getcloudapp.com/view-account-stats)
+- [View Domain Details](http://developer.getcloudapp.com/view-domain-details)
+
+#### Items
+
+- [Bookmark Link](http://developer.getcloudapp.com/bookmark-link)
+- [Bookmark Multiple Links](http://developer.getcloudapp.com/bookmark-multiple-links)
+- [Change Security of Item](http://developer.getcloudapp.com/change-security-of-item)
+- [Delete Item](http://developer.getcloudapp.com/delete-item)
+- [List Items](http://developer.getcloudapp.com/list-items)
+- [List Items by Source](http://developer.getcloudapp.com/list-items-by-source)
+- [Recover Deleted Item](http://developer.getcloudapp.com/recover-deleted-item)
+- [Rename Item](http://developer.getcloudapp.com/rename-item)
+- [Upload File](http://developer.getcloudapp.com/upload-file)
+- [Upload File With Specific Privacy](http://developer.getcloudapp.com/upload-file-with-specific-privacy)
+- [View Item](http://developer.getcloudapp.com/view-item)
+
+#### not implemented
+
+- [Forgot Password](http://developer.getcloudapp.com/forgot-password)
+- [Set Custom Domain](http://developer.getcloudapp.com/set-custom-domain)
+- [Stream Items](http://developer.getcloudapp.com/streaming-items)
+- [Redeem Gift Card](http://developer.getcloudapp.com/redeem-gift-card)
+- [View Gift Card Details](http://developer.getcloudapp.com/view-gift-card)
+
+#### regenwolken extensions
+
+- [Empty Trash](http://developer.getcloudapp.com/empty-trash) – remove items
+  marked as deleted. No official API call yet. Derieved from Ajax POST in
+  webinterface. Usage with [curl](http://curl.haxx.se/):
+
+  `curl -u user:pw --digest -H "Accept: application/json" -X POST http://my.cl.ly/items/trash`
+
+## Overview
+
+    # -H "Accept: application/json"
+
+    /*                 - POST files
+    /items*            - POST (multiple) bookmarks
+    /register          - POST register (instantly) new account
+    /items/trash       - POST empty trash
+    /<short_id>        - GET item details
+    /account*          - GET account info
+    /account/stats*    - GET overall file count and views
+    /domains/domain*   - GET domain info (always returning *hostname*)
+    /items*            - GET list of uploaded items
+    /items/new*        - GET key for new upload
+    /items/new?item['private]=true|false* - GET key for new upload
+    /items/<short_id>* - PUT rename/recover/change privacy of item
+    /account*          - PUT change password, username and default privacy
+    /items/<short_id>* - DELETE item
+
+URLs marked with an asterix (*) require authentication.
+
+
+## Details
+
+While regenwolken tries to simulate the [CloudApp][1] API as good as possible
+using their sparse documentation details, there is one major point,
+regenwolken handles different: private and public items. CloudApp *thinks*,
+items are private, when they have a longer hash. That's no joke, that's their
+current implementation. When you upload a file without privacy hint, it tries
+to get the hash as short as possible, e.g. [cl.ly/5hd](). When you make this
+item private, the hash will change in something like this
+[cl.ly/29xgnqa49ny84jg83l](). This is *security by obscurity*. In regenwolken,
+your private items requires authentication. Only when you know the
+credentials, you have access to your private data.
+
+### upload-file (with given privacy)
+
+CloudApp uses [Heroku][3] and [S3][4] as their database and storage backend.
+regenwolken only features one webservice. The upload progress divided into two
+parts: `GET /items/new` (optional with privacy specs) to receive the upload
+URL as well as some CloudApp specific stuff we don't need (AWSAccessKeyId,
+signature, policy and redirect). Every client behaves the same and POSTs the
+server's response json to the `url`, which is *my.cl.ly* and regenwolken is
+listening to. You see, `GET` and `POST` are completely different requests and
+URLs, therefore you will receive a `key=1234` on `/items/new` you will include
+when POSTing your files. If the server accepts your “upload key” (=~ session,
+timeout after 60 minutes per default), your upload is valid.
+
+### HTTP status codes
+
+    200 Ok           - everything fine
+    201 Ok           - register was successfully
+    301 Redirect     - redirect instantly to new URL
+    400 Bad Request  - wrong json
+    401 Unauthorized - requires authentication
+    403 Unauthorized - authentication failure
+    404 Not Found    - short_id/_id is not found
+    406 User already exists - when /register-ing an alreay existing user
+    409 Conflict     - account not activated
+    413 Request Entity Too Large - our size limit is 64 MiB
+    422 Unprocessable Entity - username or password not allowed
+
+### HTTP Digest Authentication
+
+CloudApp Network uses digest authentication to prevent sending passwords as
+plain text over the air. This requires either storing passwords as plaintext
+or as A1 hash (see https://tools.ietf.org/html/rfc2069). regenwolken uses the
+last option, salting passwords with username+realm.
+
+[1]: http://getcloudapp.com/
+[2]: http://heise.de/
+[3]: http://heroku.com/
+[4]: http://aws.amazon.com/s3
+
+# Bugs found by regenwolken
+
+## Cloud.app – official Mac App
+
+Cloud.app features a broken web browser, which follows any redirects and is
+able to authenticate via HTTP Digest Authentication specified in [RCF2617][1].
+
+[1]: https://tools.ietf.org/html/rfc2617
+
+Features:
+
+    - Redirects: yes, wherever you want
+    - Cookies: yes, but not transmitted to different URLs on the same host -> senseless
+    - HTTP Digest Auth RFC2069: not tested
+    - HTTP Digest Auth RFC2617: works
+    - SSL: not tested
+    
+Bugs:
+
+    - automatic screenhots uploading adds a \u0000 char to the end of
+      the filename. Server-side seems to fix it.  Would break e.g. `cloudapp_api`
+    - /register: HTTP 201 -> success, but there is no way, to indicate, what
+      could be wrong with the current username (exists e.g.)
+    - Cloud.app can not handle 413 Request Entity Too Large
+    
+## CloudApp Network – official REST API
+
+- invalid usernames return 422 Unprocessable Entity (WebDAV) (RFC 4918)
+- passwords length < 4 returns 422 Unprocessable Entity (WebDAV) (RFC 4918) as well
+- change privacy of an item duplicates the private|public item with new
+  private flags.
+      
+## cloudapp_api (Ruby wrapper)
+
+    - missing HTTP Digest Auth RFC 2617 in httpary, see
+      https://github.com/posativ/regenwolken/issues/8
+    - can not handle filesize limit (and large files)
+    - ... and many more minor issues
+    
+## cloudapp-cli and gloudapp
+
+    - can not handle filesize limit (and large files)
+    
+## BlueNube & Stratus
+
+    - shows items marked as delete
+Deploy regenwolken
+==================
+
+You'll need at [python][1] ≥ 2.5, [Flask][2] and [pymongo][3] for [MongoDB][4] bindings
+and a working MongoDB instance:
+
+On a debian-like system run:
+
+    apt-get install python python-dev mongodb
+
+and then
+
+    pip install regenwolken  # or master from GitHub
+    pip install --upgrade git+git://github.com/posativ/regenwolken.git#egg=regenwolken
+
+If you want additional syntax highlighting, markdown support and image
+thumbnailing, also run `easy_install -U pygments markdown PIL` respectively.
+
+*NOTE:* if you're using python 2.5, you'll also need `simplejson`.
+
+[1]: http://python.org/
+[2]: http://flask.pocoo.org/
+[3]: http://api.mongodb.org/python/current/
+[4]: http://www.mongodb.org/
+
+[uWSGI][5]
+----------
+
+uWSGI has explicit support for virtual environments, so I highly recommend this
+method! But unfortunately uWSGI is not shipped with Debian Squeeze, so we have to
+type two additional commands as root.
+
+    # apt-get install build-essential python-dev libxml2-dev
+    # easy_install uwsgi virtualenv
+
+Now as regular user, choose a path where you want a isolated environment.
+
+    $ virtualenv /path/to/regenwolken/
+    $ cd /path/to/regenwolken && source bin/activate
+
+Now we can install all python eggs outside from the system's python. The following
+will install regenwolken and libraries for thumbnail support, syntax highlighting and
+markdown conversion of text snippets.
+
+    $ easy_install regenwolken PIL pygments markdown
+    $ uwsgi -H /path/to/regenwolken/ --http :3000 -M -w "regenwolken:Regenwolken()"
+
+I usually run my services with `start-stop-daemon` (Debian/Ubuntu) so I can manage them
+as root but they still run in user space. The following assumes you have your configuration
+file stored in `/path/to/regenwolken/rw.cfg`.
+
+```sh
+#!/bin/sh
+# location: /etc/init.d/regenwolken
+
+NAME=regenwolken
+CHDIR=/path/to/regenwolken/
+USER=py
+DAEMON_OPTS="-H ${CHDIR} --http :8012 -M --env REGENWOLKEN_SETTINGS=${CHDIR}rw.cfg -w regenwolken:Regenwolken()"
+
+case $1 in
+    start)
+    echo -n "Starting $NAME: "
+    start-stop-daemon --start --pidfile /var/run/$NAME.pid --chdir $CHDIR \
+    --chuid $USER --make-pidfile --background --exec /usr/local/bin/uwsgi -- $DAEMON_OPTS || true
+    echo "$NAME."
+       ;;
+stop)  kill -9 $(cat /var/run/$NAME.pid)
+       ;;
+esac
+```
+
+[5]: http://projects.unbit.it/uwsgi/
+
+[gunicorn][6] and lighttpd + `mod_proxy` (or similar proxy methods)
+-------------------------------------------------------------------
+
+Running regenwolken with gunicorn achieves the best performance. See
+`gunicorn -h` to get a full list of options. Install [gunicorn][5] via
+
+    easy_install -U gunicorn
+    gunicorn -w 4 -b localhost:3000 "regenwolken:Regenwolken()"
+
+to run it with four workers. (`sudo guni... -b localhost:80` works too,
+but is not recommended because of root privileges.)
+
+[6]: http://gunicorn.org/
+
+using lighttpd + `mod_proxy`
+----------------------------
+
+Recommended way. Use some proxy-magic and run it as non-privileged user. Edit
+your /etc/lighttpd/lighttpd.conf to something like this:
+
+```perl
+$HTTP["host"] =~ "domain.tld|my.cl.ly" {
+
+    # some other stuff related to domain.tld
+
+    $HTTP["host"] =~ "domain.tld|my.cl.ly" {
+        proxy.server = ("" =>
+           (("host" => "127.0.0.1", "port" => 3000)))
+    }
+}
+```
+
+- start mongodb via `invoke-rc.d start mongodb` (if not already running)
+- run `regenwolken` as non-privileged user
+
+# regenwolken – an open source CloudApp server
+
+[Cloud.app][app] is *really* handy, sharing files was never that easy. But I don't
+like to see (personal) data like screenshots or code snippets go out of my
+reach. Regenwolken is a full-featured implementation of the Cloud App API with
+one malus: you have do edit your `/etc/hosts`.
+
+#### open server
+
+I've set up a server open for everyone. Simply, add `134.255.239.78 my.cl.ly`
+to your `/etc/hosts`. Items older than three days will be purged at midnight
+(only a small vserver). Happy testing!
+
+## Quickstart
+
+Short instructions for OS X, adapt these commands to your linux distribution
+of choice (Debian Squeeze!).
+
+    $ brew install mongodb
+    $ mongod --dbpath foo/ &
+
+Now install regenwolken and its dependencies:
+
+    $ easy_install regenwolken
+    $ easy_install pygments Pillow markdown  # optional
+
+Modify /etc/hosts, launch regenwolken and register a new account
+
+    $ echo "12.34.56.78 my.cl.ly" | sudo tee -a /etc/hosts
+    $ regenwolken &
+    [... open Cloud.app or another client and register a new account]
+    $ rwctl activate USERNAME
+
+You can change that behavior to instantly activate new users using a
+configuration file such as `/path/to/rw.cfg` with the following:
+
+    $ cat /path/to/rw.cfg
+    PUBLIC_REGISTRATION = True
+    $ export REGENWOLKEN_SETTINGS=/path/to/rw.cfg
+    $ regenwolken
+
+## How to use regenwolken
+
+As an alternative CloudApp-server, you have to edit their DNS *my.cl.ly*
+to point to your own IP. This will not interfere with CloudApp Service
+itself, because they are using *cl.ly* and *f.c.ly* for sharing.
+
+    $ echo "12.34.56.78 my.cl.ly" | sudo tee -a /etc/hosts
+
+Note: you should set a *hostname* (= your domain) in regenwolken.cfg.
+This will return into customized URLs, pointing directly to your host,
+so others don't need to modify their hosts.
+
+## Setup and Configuration
+
+See [DEPLOYMENT.md](https://github.com/posativ/regenwolken/blob/master/doc/DEPLOYMENT.md) and
+[CONFIG.rst](https://github.com/posativ/regenwolken/blob/master/doc/CONFIG.rst) for details.
+
+## API implementation
+
+regenwolken provides all API calls to get Cloud.app working and has only few
+calls of [CloudApp's API](http://developer.getcloudapp.com/) missing. See
+[API.md](https://github.com/posativ/regenwolken/blob/master/doc/API.md) for a complete list of
+features. Below, the following are currently covered by the web interface.
+
+    # -H "Accept: text/html"
+
+    /                          - GET basic web interface
+    /items/<short_id>          - GET file or redirect from bookmark
+    /items/<short_id>/filename - GET same as /items/<short_id>
+    /<short_id>                - GET viso-like file view or redirect from bookmark
+    /thumb/<short_id>          - GET thumbnail of item
+
+Thanks to [cmur2](https://github.com/cmur2) for his feature-rich
+[CLI](https://github.com/cmur2/cloudapp-power-cli) (with HTTPS support!)
+and help to build this service!
+
+## Clients
+
+If you are working on a API or Client for CloudApp, please consider a configurable
+service url. That makes the hosts file hack unnecessary and as a side effect you
+can use HTTPS for all connections (feature is still in master).
+
+### working
+
+- Mac OS X [Cloud.app][app]
+- [Cloudette](http://cloudetteapp.com/) – free CloudApp iPhone client, works flawlessly
+- [BlueNube](http://bluenubeapp.com/) – 1,99$ iPad client
+- [Stratus](http://www.getstratusapp.com/) – CloudApp Client for iOS (iPhone/iPad); add `127.0.0.1 ws.pusherapp.com` to /etc/hosts as well.
+- [cloudapp-power-cli](https://github.com/cmur2/cloudapp-power-cli) – feature-rich commandline tool
+- [JCloudApp](https://github.com/cmur2/jcloudapp) – cross-platform Cloud.app widget in Java (supports HTTPS with regenwolken!)
+- [gloudapp](https://github.com/cmur2/gloudapp) – linux+GTK-based client
+
+Do not use the official `cloudapp-cli` app, it is still beta, has much fewer features and does not support other services out-of-the-box.
+
+### failing clients
+
+- Windows' [FluffyApp](http://fluffyapp.com/), fails to login
+
+## Links:
+
+- [rixth/raincloud](https://github.com/rixth/raincloud) – a (full?) cloud
+  implementation written in node.js
+- [short description in my blog](http://blog.posativ.org/2011/regenwolken-hosting-cloudapp-on-your-own-server/)
+
+[app]: http://itunes.apple.com/us/app/cloud/id417602904?mt=12&ls=1
+

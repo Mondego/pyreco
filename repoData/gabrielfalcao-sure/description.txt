@@ -1,0 +1,1361 @@
+# sure
+> Version 0.10.4
+
+[![Build Status](https://secure.travis-ci.org/gabrielfalcao/sure.png)](http://travis-ci.org/gabrielfalcao/sure)
+
+# What
+
+a assertion toolbox that works fine with [nose](http://code.google.com/p/python-nose/)
+
+# Install
+
+    user@machine:~$ [sudo] pip install sure
+
+# Documentation
+
+## testing behaviour of objects
+
+```python
+from sure.deprecated import that
+from six import PY3
+
+if PY3:
+    assert that("something").is_a(str)
+else:
+    assert that(b"something").is_a(str)
+assert that("something").like("some")
+assert "thing" in that("something")
+
+class FooBar:
+    attribute_one = "simple"
+
+assert "attribute_one" in that(FooBar)
+assert that(FooBar).has("attribute_one")
+assert that(FooBar).equals(FooBar)
+
+# go faster
+
+assert that(FooBar).at('attribute_one').equals('simple')
+
+# and also for dictionaries
+
+name = dict(john='doe')
+assert that(name).has('john')
+
+# go faster
+assert that(name).at('john').equals('doe')
+```
+
+## strings
+
+```python
+from sure.deprecated import that
+
+assert (that("   string \n with    lots of \n spaces and breaklines\n\n ")
+    .looks_like("string with lots of spaces and breaklines"))
+
+assert that('foobar').contains('foo')
+assert that('foobar').doesnt_contain("123")
+assert that('foobar').does_not_contain("123")
+```
+
+## iterable objects
+
+
+### testing length
+
+```python
+from sure.deprecated import that
+
+animals = ['dog', 'cat', 'chicken']
+objects = ['television', 'refrigerator']
+movies = ['conan', 'matrix', 'fight club', 'rocky', 'rambo']
+
+assert that([]).is_empty
+assert that([]).are_empty
+
+assert that(animals).len_is(3)
+assert that(animals).len_is(['list with', 'three', 'elements'])
+
+assert that(movies).len_greater_than(3)
+assert that(movies).len_greater_than(animals)
+assert that(movies).len_greater_than(objects)
+
+assert that(movies).len_greater_than_or_equals(3)
+assert that(movies).len_greater_than_or_equals(animals)
+assert that(movies).len_greater_than_or_equals(objects)
+
+assert that(objects).len_lower_than(3)
+assert that(objects).len_lower_than(animals)
+assert that(objects).len_lower_than(movies)
+
+assert that(objects).len_lower_than_or_equals(3)
+assert that(objects).len_lower_than_or_equals(animals)
+assert that(objects).len_lower_than_or_equals(movies)
+```
+
+### testing elements
+
+```python
+from sure.deprecated import that
+
+class Animal:
+  def __init__(self, name):
+    self.kind = 'mammal'
+    self.name = name
+
+mammals = [
+  Animal('dog'),
+  Animal('cat'),
+  Animal('cat'),
+  Animal('cow'),
+]
+
+assert that(mammals).the_attribute('kind').equals('mammal')
+assert that(mammals, within_range=(1, 2)).the_attribute('name').equals('cat')
+```
+
+### deep comparisons
+
+Sure will iterate through your dictionaries, tuples and lists and compare all
+its contents, side-by-side, in depth. All you gotta do is use `deep_equals`.
+
+Example:
+
+
+```python
+from sure.deprecated import that
+
+something = {
+    'one': 'yeah',
+    'another': {
+        'two': 'cool',
+    },
+}
+
+assert that(something).deep_equals({
+    'one': 'yeah',
+    'another': {
+        'two': 'cool',
+    },
+})
+```
+
+And even better, when the comparison doesn't at some point, sure will show a **VERY** meaningful assertion message for you.
+
+#### further
+
+```python
+from sure.deprecated import that
+
+class animal(object):
+    def __init__(self, kind):
+        self.attributes = {
+            'class': 'mammal',
+            'kind': kind,
+        }
+
+animals = [
+    animal('dog'),
+    animal('cat'),
+    animal('cow'),
+    animal('cow'),
+    animal('cow'),
+]
+
+assert that(animals).in_each("attributes['class']").matches('mammal')
+assert that(animals).in_each("attributes['class']").matches(['mammal','mammal','mammal','mammal','mammal'])
+
+assert that(animals).in_each("attributes['kind']").matches(['dog','cat','cow','cow','cow'])
+```
+
+## contextual setup and teardown
+
+```python
+import sure
+
+def setup_file(context):
+    context.file = open("foobar.xml")
+
+def teardown_file(context):
+    context.file.close()
+
+@sure.that_with_context(setup_file, teardown_file)
+def file_is_a_xml(context):
+    "this file is a xml"
+    sure.that(context.file.read()).contains("<root>")
+```
+
+### you can also use lists containing callbacks for setup/teardown
+
+Like this:
+
+```python
+import sure
+def setup_file(context):
+    context.file = open("foobar.xml")
+
+def a_browser(context):
+    from httplib2 import Http
+    context.browser = Http()
+
+def then_clean_file(context):
+    context.file.close()
+
+def and_browser(context):
+    del context.browser
+
+@sure.that_with_context([setup_file, a_browser], [then_clean_file, and_browser])
+def file_equals_response(context):
+    "the file equals the response"
+    headers, response_body = context.http.request('http://github.com', 'GET')
+
+    file_contents = context.file.read()
+    sure.that(response_body).contains(file_contents)
+```
+
+<a name="timed"></a>
+## timed tests
+
+```python
+from sure import *
+
+@within(five=seconds)
+def test_sleep_for_4_seconds():
+    import time
+    time.sleep(4)
+
+@within(ten=miliseconds)
+def test_sleep_for_4_miliseconds():
+    import time
+    time.sleep(0.004)
+
+@within(ten=microseconds)
+def test_sleep_for_12_microseconds():
+    import time
+    time.sleep(0.00012)
+
+@within(one=minute)
+def test_sleep_for_59_seconds():
+    import time
+    time.sleep(59)
+
+@within(two=minutes)
+def test_sleep_for_1_minute_and_59_seconds():
+    import time
+    time.sleep(119)
+```
+
+if any of the tests above take more than expected, a assertion_error is raised
+
+## exceptions
+
+```python
+from sure.deprecated import that
+def function(arg1=None, arg2=None):
+    if arg1 and arg2:
+        raise RuntimeError('yeah, it failed')
+
+assert that(function, with_args=[1], and_kwargs={'arg2': 2}).raises(RuntimeError)
+assert that(function, with_args=[1], and_kwargs={'arg2': 2}).raises(RuntimeError, 'yeah, it failed')
+assert that(function, with_args=[1], and_kwargs={'arg2': 2}).raises('yeah, it failed')
+
+assert that(function, with_kwargs={'arg1': 1, 'arg2': 2}).raises(RuntimeError)
+assert that(function, with_kwargs={'arg1': 1, 'arg2': 2}).raises(RuntimeError, 'yeah, it failed')
+assert that(function, with_kwargs={'arg1': 1, 'arg2': 2}).raises('yeah, it failed')
+
+# you can also match pieces of the string
+assert that(function, with_kwargs={'arg1': 1, 'arg2': 2}).raises('it failed')
+assert that(function, with_kwargs={'arg1': 1, 'arg2': 2}).raises(RuntimeError, 'it failed')
+```
+
+## add your own matchers
+
+```python
+from sure.deprecated import that
+@that.is_a_matcher
+def could_work(matcher, parameter):
+    assert matcher == "this"
+    assert parameter == "I mean, for real!"
+    return "cool!"
+
+assert that("this").could_work("I mean, for real!") == "cool!"
+```
+
+<a name="BDD" />
+# Hipster BDD with just... python code
+
+Unlikely [lettuce](http://lettuce.it), sure allows you to describe the
+behavior you expect your application to have, very focused on
+providing a very declarative and self-describing DSL through simple
+tricks around the python syntax.
+
+This may disagree with conventions like [PEP-8](http://www.python.org/dev/peps/pep-0008/) and Tim Peters's
+[Zen of Python](http://www.python.org/dev/peps/pep-0020/).
+
+It's not that "sure" disagrees with those conventions, the module
+itself follows both PEP-8 and PEP-20. But it turns out that "sure"
+provides you with sometimes conflicting conventions, for the sake of
+readability and maintainability of the code that makes sure your
+production code is always healthy.
+
+Sure aliases the decorator `@that_with_context` as `@scenario` and the
+context passed as parameter is just a bag of variables you can mess
+around without feeling like juggling with machetes. So that your
+scenario can share data in a really flexible way.
+
+*Don't worry, "sure"'s internals seal the variables you use within the
+ test scope and its setup/teardown functions. Everything is sandboxed.
+
+## The idea
+
+Firstly, if you are not familiar with [Behavior-driven development](http://antonymarcano.com/blog/2011/03/goals-tasks-action/) I strongly recommend the blog post ["What's in a story"](http://dannorth.net/whats-in-a-story/), by [Dan North](http://dannorth.net), former [ThoughtWorks](http://en.wikipedia.org/wiki/ThoughtWorks) employee. And as you might know, ThoughtWorks [is internationally recognized](http://en.wikipedia.org/wiki/ThoughtWorks#History) as being the cradle of agile methodologies, which often includes using assorted automated test engineering techniques.
+
+Sure is pretty much just a layer you should use on top of
+[nose-compatible test functions](http://readthedocs.org/docs/nose/en/latest/writing_tests.html#test-functions). It
+provides you with decorators that leverage declaring scenarios and
+actions to be executed within them.
+
+The DSL itself is just python code, altough it requires a certain
+effort from the developers that authors the tests. In the other hand,
+it also provides builtin validation of action executions, looking for
+conflicting inter-dependency, as well as giving very meaningful
+feedback, so that you won't spend hours debugging messed up code.
+
+## Nomenclature
+
+There are a few small examples of usage through the sub-sections
+below, don't rely solely on them, to go further on the API usage,
+check the documentation.
+
+### Scenario
+
+Scenarios are actually just
+[nose-compatible test functions](http://readthedocs.org/docs/nose/en/latest/writing_tests.html#test-functions)
+decorated with `@scenario()`.
+
+Scenarios accepts lists of callbacks that will be called before and after
+themselves so that you have a fine grained setup/teardown management.
+Also, scenarios will call the original test functions with one
+argument: context
+
+### Context
+
+Context is a clever object that keeps records of its contents and
+reporting ant problems when trying to access them, so that you know
+what part of your test is wrong.
+
+Contexts are also a key thing when calling actions, you can create
+aliases of it named: `Given, When, Then, And` and so on... You can see
+more in the examples or docs.
+
+### Actions
+
+Are the smalllest portions of test that will compose your actions,
+declare them within any setup functions, the `@action_for` decorator
+also gives you ways to explicit what variables the action will create
+within the `context` argument, or require previous variables to be
+already in the `context`.
+
+This is one of the most important features of "sure", so that you and
+your team will spend less time debugging a test and more on getting
+things done.
+
+### Setup/Teardown
+
+As said above, the `@scenario()` decorators takes 2 positional
+arguments: setup and teardown.  They can be both `callables` or `a
+list of callables`.  This is specially useful when you wanna organize
+your `Actions` into separated setup functions, then you only include
+the ones you want in each scenario.
+
+It may sound complicated, but during the rollout below you're gonna
+see it's easy peasy.
+
+#### !!! IMPORTANT NOTE ON SETUP/TEARDOWN !!!
+
+Never, ever name your setup and teardown functions as just `setup` and
+`teardown` respectivelly.  "Sure" has its own mechanism for calling
+them with a context variable, but if you name the callbacks as `setup`
+and/or `teardown`, then
+[nose will call them manually](http://readthedocs.org/docs/nose/en/latest/writing_tests.html#fixtures),
+but not only that: you will get a very bad error since the appropriate
+`context` variable will not be passed as first argument.
+
+
+## Examples
+
+Let's go from a simple example and then we evolve into more features
+
+## The simplest case
+
+```python
+from sure.deprecated import that
+from sure import action_for, scenario
+
+
+@scenario
+def users_should_introduce_themselves(context):
+    "Users should eb able to introduce themselves"
+
+    from myapp import User
+    # aliasing the context for semantic usage below
+    Given = Then = context
+
+    # defining some actions
+    @action_for(context, provides=['user'])
+    def there_is_a_user_called(name):
+        context.user = User(first_name=name)
+
+    @action_for(context, depends_on=['user'])
+    def he_introduces_himself_with(a_greeting):
+        assert that(context.user.say_hello()).looks_like(a_greeting)
+
+    # calling the actions
+
+    Given.there_is_a_user_called('Fabio')
+    Then.he_introduces_himself_with('Hello, my name if Fabio. Nice meeting you')
+```
+
+
+## A slightly more elaborated example: browsing with django test client + lxml
+
+```python
+from sure.deprecated import that
+from sure import action_for, scenario
+
+def prepare_browser(context):
+    from django.test.client import Client
+    from lxml import html as lhtml
+
+    @action_in(context, provides=['browser', 'response', 'dom'])
+    def I_navigate_to(path):
+       # preparing the browser
+       context.browser = Client()
+
+       # saving the response
+       context.response = context.browser.get(path)
+
+       # also saving a DOM object for future traversing
+       context.dom = lhtml.fromstring(context.response.content)
+
+    @action_in(context, depends_on=['browser'], provides=['title'])
+    def I_see_the_header_has_the_title(the_expected_title):
+        # just saving the title for future use
+        titles_found = context.dom.cssselect('header .title')
+
+        assert that(titles_found).len_is(1)
+        (context.title, ) = titles_found
+
+        assert that(context.title.text).looks_like(the_expected_title)
+
+    @action_in(context, depends_on=['title'])
+    def the_title_also_has_the_classes(expected_classes):
+        existing_classes = context.title.attrib.get('class', '')
+        for expected_class in expected_classes:
+            assert that(existing_classes).looks_like(expected_class)
+
+
+@scenario([prepare_browser])
+def navigate_to_index_page(context):
+    "Navigate to the index page and check some HTML markup"
+    Given = Then = context
+
+    Given.I_navigate_to("/index")
+    When.I_see_the_header_has_the_title("Welcome to our nifty website")
+    Then.the_title_also_has_the_classes(["alert", "alert-info", "fade-in"])
+```
+
+# acknowledgements
+
+Thanks to the folks of [Travis CI](http://travis-ci.org), thanks to it
+sure's builds are running agains python 2.5, 2.6 and 2.7 so I can
+garantee it works for all those python versions.
+
+I love you guys
+
+# license
+
+sure is under MIT license, so that it can be embedded into your
+project, and ran within your sandbox.
+
+    Copyright (C) <2010>  Gabriel Falcão <gabriel@nacaolivre.org>
+
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+# sure `1.2.7`
+
+A testing library for python with powerful and flexible assertions. Sure is heavily inspired by [should.js](https://github.com/visionmedia/should.js/)
+
+[![Build Status](https://travis-ci.org/gabrielfalcao/sure.png?branch=master)](https://travis-ci.org/gabrielfalcao/sure)
+
+# Installing
+
+    user@machine:~$ [sudo] pip install sure
+
+
+# Documentation
+
+Available in the [website](http://falcao.it/sure) or under the `spec` directory.
+
+You can also build the documentation locally using markment:
+
+```bash
+pip install markment
+markment --server --theme=rtd ./spec/
+```
+
+
+## Here is a tease
+
+### Equality
+
+#### (number).should.equal(number)
+
+```python
+import sure
+
+(4).should.be.equal(2 + 2)
+(7.5).should.eql(3.5 + 4)
+(2).should.equal(8 / 4)
+
+(3).shouldnt.be.equal(5)
+```
+
+#### {'a': 'collection'}.should.equal({'a': 'collection'}) does deep comparison
+
+```python
+{'foo': 'bar'}.should.equal({'foo': 'bar'})
+{'foo': 'bar'}.should.eql({'foo': 'bar'})
+{'foo': 'bar'}.must.be.equal({'foo': 'bar'})
+
+```
+
+#### "A string".lower().should.equal("a string") also works
+
+```python
+"Awesome ASSERTIONS".lower().split().should.equal(['awesome', 'assertions'])
+```
+
+sure ``1.2.7``
+==============
+
+A testing library for python with powerful and flexible assertions. Sure
+is heavily inspired by
+`should.js <https://github.com/visionmedia/should.js/>`__
+
+|Build Status|
+
+Installing
+==========
+
+::
+
+    user@machine:~$ [sudo] pip install sure
+
+Documentation
+=============
+
+Available in the `website <http://falcao.it/sure>`__ or under the
+``spec`` directory.
+
+You can also build the documentation locally using markment:
+
+.. code:: bash
+
+    pip install markment
+    markment --server --theme=rtd ./spec/
+
+Here is a tease
+---------------
+
+Equality
+~~~~~~~~
+
+(number).should.equal(number)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    import sure
+
+    (4).should.be.equal(2 + 2)
+    (7.5).should.eql(3.5 + 4)
+    (2).should.equal(8 / 4)
+
+    (3).shouldnt.be.equal(5)
+
+{'a': 'collection'}.should.equal({'a': 'collection'}) does deep comparison
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    {'foo': 'bar'}.should.equal({'foo': 'bar'})
+    {'foo': 'bar'}.should.eql({'foo': 'bar'})
+    {'foo': 'bar'}.must.be.equal({'foo': 'bar'})
+
+"A string".lower().should.equal("a string") also works
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code:: python
+
+    "Awesome ASSERTIONS".lower().split().should.equal(['awesome', 'assertions'])
+
+.. |Build Status| image:: https://travis-ci.org/gabrielfalcao/sure.png?branch=master
+   :target: https://travis-ci.org/gabrielfalcao/sure
+
+# Getting Started
+
+## Installing
+
+It is available in PyPi, so you can install through pip:
+
+```bash
+pip install sure
+```
+## Activating
+
+Sure is activated upon importing it, unless the environment variable
+`SURE_DISABLE_NEW_SYNTAX` is set to any non-falsy value. (You could
+just use `true`)
+
+For test code cleaningness it's recommended to import sure only once in the `__init__.py` of your root test package.
+
+Here is an example:
+
+```bash
+mymodule.py
+tests/
+tests/__init__.py  # this is our guy
+tests/unit/__init__.py
+tests/unit/test_mymodule_unit1.py
+tests/functional/__init__.py
+tests/functional/test_mymodule_functionality.py
+```
+
+That is unless, of course, you want to explicitly import the assertion
+helpers from sure in every module.
+
+
+# Python version compatibility
+
+Sure is
+[continuously tested against](https://travis-ci.org/gabrielfalcao/sure/)
+python versions 2.6, 2.7 and 3.3, but its assertion API is most likely
+to work anywhere. The only real big difference of sure in cpython and
+even other implementations such as [PyPy](http://pypy.org/) is that
+the [monkey-patching](how-it-works.md#monkey-patching) only happens in
+CPython.
+
+You can always get around beautifully with `expect`:
+
+```python
+from sure import expect
+
+expect("this".replace("is", "at")).to.equal("that")
+```
+
+where in cpython you could do:
+
+```python
+"this".replace("is", "at").should.equal("that")
+```
+
+# Disabling the monkey patching
+
+Just export the `SURE_DISABLE_NEW_SYNTAX` environment variable before
+running your tests.
+
+```console
+export SURE_DISABLE_NEW_SYNTAX=true
+```
+
+# How sure works
+
+The class `sure.AssertionBuilder` creates objects capable of doing
+assertions. The AssertionBuilder simply arranges a vast set of
+possible assertions that are composed by a `source` object and a
+`destination` object.
+
+Every assertion, even implicitly if implicitly like in `(2 < 3).should.be.true`, is doing a source/destination matching.
+
+
+## Chainability
+
+Some specific assertion methods are chainable, it can be useful for short assertions like:
+
+```python
+PERSON = {
+  "name": "John",
+  "facebook_info": {
+    "token": "abcd"
+  }
+}
+
+PERSON.should.have.key("facebook_info").being.a(dict)
+```
+
+# Monkey-patching
+
+Lincoln Clarete has written the module [`sure/magic.py`] which I simply added to sure. The most exciting part of the story is that Lincoln exposed the code with a super clean API, it's called [forbidden fruit](http://clarete.github.io/forbiddenfruit/)
+
+## Why CPython-only ?
+
+Sure uses the [ctypes](http://docs.python.org/library/ctypes) module
+to break in python protections against monkey patching.
+
+Although ctypes might also be available in other implementations such
+as [Jython](http://www.jython.org/), only the CPython provide
+[`ctypes.pythonapi`](http://docs.python.org/library/ctypes#loading-shared-libraries)
+the features required by sure.
+
+# Introduction
+
+Sure is a python library for python that leverages a DSL for writing
+assertions.
+
+In CPython it monkey-patches the `object` type, adding some methods
+and properties purely for test purposes.
+
+Any python code writen after `import sure` gains testing superpowers,
+so you can write assertions like this:
+
+```python
+import sure
+
+
+def some_bratty_function(parameter):
+    raise ValueError("Me no likey {0}".format(parameter))
+
+
+some_bratty_function.when.called_with("Scooby").should.throw(ValueError, "Me no likey Scooby")
+```
+
+Let's [get it started](getting-started.md)
+
+# Reference
+
+## Equality
+
+### (number).should.equal(number)
+
+```python
+import sure
+
+(4).should.be.equal(2 + 2)
+(7.5).should.eql(3.5 + 4)
+(2).should.equal(8 / 4)
+
+(3).shouldnt.be.equal(5)
+```
+
+## Compare strings with diff
+
+### (string).should_not.be.different_of(string)
+
+```python
+import sure
+
+XML1 = '''<root>
+  <a-tag with-attribute="one">AND A VALUE</a-tag>
+</root>'''
+
+
+XML1.should_not.be.different_of(XML1)
+
+XML2 = '''<root>
+  <a-tag with-attribute="two">AND A VALUE</a-tag>
+</root>'''
+
+XML2.should.be.different_of(XML1)
+```
+
+this will give you and output like
+
+
+```bash
+Difference:
+
+  <root>
+-   <a-tag with-attribute="one">AND A VALUE</a-tag>
+?                           --
++   <a-tag with-attribute="two">AND A VALUE</a-tag>
+?                          ++
+  </root>'''
+```
+
+### {'a': 'collection'}.should.equal({'a': 'collection'}) does deep comparison
+
+```python
+{'foo': 'bar'}.should.equal({'foo': 'bar'})
+{'foo': 'bar'}.should.eql({'foo': 'bar'})
+{'foo': 'bar'}.must.be.equal({'foo': 'bar'})
+
+```
+
+### "A string".lower().should.equal("a string") also works
+
+```python
+"Awesome ASSERTIONS".lower().split().should.equal(['awesome', 'assertions'])
+```
+
+## Similarity
+
+### should.look_like and should_not.look_like
+
+```python
+
+"""
+
+THIS IS MY loose string
+""".should.look_like('this is my loose string')
+
+"""this one is different""".should_not.look_like('this is my loose string')
+```
+
+## Iterables
+
+### should.contain and should_not.contain
+
+`expect(collection).to.contain(item)` is a shorthand to `expect(item).to.be.within(collection)`
+
+```python
+"My bucket of text".should.contain('bucket')
+
+"goosfraba".should_not.contain('anger')
+
+[1.2.5].should.contain(2)
+```
+
+### should.match and should_not.match matches regular expression
+
+You can also use the modifiers:
+
+* [`re.DEBUG`](http://docs.python.org/2/library/re.html#re.DEBUG)
+* [`re.I` and `re.IGNORECASE`](http://docs.python.org/2/library/re.html#re.IGNORECASE)
+* [`re.M` and `re.MULTILINE`](http://docs.python.org/2/library/re.html#re.MULTILINE)
+* [`re.S` and `re.DOTALL`](http://docs.python.org/2/library/re.html#re.DOTALL)
+* [`re.U` and `re.UNICODE`](http://docs.python.org/2/library/re.html#re.UNICODE)
+* [`re.X` and `re.VERBOSE`](http://docs.python.org/2/library/re.html#re.VERBOSE)
+
+```python
+import re
+
+"SOME STRING".should.match(r'some \w+', re.I)
+
+"FOO BAR CHUCK NORRIS".should_not.match(r'some \w+', re.M)
+```
+
+
+### {iterable}.should.be.empty applies to any iterable of length 0
+
+```python
+
+[].should.be.empty;
+{}.should.be.empty;
+set().should.be.empty;
+"".should.be.empty;
+().should.be.empty
+range(0).should.be.empty;
+
+## negate with:
+
+[1, 2, 3].shouldnt.be.empty;
+"Lincoln de Sousa".shouldnt.be.empty;
+"Lincoln de Sousa".should_not.be.empty;
+
+```
+
+
+### {number}.should.be.within(0, 10) asserts inclusive numeric range:
+
+```python
+(1).should.be.within(0, 2)
+(5).should.be.within(10)
+
+## negate with:
+
+(1).shouldnt.be.within(5, 6)
+```
+
+### {member}.should.be.within({iterable}) asserts that a member is part of the iterable:
+
+```python
+"g".should.be.within("gabriel")
+'name'.should.be.within({'name': 'Gabriel'})
+'Lincoln'.should.be.within(['Lincoln', 'Gabriel'])
+
+## negate with:
+
+'Bug'.shouldnt.be.within(['Sure 1.0'])
+'Bug'.should_not.be.within(['Sure 1.0'])
+
+```
+
+### should.be.none and should_not.be.none
+
+Assert whether an object is or not `None`:
+
+```python
+
+value = None
+value.should.be.none
+None.should.be.none
+
+"".should_not.be.none
+(not None).should_not.be.none
+
+```
+
+### should.be.ok and shouldnt.be.ok
+
+Assert truthfulness:
+
+```python
+from sure import this
+
+True.should.be.ok
+'truthy string'.should.be.ok
+{'truthy': 'dictionary'}.should.be.ok
+```
+
+And negate truthfulness:
+
+```python
+
+from sure import this
+
+False.shouldnt.be.ok
+''.should_not.be.ok
+{}.shouldnot.be.ok
+```
+
+### Assert existence of properties and their values
+
+```python
+
+class Basket(object):
+    fruits = ["apple", "banana"]
+
+
+basket1 = Basket()
+
+basket1.should.have.property("fruits")
+```
+
+#### .have.property().being allows chaining up
+
+If the programmer calls `have.property()` it returns an assertion
+builder of the property if it exists, so that you can chain up
+assertions for the property value itself.
+
+```python
+
+class Basket(object):
+    fruits = ["apple", "banana"]
+
+basket2 = Basket()
+basket2.should.have.property("fruits").being.equal(["apple", "banana"])
+basket2.should.have.property("fruits").with_value.equal(["apple", "banana"])
+basket2.should.have.property("fruits").with_value.being.equal(["apple", "banana"])
+```
+
+
+### Assert existence of keys and its values
+
+```python
+basket3 = dict(fruits=["apple", "banana"])
+basket3.should.have.key("fruits")
+```
+
+#### .have.key().being allows chaining up
+
+If the programmer calls `have.key()` it returns an assertion
+builder of the key if it exists, so that you can chain up
+assertions for the dictionary key value itself.
+
+
+```python
+
+person = dict(name=None)
+
+person.should.have.key("name").being.none
+person.should.have.key("name").being.equal(None)
+```
+
+### Assert the length of objects with {iterable}.should.have.length_of(N)
+
+```python
+
+[3, 4].should.have.length_of(2)
+
+"Python".should.have.length_of(6)
+
+{'john': 'person'}.should_not.have.length_of(2)
+```
+
+### Assert the magnitude of objects with {X}.should.be.greater_than(Y) and {Y}.should.be.lower_than(X) as well as {X}.should.be.greater_than_or_equal_to(Y) and {Y}.should.be.lower_than_or_equal_to(X)
+
+```python
+(5).should.be.greater_than(4)
+(5).should_not.be.greater_than(10)
+(1).should.be.lower_than(2)
+(1).should_not.be.lower_than(0)
+
+(5).should.be.greater_than_or_equal_to(4)
+(5).should_not.be.greater_than_or_equal_to(10)
+(1).should.be.lower_than_or_equal_to(2)
+(1).should_not.be.lower_than_or_equal_to(0)
+```
+
+### callable.when.called_with(arg1, kwarg1=2).should.throw(Exception)
+
+You can use this feature to assert that a callable raises an
+exception:
+
+```python
+import sure
+from six import PY3
+
+if PY3:
+    range.when.called_with(10, step=20).should.throw(TypeError, "range() does not take keyword arguments")
+    range.when.called_with("chuck norris").should.throw(TypeError, "'str' object cannot be interpreted as an integer")
+else:
+    range.when.called_with(10, step="20").should.throw(TypeError, "range() takes no keyword arguments")
+    range.when.called_with(b"chuck norris").should.throw("range() integer end argument expected, got str.")
+range.when.called_with("chuck norris").should.throw(TypeError)
+range.when.called_with(10).should_not.throw(TypeError)
+```
+
+### function.when.called_with(arg1, kwarg1=2).should.return_value(value)
+
+This is a shorthand for testing that a callable returns the expected
+result
+
+```python
+import sure
+
+list.when.called_with([0, 1]).should.return_value([0, 1])
+```
+
+this is the same as
+
+```
+value = range(2)
+value.should.equal([0, 1])
+```
+
+there are no differences between those 2 possibilities, use at will
+
+### instance.should.be.a('typename') and instance.should.be.an('typename')
+
+this takes a type name and checks if the class matches that name
+
+```python
+import sure
+
+{}.should.be.a('dict')
+(5).should.be.an('int')
+
+## also works with paths to modules
+
+range(10).should.be.a('collections.Iterable')
+```
+
+### instance.should.be.a(type) and instance.should.be.an(type)
+
+this takes the class (type) itself and checks if the object is an instance of it
+
+```python
+import sure
+from six import PY3
+
+if PY3:
+    u"".should.be.an(str)
+else:
+    u"".should.be.an(unicode)
+[].should.be.a(list)
+```
+
+### instance.should.be.above(num) and instance.should.be.below(num)
+
+assert the instance value above and below `num`
+
+```python
+import sure
+
+(10).should.be.below(11)
+(10).should.be.above(9)
+(10).should_not.be.above(11)
+(10).should_not.be.below(9)
+```
+
+
+## Static assertions with it, this, those and these
+
+Whether you don't like the `object.should` syntax or you are simply
+not running CPython, sure still allows you to use any of the
+assertions above, all you need to do is wrap the object that is being
+compared in one of the following options: `it`, `this`, `those` and
+`these`.
+
+### Too long, don't read
+
+#### All those possibilities below work just as the same
+
+```python
+from sure import it, this, those, these
+
+(10).should.be.equal(5 + 5)
+
+this(10).should.be.equal(5 + 5)
+
+it(10).should.be.equal(5 + 5)
+
+these(10).should.be.equal(5 + 5)
+
+those(10).should.be.equal(5 + 5)
+```
+
+#### Also if you prefer using the assert keyword in your tests just go ahead an do it!
+
+```python
+from sure import it, this, those, these, expect
+
+assert (10).should.be.equal(5 + 5)
+
+assert this(10).should.be.equal(5 + 5)
+
+assert it(10).should.be.equal(5 + 5)
+
+assert these(10).should.be.equal(5 + 5)
+
+assert those(10).should.be.equal(5 + 5)
+
+expect(10).to.be.equal(5 + 5)
+expect(10).to.not_be.equal(8)
+```
+
+### (lambda: None).should.be.callable
+
+Test if something is or not callable
+
+```python
+import sure
+
+range.should.be.callable
+(lambda: None).should.be.callable;
+(123).should_not.be.callable
+```
+
+#### A note about the assert keyword
+
+_you can use or not the_ `assert` _keyword, sure internally already
+raises an appropriate_ `AssertionError` _with an assertion message so
+that you don't have to specify your own, but you can still use_
+`assert` _if you find it more semantic_
+
+Example:
+
+```python
+import sure
+
+"Name".lower().should.equal('name')
+
+## or you can also use
+
+assert "Name".lower().should.equal('name')
+
+## or still
+
+from sure import this
+
+assert this("Name".lower()).should.equal('name')
+
+## also without the assert
+
+this("Name".lower()).should.equal('name')
+
+```
+
+Any of the examples above will raise their own `AssertionError` with a
+meaningful error message.
+
+## Synonyms
+
+Sure provides you with a lot of synonyms so that you can pick the ones
+that makes more sense for your tests.
+
+Note that the examples below are merely illustrative, they work not
+only with numbers but with any of the assertions you read early in
+this documentation.
+
+### Positive synonyms
+
+```python
+
+(2 + 2).should.be.equal(4)
+(2 + 2).must.be.equal(4)
+(2 + 2).does.equals(4)
+(2 + 2).do.equals(4)
+```
+
+### Negative synonyms
+
+```python
+from sure import expect
+
+(2).should_not.be.equal(3)
+(2).shouldnt.be.equal(3)
+(2).doesnt.equals(3)
+(2).does_not.equals(3)
+(2).doesnot.equals(3)
+(2).dont.equal(3)
+(2).do_not.equal(3)
+
+expect(3).to.not_be.equal(1)
+```
+
+### Chain-up synonyms
+
+Any of those synonyms work as an alias to the assertion builder:
+
+* `be`
+* `being`
+* `to`
+* `when`
+* `have`
+* `with_value`
+
+```python
+from sure import expect
+
+{"foo": 1}.must.with_value.being.equal({"foo": 1})
+{"foo": 1}.does.have.key("foo").being.with_value.equal(1)
+```
+
+### Equality synonyms
+
+```python
+
+(2).should.equal(2)
+(2).should.equals(2)
+(2).should.eql(2)
+```
+
+### Positive boolean synonyms
+
+```python
+
+(not None).should.be.ok
+(not None).should.be.truthy
+(not None).should.be.true
+```
+
+### Negative boolean synonyms
+
+```python
+False.should.be.falsy
+False.should.be.false
+False.should_not.be.true
+False.should_not.be.ok
+None.should_not.be.true
+None.should_not.be.ok
+```
+
+
+#### Holy guacamole, how did you implement that feature ?
+
+Differently of [ruby](http://www.ruby-lang.org) python doesn't have
+[open classes](http://blog.aizatto.com/2007/06/01/ruby-and-open-classes/),
+but [Lincoln de Sousa](https://github.com/clarete/) came out with a
+super [sick code](https://github.com/gabrielfalcao/sure/blob/master/sure/magic.py) that uses the ctypes module to create a pointer to the
+`__dict__` of builtin types.
+
+Yes, it is dangerous, non-pythonic and should not be used in production code.
+
+Although `sure` is here to be used __ONLY__ in test code, therefore it
+should be running in __ONLY__ possible environments: your local
+machine or your continuous-integration server.
+
+# About sure 1.0
+
+The assertion library is 100% inspired be the awesomeness of
+[should.js](https://github.com/visionmedia/should.js) which is simple,
+declarative and fluent.
+
+Sure strives to provide everything a python developer needs in an assertion:
+
+* Assertion messages are easy to understand
+
+* When comparing iterables the comparation is recursive and shows
+  exactly where is the error
+
+* Fluency: the builtin types are changed in order to provide awesome
+  simple assertions
+
+# Features
+
+## Test runner with chronometer and coverage reports
+
+_Sure_ provides you with a test runner that gives you full control
+over the process to the granularity of a single test case.
+
+You can write your tests anywhere, _sure_ will find, run, count up the
+duration and allow running every test case, in the end you get
+acquainted with the statistics of your python codebase: what parts
+have test coverage, where you should refactor or add coverage.
+
+It also runs [flake8](http://pypi.python.org/pypi/flake8/) against
+your test code and blame you when your tests are too complex
+
+Ahh yes, you can also run only a given subset of test cases, force
+slow tests to fail.
+
+## "that": Slick, fluent assertions
+
+_Sure_ comes with `that`, an inteligent class that provides an
+hassle-less interface for writing various types of assertions.
+
+
+## Behavior-driven development
+
+Differently of [lettuce](http://lettuce.it), _Sure_ leverages pure
+python test code to work and look like behavior-driven stories while
+allowing you to
+
+* Track dependencies during steps
+* Share a per-test case context of states
+* Test coverage and all the other candies that comes with _Sure_'s test runner
+
+## Non-pythonic API, intentionally
+
+_Sure_ comes with the idea that test code is somehow different of
+production code in the sense that some PEP8 and PEP20 rules can be
+broken as long as for the sake of writting cleaner, simpler,
+maintainable and easily understood automated tests.
+
+### _Sure_ is implicit
+
+You will find assertions that can have totally different behaviors
+depending on the kind of objects they are comparing.
+

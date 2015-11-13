@@ -1,0 +1,2027 @@
+% COUNTING-SORT(1)
+% Clark Grubb
+% May 6, 2014
+
+# NAME
+
+counting-sort - perform counting sort on a file or standard input
+
+# SYNOPSIS
+
+counting-sort [FILE]
+
+# DESCRIPTION
+
+Counting sort is fast when the number of distinct values is small
+compared to the total number of values.  For example, when sorting
+a file with 3M rows but only 300 distinct values, the regular `sort`
+takes 2m30s whereas `counting-sort` only takes 3s.
+
+`counting-sort` only does a lexical sort.
+
+# OPTIONS
+
+None
+
+# SEE ALSO
+
+`sort` (1)
+
+http://en.wikipedia.org/wiki/Counting_sort
+
+
+% CSV-TO-JSON(1)
+% Clark Grubb
+% June 4, 2013
+
+
+# NAME
+
+csv-to-json - convert CSV to JSON
+
+# SYNOPSIS
+
+csv-to-json OPTIONS [CSV_FILE]
+
+# DESCRIPTION
+
+Read a CSV file from file specified on command line or standard input and write the corresponding JSON to standard output.
+
+Each row of the JSON output contains a serialized JSON object.  The values of the object come from the corresponding row of the CSV file; the header is used for the keys.  The \--header flag should be used if the CSV file does not have a header.
+
+# OPTIONS
+
+-d DELIMITER, \--delimiter=DELIMITER
+: Used to read CSV files which use DELIMITER to separate fields instead of a comma.
+
+\--header=NAME[,NAME...]
+: comma-separated list of column names
+
+-q QUOTECHAR, \--quotechar=QUOTECHAR
+: Used to read CSV files which use QUOTECHAR to quote fields instead of double quotes.
+
+# SEE ALSO
+
+`tsv-to-json` (1), `json-awk` (1)
+
+http://www.ietf.org/rfc/rfc4180.txt
+
+http://json.org
+
+% CSV-TO-TSV(1)
+% Clark Grubb
+% February 16, 2013
+
+
+# NAME
+
+csv-to-tsv - convert CSV to TSV
+
+# SYNOPSIS
+
+csv-to-tsv OPTIONS [CSV_FILE]
+
+# DESCRIPTION
+
+Read a CSV file from file specified on command line or standard input and write the corresponding TSV file to standard output.
+
+In the TSV format fields are delimited by tabs and records are terminated by an end-of-line marker.  `csv-to-tsv` uses newline as the end-of-line marker.
+
+There is no mechanism for quoting tabs or newlines, and by default `csv-to-tsv` will fail if they occur in the fields of the CSV file.  
+
+# OPTIONS
+
+-d DELIMITER, \--delimiter=DELIMITER
+: Used to read CSV files which use DELIMITER to separate fields instead of a comma.
+
+-e, \--escape
+: Use backslash escape sequences to escape tabs, carriage returns, newlines, and backslashes.
+
+\--header=NAME[,NAME...]
+: comma-separated list of column names.  Use if CSV does not have a header row.
+
+-q QUOTECHAR, \--quotechar=QUOTECHAR
+: Used to read CSV files which use QUOTECHAR to quote fields instead of double quotes.
+
+-r, \--replace
+: replaces tabs and characters that should be interpreted as newlines as newlines with spaces.  The characters treated as newlines are: \f \n \r \v \x85 \u2028 \u2029.
+
+-x, \--strip
+: Remove tabs, carriage returns, and newlines in fields.
+
+-z, \--squeeze
+: replace tabs and characters that should be interpreted as newlines with spaces and then replace adjacent spaces with a single space.
+
+
+# SEE ALSO
+
+`tsv-to-csv` (1)
+
+http://www.ietf.org/rfc/rfc4180.txt
+
+http://www.iana.org/assignments/media-types/text/tab-separated-values
+
+% CSV-TO-XLSX(1)
+% Clark Grubb
+% November 7, 2013
+
+
+# NAME
+
+csv-to-xlsx - convert CSV files to XLSX worksheets
+
+# SYNOPSIS
+
+csv-to-xlsx -o|--output-file XLSX\_PATH CSV\_PATH ...
+
+# DESCRIPTION
+
+Create an XLSX workbook from the CSV files specified on the command line.
+
+Each CSV file becomes a worksheet in the workbook.
+
+The names of the worksheets are derived from CSV file names.  Excel worksheet names are limited to 31 characters and these characters are forbidden:
+
+    [ ] * ? / \ .
+    
+`csv-to-xlsx` replaces forbidden characters with spaces, squeezes multiple adjacents spaces to a single space, truncates to 31 characters, and trims marginal space.  If this results in multiple sheets with the same name an error is generated.
+
+XLSX is the default format used by Excel 2007 and later.
+
+# OPTIONS
+
+-o DELIMITER, \--output-file PATH
+: the PATH of the XLSX file to create.  It must have an .xlsx suffix.
+
+# SEE ALSO
+
+`xlsx-to-csv` (1)
+
+http://www.ietf.org/rfc/rfc4180.txt
+
+http://www.ecma-international.org/publications/standards/Ecma-376.htm
+
+
+% DATE-SEQ(1)
+% Clark Grubb
+% June 17, 2013
+
+
+# NAME
+
+date-seq - print sequence of dates or times
+
+# SYNOPSIS
+
+date-seq [--format=FMT] [--weekdays=DAY[,DAY]...] YYYY[MM[DD[HH]]] YYYY[MM[DD[HH]]]
+
+# DESCRIPTION
+
+Generate a sequence of dates or times.
+
+The command takes two arguments: the start date and the end date.  The generated sequence is inclusive.
+
+The format of the date arguments is YYYY[MM[DD[HH[MI[SS]]]]]. As little as the year or as much as the second can be specified.  The end date must be the same length as the start date.
+
+If the arguments have a YYYYMMDD format, the sequence will consist of days.  If the arguments have a YYYYMMDDHH format, the sequence will consist of hours.  Sequences of years, months, minutes, or seconds are also possible.
+
+# OPTIONS
+
+--format
+: `strftime` style format string to control output.
+
+--regex
+: a regular expression which can be used to filter the sequence.  The regular expression should be written to apply to the YYYY[MM[DD[HH[MI[SS]]]]] format, not the output format specified by the --format flag.
+
+--weekdays
+: comma separated list of weekdays.  Dates for days outside the list are excluded.
+
+# EXAMPLES
+
+Every Monday, Wednesday, and Friday in October 2012:
+
+    date-seq --weekdays=Mon,Wed,Fri 20121001 20121031
+
+Every fourth day starting October 1, 2012:
+
+    date-seq 20121001 20121101 | awk 'NR % 4 == 0'
+
+The second day of each month of 2012 in YYYY-MM-DD format:
+
+    date-seq --format='%F' --regex='.{6}02' 20120101 20121231
+
+The 30 most recent days in YYYYMMDD format:
+
+    date-seq 20100101 $(date +'%Y%m%d') | tail -30
+
+# SEE ALSO
+
+`strftime` (3), `seq` (1), `grep` (1), `awk` (1)
+
+% DOM-AWK(1)
+% Clark Grubb
+% February 17, 2013
+
+
+# NAME
+
+dom-awk - read HTML or XML into a DOM object and process it with a Ruby script.
+
+# SYNOPSIS
+
+dom-awk [-x|-h] (-f SCRIPT\_PATH) | RUBY\_SCRIPT) [XML\_OR\_HTML_FILE]
+
+# DESCRIPTION
+
+Read an HTML or XML document from a command line path or standard input and process it with a Ruby script.  The Ruby script can be specified on the command line like `awk`, or the Ruby code can be in a file whose path is provided with the `-f` option.
+
+The HTML/XML document is parsed using the Ruby Nokogiri library and made available to the Ruby script which is provided as a command line argument.  The Ruby DOM object is put in the global accumulator variable $_.
+
+A Nokogiri DOM object is a hierarchical tree of Nodes.  Here are some of the most useful Node methods:
+
+    []           treat Node as Hash of its attributes
+    children()   return NodeSet of children
+    content()
+    css()        return NodeSet which matches CSS rule
+    document()
+    parent()
+    to_s()
+    xpath()      return NodeSet 
+
+Some useful NodeSet methods.
+
+    []
+    each()
+    filter()
+    include?()
+    length()
+
+A summary of XPath and CSS selectior syntax:
+
+                         xpath                css             dom
+                         -------------------  --------------  -----------------------------
+    by id                //*[@id="foo"]       #foo            getElementById("foo")
+    by class             //*[@class="foo"]    .foo            getElementsByClassName("foo")
+    by tag               //div                div             getElementsByTagName("div")
+    by attribute         //*[@title]          [title]
+    by attribute value   //*[@title="foo"]    [title="foo"]
+    union                //h1 | //h2          h1, h2
+    child                [@class="foo"]/li    .foo > li
+    descendant           [@class="foo"]//td   .foo td
+
+
+# EXAMPLES
+
+    curl www.google.com | dom-awk  '$_.xpath("//a").each {|o| puts o["href"] }'
+
+    echo '<xml><foo>bar</foo></xml>' | dom-awk '$_.xpath("//foo").each { |o| puts o.content }'
+
+# OPTIONS
+
+-f SCRIPT\_PATH, \--file=SCRIPT\_PATH
+: Use Ruby code in SCRIPT\_PATH to process input.
+
+-h, \--html
+: Used to indicate input is HTML.
+
+-x, \--xml
+: Used to indicate input is XML.
+
+# SEE ALSO
+
+`curl` (1), `w3m` (1)
+
+http://nokogiri.org/Nokogiri/XML/Node.html
+
+% HEADER-SORT(1)
+% Clark Grubb
+% June 4, 2013
+
+
+# NAME
+
+header-sort - sort file with header
+
+# SYNOPSIS
+
+header-sort \[OPTIONS\] FILE
+
+# DESCRIPTION
+
+Like `sort`, but the position of the first line is preserved.
+
+# OPTIONS
+
+See `sort` for available options.
+
+# SEE ALSO
+
+`sort` (1)
+
+% HEXEDIT(1)
+% Pascal Rigaux
+% February 2013
+
+
+# NAME
+
+hexedit - view and edit files in hexadecimal or in ASCII
+
+# SYNOPSIS
+
+hexedit [-s | --sector] [-m | --maximize] [-h | --help] [filename]
+
+# DESCRIPTION
+
+hexedit shows a file both in ASCII and in hexadecimal. The file can be a device as the file is read a piece at a time. You can modify the file and search through it.
+
+# OPTIONS
+
+"-s, --sector" Format the display to have entire sectors.
+
+"-m, --maximize" Try to maximize the display.
+
+"-h, --help" Show the usage.
+
+# COMMANDS (quickly)
+
+*Moving*
+
+    <, > :  go to start/end of the file
+    Right:  next character
+    Left:   previous character
+    Down:   next line
+    Up:     previous line
+    Home:   beginning of line
+    End:    end of line
+    PUp:    page forward
+    PDown:  page backward
+    Miscellaneous
+
+    F2:     save
+    F3:     load file
+    F1:     help
+    Ctrl-L: redraw
+    Ctrl-Z: suspend
+    Ctrl-X: save and exit
+    Ctrl-C: exit without saving
+
+    Tab:    toggle hex/ascii
+    Return: go to
+    Backspace: undo previous character
+    Ctrl-U: undo all
+    Ctrl-S: search forward
+    Ctrl-R: search backward
+    Cut&Paste
+
+    Ctrl-Space: set mark
+    Esc-W:  copy
+    Ctrl-Y: paste
+    Esc-Y:  paste into a file
+    Esc-I:  fill
+
+# COMMANDS (full and detailed)
+
+    o Right-Arrow, Left-Arrow, Down-Arrow, Up-Arrow - move the cursor. 
+    o Ctrl+F, Ctrl+B, Ctrl+N, Ctrl+P - move the cursor. 
+    o Ctrl+Right-Arrow, Ctrl+Left-Arrow, Ctrl+Down-Arrow, Ctrl+Up-Arrow - move n times the cursor. 
+    o Esc+Right-Arrow, Esc+Left-Arrow, Esc+Down-Arrow, Esc+Up-Arrow - move n times the cursor. 
+    o Esc+F, Esc+B, Esc+N, Esc+P - move n times the cursor. 
+    o Home, Ctrl+A - go the beginning of the line. 
+    o End, Ctrl+E - go to the end of the line. 
+    o Page up, Esc+V, F5 - go up in the file by one page. 
+    o Page down, Ctrl+V, F6 - go down in the file by one page. 
+    o <, Esc+<, Esc+Home - go to the beginning of the file. 
+    o >, Esc+>, Esc+End - go to the end of the file (for regular files that have a size). 
+    o Ctrl+Z - suspend hexedit. 
+    o Ctrl+U, Ctrl+_, Ctrl+/ - undo all (forget the modifications). 
+    o Ctrl+Q - read next input character and insert it (this is useful for inserting control characters and bound keys). 
+    o Tab, Ctrl+T - toggle between ASCII and hexadecimal. 
+    o /, Ctrl+S - search forward (in ASCII or in hexadecimal, use TAB to change). 
+    o Ctrl+R - search backward. 
+    o Ctrl+G, F4 - go to a position in the file. 
+    o Return - go to a sector in the file if --sector is used, otherwise go to a position in the file. 
+    o Esc+L - display the page starting at the current cursor position. 
+    o F2, Ctrl+W - save the modifications. 
+    o F1, Esc+H - help (show the man page). 
+    o Ctrl+O, F3 - open another file 
+    o Ctrl+L - redisplay (refresh) the display (usefull when your terminal screws up). 
+    o Backspace, Ctrl+H - undo the modifications made on the previous byte. 
+    o Esc+Ctrl+H - undo the modifications made on the previous bytes. 
+    o Ctrl+Space, F9 - set mark where cursor is. 
+    o Esc+W, Delete, F7 - copy selected region. 
+    o Ctrl+Y, Insert, F8 - paste (yank) previously copied region. 
+    o Esc+Y, F11 - save previously copied region to a file. 
+    o Esc+I, F12 - fill the selection with a string 
+    o Esc+T - truncate the file at the current location 
+    o Ctrl+C - unconditional quit (without saving). 
+    o F10, Ctrl+X - quit.
+
+For the Esc commands, it sometimes works to use Alt instead of Esc. Funny things here (especially for froggies :) egrave = Alt+H , ccedilla = Alt+G, Alt+Y = ugrave. 
+
+*Modeline*
+
+At the bottom of the display you have the modeline (copied from emacs). As in emacs, you have the indications --, ** and %% meaning unmodified, modified and read-only. Then you have the name of the file you're currently editing. Next to it is the current position of the cursor in the file followed by the total file size. The total file size isn't quite correct for devices. 
+While in --sector mode, it shows the sector the cursor is in.
+
+*Editing*
+
+You can edit in ASCII or in hexadecimal. You can switch between the two with Tab. When the file is read-only, you can't edit it. When trying to edit a read-only file, a message (``File is read-only'') tells you it is non-writable. 
+The modifications are shown in bold until they are saved. The modeline indicates whether you have modified the file or not. 
+When editing in hexadecimal, only 0,1,...,9, a,b,...,f, A,B,...F are legal. Other keys are unbound. The first time you hit an unbound key, the help pops up. It won't pop again unless you call the help directly (with F1). 
+When editing in ascii, you can find it difficult to enter characters like / which are bound to a function. The solution is to use the quoted insert function Ctrl+Q, the key after the quoted insert function is not processed by hexedit (like emacs' quoted-insert, or like the \\ character in C).
+Searching
+
+You can search for a string in ASCII or in hexadecimal. You can switch between the two with Tab. If the string is found, the cursor is moved to the beginning of the matching location. If the search failed, a message (``not found'') tells you so. You can cancel the search by pressing a key. 
+The search in hexadecimal is a bit confusing. You must give a hexadecimal string with an even number of characters. The search can then be done byte by byte. If you want to search a long number (eg: a 32 bit number), you must know the internal representation of that number (little/big endian problem) and give it the way it is in memory. For example, on an Intel processor (little endian), you must swap every bytes: 0x12345678 is written 0x78563412 in memory and that's the string you must give to the search engine. 
+Before searching you are asked if you want to save the changes, if the file is edited.
+
+For more sophisticated search, see Volker Schatz's patch at http://www.volkerschatz.com/unix/homebrew.html#hexedit.
+
+*Selecting, copying, pasting, filling*
+
+First, select the part of the buffer you want to copy: start setting the mark where you want. Then go to the end of the area you want to copy (you can use the go to function and the search functions). Then copy it. You can then paste the copied area in the current file or in another file.
+
+You can also fill the selected area with a string or a character: start choosing the block you want to fill in (set mark then move to the end of the block), and call the fill function (F12). hexedit ask you the string you want to fill the block with. 
+The code is not tuned for huge filling as it keeps the modifications in memory until you save them. That's why hexedit will warn you if you try to fill in a big block.
+
+When the mark is set, the selection is shown in reverse mode. 
+Be aware that the copied area contains the modifications done at the time of the copy. But if you undo the modifications, it does not change the content of the copy buffer. It seems obvious but it's worth saying.
+
+*Scrolling*
+
+The scrolling is different whether you are in --sector mode or not. In normal mode, the scrolling is line by line. In sector mode, the scrolling is sector by sector. In both modes, you can force the display to start at a given position using Esc+L.
+
+# SEE ALSO
+
+`od`(1), `hdump`(1), `hexdump`(1), `bpe`(1), `hexed`(1), `beav`(1).
+
+# AUTHOR
+
+Pixel (Pascal Rigaux) <pixel@rigaux.org>, 
+Home page is http://rigaux.org/.
+
+# UNRESTRICTIONS
+
+hexedit is Open Source; anyone may redistribute copies of hexedit to anyone under the terms stated in the GNU General Public License.
+You can find hexedit at 
+http://rigaux.org/hexedit-1.2.13.src.tgz and 
+http://rigaux.org/hexedit-1.2.13.bin.i386.dynamic.tgz.
+
+# TODO
+
+Anything you think could be nice...
+
+# LIMITATIONS
+
+There are problems with the curses library given with Redhat 5.0 that make hexedit think the terminal is huge. The result is that hexedit is not usable.
+The shortcuts work on some machines, and not on others. That's why there are many shortcuts for each function. The Ctrl+Arrows and the Alt+. do not work work as they should most of the time. On SUNs, you must do Ctrl+V-Ctrl+V instead of Ctrl+V (!); and the Alt key is the diamond one.
+
+While searching, it could be interesting to know which position the search has reached. It's always nice to see something moving to help waiting.
+
+The hexadecimal search could be able to search modulo 4 bits instead of 8 bits. Another feature could be to complete padd odd length hexadecimal searches with zeros.
+
+# BUGS
+
+I have an example where the display is completly screwed up. It seems to be a bug in ncurses (or maybe in xterm and rxvt)?? Don't know if it's me using ncurses badly or not... It seems to happen when hexedit leaves only one space at the end of the lines... If anyone has a (or the) solution, please tell me!
+If you have any problem with the program (even a small one), please do report it to me. Remarks of any kind are also welcome.
+
+
+
+% HIGHTLIGHT(1)
+% Clark Grubb
+% September 12, 2013
+
+
+# NAME
+
+highlight - highlight text in a stream maching a regular expression
+
+# SYNOPSIS
+
+highlight REGEX [FILE]
+
+highlight (--red|--green|--yellow|--blue|--magenta|--cyan|--white)=REGEX ... [FILE]
+
+highlight (-r|-g|-y|-b|-m|-c|-w)=REGEX ... [FILE]
+
+# DESCRIPTION
+
+Reads lines from file or standard input and writes them to standard out with any
+substrings matching REGEX highlighted in red.
+
+This is similar to `grep --color=always REGEX`, but grep will not print
+lines which don't match REGEX at all.
+
+The default color is red.  The other choices are green, yellow, blue, magenta,
+cyan, white, and black.
+
+Multiple patterns can be specified, but the results when patterns overlap are
+unpredictable.
+
+# EXAMPLES
+
+Highlight which shells users are using:
+
+    highlight -r /bin/bash -g /bin/sh -b /usr/bin/zsh -m /bin/false < /etc/passwd
+
+# OPTIONS
+
+-r REGEX, \--red=REGEX
+: highlight text matching REGEX in red.
+
+-g REGEX, \--green=REGEX
+: highlight text matching REGEX in green.
+
+-y REGEX, \--yellow=REGEX
+: highlight text matching REGEX in yellow.
+
+-b REGEX, \--blue=REGEX
+: highlight text matching REGEX in blue.
+
+-m REGEX, \--magenta=REGEX
+: highlight text matching REGEX in magenta.
+
+-c REGEX, \--cyan=REGEX
+: highlight text matching REGEX in cyan.
+
+-w REGEX, \--white=REGEX
+: highlight text matching REGEX in white.
+
+\--black=REGEX
+: highlight text matching REGEX in black.
+
+
+# SEE ALSO
+
+`grep` (1)
+
+# BASIC INSTALLATION
+
+To install the necessary Ruby gems and Python packages:
+
+    $ sudo make setup
+
+To put the *data tools* and man pages in your path:
+
+    $ make install
+
+It must be run with permission to create files in the install directory as it creates symlinks to the *data tools* repository.
+
+# INSTALLING ON DEBIAN/UBUNTU
+
+You may find that the Ruby gems or Python packages fail to build because
+of missing system packages.  On Debain or Ubuntu these packages can be installed with:
+
+    $ sudo apt-get install ruby-dev python-pip
+
+# INSTALLING ON MAC
+
+Mac OS X versions 10.8 and earlier come with Ruby 1.8, which the current version of Nokogiri no longer supports.  A fix is to install an older version:
+
+    $ sudo gem install nokogiri -v 1.5
+
+# SET INSTALLATION DIRECTORY
+
+You can override the choice of install directory (`~/Local/bin` or `/usr/local/bin`) by setting the `LOCAL_INSTALL_DIR` environment variable.
+
+You can override the choice of man page directory (`~/Local/man` or `/usr/local/share/man`) by setting the `LOCAL_MAN_DIR` environment variable.
+
+# INSTALL AS ROOT
+
+To build as an unprivileged user but install as root:
+
+     $ make build
+     
+     $ sudo make setup
+     
+     $ sudo make install
+
+# PARTIAL INSTALLATION
+
+Installing the compiled executables, scripts, and man pages separately.
+
+    $ make install-build
+
+    $ make install-script
+    
+    $ make install-man
+
+If the build is failing, one can skip the first step and still install the scripts.
+
+# VIRTUALENV AND RBENV
+
+One could probably use ``virtualenv`` and ``rbenv`` to avoid running ``make setup`` as root.  One would need to be in both environments when running the data tools.
+
+# WINDOWS: MINGW
+
+There is no ``/usr/local/bin/`` directory.  Installation will likely fail unless the ``LOCAL_INSTALL_DIR`` and ``LOCAL_MAN_DIR``environment variables are set.  Optionally one can create the directories ``~/Local/bin`` and ``~/Local/man`` and add them to ``PATH`` and ``MANPATH``.
+
+Ruby, RubyGems, Python, and Pip must be installed.
+
+``hexedit`` is a curses application and won't compile under MinGW.
+
+The recommended installation producure is:
+
+    $ make setup
+    
+    $ make install-tawk
+    
+    $ make install-script
+    
+    $ make install-man
+
+# WINDOWS: CYGWIN
+
+``hexedit`` fails to compile under Cygwin for undiagnosed reasons.  It might be possible to compile ``tawk``, but it takes a long time.
+
+Ruby, RubyGems, Python, and Pip must be installed.
+
+The recommended installation procedure is:
+
+    $ make setup
+    
+    $ make install-script
+    
+    $ make install-man
+
+
+% JAR-AWK(1)
+% Clark Grubb
+% May 4, 2014
+
+
+# NAME
+
+jar-awk - read multiline records from a file or standard input and process them with Ruby 
+
+# SYNOPSIS
+
+jar-awk [-t] -l REGEX [-F REGEX] [-b RUBY_SCRIPT] [-e RUBY_SCRIPT] (-f RUBY\_PATH | RUBY\_SCRIPT) [JAR\_INPUT] ...
+
+# DESCRIPTION
+
+`jar-awk` processes multiline records in a file or input stream.  The records are separated by lines which match the REGEX expression specified by the `-l` (`--line-delimiter`) flag.
+
+`jar-awk` processes two formats: `cookie jars` and `record jars`.  These terms from the section on data file formats in the `The Art of Unix Programming`.
+
+In the cookie jar format, the records are just strings of text that can contain new lines.  `jar-awk` sets the variable `$_` to each record in turn.  These cookie jars have nothing to do with browser cookies.
+
+If the `-F` (`--field-delimiter`) flag is used, the input is assumed to be in record jar format.  Each line of the record contains a key-value pair.  The argument of the `-F` flag is a REGEX which is used to split the line in two.  `jar-awk` sets `$_` to a Ruby hash containing the key-value pairs.
+
+The Ruby script can be provided on the command line to do something with `$_` for each record.  Optionally, the `-f` flag can be used to read the Ruby script from a file.
+
+Some cookie jar files and record jar files may put interesting information on the delimiter line.  The match data for the delimiter line is put in the variable `$md`.  If the regular expression contained groups, these are available in `$md[1]`, `$md[2]`, and so on.  The entire matched expression is in `$md[0]`, and what came before and after it is in `$md.pre_match` and `$md.post_match`.
+
+Because `jar-awk` is implemented with `eval` instead of `ruby -e`, `BEGIN` and `END` blocks are not supported.  To specify blocks of Ruby code which execute at the begin and end of execution, use the `-B` (`--BEGIN`) and `-E` (`--END`) flags.
+
+# OPTIONS
+
+-B RUBY\_SCRIPT, \--BEGIN=RUBY\_SCRIPT
+: execute Ruby script provided as argument before processing records
+
+-E RUBY\_SCRIPT, \--END=RUBY\_SCRIPT
+: execute Ruby script provided as argument after processing records
+
+-f PATH, \--file=PATH
+: execute the Ruby script in the file at PATH.
+
+-F REGEX, \--field-delimiter=REGEX
+: the regular expression 
+
+-l REGEX, \--line-delimiter=REGEX
+: a regular expression for identifying the 
+
+-s, \--strict
+: exit with error message and nonzero status when a record line cannot be parsed as a key and value; this only has an effect with the -F flag.
+
+-S, \--silent
+: do not emit an error message when the -F flag is in effect and a record line cannot be parsed as a key and value.
+
+-t, \--trim
+: Trim whitespace off  the edges of records.  Note that when the -F flag is use, whitespace is trimmed off the edges of keys and values by defualt.
+
+-T, \--no-trim
+: When the -F flag is specified, do not trim whitespace off the edges of keys and values.
+
+-Z, \--skip-record-zero
+: If there are lines before the first line which matches the -l REGEX, skip them.  By default they are treated as a record
+
+# EXAMPLES
+
+On Mac OS X, list the sections of the `system_profiler` output:
+
+    system_profiler -detailLevel mini | grep -v '^\s*$' | jar-awk -l '^(\S+):' 'puts $md[1]'
+
+On Mac OS X, extract the `Software` section of the `system_profiler` output:
+
+    system_profiler -detailLevel mini | grep -v '^\s*$' | jar-awk -l '^(\S+):' 'puts $_ if $md[1] == "Software"'
+    
+One Mac OS X, extract the `System Version` from the `Software` section of the `system_profiler` output:
+    
+    system_profiler -detailLevel mini | grep -v '^\s*$' | jar-awk -t -F ':' -l '^(\S+):' 'puts $_["System Version"] if $md[1] == "Software"'
+
+
+# SEE ALSO
+
+`awk` (1)
+
+`csplit` (1)
+
+http://www.catb.org/esr/writings/taoup/html/ch05s02.html
+
+% JOIN-TSV(1)
+% Clark Grubb
+% October 21, 2013
+
+
+# NAME
+
+join-tsv - perform a relation join on two TSV files
+
+# SYNOPSIS
+
+join-tsv --column=NAME [--null=VALUE|--no-null] [--left|--right|--full] TSV\_FILE1 TSV\_FILE2
+
+# DESCRIPTION
+
+Perform a relation join on two TSV files.  The output is written to standard output in TSV format.
+
+`join-tsv` assumes that TSV\_FILE1 and TSV\_FILE2 in accordance with the IANA MIME type specificsation.
+
+`join-tsv` is easier to use than `join` when working with TSV files because it preserves the headers.  It allows specifying the join column by name.  If the join column names differ, the column name if the left (i.e. first) file is used in the output.
+
+`join-tsv` performs the join by reading the smaller file into memory.  `join-tsv` can perform left, right, or full outer joins.
+
+The default null value is the empty string.  It is not used as a join value.  It can be changed to something else with the `--null` flag.  The `--no-null` flag can be used to treat all strings including the empty string as join values.
+
+# OPTIONS
+
+-C NAME, \--column=NAME
+: the name of the join columns if they are the same.  If they differ, use the -L and -R flags.
+
+-L NAME, \--left-column=NAME
+: used to specify the name of the join column in the left (i.e. first) TSV file.
+
+-R, \--right-column
+: used to specify the name of the join column in the right (i.e. second) TSV file.
+
+-f, \--full
+: Perform a full outer join.  Rows with a null join value in TSV\_FILE1 or TSV_FILE2 will be included in the output.  
+
+-l, \--left
+: Perform a left outer join.  Rows with a null join value in TSV\_FILE1 will be included in the output.
+
+-r, \--right
+: Perform a right outer join.  Rows with a null join value in TSV\_FILE2 will be included in the output.
+
+-n VALUE, \--null=VALUE
+: use VALUE as the null value.  The default null value is the empty string.
+
+-N, \--no-null
+: no null value.  The empty string can be used as a join value.
+
+-o, \--outer-null
+: the null value used in outer joins.
+
+# SEE ALSO
+
+`join` (1)
+
+http://www.iana.org/assignments/media-types/text/tab-separated-values
+
+% JSON-AWK(1)
+% Clark Grubb
+% February 17, 2013
+
+
+# NAME
+
+json-awk - read JSON objects from a file or standard input and process them with Ruby 
+
+# SYNOPSIS
+
+json-awk [-j|-t] (-f RUBY\_PATH | RUBY\_SCRIPT) [JSON\_INPUT] ...
+
+# DESCRIPTION
+
+Read input containing one JSON object per line and parse it.  Each parsed object is placed in the global accumulator variable $_ where it can be accessed by the Ruby script.
+
+The Ruby script can be provided on the command line or read from the file RUBY\_PATH.
+
+BEGIN and END blocks can be defined in the manner of `awk` to define Ruby code which executes at the start or end of execution.
+     
+# OPTIONS
+
+-f PATH, \--file=PATH
+: execute the Ruby script in the file at PATH.
+
+-j, \--json
+: after the Ruby script is executed, write the contents of $_ to standard output as JSON.
+
+-t, \--tsv
+: after the Ruby script is executed, write the contents of $_, which is expected to be an Array, to standard output in tab separated values format.
+
+# SEE ALSO
+
+`awk` (1)
+
+http://json.org/
+
+% NORMALIZE-UTF8(1)
+% Clark Grubb
+% February 8, 2014
+
+
+# NAME
+
+normalize-utf8 - convert UTF-8 encoded files or standard input to a normalized form
+
+# SYNOPSIS
+
+normalize-utf8 [--nfc|--nfd|--nfkc|--nfkd] [FILE]
+
+# DESCRIPTION
+
+Put UTF-8 encoded Unicode text into a normalized form.
+
+Unicode contains different character sequences which are
+rendered the same way.  An example is SMALL LETTER C WITH CEDILLA,
+which can be represented as a single character: U+00E7 or as SMALL LETTER C
+followed by COMBINING CEDILLA: U+0063 U+0327.  When
+performing a string comparison, the two sequences should often
+be regarded as identifical.  If the strings being compared have
+been put into normal form, then a simple string comparison can be
+used.
+
+The Unicode standard defines four normalization forms.  NFC (Normal Form C),
+which is the default format used by `normalize-utf8`, favors single character
+representations over multiple character representations containing
+combining marks.  NFC is also called W3C normalization.
+
+Conversely, NFD (Normal Form D) favors multiple character representations
+consisting of a simple character representation followed by a combining mark.  Converting
+a string to NFD is faster because the algorithm for converting a string to NFC starts by
+converting it to NFD.
+
+NFKC and NFKD conflate compatibility composites.  These sequences which are
+visually distinct but semantically the same.  Examples are the ff and ffi ligatures.
+
+
+# OPTIONS
+
+--nfc
+: write input to standard out in Normal Form C
+
+--nfd
+: write input to standard out in Normal Form D
+
+--nfkc
+: write input to standard out in Normal Form KC
+
+--nfkd
+: write input to standard out in Normal Form KD
+
+
+# SEE ALSO
+
+`utf8-viewer` (1)
+
+http://unicode.org/reports/tr15/
+
+http://www.unicode.org/reports/tr36/
+
+% RESERVOIR-SAMPLE(1)
+% Clark Grubb
+% October 13, 2013
+
+# NAME
+
+reservoir-sample - sample lines from file or standard input
+
+# SYNOPSIS
+
+reservoir-sample [-r|--random-seed SEED] (-s NUM|--size=NUM) [FILE]
+
+# DESCRIPTION
+
+Select NUM lines randomly from FILE or standard input.  Each line is equally likely to be chosen.
+
+The script uses reservoir sampling.  It is more efficient than randomly shuffling the file
+with `sort -R` and then taking the first N lines with `head`.
+
+To select a sample size which is proportional to the size of the input, use `awk`:
+
+    awk 'rand() < 0.1'
+
+The script allocates memory for N lines of input.
+
+# OPTIONS
+
+-r SEED, \--random-seed=SEED
+: a seed value to be passed to the random number generator.
+
+-s NUM, \--size=NUM
+: the size of the sample to select
+
+# SEE ALSO
+
+`sort` (1), `awk` (1), `shuf` (1)
+
+https://en.wikipedia.org/wiki/Reservoir_sampling
+
+% SET-DIFF(1)
+% Clark Grubb
+% May 6, 2013
+
+
+# NAME
+
+set-diff - find lines in first file which are not in the second
+
+# SYNOPSIS
+
+set-diff FILE1 FILE2
+
+# DESCRIPTION
+
+List the lines which are in the first file and not in the second.
+
+The lines are output in a sorted order and not necessarily the order of the first file.
+
+If the files are already sorted, it is faster to use `comm -23`.  
+
+`comm -23` gives erroneous results with no warning if the input files are not sorted.
+
+# OPTIONS
+
+None
+
+# SEE ALSO
+
+`comm` (1)
+
+`set-intersect` (1)
+
+% SET-INTERSECT(1)
+% Clark Grubb
+% May 6, 2013
+
+
+# NAME
+
+set-intersect - find lines common to two files
+
+# SYNOPSIS
+
+set-intersect FILE1 FILE2
+
+# DESCRIPTION
+
+List the lines which are in both the first file and the second file.
+
+If the files are already sorted, it is faster to use `comm -12`.
+
+`comm -12` gives erroneous results with no warning if the input files
+are not sorted.
+
+# OPTIONS
+
+None
+
+# SEE ALSO
+
+`comm` (1)
+
+`set-diff` (1)
+
+% TAWK(1)
+% Clark Grubb
+% August 16, 2013
+
+
+# NAME
+
+tawk - version of awk which uses tab character for FS and OFS by default
+
+# SYNOPSIS
+
+See the awk man page.
+
+# DESCRIPTION
+
+A modified version of awk in which FS and OFS default to the tab character
+(ASCII 9).
+
+The version of awk which was modified is mawk.
+
+# OPTIONS
+
+See the awk or mawk man page.
+
+# SEE ALSO
+
+`awk` (1), `mawk` (1)
+
+
+[introduction](#intro) | [encodings](#encodings) | [newlines](#newlines) | [relational formats](#relational-fmt) | [joins](#joins) | [hierarchical formats](#hierarchical-fmt)
+
+<a name="intro"/>
+# INTRODUCTION
+
+The *data tools* come with man pages which can be installed locally or browsed on [GitHub](https://github.com/clarkgrubb/data-tools/tree/master/doc).
+
+The theme of the *data tools* repo is working with data at the command line.  They provide an alternative to importing data into a relational database and manipulating it with SQL.  It is an interesting and sometimes useful fact that `awk`, `sort`, and `join` can be used to implement relational algebra.  Still, building data workflows with command line tools can be frustrated by gaps in the traditional tool set.  The *data tools* repo fills some of those gaps.
+
+Command line tools are composable when the output of one command can be the input of another.  The output can be redirected to a file whose path is passed as an argument, or the commands can be connected by a shell pipe.  Use of a pipe is *tacit programming*: it relieves the programmer of the need to name a file.  Furthermore the byte stream is private to the commands on either side of the pipe.  This accords with the *principle of least knowledge*.  Only tools which read from standard input or write to standard output can participate in a pipeline.  
+
+Tools in a pipeline must agree on the *format* of the data in the byte stream.  To promote interoperability, the *data tools*  favor:
+
+* UTF-8 as character encoding (or 8-bit encoded ASCII)
+* LF as newline
+* TSV format for relational data
+
+When we encounter byte streams in other formats, we invoke *format conversion tools* on them.  The *data tools* repo offers several such tools.
+
+<a name="encodings"/>
+# ENCODINGS
+
+[iconv](#iconv) | [bad bytes](#bad-bytes) | [utf-8](#utf-8) | [unicode](#unicode) | [whitespace](#whitespace)
+
+<a name="iconv"/>
+## iconv
+
+The *data tools* expect and produce UTF-8 encoded data.  Recall that 8-bit encoded ASCII is valid UTF-8.  We can use `iconv` to convert a file in a different encoding:
+
+    $ iconv -t UTF-8 -f UTF-16 foo.utf16.txt > foo.utf8.txt
+    
+To get a list of supported encodings:
+    
+    $ iconv -l
+
+<a name="bad-bytes"/>
+## bad bytes
+
+Not all sequences of bytes are valid UTF-8; the *data tools* throw exceptions when invalid bytes are encountered.  A drastic way to deal with the problem is to strip the invalid bytes:
+
+    $ iconv -c -f UTF-8 -t UTF-8 < INPUT_FILE > OUTPUT_FILE
+
+This command strips all non-ASCII characters:
+
+    $ iconv -c -f UTF-8 -t ASCII < INPUT_FILE > OUTPUT_FILE
+
+Here is a way to find non-ASCII bytes:
+
+    $ grep --color='auto' -P -n "[\x80-\xFF]+"
+
+The `-P` option is not provided by the version of `grep` distributed with Mac OS X.  One can use the `highlight` command in this repo:
+
+    $ highlight '[\x80-\xFF]+'
+
+To find the first occurence of bytes which are not valid UTF-8, use `iconv`:
+
+    $ iconv -f utf-8 -t utf-8 < /bin/ls > /dev/null
+    iconv: illegal input sequence at position 24
+
+The *data tool* `utf8-viewer` will render invalid UTF-8 bytes with black squares.  The black square is itself a Unicode character (U+25A0), so there is ambiguity.  The Unicode points are displayed next to the rendered characters, however, and the point will be U+FFFF for invalid characters.
+
+    $ utf8-viewer /bin/ls
+
+When a file is in an unknown encoding, one can inspect it byte-by-byte.
+`od -b` displays the bytes in octal:
+
+    $ od -b /bin/ls
+
+`od -b` is an unequivocal way to look at the data.  It removes the confusion caused by the character encoding assumed by the display.  On the other hand it is difficult to make sense of octal bytes.
+
+The *data tools* install a version of the editor [hexedit](http://rigaux.org/hexedit.html) to which a [patch](http://www.volkerschatz.com/unix/hexeditpatch.html) supporting aligned search has been applied: `F1` for help, `^S` to search, `^X` to exit.  Emacs key bindings can often be used for movement.  `hexedit` displays the bytes in hexadecimal.
+
+If some of the bytes in a file are ASCII, such as when the encoding is one of the many 8-bit extensions of ASCII, then `od -c` will display the file in an unequivocal yet easier-to-interpret way:
+    
+    $ ruby -e '(0..255).each { |i| print i.chr }' | iconv -f mac -t utf8 | od -c
+    
+`od -c` uses C backslash sequences or octal bytes for non-ASCII and non-printing ASCII characters.  
+
+`cat -te` uses a unique escape sequence for each byte, but unlike `od`, it does not display
+a fixed number of bytes per line; the mapping from input to output is not injective.  Still, since it doesn't introduce line breaks at regular intervals, it may be easier to interpret.  An example:
+
+    $ ruby -e '(0..255).each { |i| print i.chr }' | iconv -f mac -t utf8  | cat -te
+
+`cat -t` renders printable ASCII and newlines; it uses `^` notation for other control characters.  Some versions of `cat -t`
+use Emacs style `M-X` notation for upper 8-bit bytes.  In this case, `X` will be what `cat -t` would have used to render
+the character if the upper bit were zero, with the exception of `^J` being used for newline.
+
+The Ruby interpreter can be pressed into service as a tool for performing base conversion:
+
+    $ ruby -e 'puts "316".to_i(8).to_s(16)'
+    ce
+
+The `bc` calculator can also be used:
+
+    $ echo $'obase=16\n\nibase=8\n316' | bc
+    CE
+
+<a name="utf-8"/>
+## utf-8
+
+The `utf8-viewer` *data tool* provides an easy way to determine the Unicode points of a sequence of UTF-8 bytes.
+
+    $ utf8-viewer foo.txt
+   
+If you want to see the character for a Unicode point, the following works in `zsh`:
+
+    $ echo $'\u03bb'
+     
+If you are using a different shell but have access to `python` or `ruby`:
+     
+    $ python -c 'print(u"\u03bb")'
+     
+    $ ruby -e 'puts "\u03bb"'
+ 
+<a name="unicode"/>
+## unicode
+
+How to lookup a Unicode point:
+
+    $ curl ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt > /tmp/UnicodeData.txt
+    
+    $ awk -F';' '$1 == "03BB"' /tmp/UnicodeData.txt 
+    03BB;GREEK SMALL LETTER LAMDA;Ll;0;L;;;;;N;GREEK SMALL LETTER LAMBDA;;039B;;039B
+
+`UnicodeData.txt` is a useful file, and possibly it deserves a dedicated path on your file system.
+
+The first three fields are "Point", "Name", and "[General Category](http://www.unicode.org/reports/tr44/#General_Category_Values)".  
+
+Unicode contains all the characters one is likely to need, but writing code which handles the entire Unicode character
+set correctly is sometimes impractical.  One might opt to reject characters which are not needed instead.  A character
+frequency table such as used when breaking ciphers is useful in this context:
+
+    $ cat /etc/passwd |  ruby -ne '$_.split("").each { |ch| puts "#{ch} #{ch.ord}" }' | sort | uniq -c | sort -nr
+
+
+Unicode contains different character sequences which are
+rendered the same way.  An example is SMALL LETTER C WITH CEDILLA,
+which can be represented as a single character: U+00E7 or as SMALL LETTER C
+followed by COMBINING CEDILLA: U+0063 U+0327.
+
+When performing a string comparison, the two sequences should often
+be regarded as identifical.  The easiest way to accomplish this is to put
+the strings to be compared into a normalized form.  The Unicode standard defines
+[four normal forms](http://unicode.org/reports/tr15/).  The *data tool* `normalize-utf8` can be used to put a UTF-8 encoded file or stream into any of them.
+
+<a name="whitespace"/>
+## whitespace
+
+How to get the non-control character whitespace characters:
+
+    $ curl ftp://ftp.unicode.org/Public/UNIDATA/UnicodeData.txt > /tmp/UnicodeData.txt
+
+    $ awk -F';' '$3 ~ /^Z/ {print $1, $2}' /tmp/UnicodeData.txt
+
+    0020 SPACE
+    00A0 NO-BREAK SPACE
+    1680 OGHAM SPACE MARK
+    180E MONGOLIAN VOWEL SEPARATOR
+    2000 EN QUAD
+    2001 EM QUAD
+    2002 EN SPACE
+    2003 EM SPACE
+    2004 THREE-PER-EM SPACE
+    2005 FOUR-PER-EM SPACE
+    2006 SIX-PER-EM SPACE
+    2007 FIGURE SPACE
+    2008 PUNCTUATION SPACE
+    2009 THIN SPACE
+    200A HAIR SPACE
+    2028 LINE SEPARATOR
+    2029 PARAGRAPH SEPARATOR
+    202F NARROW NO-BREAK SPACE
+    205F MEDIUM MATHEMATICAL SPACE
+    3000 IDEOGRAPHIC SPACE
+
+Line feed, carriage return, and horizontal tab are not in the list because all ASCII control characters are assigned a General Category value of "Cc".
+
+<a name="newlines"/>
+# NEWLINES
+
+[eol markers](#eol-markers) | [set operations](#set-op) | [highlighting](#highlighting) | [sequences](#seq) | [sampling](#sampling)
+
+<a name="eol-markers"/>
+## eol markers
+
+The *data tools* interpret LF, CRLF, or CR as end-of-line markers in input.  The *data tools* use LF as the end-of-line marker in output.  To convert LF line endings to CRLF or CR line endings:
+
+    $sed 's/$'"/$(echo \\\r)/"
+    
+    $ tr '\n' '\r'
+
+To convert CRLF or CR line endings to LF line endings:
+
+    $ tr -d '\r'
+    
+    $ tr '\r' '\n'
+
+For LF to CRLF conversions, another option is the following tools (which might need to be installed, see if your package manager has `dos2unix`).  These tools take paths as arguments and modify the files in place:
+
+    dos2unix
+    unix2dos
+   
+The Unicode Consortium provides a [complete list](http://www.unicode.org/standard/reports/tr13/tr13-5.html) of Unicode characters that might be treated as EOL markers.  In a line-delimited file format these characters should be escaped or removed.
+   
+<a name="set-op"/>
+## set operations
+
+*Data tools* are provided for finding the lines which two files share in common, or which are exclusive to the first file:
+
+    $ set-intersect FILE1 FILE2
+    $ set-diff FILE1 FILE2
+    
+The `cat` command can be used to find the union of two files, with an optional `sort -u` to remove duplicate lines:
+    
+    $ cat FILE1 FILE2 | sort -u
+
+<a name="highlighting"/>
+## highlighting
+
+When inspecting files at the command line, `grep` and `less` are invaluable.  Their man pages reward careful study.
+
+`grep` can highlight the search pattern in red:
+
+    $ grep --color=always root /etc/passwd
+    
+The `highlight` command does the same thing, except that it also prints lines which don't match
+the pattern.  Also it supports multiple patterns, each with its own color:
+    
+    $ highlight --red root --green daemon --blue /bin/bash /etc/passwd
+
+Both `grep` and `highlight` use [ANSI Escapes](http://www.ecma-international.org/publications/standards/Ecma-048.htm).  If you are paging through the output, use `less -R` to render the escape sequences correctly.
+
+<a name="seq"/>
+## sequences
+
+The `seq` command can generate a newline delimited arithmetic sequence:
+
+    $ seq 1 3
+    1
+    2
+    3
+
+Zero-padded:
+
+    $ seq -w 08 11
+    08
+    09
+    10
+    11
+    
+Step values other than one:
+
+    $ seq 1 .5 2
+    1
+    1.5
+    2
+
+The `seq` is useful in conjunction with a shell `for` loop.  This will create a hundred empty files:
+
+    $ for i in $(seq -w 1 100); do touch foo.$i; done
+
+It is also useful at times to be able to iterate through a sequence of dates.  The *data tools* provide `date-seq` for this.  For example, suppose that you wanted to fetch a set of URLs which contained a date:
+
+    $ for date in $(date-seq --format='%Y/%m/%d' 20130101 20130131)
+    > do mkdir -p $date
+    > curl "http://blog.foo.com/${date}" > ${date}/index.html
+    > done
+
+`date-seq` can iterate though years, months, days, hours, minutes, or seconds.  When iterating through days, the `--weekdays` flag can be used to specify days of the week.  See the [man page](https://github.com/clarkgrubb/data-tools/blob/master/doc/date-seq.1.md) for details.
+
+<a name="sampling"/>
+## sampling
+
+It is desirable at times to take a random sample of lines from a file.  Simply taking the first *N* lines often does not yield a representative sample.  Instead one should shuffle the file first:
+
+    $ sort -R foo.txt | head -3
+
+On large files, randomly shuffling a file is slow.  Also, the `sort` installed on Mac OS X does not have the `-R` flag.  One can use `awk` to select a random percentage of lines from a file:
+    
+    $ awk 'rand() < 0.01' foo.txt
+    
+This is faster than shuffling the file, but does not produce a precise sample size, even if you know the number of lines in the file.
+    
+An efficient and unbiased way to select an exact number of lines from a file is to use reservoir sampling.  The *data tool* `reservoir-sample` implements it:
+
+    $ reservoir-sample --size 3 < /etc/passwd
+    
+<a name="relational-fmt"/>
+# RELATIONAL FORMATS
+
+[tsv](#tsv) | [csv](#csv) | [json](#relational-json) | [xlsx](#xlsx)
+
+As mentioned previously, much that can be done with a SQL SELECT statement in a database can also be done with `awk`, `sort`, and `join`.  If you are not familiar with the commands, consider reading the man pages.
+
+Relational data can be stored in flat files in a variety of ways.  On Unix, the `/etc/passwd` file stores records one per line, with colons (:) separating the seven fields.  We can use `awk` to query the file.
+
+Get the root entry from `/etc/passwd`:
+
+    $ awk -F: '$1 == "root"' /etc/passwd
+
+Count the number of users by their login shell:
+
+    $ awk -F: '{cnt[$7] += 1} END {for (sh in cnt) print sh, cnt[sh]}' /etc/passwd
+
+The `/etc/passwd` file format, though venerable, has an ad hoc flavor.  In the following sections we consider four formats which are widely used for relational data.
+
+<a name="tsv"/>
+## tsv
+
+The IANA, which is responsible for registering MIME types, has a [specification for TSV](http://www.iana.org/assignments/media-types/text/tab-separated-values).  Records are newline delimited and fields are tab-delimited.  There is no mechanism for escaping or quoting tabs and newlines.  Despite this limitation, we prefer to convert the other formats to TSV because `awk`, `sort`, and `join` cannot easily manipulate the other formats.
+
+Tabs receive criticism, and deservedly, because they are indistinguishable as normally rendered from spaces.   Trailing spaces in fields can be hidden by tabs, causing joins to mysteriously fail, for example.  `cat -te` can be used to expose trailing spaces.  The *data tool* `trim-tsv` can be used to clean up a TSV file.
+
+The fact that tabs are visually identical to spaces means that in many applications they *can* be replaced by spaces.  This makes tabs available for delimiting fields.  One could use a non-printing character, but most applications do not display non-printing characters well.
+
+Here is how to align the columns of a tab delimited file:
+
+    $ tr ':' '\t' < /etc/passwd | column -t -s $'\t'
+
+The default field separator for `awk` is whitespace.  The correct way to use `awk` on a TSV is like this:
+
+    $ awk 'BEGIN {FS="\t"; OFS="\t"} ...'
+
+This is an error-prone situation, because sometimes the default behavior works correctly on a TSV file.  Because specifying the field separators is a bit tedious, the repo contains a `tawk` command which uses tabs by default:
+
+    $ tawk '...'
+
+The IANA spec says that a TSV file must have a header.  Self-describing data is a good practice.  On the other hand the header is at times inconvenient—when sorting the file, for example.  The repo provides the `header-sort` command to sort a file while keeping the header in place.  When we must remove the header, we label the file with a `.tab` suffix instead of a `.tsv` suffix.
+
+Even if a file has a header, `awk` scripts must refer to columns by number instead of name.  The following code displays the header names with their numbers:
+
+    $ head -1 foo.tsv | tr '\t' '\n' | nl
+
+Python and similar languages have a `split` method which is ideal for parsing a TSV file:
+
+    with open(path) as f:
+        header = f.readline().rstrip('\r\n').split('\t')
+        for line in f:
+            fields = line.rstrip('\r\n').split('\t')
+                ...
+
+CSV libraries are sometimes used to read TSV files.  This works when the delimiter can be changed from a comma to a tab.  The practice is incorrect if the library does not also allow the quote character to be set to none.
+
+The `join` method in Python and similar languages can be used to generate a TSV file:
+
+    def tsv_strip(field):
+        unicode(field).translate(None, u"\f\n\r\t\v\x85\u2028\u2029")
+
+    with open(path, 'w') as f:
+        for row in rows:
+            f.write(u'\t'.join([tsv_strip(field) for field in row]))
+            f.write(u'\n')
+
+How to export data from a PostgreSQL table in TSV format:
+
+    $ psql
+    > \a
+    Output format is unaligned.
+    > \pset fieldsep '\t'
+    Field separator is "	".
+    > \pset footer off
+    Default footer is off.
+    > sums.tsv
+    > select 1 + 1 as sum1, 2 + 2 as sum2;
+    sum1	sum2
+    2	4
+
+A non-interactive example:
+
+    echo 'select 1 + 1 as sum1, 2 + 2 as sum2' | psql -A -F$'\t' -P footer=off > sums.tsv
+
+Replacing any tabs and end-of-line characters in column `foo` with spaces:
+
+    select translate(foo, chr(9) || chr(10) || chr(11) || chr(12) || chr(13) || chr(133) || chr(8232) || chr(8233), '        ')
+
+<a name="csv"/>
+## csv
+
+The CSV format is described in [RFC 4180](http://www.ietf.org/rfc/rfc4180.txt).  
+
+Note that CSV files do not necessarily have headers.  This is perhaps because CSV files are an export format for spreadsheets.
+
+RFC 4180 defines the EOL marker as CRLF.  The *data tools* use LF as the EOL marker, however.  If you want to conform to the spec, run the output through `unix2dos`.  Also note that the final CRLF is optional.
+
+CSV provides a mechanism for quoting commas and EOL markers.  Double quotes are used, and double quotes themselves are escaped by doubling them. 
+
+The *data tools* repo provides utilities for converting between TSV (which can be manipulated by `tawk`) and CSV:
+
+    csv-to-tsv
+    tsv-to-cvs
+
+Converting from CSV to TSV is problematic if the fields contain tabs or newlines.  By default `csv-to-tsv` will fail if it encounters any.  There are flags to tell `csv-to-tsv` to strip, backslash escape, replace with space, or replace with space and squeeze.   See the [man page](https://github.com/clarkgrubb/data-tools/blob/master/doc/csv-to-tsv.1.md). 
+
+The philosophy of the *data tools* repo is to convert data to TSV. If you would prefer to work with CSV directly, consider downloading [csvkit](http://csvkit.readthedocs.org/en/latest/).
+
+<a name="relational-json"/>
+## json
+
+JSON ([json.org](http://json.org/)) is strictly speaking a hierarchical format, but MongoDB uses it for relational (or near relational) data.  The MongoDB export format is a file of serialized JSON objects, one per line.  Whitespace can be added or removed anywhere to a serialized JSON object without changing the data the JSON object represents (except inside strings, and newlines must be escaped in strings).  Thus it is always possible to write a JSON object on a single line.
+
+The following *data tools* are provided to convert CSV or TSV files to the MongoDB export format.  In the case of `csv-to-json`, the CSV file must have a header:
+
+    csv-to-json
+    tsv-to-json
+
+`python -mjson.tool` can be used to pretty print JSON and test whether the JSON is well formed.
+
+    $ echo '{"foo":1, "bar": 2, "baz": [1,2,3]}' | python -mjson.tool
+    {
+        "bar": 2, 
+        "baz": [
+            1, 
+            2, 
+            3
+        ], 
+        "foo": 1
+    }
+
+The *data tools* utility `json-awk` can be used to convert JSON to TSV.
+
+    $ json-awk 'BEGIN{ puts ["foo", "bar", "baz"].join("\t")}; puts [$_["foo"], $_["bar"], $_["baz"]].join("\t")' < dump.json
+
+The script passed to `json-awk` is Ruby.  The JSON is parsed, and the data is stored in the `$_` variable.  If the input is a MongoDB style export with one JSON object per line, then `json-awk` iterates over the file in an awk-like manner, setting the `$_` variable to each object in turn.
+
+<a name="xlsx"/>
+## xlsx
+
+XLSX is the default format used by Excel since 2007.  Other spreadsheet applications can read it.
+
+XLSX is a ZIP archive of mostly XML files.  The `unzip -l` command can be used to list the contents of an XLSX file.
+
+Excel provides the ability to export data in a CSV or TSV format.  One exports by choosing the format when saving the workbook.  The CSV formats all use 8-bit encodings and are not recommended since Excel spreadsheets can contain Unicode data.  To export as TSV, look for the "Unicode Text" or "UTF-16 Unicode Text" option.  The file suffix will be `.txt`.  The character encoding is UTF-16 and can be converted using `iconv`:
+
+    $ iconv -f utf-16 -t utf-8 < foo.txt > foo.tsv
+
+Using Excel to export the data requires having Excel, which is not free.  Also Excel must be run in a desktop environment and is difficult to automate.  The *data tools* include the script `xslx-to-csv` so the operation can be performed at the command line.  To extract the sheets from a workbook as CSV files, run this:
+
+    $ xlsx-to-csv WORKBOOK.xlsx OUTPUT_DIR
+    
+The directory OUTPUT_DIR will be created and must not already exist.
+
+One can list the sheet names and extract a single sheet to a CSV file:
+
+    $ xlsx-to-csv --list WORKBOOK.xlsx
+    
+    $ xlsx-to-csv --sheet=SHEET WORKBOOK.xlsx SHEET.csv
+
+By default dates are written in `%Y-%m-%dT%H:%M:%S` format.  This can be change using the `--date-format` flag.  See `man strftime` for instructions on how to specify a date format.
+
+The tool `xls-to-csv` is available for converting the older (pre 2007) Excel spreadsheet to CSV.  It has the same interface as `xlsx-to-csv`.
+
+The tool `csv-to-xlsx` is available for creating XLSX workbooks.  Each CSV file on the command line becomes a worksheet in the workbook.  The worksheet names are derived from the CSV file names; see the man page for details.
+
+<a name="joins"/>
+# JOINS
+
+[tab](#join-tab) | [tsv](#join-tsv) | [database](#join-database) | [r](#join-r) | [pandas](#join-pandas)
+
+<a name="join-tab"/>
+## tab
+
+To illustrate joining at the command line we create some tab delimited files:
+
+    $ grep -v '^#' /etc/passwd | tr ':' '\t' > /tmp/pw.tab
+    
+    $ grep -v '^#' /etc/group | tr ':' '\t' > /tmp/grp.tab
+
+Here is an example of using `sort` and `join` to join by group id:
+
+    $ sort -t $'\t' -k 4,4 /tmp/pw.tab > /tmp/pw.sort.tab
+    
+    $ sort -t $'\t' -k 3,3 /tmp/grp.tab > /tmp/grp.sort.tab
+
+    $ join -t $'\t' -1 4 -2 3 /tmp/pw.sort.tab /tmp/grp.sort.tab
+
+This is tedious because (1) each file must be sorted by the join column, (2) the field delimiter must be specified for each invocation of `sort` and `join`, and (3) the join column index must be determined and specified.
+
+<a name="join-tsv"/>
+## tsv
+
+`sort` and `join` don't handle files with headers correctly.  Since TSV files have headers, the *data tools* include a `join-tsv` command.
+
+To illustrate using `join-tsv` let's create some TSV files:
+
+    $ ( echo $'name\tpw\tuid\tgid\tgecos\thome\tshell';  grep -v '^#' /etc/passwd | tr ':' '\t' ) > /tmp/pw.tsv
+    
+    $ ( echo $'name\tpw\tgid\tlist';  grep -v '^#' /etc/group | tr ':' '\t' ) > /tmp/grp.tsv
+
+If the join column has the same name in both files, it can be specified with the `-c` or `--column` flag:
+
+    $ join-tsv --column=gid /tmp/pw.tsv /tmp/grp.tsv
+
+The output is in TSV format, and in particular it has a header.  The order of columns is (1) join column, (2) left file columns other than the join column, (3) right file columns other than the join column.  If the join column has different names in the two files, the left name is used in the output.
+
+`join-tsv` reads the smaller of the two files into memory.
+
+`join-tsv` treats an empty string as the null value by default.  It can perform left, right, or full outer joins.  See the  [man page](https://github.com/clarkgrubb/data-tools/blob/master/doc/join-tsv.1.md) for details.
+ 
+<a name="join-database"/>
+## database
+
+Using SQLite to perform a join:
+
+    $ sqlite3
+    
+    > create table pw ( name text, pw text, uid int, gid int, gecos text, home text, shell text );
+    
+    > create table grp ( name text, pw text, gid int, list text );
+    
+    > .separator \t
+    
+    > .import /tmp/pw.tab pw
+    
+    > .import /tmp/grp.tab grp
+    
+    > .mode tabs
+    
+    > .output /tmp/pw_grp.tab
+    
+    > select * from pw join grp on pw.gid = grp.gid;
+
+<a name="join-r"/>
+## r
+
+Using R to perform a join:
+
+    $ /usr/bin/r
+    
+    > pw = read.delim('/tmp/pw.tsv', quote='')
+    
+    > grp = read.delim('/tmp/grp.tsv', quote='')
+
+    > j = merge(pw, grp, by.x='gid', by.y='gid')
+
+    > write.table(j, '/tmp/pw_grp.tsv', row.names=F, sep='\t', quote=F)
+
+<a name="join-pandas"/>
+## pandas
+
+Using the Python library *pandas* to perform a join:
+
+    $ python
+    
+    > import pandas as pd
+    
+    > pw = pd.read_table('/tmp/pw.tsv')
+    
+    > grp = pd.read_table('/tmp/grp.tsv')
+    
+    > j = pd.merge(pw, grp, left_on='gid', right_on='gid')
+    
+    > j.to_csv('/tmp/pw_grp.tsv', sep='\t', index=False)
+
+<a name="hierarchical-fmt"/>
+# HIERARCHICAL FORMATS
+
+Hierarchical data can be stored in JSON, which we discussed above.
+
+## xml and html
+
+To check whether an XML file is well-formed, use:
+
+    $ xmllint FILE.xml
+
+To pretty-print XML:
+
+    $ xmllint --format FILE.xml
+
+The *data tools* include a tool called `dom-awk` for using XPATH or CSS selectors to extract data from an XML or HTML file.  Here is an example of getting the links from a web page:
+
+    $ curl www.google.com | dom-awk '$_.xpath("//a").each {|o| puts o["href"] }'
+
+
+% TRIM-TSV(1)
+% Clark Grubb
+% September 25, 2013
+
+
+# NAME
+
+trim-tsv - trim whitespace from fields in a tab delimited file
+
+# SYNOPSIS
+
+trim-tsv [TSV_FILE]
+
+# DESCRIPTION
+
+Trim whitespace from fields in a tab delimited file.  If no path is specified on the command line, the tool reads from standard input.
+
+# OPTIONS
+
+none
+
+# SEE ALSO
+
+`tawk` (1)
+
+% TSV-TO-CSV(1)
+% Clark Grubb
+% February 16, 2013
+
+
+# NAME
+
+tsv-to-csv - convert TSV to CSV
+
+# SYNOPSIS
+
+tsv-to-csv OPTIONS [TSV_FILE]
+
+# DESCRIPTION
+
+Read a TSV file from file specified on the command line or standard input and write the corresponding CSV file to standard output.
+
+In the TSV format fields are delimited by tabs and records are terminated by an end-of-line marker.
+
+There is no mechanism for quoting tabs or newlines, and by default `csv-to-tsv` will fail if they occur in the fields of the CSV file.  
+
+# OPTIONS
+
+-d DELIMITER, \--delimiter=DELIMITER
+: Used to read CSV files which use DELIMITER to separate fields instead of a comma.
+
+-q QUOTECHAR, \--quotechar=QUOTECHAR
+: Used to read CSV files which use QUOTECHAR to quote fields instead of double quotes.
+
+-u, \--unescape
+: Interpret the following backslash sequences when encountered in the data: \n, \r, \t, \\.
+
+
+# SEE ALSO
+
+`csv-to-tsv` (1)
+
+http://www.ietf.org/rfc/rfc4180.txt
+
+http://www.iana.org/assignments/media-types/text/tab-separated-values
+
+% TSV-TO-JSON(1)
+% Clark Grubb
+% June 4, 2013
+
+
+# NAME
+
+tsv-to-json - convert TSV to JSON
+
+# SYNOPSIS
+
+tsv-to-json OPTIONS [TSV_FILE]
+
+# DESCRIPTION
+
+Read a TSV file from file specified on the command line or standard input and write the corresponding JSON to standard output.
+
+Each row of the JSON output contains a serialized JSON object.  The values of the object come from the corresponding row of the CSV file, and the header is used fo the keys.
+
+# OPTIONS
+
+None
+
+# SEE ALSO
+
+`csv-to-json` (1), `json-awk` (1)
+
+http://www.iana.org/assignments/media-types/text/tab-separated-values
+
+http://json.org
+
+% UNDERMONGO(1)
+% Clark Grubb
+% May 5, 2014
+
+# NAME
+
+undermongo - a mongo shell wrapper which loads underscore.js
+
+# SYNOPSIS
+
+Same as for `mongo`.
+
+# DESCRIPTION
+
+`underscore.js` will be downloaded.  `mongo` must already be installed.  
+
+Loading `underscore.js` makes additional functions available as attributess
+of the underscore variable; e.g. `_.keys()`, `_.map()`.  See the `underscore.js`
+docs for a complete list.
+
+# OPTIONS
+
+Same as for `mongo`.
+
+# SEE ALSO
+
+http://docs.mongodb.org/manual/
+
+http://underscorejs.org/
+
+
+% UTF8-VIEWER(1)
+% Clark Grubb
+% May 26, 2013
+
+
+# NAME
+
+utf8-viewer - display Unicode points and optionally names of UTF-8 encoded file
+
+# SYNOPSIS
+
+utf8-viewer [-b|-c|-n] [-w NUM] [FILE]
+
+utf8-viewer [-b|-c|-n] -a BYTE ...
+
+# DESCRIPTION
+
+Convert UTF-8 to Unicode.  The Unicode points are hex digits.  The 
+UTF-8 bytes are read from a file, or standard input if no file is specified.
+By default eight characters are displayed per line.  The
+characters are rendered on the left and the Unicode points are on the right.
+
+With the -a flag each UTF-8 byte is specified as an argument on the
+command line. The format of the bytes can be binary,
+octal, decimal, or hex.  The prefixes '0b', '0x', and '0' must be
+used to indicate binary, hex, and octal bytes, respectively.  Decimal
+bytes must not have a leading zero.
+
+# OPTIONS
+
+-a, \--arg
+: read the UTF-8 bytes from the command line.  BUG: this flag doesn't work with Ruby 1.8
+
+-b, \--byte-offset
+: display the offset in bytes of the leftmost character on the row.
+
+-c, \--char-offset
+: display the offset in characters of the leftmost character on the row.
+
+-i, \--invalid-char
+: Unicode point of the character to use for invalid bytes.  The default is U+25A0 "BLACK SQUARE".  Has no effect unless the -r flag is also used.
+
+-n, \--name
+: use the Internet to lookup the character name for the Unicode code point.  This implies a width of 1.
+
+\--no-render
+: don't display the characters in addition to the Unicode points.
+
+-u, \--unprintable-char
+: Unicode point of the character to use for unprintable characters.  The default is U+25A1 "WHITE SQUARE".  Has no effect unless the -r flag is also used.
+
+-w NUM, \--width NUM
+: number of characters to display on each row.  Default is 8.
+
+# EXIT STATUS
+
+0
+: no invalid UTF-8 byte sequences
+
+1
+: invalid command line arguments
+
+2
+: invalid UTF-8 byte sequences
+
+# EXAMPLES
+
+How to display the old Mac Roman character set:
+
+    $ ruby -e '(0..255).each { |i| print i.chr }' | iconv -f mac -t utf8 | utf8-viewer
+
+How to display Code Page 437 used by the original IBM PC:
+
+    $ ruby -e '(0..255).each { |i| print i.chr }' | iconv -f cp437 -t utf8 | utf8-viewer
+
+How to display Code Page 1252, also called Windows 1252:
+
+    $ ruby -e '(0..255).each { |i| print i.chr }' | iconv --byte-subst=' ' -f ms-ansi -t utf8 | utf8-viewer
+
+How to display the entire Basic Multilingual Plane:
+
+    $ ruby -e '(0..0xfff).each { |i| print [i].pack("U") }' | utf8-viewer
+
+If you need to convert a Unicode code point to UTF-8 bytes, the following
+will work when using the `zsh` shell:
+
+    $ echo -n '\u2028' | od -b
+
+# SEE ALSO
+
+`od` (1), `hexdump` (1), `hexedit` (1)
+
+% XLSX-TO-CSV(1)
+% Clark Grubb
+% May 4, 2013
+
+# NAME
+
+xlsx-to-csv - convert .xlsx to .csv
+
+# SYNOPSIS
+
+    xlsx-to-csv XLSX\_FILE OUTPUT_DIR
+    xlsx-to-csv --sheet=SHEET XLSX\_FILE [OUTPUT\_FILE]
+    xlsx-to-csv --list XLSX\_FILE
+
+# DESCRIPTION
+
+Read a .xlsx file and create a .csv file in DIRECTORY for each worksheet.
+
+DIRECTORY must not already exist.
+
+Output is UTF-8 encoded.
+
+.xlsx files are the format used by Excel since 2007.  The .xlsx file format defined by ECMA-376.  An .xlsx file is a ZIP archive of a directory containing XML documents.  The `unzip -l` command can be used to list the contents of a ZIP archive and hence an .xlsx file.
+
+`xlsx-to-csv` also works on .xls files which were used by Excel before 2007.
+
+The tool can easily take a minute or more to process a large (~100MB) workbook.  Unfortunately, it takes about this long just to list the sheet names with the `--list` flag.
+Hence it is more efficient to extract all of the sheets from a large workbook even if only one of the sheets is needed.
+
+# OPTIONS
+
+--list
+    : list the sheets in XLSX\_FILE
+    
+--sheet
+    : only convert SHEET to a .csv file.
+
+--date-format=STRFTIME_FMT
+    : a `strftime` style format to be used for Excel dates.  The default is the ISO 8601 format: '%Y-%m-%dT%H:%M:%S'.
+
+# SEE ALSO
+
+`csv-to-tsv` (1), `strftime` (3)
+
+http://www.ecma-international.org/publications/standards/Ecma-376.htm
+             
+
+[summary](#summary) | [setup](#setup) | [how to run](#how-to-run)
+
+<a name="summary"/>
+# SUMMARY
+
+Command line tools for data extraction, data manipulation, and file format conversion.
+
+This page describe the tools in brief; the [tour](https://github.com/clarkgrubb/data-tools/blob/master/doc/TOUR.md) describes them in detail.
+
+    counting-sort      sort a file using counting sort
+
+    csv-to-json        convert CSV to JSON
+
+    csv-to-tsv         convert CSV to TSV
+
+    csv-to-xlsx        convert CSV files to XLSX worksheets
+
+    date-seq           create a sequence of dates
+
+    dom-awk            read HTML or XML into DOM object and process it with Ruby
+
+    header-sort        sort file, keeping header in place
+
+    hexedit            edit a binary file
+
+    highlight          highlight text matching REGEX
+
+    jar-awk            process multiline records (i.e record jars) with Ruby
+
+    join-tsv           perform a relation join on two TSV files
+
+    json-awk           read JSON objects from standard input and process them with Ruby
+
+    normalize-utf8     write UTF-8 encoded input to standard out in normalized form
+
+    reservoir-sample   select N lines from standard input randomly
+
+    set-diff           find lines in first file which are not in the second
+
+    set-intersect      find lines common to two files
+    
+    tawk               awk, but uses tabs for FS and OFS by default
+
+    trim-tsv           trim whitespace from fields of TSV file
+    
+    tsv-to-csv         convert TSV to CSV
+
+    tsv-to-json        convert TSV to JSON
+
+    undermongo         mongo wrapper which loads underscore.js
+
+    utf8-viewer        display Unicode points and optionally names of UTF-8 encoded file
+    
+    xls-to-csv         convert XLS to CSV
+    
+    xlsx-to-csv        convert XLSX to CSV
+
+<a name="setup"/>
+# SETUP
+
+To install the necessary Ruby gems and Python packages:
+
+    $ sudo make setup
+
+The setup task assumes that `pip` is installed on your system.
+
+To put the *data tools* and man pages in your path:
+
+    $ make install
+
+It must be run with permission to create files in the install directory as it creates symlinks to the *data tools* repository.
+
+If you have special installation needs, maybe they are covered [here](https://github.com/clarkgrubb/data-tools/blob/master/doc/INSTALL.md).
+
+<a name="how-to-run"/>
+# HOW TO RUN
+
+    counting-sort      [FILE]
+
+    csv-to-json        [-d DELIMITER] [-q QUOTECHAR] [CSV_FILE]
+    
+    csv-to-tsv         [-e|-x|-r[z]] [CSV_FILE]
+
+    csv-to-xlsx        -o XLSX_FILE CSV_FILE ...
+
+    date-seq           [--format=FMT] [--weekdays=DAY[,DAY]...] YYYY[MM[DD[HH]]] YYYY[MM[DD[HH]]]
+
+    dom-awk            [-x|-h] (-f SCRIPT_FILE | SCRIPT) [HTML_OR_XML_FILE]
+
+    header-sort        [OPTIONS] FILE
+
+    hexedit            [-m|-s] FILE
+
+    highlight          REGEX [FILE]
+    
+    highlight          (--red|--green|--yellow|--blue|--magenta|--cyan)=REGEX ... [FILE]
+
+    jar-awk            -l REGEX [-F REGEX] [(-B|-E) SCRIPT] ... (-f SCRIPT_FILE | SCRIPT) [JAR_FILE] ...
+
+    join-tsv           -c NAME [-l|-r|-f] [-n VALUE] TSV_FILE1 TSV_FILE2
+
+    json-awk           [-j|-t] (-f SCRIPT_FILE | SCRIPT) [JSON_FILE] ...
+
+    normalize-utf8     [--nfc|--nfd|--nfkc|--nfkd] [FILE]
+
+    reservoir-sample   [-r SEED] -s NUM [FILE]
+
+    set-diff           FILE1 FILE2
+
+    set-intersect      FILE1 FILE2
+
+    trim-tsv           [TSV_FILE]
+
+    tsv-to-csv         [-d DELIMITER] [-q QUOTECHAR] [-u] [TSV_FILE]
+
+    tsv-to-json        [TSV_FILE]
+
+    undermongo         <options> [DB_ADDRESS]
+
+    utf8-viewer        [-b|-c|-n] [-w NUM] [FILE]
+
+    utf8-viewer        [-b|-c|-n] -a BYTE ...
+
+    xls-to-csv         <same as xlsx-to-csv>
+
+    xlsx-to-csv        [--date-format=DATE_FMT] XLSX_FILE DIRECTORY
+
+    xlsx-to-csv        [--date-format=DATE_FMT] --sheet=SHEET XLSX_FILE [OUTPUT_FILE]
+    
+    xlsx-to-csv        --list XLSX_FILE
+
+# SUMMARY
+
+Build `hexedit` and apply a patch which supports aligned search.
+
+* http://rigaux.org/hexedit.html
+* http://www.volkerschatz.com/unix/hexeditpatch.html
+
+# HOW TO RUN
+
+    $ make
+
+    $ sudo make install
+
+On Cygwin:
+
+    $ make cygwin.build
+
+    $ make install
+
+# SUMMARY
+
+A patched version of `mawk` called `tawk` which
+by default sets FS and OFS to horizontal tab
+(ASCII 9).
+
+# TODO
+
+* error if fields not all same length (--assert-number-of-fields[=NUM] -a[=NUM])
+* ability to trim all fields of whitespace (--trim -t)
+

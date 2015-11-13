@@ -1,0 +1,1189 @@
+Bootstrap
+=========
+
+Twitter's [Bootstrap framework](http://twitter.github.com/bootstrap/) is
+an awesome resource to get a MVP-type site up and running.
+Unfortunately, many of the sites made with Bootstrap don't capitalize on
+the `less` files included in the [Github
+project](http://github.com/twitter/bootstrap) for customizing the
+default style and colors.
+
+Obviously, the best way to learn all about the niceties and proper usage
+of Bootstrap is either [the documentation](http://twitter.github.com/bootstrap)
+(which is a living example of best practices -- it's built with
+Bootstrap) or the [code on Github](http://github.com/twitter/bootstrap).
+This skillshare doesn't aim to replace either of those. This is just a
+handy guide of heuristics and tips for how I go about building quick
+websites.
+
+I do want to pass off one piece of advice before moving on to other
+things, though -- the best way to learn Bootstrap, in my opinion, is to
+**make a ton of crappy sites**. Normally once you've made three or four
+crappy sites, Bootstrap will fit in pretty nicely with your workflow.
+Also, those first three or four might not be the best-looking sites --
+hence the emphasis on crappy.
+
+### Alternatives
+
+As with anything in front-end development, there are tons of
+alternatives to the things mentioned here.
+[Foundation](http://foundation.zurb.com) is one of the most well-known
+alternatives to Bootstrap, and both [Sass](http://sass-lang.com/) and
+[Stylus](http://learnboost.github.com/stylus/) are alternatives to
+[Less](http://lesscss.org).
+
+However, none of those will be covered. This skillshare is less about
+the possibilities of creating quick websites and will be more about the
+particular workflow I use.
+
+
+Installation
+------------
+
+Boring things first. The easiest way to get started with Bootstrap for
+those who don't like the command line and/or Git is by [downloading
+Bootstrap from the official documentation](http://twitter.github.com/bootstrap).
+If, however, you like the command line and want to use an awesome
+`Makefile`, I've set up a [project to do just
+that](http://github.com/zachwill/bootmaker) (it does have a few
+dependencies, however).
+
+If you do opt for downloading Bootstrap, you're going to want to grab
+the `mixins.less` file -- in my opinion, this is the single greatest
+part of using Bootstrap. In addition, you're going to need to get `Less`
+in order to take advantage of the mixins.
+
+From the command line (in your current project) you can run:
+
+```
+curl -L git.io/mixins > mixins.less
+curl -L git.io/less-1.3.0 > less.js
+```
+
+### Structure
+
+I normally set up my directories to look like the following:
+
+```
+├── js
+├── img
+└── css
+    └── less
+```
+
+Then, depending on whether you're making a quick static site or setting
+up something like a [small Jekyll project](http://github.com/zachwill/doc),
+your project can also contain `README.md`, `index.html`, and `CNAME` files.
+
+
+Heuristics
+----------
+
+While I can't really walk you through the documentation (it's best you
+look through it on your own), I can help put you in the right mindset
+for using Bootstrap in your projects.
+
+### Rectangles
+
+The easiest way to approach building your website in Bootstrap is to
+think in **rectangles**. This might sound a little weird (and you might
+be asking yourself why we're covering this rather than code right now),
+but it pays off in the end.
+
+If you think of cutting your design into rectangles -- both in row and
+column form -- you can hit the ground running pretty fast.
+
+### Responsive
+
+It's also a best practice, in my opinion, to go the responsive route
+with Bootstrap. By just adding one CSS file, your markup expands and
+shrinks based on the size of the browser/screen. Also, this can help
+lead you away from trying to get pixel perfect layouts and instead
+design similar to [Style Tiles](http://styletil.es). Plus, I just think
+it looks cool.
+
+### Less CSS
+
+If you're really going to take advantage of Bootstrap, you're also going
+to need to use [Less CSS](http://lesscss.org) in your project. As I
+stated before, the best part of Bootstrap, in my opinion, is the
+`mixins.less` file.
+
+But, what if you've already been developing your site with plain, old
+CSS? No worries. Valid CSS is valid Less -- so you're not in any
+trouble.
+
+Also, once you see the beauty of variables, mixins, color functions, and
+inheritance, you'll understand why Less is pretty awesome.
+
+### Divitis
+
+More of a warning than anything, you're going to suffer from
+[divitis](http://www.google.com/search?q=divitis) when using Bootstrap.
+It's going to seem like overkill with the amount of `div` elements we'll
+be using, but you'll end up with a responsive website that adapts and
+works with anything from an iPhone to IE7 -- so you'll just more or less
+have to get used to it.
+
+There might also be alternative ways to achieve the same effects that
+we'll be going for, but, as of right now, don't be suprised to see HTML
+that looks like this:
+
+```html
+<section class="background">
+  <div class="container">
+
+    <div class="row">
+      <div class="span6">
+        <!-- A column half the width of the row -->
+      </div>
+      <div class="span6">
+        <!-- Another column half the width of the row -->
+      </div>
+    </div>
+
+  </div>
+</section>
+```
+
+
+Code
+----
+
+The best way to go from here is probably by writing some code. I've
+included a boilerplate `index.html` file that marks where your content
+should go. We can also create a simple server for our project with the
+following command:
+
+```
+python -m SimpleHTTPServer 5555
+```
+
+You should then be able to visit [`http://localhost:5555/`](http://localhost:5555/)
+in your browser.
+
+### First Site
+
+The first site we'll make should look like the following.
+
+![](https://github.com/codeforamerica/skillshares/raw/master/bootstrap/site.png)
+
+Notice how it naturally is divided into three sections (red, green, blue),
+with distinct columns in each? That should make it pretty easy to
+code in Bootstrap (notice it does look rectangular).
+
+At a meta level, our markup should look something like this.
+
+```
+├── red
+    └── column
+        └── text
+    └── column
+        └── image
+
+├── green
+    └── column
+        └── image + text
+    └── column
+        └── image + text
+    └── column
+        └── image + text
+
+└── blue
+    └── column
+        └── image
+    └── column
+        └── text
+```
+
+It's easy to begin to turn this into HTML. Each of those top levels will
+become a `<section>`. But, what about the columns?
+
+Well, looking at the picture again, each of the sections does have
+different column layouts (or intends to), but the columns in each
+section are in a single `row` (just trust me if you're skeptical). So,
+our updated meta level for red should actually look like this:
+
+```
+├── red
+    └── row
+        └── column
+            └── text
+        └── column
+            └── image
+```
+
+Now, I'm going to introduce a simple rule: each `row` has a width of 12
+units, and those columns need to total up to (or be less than) 12.
+
+So, our meta level will need to be updated once more:
+
+```
+├── red
+    └── row
+        └── column6
+            └── text
+        └── column6
+            └── image
+```
+
+Lastly, I'm going to add another rule: a `row` has to be held in a
+`container`. Not every `row` has to have its own `container`, but there
+does need to be at least one.
+
+There are now two ways to go forward: **fluid** and **regular**.
+
+### Fluid
+
+Making our web page fluid can help reduce the amount of `div` elements
+we'll have to use in order to achieve the desired effect of having
+full-screen backgrounds.
+
+We could actually turn our meta markup into actual markup:
+
+```html
+<section class="red container-fluid">
+  <div class="row-fluid">
+    <div class="span6">
+      <p>Lorem ipsum text.</p>
+    </div>
+    <div class="span6">
+      <img src="http://placehold.it/600x400" />
+    </div>
+  </div>
+</section>
+```
+
+Creating our website using `container-fluid` and `row-fluid` classes
+allows our sections and columns to resize, well, fluidly. Check it out
+[in your browser](http://localhost:5555) with the following styles:
+
+```css
+.red {
+    background: red;
+}
+```
+
+### Regular
+
+If we don't use the `container-fluid` and `row-fluid` classes, this
+causes our markup to resize in more of a "snapping" motion -- which you
+might like or hate. In order to achieve this, you will have to add more
+`div` elements, though.
+
+Remember how the `container` class double with the `section` element? If
+we code our markup without the `fluid` classes, that can no longer
+happen -- which results in meta HTML that looks like this:
+
+```
+├── red
+    └── container
+        └── row
+            └── column6
+                └── text
+            └── column6
+                └── image
+```
+
+It's pretty easy to turn that into the correct Bootstrap markup:
+
+```html
+<section class="red">
+  <div class="container">
+
+    <div class="row">
+      <div class="span6">
+        <p>Lorem ipsum text.</p>
+      </div>
+      <div class="span6">
+        <img src="http://placehold.it/600x400" />
+      </div>
+    </div>
+
+  </div>
+</section>
+```
+
+Try writing the `blue` and `green` ones on your own.
+
+Flask
+=====
+
+[Flask](http://flask.pocoo.org/) is a small Python web framework. It's
+best for creating simple sites that aren't database heavy, and it's
+partially inspired by the Ruby [Sinatra
+framework](http://www.sinatrarb.com/).
+
+This Skillshare hopes to provide both a simple overview and functional
+prototype.
+
+
+Installation
+------------
+
+Installing Python libraries is somewhat tricky for beginners -- it's not
+nearly as user-friendly as Ruby's `gem install`. There is a Python
+installer called `pip` that is most used by the Python community, so
+let's get that setup if you don't already have it.
+
+To check to see if you have `pip` installed, run the following from your
+command line.
+
+    $ pip -h
+
+If you get an error, you'll need to run the following:
+
+    $ sudo easy_install pip
+
+Once that runs, just double check that you have `pip` running:
+
+    $ pip -h
+
+
+### Flask
+
+We now need to install Flask. It's as simple as running:
+
+    $ pip install flask
+
+You might get an error -- even though you have `pip` installed. This
+probably means you don't have the correct permissions set up, so we'll
+use `sudo` to install it:
+
+    $ sudo pip install flask
+
+We could talk more about permissions, but that's not nearly as fun as
+building a simple site.
+
+
+Creating a directory
+--------------------
+
+Let's create a directory and hit the ground running. From the command
+line, we'll create a directory, initialize a new `git` repo, and start
+coding. If you already have a directory for simple projects, feel free
+to use that instead.
+
+    $ mkdir flask_site
+    $ cd flask_site
+
+And initalize `git`:
+
+    $ git init
+
+Now, let's go ahead and create two blank files.
+
+    $ touch {README.md,app.py}
+
+The bracket syntax on the command line is awesome for repeating
+commands. It's basically doing this:
+
+    $ touch README.md
+    $ touch app.py
+
+Whenever I'm creating new projects, I always like to use the `touch`
+command to create blank files so they show up in my text editor.
+
+
+Hello World
+-----------
+
+Let's create a basic Flask site so everyone can see why they'd use a
+framework versus just static pages.
+
+In `app.py`, write the following:
+
+```python
+"""
+My Flask website.
+"""
+
+from flask import Flask
+app = Flask(__name__)
+
+
+@app.route('/')
+def home():
+    return "Hello, World!"
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+While Flask is not as pretty as Sinatra (at least, in my opinion), this
+should give us a simple site. From the command line, you should now be
+able to run the following command and then visit
+[`http://localhost:5000`](http://localhost:5000) in your browser to see
+your "Hello, World!" message:
+
+    $ python app.py
+
+### Restarting the app
+
+Everytime you make changes to the `app.py` file, it should reload since
+the app is being run with `debug` keyword. If it doesn't, you can
+shut down the app by hitting `Control-C` and then running `python
+app.py` again.
+
+### Commit changes
+
+Now that our small app is working, we should make our first commit.
+
+    $ git add -A
+    $ git commit -m "First commit"
+
+
+Routing
+-------
+
+One of Flask's strengths is the ability to create beautiful URLs, so
+let's go ahead and create a few routes for our site.
+
+```python
+"""
+My Flask website.
+"""
+
+from flask import Flask
+app = Flask(__name__)
+
+
+@app.route('/')
+def home():
+    return "Hello, World!"
+
+
+@app.route('/cfa')
+def cfa():
+    return "Code for America"
+
+
+@app.route('/my/name/is/<name>')
+def my_name(name):
+    return name.title()
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+Now, visit the Code for America endpoint:
+[`http://localhost:5000/cfa`](http://localhost:5000/cfa).
+
+Also, notice how the `/my/name/is` endpoint isn't static:
+[`http://localhost:5000/my/name/is/zach`](http://localhost:5000/my/name/is/zach)
+
+### Variables
+
+Using variables with Flask's routing is pretty awesome -- this is how
+the previous `/my/name/is` endpoint worked.
+
+Let's create a route that displays our favorite number.
+
+```python
+@app.route('/my/favorite/number/is/<int:number>')
+def favorite_number(number):
+    return str(number)
+```
+
+Note that we specify the number is an integer, and then we return it in
+string form using the `str` function. If we didn't convert the number to
+a string, then we'd get an error page.
+
+It should also be noted that function names are completely arbitrary.
+So, if you don't feel like typing out `favorite_number`, you could type
+something as simple as `poop` and it'd still work.
+
+```python
+@app.route('/my/favorite/number/is/<int:number>')
+def poop(number):
+    return str(number)
+```
+
+### git
+
+It's important to note that we should be committing code fairly
+regularly. This way, in case anything blows up, we can always revert to
+a previous state. `git` also allows use to go off on tangents with
+branches and just try things out (without messing up the master branch).
+
+So, with that in mind, let's commit what we have so far.
+
+    $ git commit -am "Add routes"
+
+The `a` flag allows you to add all changes to **already tracked files**
+and the `m` flag allows you to follow the commit with a message. This is
+basically shorthand way to write:
+
+    $ git add -A
+    $ git commit -m "Add routes"
+
+
+Templating
+----------
+
+While Flask's routing alone is pretty useful, templating makes it
+awesome -- especially since it uses the [Jinja template
+engine](http://jinja.pocoo.org/docs/).
+
+To start using templates, let's create a `templates` directory to store
+them.
+
+    $ mkdir templates
+    $ (cd templates && touch {base,home,cfa}.html)
+
+There should now be three template files in the directory. Also, notice
+that by using the `cd` command inside parentheses (it creates a
+subshell), we never have to `cd` back a level. And, lastly, the `&&`
+inside the command basically executes as "if the last thing worked out,
+now do this."
+
+Now, let's start adding content to the `base.html` file.
+
+```html
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>{% block title %}My Site{% endblock %}</title>
+  {% block css %}{% endblock %}
+</head>
+
+<body>
+  {% block main %}{% endblock %}
+
+  <!-- JavaScript at the bottom for fast page loading -->
+  <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7.1/jquery.min.js"></script>
+  {% block js %}{% endblock %}
+</body>
+</html>
+```
+
+Notice the `block` statements. These allow us to extend the `base.html`
+file with further content in specific areas. Let's add content to the
+`home.html` file and then modify our `app.py` file.
+
+```html
+{% extends "base.html" %}
+
+{% block css %}
+  <style type="text/css">
+  h1{
+    color: #bada55;
+  }
+  </style>
+{% endblock %}
+
+{% block main %}
+  <h1>Hello, World!</h1>
+{% endblock %}
+```
+
+And we can modify the `app.py` file to now point to our `home.html`
+file:
+
+```python
+"""
+My Flask website.
+"""
+
+from flask import Flask, render_template
+app = Flask(__name__)
+
+
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+
+if __name__ == '__main__':
+    app.run(debug=True)
+```
+
+Go ahead and check out [`http://localhost:5000`](http://localhost:5000)
+now, you should see a `#bada55` element.
+
+We can also add to the `cfa.html` file.
+
+```html
+{% extends "base.html" %}
+
+{% block css %}
+  <style type="text/css">
+  h1{
+    color: blue;
+  }
+  </style>
+{% endblock %}
+
+{% block main %}
+  <h1>Code for America</h1>
+{% endblock %}
+```
+
+And then recreate the `/cfa` endpoint.
+
+```python
+@app.route('/cfa')
+def cfa():
+    return render_template('cfa.html')
+```
+
+Notice how the element on this page is blue, rather than `#bada55`. Each
+template file currently builds off of the `base.html` file, rather than
+each other.
+
+Git Basics
+==========
+
+A basic overview of [Git](http://git-scm.com) accompanied by some tips,
+tricks, and opinions on workflow for using it each day. This in no way
+attempts to be a complete guide, just a simple set of heuristics to help
+out beginners new to Git.
+
+I personally learned Git best by watching Scott Chacon's
+[videos](http://blip.tv/scott-chacon), reading through [Git's
+documentation](http://git-scm.com/documentation), and browsing through
+Chacon's [Pro Git book](http://git-scm.com/book). Remember, [Stack
+Overflow](http://stackoverflow.com/tags/git/) is your friend, as well.
+
+### Simplified
+
+Also, note that the Git basics in this Skillshare will be given at a
+somewhat simplified level. Some of what is said might be slightly
+incorrect, but the intent is not to be 100% textbook accurate in
+descriptions and explanations. Ease-of-use and rememberance is my main
+goal, and [painting bike sheds](http://blue.bikeshed.org/) is furthest
+from what I'm trying to accomplish.
+
+
+What is Git?
+------------
+
+This question has been covered numerous times all over the internet, but
+I think of Git as a way of saving files at specific points in time. This
+way, in case you mess anything up, you can go back to a specific point
+and work from there.
+
+Git also allows you to experiment freely with projects. If you had a car
+project and wanted to add wings to it, you could do so by setting up a
+`wings` branch. And, if anything went wrong, you could just rewind time
+to a `commit` where the car previously worked perfectly.
+
+
+Installation
+------------
+
+Git can easily be installed from [the official website](http://git-scm.com/).
+
+
+Git Started
+-----------
+
+If you've never created a Git repository before, then let's start from
+the command line (your computer's Terminal on Mac OS X).
+
+First, we'll create a new project.
+
+    $ mkdir letters
+    $ cd letters
+
+And we'll initialize this as a Git repository.
+
+    $ git init
+
+Now it's time to add some files. We'll do so using the `touch` command
+and Unix bracket completion.
+
+    $ touch README.md
+    $ touch {a,b,c}.txt
+
+You should now have four blank files in your repo. Let's go ahead and
+create our first commit.
+
+    $ git add --all
+    $ git commit -m "First commit"
+
+### Format
+
+Github advocates a [simple commit message style](https://github.com/blog/926-shiny-new-commit-styles):
+
+    Capitalized, short summary (less than 50 chars)
+
+And, [Tim Pope advocates using present tense rather than past tense,
+too](http://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
+
+    Write your commit message in the present tense: "Fix bug" and not "Fixed
+    bug." This convention matches up with commit messages generated by
+    commands like git merge and git revert.
+
+
+Branching
+---------
+
+Our `letters` project is pretty cool so far, but what if we need to go
+off on a tangent? Maybe three letters doesn't feel like enough, but we
+don't want to screw up our current progress.
+
+This is where branches come in handy. Let's create a new branch and add
+a new letter file.
+
+    $ git checkout -b more
+
+So, we talked about branches, but what's with all this `checkout -b`
+business? Well, using the `b` flag with the `checkout` command lets you
+create new branches.
+
+This seems weird, though. Shouldn't we use the `branch` command to add
+new branches? Well, behind the scenes, it actually is being used. Here's
+the long way of creating a new branch:
+
+    $ git branch -l more
+    $ git checkout more
+
+Either way, you're going to have to `checkout` the new branch, so it's
+just easier doing it all in one command.
+
+Now, let's add a couple more files.
+
+    $ touch {d,e}.txt
+    $ touch f.md
+
+Let's check the status of our currently staged files.
+
+    $ git status
+
+It should show three untracked files. And, while `status` is a nice
+command, it uses up a lot of space. There's an easier way to see the
+information you're after:
+
+    $ git status -sb
+
+The `s` flag creates short output, and the `b` flag gives us information
+on the current branch we're in.
+
+Currently, I like both the `d.txt` and `e.txt` files we've created, but
+I'm unsure about committing the `f.md` file (since it ends with a Markdown
+extension). Let's go ahead and add just the `.txt` files.
+
+    $ git add *.txt
+
+And, then we should double check that the `f.md` file wasn't added.
+
+    $ git status -sb
+
+In fact, it's good practice to **ALWAYS** check the status before making
+a commit. And, since our double checking went okay, we can now make our
+second commit.
+
+    $ git commit -m "Add txt files"
+
+We don't want to lose our progress by making the `f.md` file, though.
+So, let's go ahead and create another branch (in fact, you should think
+of branches as completely free -- make as many as you'd like).
+
+    $ git checkout -b markdown
+
+Now that we're in the `markdown` branch, let's add the `f.md` file to
+staging.
+
+    $ git add f.md
+
+And, lastly, we'll check our status before committing.
+
+    $ git status -sb
+    $ git commit -m "Add first markdown file"
+
+### Switching Branches
+
+We can now list out all our branches.
+
+    $ git branch
+
+In order to switch, we need to use the `checkout` command.
+
+    $ git checkout more
+
+Now, we can list the files in this current branch.
+
+    $ ls -l
+
+This commit looks good (notice that the `f.md` file no longer exists in
+this branch), so let's go ahead and `merge` it with the `master` branch.
+
+    $ git checkout master
+    $ git merge more
+
+Awesome! Now your branches have been merged, and the new files should
+appear. This should be the preferred way of developing new features -- I
+think of the `master` branch as always being golden, and new features
+should always be developed in separate branches.
+
+We really don't need the `more` branch anymore, so let's go ahead and
+delete that.
+
+    $ git branch -d more
+
+And, when we list out our branches, only two should appear now.
+
+    $ git branch
+
+
+Cloning
+-------
+
+The `clone` command allows you to work on projects that are already up
+on the web (you'll mostly be using this with projects already up on
+Github).
+
+We don't necessarily need to use this command right now, but I'll go
+ahead and leave a quick example.
+
+    $ git clone git@github.com:codeforamerica/skillshares.git
+
+This would clone the work currently done in the [Code for America
+Skillshares repo](https://github.com/codeforamerica/skillshares) into a
+directory named `skillshares`. If we didn't want that name, and instead
+wanted a name like `Fred`, we could have run the following command:
+
+    $ git clone git@github.com:codeforamerica/skillshares.git Fred
+
+Alternatively, you could always `clone` and then `mv` the directory.
+
+    $ git clone git@github.com:codeforamerica/skillshares.git
+    $ mv skillshares Fred
+
+
+Stashing
+--------
+
+Another useful command is `git stash`. This lets you "save" changes,
+without really saving them.
+
+For instance, let's create a new file.
+
+    $ touch f.txt
+
+And, let's add it to our staging area.
+
+    $ git add --all
+
+Then, we remember that we don't really need that file right now, but we
+don't want to go ahead and create a new branch. It'd be nice to just put
+it somewhere before we're ready to continue.
+
+This is where `stash` comes in handy.
+
+    $ git stash
+
+Now we're back to the last commit, and the `f.txt` file is nowhere to be
+seen. But, we decide we probably want it back -- this is where `stash
+pop` can be used.
+
+    $ git stash pop
+
+And **boom**, we're back to having the `f.txt` file added to the current
+staging area. You can double check this by using the `status` command
+that we used earlier.
+
+    $ git status -sb
+
+Lastly, I just want to note, while `stash` is a pretty useful command,
+it's also a little dangerous if you mess up your workflow with it. As
+for day-to-day working heuristics, I'd advocate creating a one-off
+branch rather than relying on `stash`.
+
+**Remember**: branches are completely free and easy-to-use, so rely on
+them when working on commits and ideas that might never make it back to
+the `master` branch.
+
+
+Undo
+----
+
+Inevitably, you'll have to undo a previous commit. If it you haven't
+already pushed to a remote (such as Github, Heroku, etc.) then `reset`
+is probably the command you're looking for -- otherwise, you should
+use `revert`.
+
+With `reset`, you can delete a commit and keep the changes with the
+`--soft` command. Alternatively, you can use the `--hard` flag to delete
+a commit and delete the changes, as well.
+
+Let's go ahead and commit the `f.txt` file, then play around with the
+`reset` and `revert` commands.
+
+    $ git status -sb
+    $ git commit -m "Add f.txt file"
+
+Now that we've made our commit, let's undo it.
+
+    $ git reset HEAD^
+
+The `^` character is shorthand for "previous commit" -- if you want a
+more technical explanation, I'll be happy to explain it further. But,
+now let's check out status:
+
+    $ git status -sb
+
+Notice the question marks next to `f.txt`? This means the file is
+untracked, but the previous commit has been deleted. We've implicitly
+used the `--soft` flag (our commit was deleted, but the files stayed the
+same).
+
+Let's go ahead and commit the file again.
+
+    $ git add --all
+    $ git commit -m "Add f.txt file"
+
+Now, since we haven't pushed this code to a remote (such as Github or
+Heroku), and we really don't want the `f.txt` file, let's go ahead and
+do a `reset` with the `--hard` flag.
+
+    $ git reset --hard HEAD~1
+
+Notice that we used the `HEAD~1` keyword rather than `HEAD^` (if we
+wanted to go even further back, we could use a bigger number).  Also, by
+using the `--hard` flag, our commit and `f.txt` file should no longer
+exist. We can check this by checking the status and commit log.
+
+    $ git status -sb
+    $ git log
+
+### Undo a reset
+
+Is it possible to undo a reset? Yes. Yes, it is.
+
+In order to do this, we'll need to use the `reflog` command to list out
+the [previous states our `HEAD` has been
+in](http://www.youtube.com/watch?v=a4hFwJm41h4).
+
+    $ git reflog
+
+Your previous commit "Add f.txt" file should be at `HEAD@{1}`. If it is,
+run the following to undo your undo:
+
+    $ git reset --hard HEAD@{1}
+
+Notice the subtle irony of using a `reset --hard` command to undo a
+`reset --hard` command.
+
+### Revert
+
+While the `reset` command is awesome for erasing up to a certain point
+in time, it comes with two shortfalls: you **should not use it** for
+commits that have already been pushed to a remote (this will cause you
+pain -- you've been forewarned), and it can't let you undo certain
+commits and leave others unchanged.
+
+This is where `revert` comes in. With the `revert` command, you can
+cherry pick commits that have already been pushed up to a remote (and it
+won't explode in your face for doing so).
+
+With that in mind, let's get our current `log` to double check the
+`f.txt` file has indeed been committed.
+
+    $ git log
+
+For an easier to read `log` of past commits, add the `--oneline`
+flag.
+
+    $ git log --oneline
+
+And, if you're feeling festive, add the `--graph` and `--decorate`
+flags, as well.
+
+    $ git log --oneline --graph --decorate
+
+Notice the SHA hashes next to our commit messages whenever we run the
+`git log --oneline` command? We can use those to `revert` certain
+commits. So, copy or keep in mind one of those SHA hashes (for the sake
+of this README, mine will be `abc123`) and get ready to `revert` it.
+
+    $ git revert abc123
+
+That commit has now been undone (though it stays in our history), and a
+`revert` commit has also been added. You'll have to save a revert
+message in your text editor, as well.
+
+Let's take this to a meta-level now, and `revert` that `revert` (I'll
+use the SHA hash `xyz789` for the sake of this README). Also, let's
+specify that we don't want to save the commit message -- that should
+just happen automatically.
+
+    $ git log --oneline
+    $ git revert --no-edit xyz789
+
+And, with that, you're now a Git ninja at undoing commits with both
+`reset` and `revert`.
+
+### Amend
+
+Sometimes when commiting you need to modify the last commit message.
+This is where the `--amend` command comes in handy.
+
+Let's say you are ready to commit your code and run:
+
+    $ git commit -m "I <# Code for America"
+
+But you really meant to say "I heart Code for America":
+
+    $ git commit --amend
+
+Then correct your commit message.
+
+
+Remotes
+-------
+
+Remotes are an awesome feature of Git (and you'll use them quite often
+with services like Github and Heroku). It's hard to believe that the
+distributed workflow allowed by Git wasn't possible before a couple
+years ago.
+
+If you think of Git as a way to save your code and progress at certain
+points in time, then remotes are just different locations for that code
+-- you've probably already internalized this by using Github.
+
+You can add remotes with the `remote` command. Most of the time you
+won't actually be typing this out (for instance, I always just copy and
+paste from Github when creating a new repository).
+
+But, with that said, here's a quick example of creating a remote named
+`origin`. Why the `origin` name? It's just a heuristic and best practice
+to name the remote you'll be pushing to most frequently as `origin`. For
+all Git cares, you could name it `poop` and everything would work as
+expected.
+
+    $ git remote add origin git@github.com:codeforamerica/skillshares.git
+
+Now that the remote has been added to our Git repository, we can `push`
+code up to it.
+
+    $ git push origin master
+
+Basically, what this command says is push the `master` branch of my
+project up to the `origin` remote.
+
+We could easily `push` a different branch up to that remote, too --
+which is actually how you get multiple branches listed on Github.
+
+    $ git push origin markdown
+
+Also, once you've pushed a branch to a remote, you'll now be able to
+simply write out `git push origin` without naming the branch.
+
+### Force
+
+Sometimes, you might have to force a conflicting `push` to a remote.
+This is almost never wise, and you should consult the
+[documentation](http://git-scm.com/docs/git-push) before deciding to do
+so. But, in the case that you do actually need to, the `--force` command
+comes in handy.
+
+    $ git push --force origin
+
+### Pull
+
+If you've ever used remotes with other individuals before, you've
+probably used the `pull` command. The `pull` command performs a `fetch`
+and `merge` in one go (you basically use it to grab changes that have
+been performed by a `push` to a remote).
+
+    $ git pull
+
+You might encounter conflicts when using the `pull` command. This
+basically means more than two people have modified a file, and Git is
+unsure about which changes should stay and which should be deleted.
+
+If you have a particulary nasty merge conflict, it's probably best to
+consult the [Git documentation](http://git-scm.com/docs/git-pull) (it's
+basically a problem you're going to have to work through).
+
+
+Tips and Tricks
+---------------
+
+I feel the best way to round out this Skillshare is with a few tips and
+tricks -- especially when it comes to ignoring certain file types and
+setting up easy-to-use Git aliases.
+
+### Ignore
+
+Git is awesome at keeping track of files and changes, but sometimes you
+want to blatantly ignore certain filetypes (`.DS_Store`, `.pyc`, etc.)
+across all projects.
+
+If you don't already have a global `.gitignore` and `.gitconfig` file
+set up, then we need to go ahead and do that.
+
+    $ cd
+
+You should now be in your home directory. To get the name of this
+location, we'll `pbcopy` the output from the following command:
+
+    $ echo $PWD | pbcopy
+
+Let's check to make sure that a `.gitconfig` file exists.
+
+    $ cat .gitconfig
+
+If you get an error, then we need to create a `.gitconfig` file to look
+like the following (though yours will be slightly different):
+
+    [user]
+      name = Zach Williams
+      email = hey@zachwill.com
+    [core]
+      editor = vim
+      excludesfile = /Users/zachwill/.gitignore_global
+      quotepath = false
+    [color]
+      diff = auto
+      status = auto
+    [github]
+      user = zachwill
+
+Notice the `excludesfile` line? This points to my global `.gitignore`
+that lists filetypes and directories Git should always ignore. Github
+has an [awesome repo](https://github.com/github/gitignore) of all kinds
+of `.gitignore` files, and I keep [my personal one
+online](https://github.com/zachwill/dotfiles/blob/master/.gitignore_global),
+too.
+
+You should adjust the `excludesfile` to point to your own global
+`.gitignore`, and you've already copied the path with the `echo
+$PWD | pbcopy` command (so just paste and append the name of your global
+`.gitignore` file).
+
+Also, `.gitignore` files can be added on a per project basis, too. For
+instance, the `.gitignore` file in this repo will ignore any files with
+the `.zach` extension.
+
+### Aliases
+
+I've saved the best news for last. Customized Git commands tend to get a
+bit on the verbose side, which is why Git aliases are so badass. For
+example, instead of always having to type out `git add --all`, we can
+add an alias to have `git aa` accomplish the same task.
+
+All aliases should be saved to your `.gitconfig` file. For an example of
+aliases I regularly use, check out [my `.gitconfig`
+file](https://github.com/zachwill/dotfiles/blob/master/.gitconfig).
+
+### Ruby on Rails
+
+#Setup your Ruby Environment
+
+Check out this [repo](https://github.com/codeforamerica/cfa_laptop) on how to get setup
+
+Skillshares
+===========
+
+A collection of notes for internal Code for America Skillshares.
+
+Learn more about this repo [at our blog](http://codeforamerica.org/2012/05/17/opening-our-skillshares/).
+
+[![Code for America Tracker](http://stats.codeforamerica.org/codeforamerica/skillshares.png)](http://stats.codeforamerica.org/projects/skillshares)
+

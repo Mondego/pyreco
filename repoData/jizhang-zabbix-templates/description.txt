@@ -1,0 +1,380 @@
+Template Hadoop
+===============
+
+Collect Hadoop statistics, both cluster-wise and for individual nodes, and display them with different templates and screens Zabbix.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### Preparatory
+
+This package requires `Python 2.7`. For legacy Linux distributions, it's recommended to install Python in a standalone directory, e.g. `/usr/local/python-2.7`.
+
+### Install Script and Add User Parameters
+
+* Copy hadoop-collector.py to /zabbix-agent/bin/, and set it to `755`.
+* Copy hadoop-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/.
+* Restart Zabbix agent.
+
+### Import Template
+
+Import the following templates and apply them to the corresponding servers:
+
+* hadoop-namenode-template.xml
+* hadoop-jobtracker-template.xml
+* hadoop-datanode-template.xml
+* hadoop-tasktracker-template.xml
+
+And the `hadoop-basic-template.xml` consists of cluster-wise data aggregation items, so it should be applied to the master node.
+
+### Create Aggregated Items
+
+In order to get an cluster-wise aggregated data, such as disk util, we need to get it first from respective servers. LLD (Low Level Discovery) will produce all the disk devices on the server, but fails to provide an aggregated item for them.
+
+Here comes the `Zabbix calculated item`, we use a script (create-aggr-item.py) to create aggregated disk and network items for every nodes.
+
+Besides, in `hadoop-basic-template.xml` there's a macro named `{$CLUSTER_NAME}`, whose default value is `dw-hadoop`. So you need to put all slave nodes into a Zabbix host group named after this macro, so that the template item can calculate the correct data.
+
+HOW IT WORKS
+------------
+
+### Data Source
+
+All statistics are parsed from the Hadoop status page, i.e. `http://host:50030` and `https://host:50070`.
+
+The server basic monitoring data is from Zabbix agent and other templates in this repo, like [iostat][1].
+
+### Collector
+
+In order not to parse the status page several times to get enough information, here we use `Zabbix trapper` data type to let the agent send data actively. Also to save the trouble of adding a cron job, here we use a `Zabbix agent` item to trigger the data collection process.
+
+[1]: https://github.com/jizhang/zabbix-templates/tree/master/iostat
+
+
+Template iostat
+===============
+
+Show `iostat` result in Zabbix.
+
+
+INSTALL
+-------
+
+Assume the Zabbix agent directory is /zabbix-agent/.
+
+### Install Cron Job
+
+Since the first output of `iostat` is the statistics since boot time, we need to wait for a period (like 10 seconds) to get the result, which should be done through cron job, otherwise it'll surpass the zabbix agent's timeout.
+
+Do the following two steps:
+
+1. Copy iostat-cron.sh to /zabbix-agent/bin/;
+2. Copy iostat-cron.conf to /etc/cron.d/;
+
+After a while, you'll see the iostat-data file in /zabbix-agent/var/.
+
+### Install User Parameters
+
+To expose the iostat-data to Zabbix, do the following steps:
+
+1. Copy dev-discovery.sh and iostat-check.sh to /zabbix-agent/bin/, the former one is to enable disk device discovery capability.
+2. Copy iostat-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/.
+
+### Import Template
+
+Import iostat-template.xml, and link it to a host.
+
+
+CREDITS
+-------
+
+Some of the scripts are from https://github.com/zbal/zabbix.
+
+
+Template JVM
+============
+
+Show JVM statistics in Zabbix.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### A Compatible JDK
+
+This package uses `jstat` and `jstack` commands to gather information of jVM.
+
+### Start Daemon
+
+Since the Zabbix agent runs in zabbix user, making it impossible to attache to JVMs running under other users. The solution is to start a daemon under that user and provide socket access to gather the information.
+
+$ ./jvm-service.pl -d
+
+It will write logs into /tmp/jvm-service.log
+
+### Install Script and Add User Parameters
+
+Copy jvm-check.pl to /zabbix-agent/bin/. Copy jvm-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/. Restart Zabbix agent.
+
+### Import Template
+
+Import jvm-template.xml, and link it to a host. Set the host macro {$JVMPORT} to which the JVM you want to monitor bind.
+
+HOW IT WORKS
+------------
+
+To gather information more effectively, I didn't use a lot of user parameters in the configuration file, to run multiple times. Instead, I used the 'zabbix agent trapper' data type, and run another script sending multiple data items to zabbix server.
+
+Again, instead of setup a cron job for the script, I used another 'zabbix agent' data type to let the server trigger this script.
+
+In case the `jstat` command spends more than 3 seconds, which surpasses the timeout limit of Zabbix, so you may want to adjust the `Timeout` option in *both* Zabbix server and agent configuration.
+
+
+Template MySQL
+============
+
+Show MySQL statistics in Zabbix.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### Preparatory
+
+This package uses `mysql` and `mysqladmin` commands to gather information of MySQL.
+
+### Install Script and Add User Parameters
+
+Copy mysql-check.sh to /zabbix-agent/bin/. Copy mysql-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/. Restart Zabbix agent.
+
+Edit mysql-check.sh to configure username and password.
+
+### Import Template
+
+Import mysql-template.xml, and link it to a host.
+
+HOW IT WORKS
+------------
+
+### mysqladmin
+
+Most statistics items are from `mysqladmin extended-status`.
+
+### Replication Delay
+
+To detect the replication delay (in sec) of Slave database, we use a dedicated `heartbeat_db`, in which the Master database update the timestamp periodically, and the Slave agents check the difference between current timestamp and the heartbeat_db's timestamp.
+
+The `heartbeat_db.heartbeat` table's structure is:
+
+```sql
+CREATE TABLE `heartbeat` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ts` datetime NOT NULL,
+  RIMARY KEY (`id`)
+)
+```
+
+
+Template MySQL
+============
+
+Show MySQL statistics in Zabbix. Version 2 uses LLD (Low Level Discovery) to bind multiple MySQL instances to the same host.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### Preparatory
+
+This package uses `mysql` and `mysqladmin` commands to gather information of MySQL.
+
+### Install Script and Add User Parameters
+
+* Copy mysql-check-v2.sh to /zabbix-agent/bin/.
+* Copy mysql-params-v2.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/.
+* Edit mysql-check-v2.sh to configure username and password.
+* Restart Zabbix agent.
+
+### Import Template
+
+Import mysql-template-v2.xml, and link it to a host.
+
+HOW IT WORKS
+------------
+
+### Discovery
+
+`mysql-check-v2.sh` has two forms of invocation:
+
+* `./mysql-check-v2.sh discovery` Return a JSON encoded string indicating the MySQL instances (or ports) to be discovered.
+* `./mysql-check-v2.sh collector "$host" $port` Get and submit the statistics from MySQL Server to Zabbix Server. (use `zabbix trapper` data type)
+
+### Collector
+
+In order not to run `mysqladmin` several times to get enough information, here we use `Zabbix trapper` data type to let the agent send data actively. Also to save the trouble of adding a cron job, here we use a `Zabbix agent` item to trigger the data collection process.
+
+### `mysqladmin`
+
+Most statistics items are from `mysqladmin extended-status`.
+
+### Replication Delay
+
+To detect the replication delay (in sec) of Slave database, we use a dedicated `heartbeat_db`, in which the Master database update the timestamp periodically, and the Slave agents check the difference between current timestamp and the heartbeat_db's timestamp.
+
+The `heartbeat_db.heartbeat` table's structure is:
+
+```sql
+CREATE TABLE `heartbeat` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `ts` datetime NOT NULL,
+  RIMARY KEY (`id`)
+)
+```
+
+Template Nginx
+==============
+
+Show Nginx status in Zabbix.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### Nginx HttpStubStatusModule
+
+Nginx needs to be built with HttpStubStatusModule, i.e. --with-http_stub_status_module. You can use `nginx -V` to check whether the current binary includes this module.
+
+More information could be found in this [Wiki][1]
+
+### Add Configuration
+
+Add the following into Nginx configuration:
+
+<pre>
+server {
+    listen 10061;
+    location /nginx_status {
+        stub_status on;
+        access_log off;
+        allow 127.0.0.1;
+        deny all;
+    }
+}
+</pre>
+
+Reload Nginx, and use `curl http://127.0.0.1:10061/nginx_status` to get the statistics.
+
+### Add User Parameters
+
+Copy nginx-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/. Restart Zabbix agent.
+
+### Import Template
+
+Import nginx-template.xml, and link it to a host. Set the host macro {$NGINX_STATUS_URL} if needed.
+
+
+CREDITS
+-------
+
+The scripts are form http://github.com/zbal/zabbix.
+
+[1]: http://wiki.nginx.org/HttpStubStatusModule
+
+Template php-fpm
+================
+
+Show php-fpm statistics in Zabbix.
+
+INSTALL
+-------
+
+Assume the Zabbix agent is installed in /zabbix-agent/ directory.
+
+### Configure php-fpm
+
+Open the php-fpm pool's configuration file, uncomment the 'pm.status=' directive:
+
+pm.status_path = /php-fpm_status
+
+Since php-fpm's statistics is collected by different pools, so you need to create corresponding hosts for them.
+
+### Configure Nginx
+
+Add the following lines to Nginx configuration:
+
+```
+server {
+    listen 10061;
+
+    location /php-fpm_status {
+        fastcgi_pass 127.0.0.1:9000;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        include fastcgi_params;
+    }
+}
+```
+
+After restarting both php-fpm and nginx, try the following command to test:
+
+$ curl http://127.0.0.1:10061/php-fpm_status
+
+### Add User Parameters
+
+Copy php-fpm-params.conf to /zabbix-agent/etc/zabbix_agentd.conf.d/. Restart Zabbix agent.
+
+### Import Template
+
+Import php-fpm-template.xml, and link it to a host. Set the host macro {$PHP_FPM_STATUS_URL} if needed.
+
+
+CREDITS
+-------
+
+Some of the scripts are form http://github.com/zbal/zabbix.
+
+
+Ansible Playbook
+================
+
+[Ansible][1] provisioning tool.
+
+Install
+-------
+
+```bash
+$ virtualenv venv --distribute
+$ source venv/bin/activate
+$ pip install ansible
+```
+
+[1]: http://www.ansibleworks.com/
+
+
+zabbix-templates
+================
+
+Zabbix templates for various services and applications.
+
+Currently there are:
+
+* iostat
+* Nginx
+* php-fpm
+* MySQL
+* JVM
+
+There're READMEs for every templates. 
+
+## TODO
+
+* Low-level discovery for JVM
+* ZooKeeper
+* Storm
+* Hadoop
+

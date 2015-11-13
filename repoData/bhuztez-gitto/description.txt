@@ -1,0 +1,192 @@
+rolling your own git hosting in 3 steps
+
+$ ssh-keygen -q -b 1024 -t rsa -N '' -f id_rsa
+$ python -m gitto init SUPERUSER /PATH/TO/SUPERUSER/PUBKEY
+$ twistd -n gitto -p tcp:PORT
+
+
+Directory Structure
+
+  id_rsa
+  data/
+    .config/
+    project1/
+      .config/
+      repo1/
+      repo2/
+    project2/
+      .config/
+      repo3/
+      repo4/
+    ~user1/
+      repo5/
+      repo6/
+    ~user2
+      repo7/
+      repo8/
+
+
+clone repository repo8:
+
+  $ git clone ssh://USER@HOST:PORT/~user2/repo8
+
+
+edit global configuration:
+
+  $ git clone ssh://USER@HOST:PORT/.config config
+  $ cd config
+  # EDIT
+  # EDIT
+  # EDIT
+  $ git commit
+  $ git push origin master
+
+
+edit project1 configuration:
+
+  $ git clone ssh://USER@HOST:PORT/project1/.config config
+  $ cd config
+  # EDIT
+  # EDIT
+  # EDIT
+  $ git commit
+  $ git push origin master
+
+
+create project1:
+
+  $ ssh -p PORT USER@HOST create project1
+
+
+create repository under project1:
+
+  $ ssh -p PORT USER@HOST init project1 repo1
+
+
+create repository under USER folder:
+
+  $ ssh -p PORT user1@HOST init repo5
+
+
+list projects:
+
+  $ ssh -p PORT USER@HOST projects
+
+
+list USER repositories:
+
+  $ ssh -p PORT USER@HOST ls
+
+
+list project1 repositories:
+
+  $ ssh -p PORT USER@HOST ls project1
+
+
+list user1 repositories:
+
+  $ ssh -p PORT USER@HOST ls ~user1
+
+
+publish repository under USER folder:
+
+  $ ssh -p PORT user1@HOST publish repo5
+
+
+publish repository under project1:
+
+  $ ssh -p PORT USER@HOST publish project1 repo1
+
+
+unpublish repository under USER folder:
+
+  $ ssh -p PORT user1@HOST unpublish repo5
+
+
+unpublish repository under project1:
+
+  $ ssh -p PORT USER@HOST unpublish project1 repo1
+
+
+
+Global Configuration
+
+  acl.conf
+  BANNER
+  keys/
+    user1
+    user2
+  hooks/
+  config-hooks/
+
+put USER's public key under keys folder
+
+set ssh banner in BANNER
+
+put git hooks under hooks folder
+put git hooks of config repositories under config-hooks folder
+
+acl.conf
+
+   [config]
+   a-user-who-is-allowed-to-configure-global-config
+   another-user-who-is-allowed-to-configure-global-config
+
+   [create-project]
+   a-user-who-is-allowed-to-create-project
+   another-user-who-is-allowed-to-create-project
+
+
+
+Project Configuration
+
+  acl.conf
+
+
+acl.conf
+
+  [config]
+  a-user-who-is-allowed-to-configure-this-project
+  another-user-who-is-allowed-to-configure-this-project
+
+  [list-repo]
+  a-user-who-is-allowed-to-list-repositories-under-this-project
+  another-user-who-is-allowed-to-list-repositories-under-this-project
+
+  [publish-repo]
+  a-user-who-is-allowed-to-(un)publish-repositories-under-this-project
+  another-user-who-is-allowed-to-(un)publish-repositories-under-this-project
+
+  [push:*]
+  a-user-who-is-allowed-to-push-to-all-repositories-under-this-project
+  another-user-who-is-allowed-to-push-to-all-repositories-under-this-project
+
+  [pull:*]
+  a-user-who-is-allowed-to-pull-from-all-repositories-under-this-project
+  another-user-who-is-allowed-to-pull-from-all-repositories-under-this-project
+
+  [push:repo1]
+  a-user-who-is-allowed-to-push-to-repo1
+  another-user-who-is-allowed-to-push-to-repo1
+
+  [pull:repo1]
+  a-user-who-is-allowed-to-pull-from-repo1
+  another-user-who-is-allowed-to-pull-from-repo1
+
+
+Access Control
+
+once published, a repository became PUBLIC.
+
+user folder
+
+  USER is allowed to list/push/pull/publish/unpublish all repositories under USER's folder
+
+  USER is allowed only to list/pull all PUBLIC repositories under other user's folder
+
+project folder
+
+  USER is allowed only to list/pull all PUBLIC repositories under project folder
+
+  all other permissions listed in .config/acl.conf
+

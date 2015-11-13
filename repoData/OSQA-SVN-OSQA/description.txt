@@ -1,0 +1,68 @@
+this directory contains sample commands to be executed
+by cron 
+
+files with names ending "virtuanenv" should work under Python virtualenv system
+other files - with standard unix setup
+
+directory for media common to all or many templates
+
+{{ obj.html|safe }}
+this directory contains available skins
+
+1) default - default skin with templates
+2) common - this directory is to media directory common to all or many templates
+
+to create a new skin just create another directory under skins/
+and start populating it with the directory structure as in
+default/templates - templates must be named the same way
+
+NO NEED TO CREATE ALL TEMPLATES/MEDIA FILES AT ONCE
+
+templates are resolved in the following way:
+* check in skin named as in settings.OSQA_DEFAULT_SKIN
+* then skin named 'default'
+
+media is resolved with one extra option
+* settings.OSQA_DEFAULT_SKIN
+* 'default'
+* 'common'
+
+media does not have to be composed of files named the same way as in default skin
+whatever media you link to from your templates - will be in operation
+
+This directory is to contain uploaded images and other files
+must be writable by the webserver
+
+you can change the location of this folder using the admin panel
+keep this folder writable
+Full text search (using sphinx search)
+
+Currently full text search works only with sphinx search engine
+And builtin PostgreSQL (postgres only >= 8.3???)
+
+5.1 Instructions for Sphinx search setup
+Sphinx at this time supports only MySQL and PostgreSQL databases
+to enable this, install sphinx search engine and djangosphinx
+
+configure sphinx, sample configuration can be found in
+sphinx/sphinx.conf file usually goes somewhere in /etc tree
+
+build osqa index first time manually
+
+% indexer --config /path/to/sphinx.conf --index osqa
+
+setup cron job to rebuild index periodically with command
+your crontab entry may be something like
+
+0 9,15,21 * * * /usr/local/bin/indexer --config /etc/sphinx/sphinx.conf --all --rotate >/dev/null 2>&1
+adjust it as necessary this one will reindex three times a day at 9am 3pm and 9pm
+
+if your forum grows very big ( good luck with that :) you'll
+need to two search indices one diff index and one main
+please refer to online sphinx search documentation for the information
+on the subject http://sphinxsearch.com/docs/
+
+in settings.py look for INSTALLED_APPS
+and uncomment #'djangosphinx',
+this file is just a placeholder so the empty directory is not ignored by version control
+Just an empty placeholder.

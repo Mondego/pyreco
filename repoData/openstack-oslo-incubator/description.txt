@@ -1,0 +1,90 @@
+This module could be used either for:
+1. Smooth transition from migrate tool to alembic
+2. As standalone alembic tool
+
+Core points:
+1. Upgrade/downgrade database with usage of alembic/migrate migrations
+or both
+2. Compatibility with oslo.config
+3. The way to autogenerate new revisions or stamps
+
+This directory is just here to hold the setup.py used to register the
+Oslo name on PyPI, to avoid project name collisions.
+
+------------------
+The Oslo Incubator
+------------------
+
+The Oslo program produces a set of python libraries containing
+infrastructure code shared by OpenStack projects. The APIs provided by
+these libraries should be high quality, stable, consistent and
+generally useful.
+
+The process of developing a new Oslo API usually begins by taking code
+which is common to some OpenStack projects and moving it into this
+repository. Incubation shouldn't be seen as a long term option for any
+API - it is merely a stepping stone to inclusion into a published Oslo
+library.
+
+For more information, see our wiki page:
+
+   https://wiki.openstack.org/wiki/Oslo
+
+Running Tests
+-------------
+
+To run tests in virtualenvs (preferred)::
+
+  sudo pip install tox
+  tox
+
+To run tests in the current environment::
+
+  sudo pip install -r requirements.txt
+  nosetests
+
+To run tests using MySQL or PostgreSQL as a DB backend do::
+
+  OS_TEST_DBAPI_ADMIN_CONNECTION=mysql://user:password@host/database tox -e py27
+
+Note, that your DB user must have permissions to create and drop databases.
+
+This generate_sample.sh tool is used to generate sample config files
+from OpenStack project source trees.
+
+Run it by passing the base directory and package name i.e.
+
+  $> generate_sample.sh --base-dir /opt/stack/nova --package-name nova \
+                        --output-dir /opt/stack/nova/etc
+  $> generate_sample.sh -b /opt/stack/neutron -p nova -o /opt/stack/neutron/etc
+
+Optionally, include libraries that register entry points for option
+discovery, such as oslo.messaging:
+
+  $> generate_sample.sh -b /opt/stack/ceilometer -p ceilometer \
+                        -o /opt/stack/ceilometer/etc -l oslo.messaging
+
+Watch out for warnings about modules like libvirt, qpid and zmq not
+being found - these warnings are significant because they result
+in options not appearing in the generated config file.
+
+
+
+This check_uptodate.sh tool is used to ensure that the generated sample
+config file in the OpenStack project source tree is continually kept up
+to date with the code itself.
+
+This can be done by adding a hook to tox.ini. For example, if a project
+already had flake8 enabled in a section like this:
+
+  [testenv.pep8]
+  commands =
+    flake8 {posargs}
+
+This section would be changed to:
+
+  [testenv.pep8]
+  commands =
+    flake8 {posargs}
+    {toxinidir}/tools/config/check_uptodate.sh
+

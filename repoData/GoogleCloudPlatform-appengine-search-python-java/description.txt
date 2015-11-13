@@ -1,0 +1,191 @@
+# How to become a contributor and submit your own code
+
+## Contributor License Agreements
+
+We'd love to accept your sample apps and patches! Before we can take them, we have to jump a couple of legal hurdles.
+
+Please fill out either the individual or corporate Contributor License Agreement (CLA).
+
+  * If you are an individual writing original source code and you're sure you own the intellectual property, then you'll need to sign an [individual CLA](http://code.google.com/legal/individual-cla-v1.0.html).
+  * If you work for a company that wants to allow you to contribute your work, then you'll need to sign a [corporate CLA](http://code.google.com/legal/corporate-cla-v1.0.html).
+
+Follow either of the two links above to access the appropriate CLA and instructions for how to sign and return it. Once we receive it, we'll be able to accept your pull requests.
+
+## Contributing A Patch
+
+1. Submit an issue describing your proposed change to the repo in question.
+1. The repo owner will respond to your issue promptly.
+1. If your proposed change is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
+1. Fork the desired repo, develop and test your code changes.
+1. Ensure that your code adheres to the existing style in the sample to which you are contributing. Refer to the [Google Cloud Platform Samples Style Guide](https://github.com/GoogleCloudPlatform/Template/wiki/style.html) for the recommended coding standards for this organization.
+1. Ensure that your code has an appropriate set of unit tests which all pass.
+1. Submit a pull request.
+
+## Contributing A New Sample App
+
+1. Submit an issue to the GoogleCloudPlatform/Template repo describing your proposed sample app.
+1. The Template repo owner will respond to your enhancement issue promptly. Instructional value is the top priority when evaluating new app proposals for this collection of repos. 
+1. If your proposal is accepted, and you haven't already done so, sign a Contributor License Agreement (see details above).
+1. Create your own repo for your app following this naming convention:
+    * {product}-{app-name}-{language}
+    * products: appengine, compute, storage, bigquery, prediction, cloudsql
+    * example:  appengine-guestbook-python
+    * For multi-product apps, concatenate the primary products, like this: compute-appengine-demo-suite-python.
+    * For multi-language apps, concatenate the primary languages like this: appengine-sockets-python-java-go.
+1. Clone the README.md, CONTRIB.md and LICENSE files from the GoogleCloudPlatform/Template repo.
+1. Ensure that your code adheres to the existing style in the sample to which you are contributing. Refer to the [Google Cloud Platform Samples Style Guide](https://github.com/GoogleCloudPlatform/Template/wiki/style.html) for the recommended coding standards for this organization.
+1. Ensure that your code has an appropriate set of unit tests which all pass.
+1. Submit a request to fork your repo in GoogleCloudPlatform organizationt via your proposal issue.
+
+
+# Google App Engine Java Runtime SDK - Text Search Demo
+
+Illustrates simple examples that use the Search API.
+
+To compile and run this sample on the local dev server, edit `build.xml` to point to your copy of the App Engine Java SDK.
+Then, run `ant` in this directory as follows:
+
+    ant runserver
+
+Once the server is running, point your web browser at:
+
+    http://localhost:8080/
+
+Jar files which are uploaded to the server are copied into this directory.
+
+
+
+# Full-Text Search Demo App: Product Search
+
+## Introduction
+
+This Python App Engine application illustrates the use of the [Full-Text Search
+API](https://developers.google.com/appengine/docs/python/search) in a "Product
+Search" domain with two categories of sample products: *books* and
+*hd televisions*.  This README assumes that you are already familiar with how to
+configure and deploy an App Engine app. If not, first see the App Engine
+[documentation](https://developers.google.com/appengine/docs/python/overview)
+and  [Getting Started guide](https://developers.google.com/appengine/docs/python/gettingstarted).
+
+This demo app allows users to search product information using full-text search,
+and to add reviews with ratings to the products.  Search results can be sorted
+according to several criteria. In conjunction with listed search results, a
+sidebar allows the user to further filter the search results on product rating.
+(A product's rating is the average of its reviews, so if a product has no
+reviews yet, its rating will be 0).
+
+A user does not need to be logged in to search the products, or to add reviews.
+A user must be logged in **as an admin of the app to add or modify product
+data**. The sidebar admin links are not displayed for non-admin users.
+
+## Configuration
+
+Before you deploy the application, edit `app.yaml` to specify your own app id and version.
+
+In `templates/product.html`, the Google Maps API is accessed.  It does not require an API key, but you are encouraged to use one to monitor your maps usage.  In the <head> element, look for:
+
+	src="https://maps.googleapis.com/maps/api/js?sensor=false"
+
+and replace it with something like the following, where `replaceWithYourAPIKey` is your own API key:
+
+      src="https://maps.googleapis.com/maps/api/js?sensor=false&amp;key=replaceWithYourAPIKey"
+
+as described [here](https://developers.google.com/maps/documentation/javascript/tutorial#api_key).
+
+## Information About Running the App Locally
+
+Log in as an app admin to add and modify the app's product data.
+
+The app uses XG (cross-group) transactions, which requires the dev_appserver to
+be run with the `--high_replication` flag.  E.g., to start up the dev_appserver
+from the command line in the project directory (this directory), assuming the
+GAE SDK is in your path, do:
+
+    dev_appserver.py --high_replication .
+
+The app is configured to use Python 2.7. On some platforms, it may also be
+necessary to have Python 2.7 installed locally when running the dev_appserver.
+The app's unit tests also require Python 2.7.
+
+When running the app locally, not all features of the search API are supported.
+So, not all search queries may give the same results during local testing as
+when run with the deployed app.
+Be sure to test on a deployed version of your app as well as locally.
+
+## Administering the deployed app
+
+You will need to be logged in as an administrator of the app to add and modify
+product data, though not to search products or add reviews.  If you want to
+remove this restriction, you can edit the `login: admin` specification in
+`app.yaml`, and remove the `@BaseHandler.admin` decorators in 
+`admin_handlers.py`.
+
+## Loading Sample Data
+
+When you first start up your app, you will want to add sample data to it.
+
+Sample product data can be added in two ways. First, sample product data in CSV
+format can be added in batch via a link on the app's admin page. Batch indexing
+of documents is more efficient than adding the documents one at a time. For consistency,
+**the batch addition of sample data first removes all
+existing index and datastore product data**.
+
+The second way to add sample data is via the admin's "Create new product" link
+in the sidebar, which lets an admin add sample products (either "books" or
+"hd televisions") one at a time.
+
+
+## Updating product documents with a new average rating
+
+When a user creates a new review, the average rating for that product is
+updated in the datastore.  The app may be configured to update the associated
+product `search.Document` at the same time (the default), or do this at a
+later time in batch (which is more efficient).  See `cron.yaml` for an example
+of how to do this update periodically in batch.
+
+## Searches
+
+Any valid queries can be typed into the search box.  This includes simple word
+and phrase queries, but you may also submit queries that include references to
+specific document fields and use numeric comparators on numeric fields.  See the
+Search API's
+[documentation](https://developers.google.com/appengine/docs/python/search) for
+a description of the query syntax.  
+
+Thus, for explanatory purposes, the "product details" show all actual
+field names of the given product document; you can use this information to
+construct queries against those fields. In the same spirit, the raw
+query string used for the query is displayed with the search results.
+
+Only product information is searched; product review text is not included in the 
+search.
+
+### Some example searches
+
+Below are some example product queries, which assume the sample data has been loaded.
+As discussed above, not all of these queries are supported by the dev_appserver.
+
+`stories price < 10`  
+`price > 10 price < 15`  
+`publisher:Vintage`  
+`Mega TVs`   
+`name:tv1`    
+`size > 30`
+
+## Geosearch
+
+This application includes an example of using the Search API to perform
+location-based queries.  Sample store location data is defined in `stores.py`,
+and is loaded along with the product data.  The product details page for a
+product allows a search for stores within a given radius of the user's current
+location. The user's location is obtained from the browser.
+
+App Engine Search API examples
+============================
+
+A set of examples showing how to use the App Engine Search API.
+
+There are two simple examples, one written in Java (the `java` directory) and one written in Python (the `python`) directory.
+The `product_search_python` directory holds a more complex example— a product search app— written in Python.
+
+

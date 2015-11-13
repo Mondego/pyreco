@@ -1,0 +1,1096 @@
+#### 文章的主题
+不要使用可变对象作为函数的默认参数例如 list，dict，因为`def`是一个可执行语句，只有`def`执行的时候才会计算默认默认参数的值，所以使用默认参数会造成函数执行的时候一直在使用同一个对象，引起bug。
+
+#### 基本原理
+在 Python 源码中,我们使用`def`来定义函数或者方法。在其他语言中,类似的东西往往只是一一个语法声明关键字,但`def`却是一个可执行的指令。Python代码执行的时候先会使用 compile 将其编译成 PyCodeObject.
+
+PyCodeObject 本质上依然是一种静态源代码,只不过以字节码方式存储,因为它面向虚拟机。因此 Code 关注的是如何执行这些字节码,比如栈空间大小,各种常量变量符号列表,以及字节码与源码行号的对应关系等等。
+
+PyFunctionObject 是运行期产生的。它提供一个动态环境,让 PyCodeObject 与运行环境关联起来。同时为函数调用提供一系列的上下文属性,诸如所在模块、全局名字空间、参数默认值等等。这是`def`语句执行的时候干的活。
+
+PyFunctionObject 让函数面向逻辑,而不仅仅是虚拟机。PyFunctionObject 和 PyCodeObject 组合起来才是一个完整的函数。
+
+下文翻译了一篇文章，有一些很好的例子。但是由于水平有限，有些不会翻译或者有些翻译有误，敬请谅解。如果有任何问题请发邮件到 acmerfight圈gmail.com,感激不尽
+
+主要参考资料 书籍：《深入Python编程》 大牛：shell 和 Topsky
+
+[原文链接](http://effbot.org/zone/default-values.htm)
+
+Python对于函数中默认参数的处理往往会给新手造成困扰（但是通常只有一次）。
+
+当你使用“可变”的对象作为函数中作为默认参数时会往往引起问题。因为在这种情况下参数可以在不创建新对象的情况下进行修改，例如 list dict。
+
+    >>> def function(data=[]):
+    ...     data.append(1)
+    ...     return data
+    ...
+    >>> function()
+    [1]
+    >>> function()
+    [1, 1]
+    >>> function()
+    [1, 1, 1]
+
+像你所看到的那样，list变得越来越长。如果你仔细地查看这个list。你会发现list一直是同一个对象。
+
+    >>> id(function())
+    12516768
+    >>> id(function())
+    12516768
+    >>> id(function())
+    12516768
+
+原因很简单: 在每次函数调用的时候，函数一直再使用同一个list对象。这么使用引起的变化，非常“sticky”。
+
+#### 为什么会发生这种情况？
+**当且仅当**默认参数所在的“def”语句执行的时候，默认参数才会进行计算。请看文档描述
+
+[http://docs.python.org/ref/function.html](http://docs.python.org/ref/function.html)
+
+的相关部分。
+
+"def"是Python中的可执行语句，默认参数在"def"的语句环境里被计算。如果你执行了"def"语句多次，每次它都将会创建一个新的函数对象。接下来我们将看到例子。
+#### 用什么来代替？
+像其他人所提到的那样，用一个占位符来替代可以修改的默认值。`None` 
+
+    def myfunc(value=None):
+        if value is None:
+            value = []
+        # modify value here
+
+如果你想要处理任意类型的对象，可以使用sentinel
+
+    sentinel = object()
+
+    def myfunc(value=sentinel):
+        if value is sentinel:
+            value = expression
+        # use/modify value here
+
+在比较老的代码中，written before “object” was introduced，你有时会看到
+
+    sentinel = ['placeholder']
+
+    译者注：太水，真的不知道怎么翻译了。我说下我的理解 有时逻辑上可能需要传递一个None,而你的默认值可能又不是None,而且还刚好是个列表,列表不
+    可以写在默认值位置,所以你需要占位符,但是用None，你又不知道是不是调用者传递过来的那个
+#### 正确地使用可变参数
+最后需要注意的是一些高深的Python代码经常会利用这个机制的优势；举个例子，如果在一个循环里创建一些UI上的按钮，你可能会尝试这样去做：
+
+    for i in range(10):
+        def callback():
+            print "clicked button", i
+        UI.Button("button %s" % i, callback)
+
+但是你却发现`callback`打印出相同的数字（在这个情况下很可能是9）。原因是Python的嵌套作用域只是绑定变量，而不是绑定数值的，所以`callback`只看到了变量`i`绑定的最后一个数值。为了避免这种情况，使用显示绑定。
+
+    for i in range(10):
+        def callback(i=i):
+            print "clicked button", i
+        UI.Button("button %s" % i, callback)
+
+`i=i`把callback的参数`i`(一个局部变量)绑定到了当前外部的`i`变量的数值上。(译者注：如果不理解这个例子，请看[http://stackoverflow.com/questions/233673/lexical-closures-in-python](http://stackoverflow.com/questions/233673/lexical-closures-in-python))
+
+另外的两个用途local caches/memoization
+        
+    def calculate(a, b, c, memo={}):
+        try:
+            value = memo[a, b, c] # return already calculated value
+        except KeyError:
+            value = heavy_calculation(a, b, c)
+            memo[a, b, c] = value # update the memo dictionary
+        return value
+
+（对一些递归算法非常好用）
+
+对高度优化的代码而言， 会使用局部变量绑全局的变量:
+
+    import math
+
+    def this_one_must_be_fast(x, sin=math.sin, cos=math.cos):
+        ...
+
+#### 这是如何工作的？
+当Python执行一条`def`语句时， 它会使用已经准备好的东西（包括函数的代码对象和函数的上下文属性），创建了一个新的函数对象。同时，计算了函数的默认参数值。
+
+不同的组件像函数对象的属性一样可以使用。上文用到的'function'
+
+    >>> function.func_name
+    'function'
+    >>> function.func_code
+    <code object function at 00BEC770, file "<stdin>", line 1>
+    >>> function.func_defaults
+    ([1, 1, 1],)
+    >>> function.func_globals
+    {'function': <function function at 0x00BF1C30>,
+    '__builtins__': <module '__builtin__' (built-in)>,
+    '__name__': '__main__', '__doc__': None}
+
+这样你可以访问默认参数，你甚至可以修改它。
+
+    >>> function.func_defaults[0][:] = []
+    >>> function()
+    [1]
+    >>> function.func_defaults
+    ([1],)
+
+然而我不推荐你平时这么使用。
+
+另一个重置默认参数的方法是重新执行相同的`def`语句，Python将会和代码对象创建一个新的函数对象，并计算默认参数，并且把新创建的函数对象赋值给了和上次相同的变量。但是再次强调，只有你清晰地知道在做什么的情况下你才能这么做。
+
+And yes, if you happen to have the pieces but not the function, you can use the function class in the new module to create your own function object.
+
+先来看下这个程序
+
+    #import time
+
+
+    class A(object): pass
+    class B(object): pass
+    class C(object): pass
+    class D(object): pass
+    class E(object): pass
+    class F(object): pass
+    class G(object): pass
+    class H(object): pass
+
+    class Foo(object):
+        d = {A: 1, B: 2, C: 3, D: 4,
+             E: 5, F: 6, G: 7, H: 8}
+
+        def bar(self):
+            for key, value in self.d.iteritems():
+                print key.__name__,
+
+    f = Foo()
+    f.bar()
+
+
+在我的电脑上运行了很多次得到的结果都是 `B E F A G H D C`，但是当我取消掉第一行的注释,多次运行得到的结果都是`F G E H B A D C`。为什么仅仅加了一句无用的 `import time` 结果就发生变化了呢？
+
+为了理解iteritems造成的不同顺序的原因，我们需要理解CPython中dict中的实现。
+
+*   dict是以hash表为基础实现的
+*   一个新的dict初始化为的时候有8个空间,数组只能存放8个对象（的指针），但是对于小的dict来说已经够用了。不够用时，才会自动调用malloc去申请内存空间。也就是说，对于很多条目较少的dict来说，创建它们减少了一次malloc的调用；而对于大dict来说，也不过就浪费了8个对象指针（约32字节）的空间而已。
+*   当dict中加入新的条目的时候，
+
+
+
+    
+   奇怪的 dead lock
+==========
+
+在服务器上程序中遇到一个 `import` 卡死的情况，而且这个 bug 只能在服务器上重现，我的电脑上不会重现。去掉一些无用的代码，可以抽象出如下的代码。
+
+**bar.py**
+
+    # coding=utf-8
+
+    from threading import Thread
+
+    class Bar(Thread):
+        def run(self):
+            u"知乎".encode("utf-8")
+  
+    bar = Bar()
+    bar.start()
+    bar.join()
+**foo.py**
+    
+    import bar
+
+然后直接执行 `python foo.py`，这时程序卡死不动了。
+
+首先必须要知道的是程序卡在哪里了，所以使用 [trace][1] 模块去看程序的执行流程。
+执行 `python -m trace -t foo.py`，这是程序调用的最后的部分。
+
+    __init__.py(93):     for modname in modnames:
+    __init__.py(94):         if not modname or '.' in modname:
+    __init__.py(96):         try:
+    __init__.py(99):             mod = __import__('encodings.' + modname, fromlist=_import_tail,
+    __init__.py(100):                              level=0)
+    threading.py(237):         waiter = _allocate_lock()
+    threading.py(238):         waiter.acquire()
+    threading.py(239):         self.__waiters.append(waiter)
+    threading.py(240):         saved_state = self._release_save()
+     --- modulename: threading, funcname: _release_save
+    threading.py(220):         self.__lock.release()           # No state to save
+    threading.py(241):         try:    # restore state no matter what (e.g., KeyboardInterrupt)
+    threading.py(242):             if timeout is None:
+    threading.py(243):                 waiter.acquire()
+    
+我们很明显的看到了程序是卡在了**获得锁的时候**，但是我的程序里没有明确的加锁啊，为什么出现这种情况呢？通过调用记录向上追溯看到
+`mod = __import__('encodings.' + modname, fromlist=_import_tail, level=0)`
+是这一步引入了最后的锁，发现包含这行代码的文件是 `/usr/lib/python2.7/encodings/__init__.py`，大致猜出是执行`u"知乎".encode("utf-8")`卡死的。
+
+现在再看 `__import__` 的实现，发现 `PyImport_ImportModuleLevel` 调用了 `_PyImport_AcquireLock`，当  `import_module_level` 成功后调用 `_PyImport_ReleaseLock`。
+
+    PyObject *
+    PyImport_ImportModuleLevel(char *name, PyObject *globals, PyObject *locals,
+                             PyObject *fromlist, int level)
+    {
+        PyObject *result;
+        _PyImport_AcquireLock();
+        result = import_module_level(name, globals, locals, fromlist, level);
+        if (_PyImport_ReleaseLock() < 0) {
+            Py_XDECREF(result);
+            PyErr_SetString(PyExc_RuntimeError,
+                            "not holding the import lock");
+            return NULL;
+        }
+        return result;
+    }
+    
+再去继续看 [_PyImport_AcquireLock][2] 的代码可以明显的看到有一个 `import_lock` 存在。也就是 `import` 的时候会引入`import_lock`, 当我们 `import bar` 的时候，首先会获得 `import_lock`，但是当我们执行到 `mod = __import__('encodings.' + modname, fromlist=_import_tail, level=0)`的时候新创建的线程会再次去请求获得`import_lock`。在一把锁内部，再次请求获得这把锁造成了死锁，使程序直接卡住了。在服务器上把`u"知乎".encode("utf-8")`  换成 `import socket` 照样会卡在 `import_lock` 处。
+
+通过分析，现在终于找出原因了。但是为什么只能在服务上重现呢？为什么本地的机器没有问题？
+
+我把 `u"知乎".encode("utf-8")` 换成 `import socket` ，在本地执行也会卡在 `import_lock`。那为什么 `u"知乎".encode("utf-8")` 为啥在本地不卡呢。那就用 `ipdb` 看看`u"知乎".encode("utf-8")`在本地和服务器上的调用有啥不同吧。
+
+     #coding=utf-8
+      
+     import ipdb
+     ipdb.set_trace()
+     u"知乎".encode("utf-8")
+结果发现在本地根本就没有进入 `search_function`，程序执行完。而在服务器上直接进入了 `/usr/lib/python2.7/encodings/__init__.py` 文件，逐步的执行到 `__import__` 造成了死锁。为什么本地的机器上不用加载呢？
+
+在本地的 [encodings/__init__.py][3] 文件里加上调试信息 `print encoding`，发现在本地直接输入 `python` 启动命令行，直接就打印出了 `utf-8`，而在服务器上是 `ascii`。原来不同的机器上加载的默认编码不一样。通过 `locale.getdefaultlocale` 也发现默认的编码服务器默认的编码是 `ascii`，本地是 `utf-8`。
+
+终于知道了原来根据环境不同，默认加载的编码是不一样的，加载了的编码会有 cache 就不用执行到 `__import__ `，没有加载过的编码就会执行。我又在自己的服务器上把 `encode("utf-8")` 改成`encode("utf8")`，发现本地的程序也卡在了 `__import__` 的地方。
+
+至此这个 bug，终于搞清楚了，真是艰难。简单总结下
+
+**一般在最外层只写函数，类，变量定义代码。其它有副作用的代码都放到函数里，尤其不能在最外层写 Thread.join 这种会 block 住整个程序运行的代码。`import` 完之后在显式调用函数来执行这些代码。原则是使 `import` 尽量不带有副作用。**
+
+这个问题得以解决，绝大部分的功劳属于[安江泽][4]。同时感谢Leo Jay 的指正。
+
+
+
+  [1]: https://docs.python.org/2/library/trace.html
+  [2]: http://hg.python.org/cpython/file/7caf7401aece/Python/import.c#l292
+  [3]: http://hg.python.org/cpython/file/7caf7401aece/Lib/encodings/__init__.py#l72
+  [4]: http://www.zhihu.com/people/gnap
+
+### (ob1 is ob2) 等价于 (id(ob1) == id(ob2))
+首先id函数可以获得对象的内存地址，如果两个对象的内存地址是一样的，那么这两个对象肯定是一个对象。和is是等价的。Python源代码为证。
+
+    4451 static PyObject *
+    4452 cmp_outcome(int op, register PyObject *v, register PyObject *w)
+    4453 {
+    4454     int res = 0;
+    4455     switch (op) {
+    4456     case PyCmp_IS:
+    4457         res = (v == w);
+    4458         break;
+    4459     case PyCmp_IS_NOT:
+    4460         res = (v != w);
+    4461         break;
+
+但是请看下边代码的这种情况怎么会出现呢？
+    
+    In [1]: def bar(self, x):
+    ...:     return self.x + y
+    ...: 
+ 
+    In [2]: class Foo(object):
+    ...:     x = 9
+    ...:     def __init__(self ,x):
+    ...:         self.x = x
+    ...:     bar = bar
+    ...:     
+ 
+    In [3]: foo = Foo(5)
+ 
+    In [4]: foo.bar is Foo.bar
+    Out[4]: False
+ 
+    In [5]: id(foo.bar) == id(Foo.bar)
+    Out[5]: True
+
+两个对象用`is`判断是`False`，用`id`判断却是`True`，这与我们已知的事实不符啊，这种现象该如何解释呢？遇到这种情况最好的解决方法就是调用dis模块去看下两个比较语句到底做了什么。
+
+    In [7]: dis.dis("id(foo.bar) == id(Foo.bar)")
+              0 BUILD_MAP       10340
+              3 BUILD_TUPLE     28527
+              6 <46>           
+              7 DELETE_GLOBAL   29281 (29281)
+             10 STORE_SLICE+1  
+             11 SLICE+2        
+             12 DELETE_SUBSCR  
+             13 DELETE_SUBSCR  
+             14 SLICE+2        
+             15 BUILD_MAP       10340
+             18 PRINT_EXPR     
+             19 JUMP_IF_FALSE_OR_POP 11887
+             22 DELETE_GLOBAL   29281 (29281)
+             25 STORE_SLICE+1  
+
+    In [8]: dis.dis("foo.bar is Foo.bar")
+              0 BUILD_TUPLE     28527
+              3 <46>           
+              4 DELETE_GLOBAL   29281 (29281)
+              7 SLICE+2        
+              8 BUILD_MAP        8307
+             11 PRINT_EXPR     
+             12 JUMP_IF_FALSE_OR_POP 11887
+             15 DELETE_GLOBAL   29281 (29281)
+
+真实情况是当执行`.`操作符的时候，实际是生成了一个proxy对象，`foo.bar is Foo.bar`的时候，两个对象顺序生成，放在栈里相比较，由于地址不同肯定是`False`，但是`id(foo.bar) == id(Foo.bar)`的时候就不同了，首先生成`foo.bar`,然后计算`foo.bar`的地址，计算完之后`foo.bar`的地址之后，就没有任何对象指向`foo.bar`了，所以`foo.bar`对象就会被释放。然后生成`Foo.bar`对象，由于`foo.bar`和`Foo.bar`所占用的内存大小是一样的，所以又恰好重用了原先`foo.bar`的内存地址，所以`id(foo.bar) == id(Foo.bar)`的结果是`True`。
+
+下面内容由邮件`Leo Jay`大牛提供，他解释的更加通透。
+
+用`id(expression a) == id(expression b)`来判断两个表达式的结果是不是同一个对象的想法是有问题的。 
+
+`foo.bar` 这种形式叫 attribute reference [1]，它是表达式的一种。`foo`是一个instance object,`bar`是一个方法，这个时候表达式`foo.bar`返回的结果叫method object [2]。根据文档： 
+
+    When an instance attribute is referenced that isn’t a data attribute, 
+    its class is searched. If the name denotes a valid class attribute 
+    that is a function object, a method object is created by packing 
+    (pointers to) the instance object and the function object just found 
+    together in an abstract object: this is the method object. 
+
+`foo.bar`本身并不是简单的名字，而是表达式的计算结果，是一个 method object，在`id(foo.bar)`这样的表达式里，method object只是一个临时的中间变量而已，对临时的中间变量做`id`是没有意义的。  
+一个更明显的例子是，
+
+    print id(foo.bar) == id(foo.__init__)
+
+输出的结果也是`True` 
+
+看 id 的文档[3]： 
+
+    Return the “identity” of an object. This is an integer (or long 
+    integer) which is guaranteed to be unique and constant for this object 
+    during its lifetime. Two objects with non-overlapping lifetimes may 
+    have the same id() value. 
+    CPython implementation detail: This is the address of the object in memory.
+
+只有你能保证对象不会被销毁的前提下，你才能用 id 来比较两个对象。所以，如果你非要比的话，得这样写：  
+
+    fb = foo.bar 
+    Fb = Foo.bar 
+    print id(fb) == id(Fb) 
+
+即把两个表达式的结果绑定到名字上，再来比是不是同一个对象，你才能得到正确的结果。 
+
+`is`表达式 [4] 也是一样的，你现在得到了正确的结果，完全是因为 CPython 现在的实现细节决定的。现在的`is`的实现，是左右两边的对象都计算出来，然后再比较这两个对象的地址是否一样。万一哪天改成了，先算左边，保存地址，把左边释放掉，再算右边，再比较的话，你的`is`的结果可能就错了。官方文档里也提到了这个问题 [5]。我认为正确的方法也是像`id`那样，先把左右两边都计算下来，并显式绑定到各自的名字上，然后再用`is`判断。 
+
+[1] http://docs.python.org/2/reference/expressions.html#attribute-references   
+[2] http://docs.python.org/2/tutorial/classes.html#method-objects  
+[3] http://docs.python.org/2/library/functions.html#id  
+[4] http://docs.python.org/2/reference/expressions.html#index-68  
+[5] http://docs.python.org/2/reference/expressions.html#id26   
+
+##Python中list 的实现  
+[原文链接](http://www.laurentluce.com/posts/python-list-implementation/)  
+这篇文章介绍了Python中list是如何实现的。  
+在Python中list特别有用。让我们来看下list的内部是如何实现的。  
+来看下面简单的程序，在list中添加一些整数并将他们打印出来。  
+
+    >>> L = []
+    >>> L.append(1)
+    >>> L.append(2)
+    >>> L.append(3)
+    >>> L
+    [1, 2, 3]
+    >>> for e in L:
+    ...   print e
+    ... 
+    1
+    2
+    3
+正如你所看到的，list是可以迭代的。  
+
+###List对象的C结构  
+Python中list是用下边的C语言的结构来表示的。ob_item是用来保存元素的指针数组，allocated是ob_item预先分配的内存总容量
+
+    typedef struct {
+        PyObject_VAR_HEAD
+        PyObject **ob_item;
+        Py_ssize_t allocated;
+    } PyListObject;
+
+###List的初始化
+让我们来看下当初始化一个空list的时候发生了什么 L = []
+    
+    arguments: size of the list = 0
+    returns: list object = []
+    PyListNew:
+        nbytes = size * size of global Python object = 0
+        allocate new list object
+        allocate list of pointers (ob_item) of size nbytes = 0
+        clear ob_item
+        set list's allocated var to 0 = 0 slots
+        return list object 
+
+非常重要的是知道list申请内存空间的大小（后文用allocated代替）的大小和list实际存储元素所占空间的大小(ob_size)之间的关系，ob_size的大小和len(L)是一样的，而allocated的大小是在内存中已经申请空间大小。通常你会看到allocated的值要比ob_size的值要大。这是为了避免每次有新元素加入list时都要调用realloc进行内存分配。接下来我们会看到更多关于这些的内容。
+###Append
+我们在list中追加一个整数:L.append(1)。发生了什么？调用了内部的C函数app1()
+
+    arguments: list object, new element
+    returns: 0 if OK, -1 if not
+    app1:
+        n = size of list
+        call list_resize() to resize the list to size n+1 = 0 + 1 = 1
+        list[n] = list[0] = new element
+        return 0
+
+来让我们看下list_resize()。list_resize()会申请多余的空间以避免调用多次list_resize()函数，list增长的模型是:0, 4, 8, 16, 25, 35, 46, 58, 72, 88, …
+
+    arguments: list object, new size
+    returns: 0 if OK, -1 if not
+    list_resize:
+        new_allocated = (newsize >> 3) + (newsize < 9 ? 3 : 6) = 3
+        new_allocated += newsize = 3 + 1 = 4
+        resize ob_item (list of pointers) to size new_allocated
+        return 0
+
+开辟了四个内存空间来存放list中的元素，存放的第一个元素是1。你可以从下图中看到L[0]指向了我们刚刚加进去的元素。虚线的框代表了申请了但是还没有使用(存储元素)的内存空间  
+![](https://raw.github.com/acmerfight/insight_python/master/images/list.png)  
+我们继续加入一个元素：L.append(2)。调用list_resize,同时n+1=2。但是因为allocated（译者注：已经申请的空间大小）是4。所以没有必要去申请新的内存空间。相同的事情发生在再次在list中添加两个元素的时候：L.append(3),L.append(4)。下图展示了到目前为止我们做了什么。  
+![](https://raw.github.com/acmerfight/insight_python/master/images/list_4.png)  
+###Insert
+现在我们在列表的第一个位置插入一个整数5:L.insert(1, 5),看看内部发生了什么。调用了ins1()
+
+    arguments: list object, where, new element
+    returns: 0 if OK, -1 if not
+    ins1:
+        resize list to size n+1 = 5 -> 4 more slots will be allocated
+        starting at the last element up to the offset where, right shift each element 
+        set new element at offset where
+        return 0  
+
+![](https://raw.github.com/acmerfight/insight_python/master/images/list_insert.png)  
+虚线框表示已经申请但是没有使用的内存。申请了8个内存空间但是list实际用来存储元素只使用了其中5个内存空间  
+insert的时间复杂度是O(n)
+###Pop
+当你弹出list的最后一个元素：L.pop()。调用listpop()，list_resize在函数listpop()内部被调用，如果这时ob_size（译者注：弹出元素后）小于allocated（译者注：已经申请的内存空间）的一半。这时申请的内存空间将会缩小。
+
+    arguments: list object
+    returns: element popped
+    listpop:
+        if list empty:
+            return null
+        resize list with size 5 - 1 = 4. 4 is not less than 8/2 so no shrinkage
+        set list object size to 4
+        return last element
+
+Pop的时间复杂度是O(1)  
+![](https://raw.github.com/acmerfight/insight_python/master/images/list_pop.png)  
+你可以发现4号内存空间指向还指向那个数值（译者注：弹出去的那个数值），但是很重要的是ob_size现在却成了4.  
+让我们再弹出一个元素。在list_resize内部，size – 1 = 4 – 1 = 3 比allocated（已经申请的空间）的一半还要小。所以list的申请空间缩小到6个，list的实际使用空间现在是3个(译者注：根据(newsize >> 3) + (newsize < 9 ? 3 : 6) = 3在文章最后有详述)   
+你可以发现（下图）3号和4号内存空间还存储着一些整数，但是list的实际使用(存储元素)空间却只有3个了。  
+![](https://raw.github.com/acmerfight/insight_python/master/images/list_pop_2.png)  
+###Remove
+Python list对象有一个方法可以移除一个指定的元素。调用listremove()。  
+
+    arguments: list object, element to remove
+    returns none if OK, null if not
+    listremove:
+        loop through each list element:
+        if correct element:
+            slice list between element's slot and element's slot + 1
+            return none
+        return null
+
+切开list和删除元素，调用了list_ass_slice()（译者注：在上文slice list between element's slot and element's slot + 1被调用），来看下list_ass_slice()是如何工作的。在这里，低位为1 高位为2（译者注：传入的参数），我们移除在1号内存空间存储的数据5
+
+    arguments: list object, low offset, high offset
+    returns: 0 if OK
+    list_ass_slice:
+        copy integer 5 to recycle list to dereference it
+        shift elements from slot 2 to slot 1
+        resize list to 5 slots
+        return 0
+
+Remove的时间复杂度为O(n)  
+![](https://raw.github.com/acmerfight/insight_python/master/images/list_remove.png)
+
+###Sort
+
+下面以包含130个元素的list为例说明排序算法。如果list元素个数少于64，用折半插入排序足以进行快速排序，如果元素个数大于64，则需要进行归并排序。
+
+下面这段程序创建了一个元素范围从0到129的list,并随机排列。
+
+	>>> import random
+	>>> l = [n for n in range(130)]
+	>>> random.shuffle(l)
+	>>> l
+	[107, 44, 97, 121, 26, 11, 24, 100, 79, 19, 109, 7, 52, 93, 70, 94, 124, 117, 92, 32, 115, 83, 9, 112, 84, 22, 65, 95, 89, 74, 64, 23, 101, 68, 119, 127, 90, 80, 91, 75, 4, 20, 114, 16, 103, 34, 96, 125, 47, 77, 81, 3, 30, 14, 25, 29, 104, 102, 98, 69, 78, 60, 33, 12, 31, 37, 76, 10, 5, 105, 35, 48, 85, 106, 63, 71, 54, 39, 8, 6, 62, 67, 42, 72, 118, 116, 27, 46, 38, 99, 126, 40, 28, 113, 43, 41, 59, 2, 56, 61, 88, 18, 45, 128, 58, 73, 1, 13, 129, 49, 0, 82, 123, 111, 57, 86, 110, 51, 15, 36, 120, 108, 66, 55, 53, 87, 122, 17, 21, 50]
+
+第一步是寻找其中的自然有序列，例如： l[i] <= l[i+1] <= ... 或者 l[i] > l[i+1] > … 由于例子里的list随机排序, 自然有序列是比较少的。 这里我们还需要基于list长度给出的自然有序列最小长度。函数merge_compute_minrun() 将根据list的长度返回有序列的最小长度。 在本例中, 最短有序列长度为33。 对于长度小于33的自然有序列，我们用折半插入排序法将其延展为长度33的有序列。 
+
+本例中，l[0] >= l[1]，但是l[2] > l[1]，所以我们的第一个自然有序列是2，有些过短，但对于一个随机排序列来说也属正常。在实际运用中，自然有序列会更常见，从而使我们的排序算法比应用在这个例子上更有效率。
+
+第一个自然有序列长度为2，所以我们用折半插入排序将其扩展到32个元素，之后再用归并法的结构管理不同列。 做完排序的第一个自然有序列包括从l[0]到l[32]的元素，如下：  [7, 9, 11, 19, 22, 23, 24, 26, 32, 44, 52, 64, 65, 70, 74, 79, 83, 84, 89, 92, 93, 94, 95, 97, 100, 101, 107, 109, 112, 115, 117, 121, 124].
+
+现在接着从l[33]开始考虑，得到长度为3的自然有序列: l[33] < l[34] < l[35]，于是再次运动折半插入排序得到第2个排序列: [3, 4, 12, 14, 16, 20, 25, 29, 30, 31, 33, 34, 37, 47, 60, 68, 69, 75, 77, 78, 80, 81, 90, 91, 96, 98, 102, 103, 104, 114, 119, 125, 127].
+
+同样方法我们得到长度为33的第3列和长度为31的第4列：
+
+第一列: [7, 9, 11, 19, 22, 23, 24, 26, 32, 44, 52, 64, 65, 70, 74, 79, 83, 84, 89, 92, 93, 94, 95, 97, 100, 101, 107, 109, 112, 115, 117, 121, 124]
+第二列: [3, 4, 12, 14, 16, 20, 25, 29, 30, 31, 33, 34, 37, 47, 60, 68, 69, 75, 77, 78, 80, 81, 90, 91, 96, 98, 102, 103, 104, 114, 119, 125, 127]
+第三列: [2, 5, 6, 8, 10, 27, 28, 35, 38, 39, 40, 41, 42, 43, 46, 48, 54, 56, 59, 62, 63, 67, 71, 72, 76, 85, 99, 105, 106, 113, 116, 118, 126]
+第四列: [0, 1, 13, 15, 17, 18, 21, 36, 45, 49, 50, 51, 53, 55, 57, 58, 61, 66, 73, 82, 86, 87, 88, 108, 110, 111, 120, 122, 123, 128, 129]
+
+接下来进行归并，不同列持续归并直到最后得到长度为130的一列。
+
+首先归并第一列和第二列，归并算法比较复杂，运用gallop的概念加速排序。 如果在归并过程中，同一列多于7个元素被选中，则进入gallop模式，一系列区间被移动到归并暂时存储区域，而不是继续进行一对一的传统比较。关于galloping模式的更多细节请参见<a href="http://svn.python.org/projects/python/trunk/Objects/listsort.txt">listsort.txt</a>。总之，排序完成后，我们得到了66个元素的一个有序列: [3, 4, 7, 9, 11, 12, 14, 16, 19, 20, 22, 23, 24, 25, 26, 29, 30, 31, 32, 33, 34, 37, 44, 47, 52, 60, 64, 65, 68, 69, 70, 74, 75, 77, 78, 79, 80, 81, 83, 84, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 100, 101, 102, 103, 104, 107, 109, 112, 114, 115, 117, 119, 121, 124, 125, 127]
+
+接下来我们将这个66个元素的有序列和原先的第三列归并，得到一个99个元素的有序列: [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 19, 20, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 37, 38, 39, 40, 41, 42, 43, 44, 46, 47, 48, 52, 54, 56, 59, 60, 62, 63, 64, 65, 67, 68, 69, 70, 71, 72, 74, 75, 76, 77, 78, 79, 80, 81, 83, 84, 85, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 109, 112, 113, 114, 115, 116, 117, 118, 119, 121, 124, 125, 126, 127]
+
+最后再和第四列归并得到130个元素的有序列，也就是最终结果: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75, 76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123, 124, 125, 126, 127, 128, 129]
+
+排序时间复杂度为 O(n log n).
+
+
+核心部分  
+
+    我们能看到 Python 设计者的苦心。在需要的时候扩容,但又不允许过度的浪费,适当的内存回收是非常必要的。
+    这个确定调整后的空间大小算法很有意思。
+    调整后大小 (new_allocated) = 新元素数量 (newsize) + 预留空间 (new_allocated)
+    调整后的空间肯定能存储 newsize 个元素。要关注的是预留空间的增长状况。
+    将预留算法改成 Python 版就更清楚了:(newsize // 8) + (newsize < 9 and 3 or 6)。
+    当 newsize >= allocated,自然按照这个新的长度 "扩容" 内存。
+    而如果 newsize < allocated,且利用率低于一半呢?
+    allocated    newsize       new_size + new_allocated
+    10           4             4 + 3
+    20           9             9 + 7
+    很显然,这个新长度小于原来的已分配空间长度,自然会导致 realloc 收缩内存。(不容易啊)
+    引自《深入Python编程》
+
+### Python中的method
+
+#### 什么是method？
+function就是可以通过名字可以调用的一段代码,我们可以传参数进去，得到返回值。所有的参数都是明确的传递过去的。  
+method是function与对象的结合。我们调用一个方法的时候，有些参数是隐含的传递过去的。下文会详细介绍。
+#### instancemethod
+
+    In [5]: class Human(object):
+       ...:     def __init__(self, weight):
+       ...:         self.weight = weight
+       ...:     def get_weight(self):
+       ...:         return self.weight
+       ...:     
+
+    In [6]: Human.get_weight
+    Out[6]: <unbound method Human.get_weight>
+
+这告诉我们`get_weight`是一个没有被绑定方法，什么叫做未绑定呢？继续看下去。
+
+    In [7]: Human.get_weight()
+    ---------------------------------------------------------------------------
+    TypeError                                 Traceback (most recent call last)
+    /home/yao/learn/insight_python/<ipython-input-7-a2b2c5cd2f8d> in <module>()
+    ----> 1 Human.get_weight()
+
+    TypeError: unbound method get_weight() must be called with Human instance as first argument (got nothing instead)
+
+未绑定的方法必须使用一个`Human`实例作为第一个参数来调用啊。那我们来试试
+
+    In [10]: Human.get_weight(Human(45))
+    Out[10]: 45
+
+果然成功了，但是一般情况下我们习惯这么使用。
+
+    In [11]: person = Human(45)
+
+    In [12]: person.get_weight()
+    Out[12]: 45
+
+这两种方式的结果一模一样。我们看下官方文档是怎么解释这种现象的。
+
+    When an instance attribute is referenced that isn’t a data attribute, its class is searched. 
+    If the name denotes a valid class attribute that is a function object, a method object is 
+    created by packing (pointers to) the instance object and the function object just found together
+    in an abstract object: this is the method object. When the method object is called with an 
+    argument list, a new argument list is constructed from the instance object and the argument list, 
+    and the function object is called with this new argument list.
+
+原来我们常用的调用方法(`person.get_weight()`)是把调用的实例隐藏的作为一个参数`self`传递过去了, `self` 只是一个普通的参数名称,不是关键字。
+
+    In [13]: person.get_weight
+    Out[13]: <bound method Human.get_weight of <__main__.Human object at 0x8e13bec>>
+
+    In [14]: person
+    Out[14]: <__main__.Human at 0x8e13bec>
+
+我们看到`get_weight`被绑定在了 `person` 这个实例对象上。  
+总结下  
+
+1.  `instance method` 就是实例对象与函数的结合。  
+2.  使用类调用，第一个参数明确的传递过去一个实例。  
+3.  使用实例调用，调用的实例被作为第一个参数被隐含的传递过去。
+
+#### classmethod
+
+    In [1]: class Human(object):
+       ...:     weight = 12
+       ...:     @classmethod
+       ...:     def get_weight(cls):
+       ...:         return cls.weight
+
+    In [2]: Human.get_weight
+    Out[2]: <bound method type.get_weight of <class '__main__.Human'>>
+
+我们看到`get_weight`是一个绑定在 `Human` 这个类上的method。调用下看看
+
+    In [3]: Human.get_weight()
+    Out[3]: 12
+    In [4]: Human().get_weight()
+    Out[4]: 12
+
+类和类的实例都能调用 `get_weight` 而且调用结果完全一样。  
+我们看到 `weight` 是属于 `Human` 类的属性，当然也是 `Human` 的实例的属性。那传递过去的参数 `cls` 是类还是实例呢？
+
+    In [1]: class Human(object):
+       ...:     weight = 12
+       ...:     @classmethod
+       ...:     def get_weight(cls):
+       ...:         print cls 
+
+    In [2]: Human.get_weight()
+    <class '__main__.Human'>
+
+    In [3]: Human().get_weight()
+    <class '__main__.Human'>
+
+我们看到传递过去的都是 `Human` 类,不是 `Human` 的实例，两种方式调用的结果没有任何区别。`cls` 只是一个普通的函数参数，调用时被隐含的传递过去。  
+总结起来
+
+1.  `classmethod` 是类对象与函数的结合。
+3.  可以使用和类的实例调用，但是都是将类作为隐含参数传递过去。
+2.  使用类来调用 `classmethod` 可以避免将类实例化的开销。
+
+#### staticmethod
+
+    In [1]: class Human(object):
+       ...:     @staticmethod
+       ...:     def add(a, b):
+       ...:         return a + b
+       ...:     def get_weight(self):
+       ...:         return self.add(1, 2)
+
+    In [2]: Human.add
+    Out[2]: <function __main__.add>
+
+    In [3]: Human().add
+    Out[3]: <function __main__.add>
+
+    In [4]: Human.add(1, 2)
+    Out[4]: 3
+
+    In [5]: Human().add(1, 2)
+    Out[5]: 3
+
+我们看到 `add` 在无论是类还是实例上都只是一个普通的函数，并没有绑定在任何一个特定的类或者实例上。可以使用类或者类的实例调用，并且没有任何隐含参数的传入。
+
+    In [6]: Human().add is Human().add
+    Out[6]: True
+
+    In [7]: Human().get_weight is Human().get_weight
+    Out[7]: False
+
+`add` 在两个实例上也是同一个对象。`instancemethod` 就不一样了，每次都会创建一个新的 `get_weight` 对象。  
+总结下
+
+1.  当一个函数逻辑上属于一个类又不依赖与类的属性的时候，可以使用 `staticmethod`。
+2.  使用 `staticmethod` 可以避免每次使用的时都会创建一个对象的开销。
+3.  `staticmethod` 可以使用类和类的实例调用。但是不依赖于类和类的实例的状态。
+
+
+##### 参考资料
+[1] http://julien.danjou.info/blog/2013/guide-python-static-class-abstract-methods  
+[2] http://stackoverflow.com/questions/12179271/python-classmethod-and-staticmethod-for-beginner  
+[3] https://groups.google.com/forum/?hl=zh-CN#!topic/python-cn/pD2mKUja_lk  
+[4] http://stackoverflow.com/questions/155609/what-is-the-difference-between-a-method-and-a-function  
+
+insight_python
+==============
+
+[python中的引用和对象](https://github.com/acmerfight/insight_python/blob/master/ReferenceAndObject.md)
+
+## 对象和引用  
+### 对象:
+内存中存放的一块逻辑的整体数据对象具有唯一的标识符，对象包括属性(Properties)和方法(Methods)，属性就是需要记忆的信息，方法就是对象能够提供的服务。在面向对象面向对象（object-oriented）编程中，对象(Object)是某一个类(Class)的实例(Instance)。在Python shell中输入dir(2)
+可以知道，在Python中2并不是简单的一个整数，而且包含了很多内置的方法。
+### 引用：
+引用像指针一样指向一块内存空间，跟c语言中的指针相似。
+### 举例:
+#### 整数对象
+简单的赋值语句 a = 10000, a 指向了 10000 所在的那块内存。a 引用的对象就是存放 10000 的内存地址。  
+is 判断两个变量是否引用同一个对象，id()取得对象的内存地址  
+
+    a = 10000 
+    b = 10000 
+    print a is b
+
+输出是 False,  可以知道a，b是两个不同的对象,每次创建都会申请新的内存
+
+    a = 1
+    b = 1
+    print a is b
+
+输出是 True，a，b又是相同的对象了。这是因为在Python启动的时候，常用的整数[-5, 256]就建立好，不销毁的对象，也就是a，b都引用相同的一块内存（存放1的内存）,每次创建这个范围内的整数对象不会申请新的内存。这是个设计上的均衡，用一些内存的浪费，来提高大部分程序的运行速度
+#### 容器对象
+Python中容器（可以包含其他对象的对象）中存放的对象实际上都是引用  
+
+    In [17]: a = [[]] * 5
+    In [18]: a
+    Out[18]: [[], [], [], [], []]
+    In [19]: a[1].append(0)
+    In [20]: a
+    Out[20]: [[0], [0], [0], [0], [0]]
+    In [21]: a[0] is a[1]
+    Out[21]: True
+
+a 列表有五个相同的元素，这五个元素都是对同一个空列表的引用(21行)，所以改变其中任何一个元素(不改变对象引用的情况下)，所有的五个元素都会同时进行改变
+
+list 是可变对象，在list扩容的时候有几种方法
+
+    In [6]: a = [1]
+    In [7]: id(a)
+    Out[7]: 28048488
+    In [8]: a = a + [2]
+    In [9]: a
+    Out[9]: [1, 2]
+    In [10]: id(a)
+    Out[10]: 28047696
+
+可以看出使用 + 修改列表，创建了新的列表（对象），a 已经不是原先那个对象，不存放在原先那个内存地址了，进行了大量的内存复制
+
+    In [21]: a = [1]
+    In [22]: id(a)
+    Out[22]: 20913832
+    In [23]: a += [2]
+    In [24]: id(a)
+    Out[24]: 20913832
+
+使用 += 修改列表，并没有创建新的列表(对象)，还存放在原先那个地址。（extend 与 += 几乎相同，只是extend多了调用函数的时间）。
+
+    In [29]: a = [1]
+    In [30]: id(a)
+    Out[30]: 28048704
+    In [31]: a.append(2)
+    In [32]: id(a)
+    Out[32]: 28048704
+
+使用 append 修改列表，也没有创建新的列表，也是存放在原先那个地址。append会进行提前的内存申请，扩容时会更快。但是 append 只能进行单个元素的扩容，内存消耗较大。
+
+所以列表扩容的时候尽量使用 extend 或者 append（当然 list 如果进行频繁大量空间的扩容，肯定会造成效率问题）。
+
+string 和 tuple 都是不可变对象，所以在进行改变的时候肯定都会创建新的对象。(根据这个原理，可以思考下为什么 string 进行合并的时候为什么建议用join)
+
+#### 函数对象
+在 Python 中函数也是对象，所以我们可以像整数赋值一样，将函数赋值给一个变量,将函数作为参数传递给另一个函数,我觉得这也是为什么Python中存在 decorator 的一个原因 
+
+参考:
+
+http://zh.wikipedia.org/wiki/%E5%AF%B9%E8%B1%A1_(%E8%AE%A1%E7%AE%97%E6%9C%BA%E7%A7%91%E5%AD%A6)
+
+Python群 22507237 的 @冒泡 大神 
+
+    郑重声明版权属于 http://agiliq.com/blog/2013/09/understanding-threads-in-python/
+
+我们将会看到一些在Python中使用线程的实例和如何避免线程之间的竞争。
+
+你应当将下边的例子运行多次，以便可以注意到线程是不可预测的和线程每次运行出的不同结果。
+
+声明：从这里开始忘掉你听到过的关于GIL的东西，因为GIL不会影响到我想要展示的东西。
+
+#### 示例1:
+我们将要请求五个不同的url：
+
+##### 单线程
+
+    import time
+    import urllib2
+
+    def get_responses():
+        urls = [
+            'http://www.google.com',
+            'http://www.amazon.com',
+            'http://www.ebay.com',
+            'http://www.alibaba.com',
+            'http://www.reddit.com'
+        ]
+        start = time.time()
+        for url in urls:
+            print url
+            resp = urllib2.urlopen(url)
+            print resp.getcode()
+        print "Elapsed time: %s" % (time.time()-start)
+
+    get_responses()
+
+输出是：
+
+    http://www.google.com 200
+    http://www.amazon.com 200
+    http://www.ebay.com 200
+    http://www.alibaba.com 200
+    http://www.reddit.com 200
+    Elapsed time: 3.0814409256
+
+解释：  
+*   url顺序的被请求  
+*   除非cpu从一个url获得了回应，否则不会去请求下一个url  
+*   网络请求会花费较长的时间，所以cpu在等待网络请求的返回时间内一直处于闲置状态。  
+
+##### 多线程
+
+    import urllib2
+    import time
+    from threading import Thread
+
+    class GetUrlThread(Thread):
+        def __init__(self, url):
+            self.url = url 
+            super(GetUrlThread, self).__init__()
+
+        def run(self):
+            resp = urllib2.urlopen(self.url)
+            print self.url, resp.getcode()
+
+    def get_responses():
+        urls = [
+            'http://www.google.com', 
+            'http://www.amazon.com', 
+            'http://www.ebay.com', 
+            'http://www.alibaba.com', 
+            'http://www.reddit.com'
+        ]
+        start = time.time()
+        threads = []
+        for url in urls:
+            t = GetUrlThread(url)
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        print "Elapsed time: %s" % (time.time()-start)
+
+    get_responses()
+
+输出:  
+
+    http://www.reddit.com 200
+    http://www.google.com 200
+    http://www.amazon.com 200
+    http://www.alibaba.com 200
+    http://www.ebay.com 200
+    Elapsed time: 0.689890861511
+
+解释：
+*   意识到了程序在执行时间上的提升
+*   我们写了一个多线程程序来减少cpu的等待时间，当我们在等待一个线程内的网络请求返回时，这时cpu可以切换到其他线程去进行其他线程内的网络请求。
+*   我们期望一个线程处理一个url，所以实例化线程类的时候我们传了一个url。
+*   线程运行意味着执行类里的`run()`方法。
+*   无论如何我们想每个线程必须执行`run()`。
+*   为每个url创建一个线程并且调用`start()`方法，这告诉了cpu可以执行线程中的`run()`方法了。
+*   我们希望所有的线程执行完毕的时候再计算花费的时间，所以调用了`join()`方法。
+*   `join()`可以通知主线程等待这个线程结束后，才可以执行下一条指令。
+*   每个线程我们都调用了`join()`方法，所以我们是在所有线程执行完毕后计算的运行时间。
+
+关于线程：  
+*   cpu可能不会在调用`start()`后马上执行`run()`方法。
+*   你不能确定`run()`在不同线程建间的执行顺序。
+*   对于单独的一个线程，可以保证`run()`方法里的语句是按照顺序执行的。
+*   这就是因为线程内的url会首先被请求，然后打印出返回的结果。
+
+#### 实例2
+
+我们将会用一个程序演示一下多线程间的资源竞争，并修复这个问题。  
+
+    from threading import Thread
+
+
+    #define a global variable
+    some_var = 0 
+
+    class IncrementThread(Thread):
+        def run(self):
+            #we want to read a global variable
+            #and then increment it
+            global some_var
+            read_value = some_var
+            print "some_var in %s is %d" % (self.name, read_value)
+            some_var = read_value + 1 
+            print "some_var in %s after increment is %d" % (self.name, some_var)
+
+    def use_increment_thread():
+        threads = []
+        for i in range(50):
+            t = IncrementThread()
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        print "After 50 modifications, some_var should have become 50"
+        print "After 50 modifications, some_var is %d" % (some_var,)
+
+    use_increment_thread()
+
+多次运行这个程序，你会看到多种不同的结果。  
+
+解释：
+*   有一个全局变量，所有的线程都想修改它。
+*   所有的线程应该在这个全局变量上加 1 。
+*   有50个线程，最后这个数值应该变成50，但是它却没有。
+
+为什么没有达到50？  
+*   在`some_var`是`15`的时候，线程`t1`读取了`some_var`，这个时刻cpu将控制权给了另一个线程`t2`。
+*   `t2`线程读到的`some_var`也是`15`
+*   `t1`和`t2`都把`some_var`加到`16`
+*   当时我们期望的是`t1` `t2`两个线程使`some_var + 2`变成`17`
+*   在这里就有了资源竞争。
+*   相同的情况也可能发生在其它的线程间，所以出现了最后的结果小于`50`的情况。
+
+解决资源竞争
+
+    from threading import Lock, Thread
+    lock = Lock()
+    some_var = 0 
+
+
+    class IncrementThread(Thread):
+        def run(self):
+            #we want to read a global variable
+            #and then increment it
+            global some_var
+            lock.acquire()
+            read_value = some_var
+            print "some_var in %s is %d" % (self.name, read_value)
+            some_var = read_value + 1 
+            print "some_var in %s after increment is %d" % (self.name, some_var)
+            lock.release()
+
+    def use_increment_thread():
+        threads = []
+        for i in range(50):
+            t = IncrementThread()
+            threads.append(t)
+            t.start()
+        for t in threads:
+            t.join()
+        print "After 50 modifications, some_var should have become 50"
+        print "After 50 modifications, some_var is %d" % (some_var,)
+
+    use_increment_thread()
+
+
+再次运行这个程序，达到了我们预期的结果。  
+
+解释：  
+*   Lock 用来防止竞争条件
+*   如果在执行一些操作之前，线程`t1`获得了锁。其他的线程在`t1`释放Lock之前，不会执行相同的操作
+*   我们想要确定的是一旦线程`t1`已经读取了`some_var`，直到`t1`完成了修改`some_var`，其他的线程才可以读取`some_var`
+*   这样读取和修改`some_var`成了逻辑上的原子操作。
+
+#### 实例3
+让我们用一个例子来证明一个线程不能影响其他线程内的变量（非全局变量）。
+
+time.sleep()可以使一个线程挂起，强制线程切换发生。
+
+    from threading import Thread
+    import time
+
+    class CreateListThread(Thread):
+        def run(self):
+            self.entries = []
+            for i in range(10):
+                time.sleep(1)
+                self.entries.append(i)
+            print self.entries
+
+    def use_create_list_thread():
+        for i in range(3):
+            t = CreateListThread()
+            t.start()
+
+    use_create_list_thread()
+
+运行几次后发现并没有打印出争取的结果。当一个线程正在打印的时候，cpu切换到了另一个线程，所以产生了不正确的结果。我们需要确保`print self.entries`是个逻辑上的原子操作，以防打印时被其他线程打断。
+
+我们使用了Lock()，来看下边的例子。
+
+    from threading import Thread, Lock
+    import time
+
+    lock = Lock()
+
+    class CreateListThread(Thread):
+        def run(self):
+            self.entries = []
+            for i in range(10):
+                time.sleep(1)
+                self.entries.append(i)
+            lock.acquire()
+            print self.entries
+            lock.release()
+
+    def use_create_list_thread():
+        for i in range(3):
+            t = CreateListThread()
+            t.start()
+
+    use_create_list_thread()
+
+这次我们看到了正确的结果。证明了一个线程不可以修改其他线程内部的变量（非全局变量）
+
+
+### 字符编码
+你是否认为“ASCII码 = 一个字符就是8比特”？你是否认为一个字节就是一个字符,一个字符就是8比特？你是否还认为你是否还认为UTF-8就是用8比特表示一个字符？如果真的是这样认为认真读完这篇文章吧！
+
+###为什么要有编码？
+首先大家需要明确的是在计算机里所有的数据都是字节的形式存储，处理的。我们需要这些字节来表示计算机里的信息。但是这些字节本身又是没有任何意义的，所以我们需要对这些字节赋予实际的意义。所以才会制定各种编码标准。
+
+###编码模型 
+首先需要明确的是存在两种编码模型  
+#####简单字符集
+在这种编码模型里，一个字符集定义了这个字符集里包含什么字符，同时把每个字符如何对应成计算机里的比特也进行了定义。例如ASCII，在ASCII里直接定义了`A -> 0100 0001`。
+#####现代编码模型
+在现代编码模型里要知道一个字符如何映射成计算机里比特，需要经过如下几个步骤。
+
+1. 知道一个系统需要支持哪些字符，这些字符的集合被称为字符表（Character repertoire）  
+2. 给字符表里的抽象字符编上一个数字，也就是字符集合到一个整数集合的映射。这种映射称为编码字符集（CCS:Coded Character Set）,unicode是属于这一层的概念，跟计算机里的什么进制啊没有任何关系，它是完全数学的抽象的。   
+3. 将CCS里字符对应的整数转换成有限长度的比特值，便于以后计算机使用一定长度的二进制形式表示该整数。这个对应关系被称为字符编码表（CEF:Character Encoding Form）UTF-8, UTF-16都属于这层。  
+4. 对于CEF得到的比特值具体如何在计算机中进行存储，传输。因为存在大端小端的问题，这就会跟具体的操作系统相关了。这种解决方案称为字符编码方案（CES:Character Encoding Scheme）。  
+
+平常我们所说的编码都在第三步的时候完成了,都没有涉及到CES。所以CES并不在本文的讨论范围之内。  
+现在也许有人会想为什么要有现代的编码模型？为什么在现在的编码模型要拆分出这么多概念？直接像原始的编码模型直接都规定好所有的信息不行吗？这些问题在下文的编码发展史中都会有所阐述。
+###编码的发展史
+#####ASCII
+ASCII出现在上个世纪60年代的美国，ASCII一共定义了128个字符，使用了一个字节的7位。定义的这些字符包括英文字母A-Z，a-z，数字0-9，一些标点符号和控制符号。在Shell里输入`man ASCII`，可以看到完整的ASCII字符集。ASCII采用的编码模型是简单字符集，它直接定义了一个字符的比特值表示。里例如上文提到的`A -> 0100 0001`。也就是ASCII直接完成了现代编码模型的前三步工作。  
+在英语系国家里ASCII标准很完美。但是不要忘了世界上可有好几千种语言，这些语言里不仅只有这些符号啊。如果使用这些语言的人也想使用计算机，ASCII就远远不够了。到这里编码进入了混乱的时代。
+#####混乱时代
+人们知道计算机的一个字节是8位，可以表示256个字符。ASCII却只使用了7位，所以人们决定把剩余的一位也利用起来。这时问题出现了，人们对于已经规定好的128个字符是没有异议的，但是不同语系的人对于其他字符的需求是不一样的，所以对于剩下的128个字符的扩展会千奇百怪。而且更加混乱的是，在亚洲的语言系统中有更多的字符，一个字节无论如何也满足不了需求了。例如仅汉字就有10万多个，一个字节的256表示方式怎么能够满足呢。于是就又产生了各种多字节的表示一个字符方法(gbk就是其中一种)，这就使整个局面更加的混乱不堪。（希望看到这里的你不再认为一个字节就是一个字符，一个字符就是8比特）。每个语系都有自己特定的编码页（code pages）的状况，使得不同的语言出现在同一台计算机上，不同语系的人在网络上进行交流都成了痴人说梦。这时Unicode出现了。
+#####Unicode
+Unicode就是给计算机中所有的字符各自分配一个代号。Unicode通俗来说是什么呢？就是现在实现共产主义了，各国人民不在需要自己特定的国家身份证，而是给每人一张全世界通用的身份证。Unicode是属于编码字符集（CCS）的范围。Unicode所做的事情就是将我们需要表示的字符表中的每个字符映射成一个数字，这个数字被称为相应字符的码点（code point）。例如“严”字在Unicode中对应的码点是U+0x4E25。 
+
+到目前为止，我们只是找到了一堆字符和数字之间的映射关系而已，只到了CCS的层次。这些数字如何在计算机和网络中存储和展示还没有提到。
+#####字符编码
+前面还都属于字符集的概念，现在终于到CEF的层次了。为了便于计算的存储和处理，现在我们要把哪些纯数学数字对应成有限长度的比特值了。最直观的设计当然是一个字符的码点是什么数字，我们就把这个数字转换成相应的二进制表示，例如“严”在Unicode中对应的数字是0x4E25,他的二进制是`100 1110 0010 0101`，也就是严这个字需要两个字节进行存储。按照这种方法大部分汉字都可以用两个字节来表示了。但是还有其他语系的存在，没准儿他们所使用的字符用这种方法转换就需要4个字节。这样问题又来了到底该使用几个字节表示一个字符呢？如果规定两个字节，有的字符会表示不出来，如果规定较多的字节表示一个字符，很多人又不答应，因为本来有些语言的字符两个字节处理就可以了，凭什么用更多的字节表示，多么浪费。
+
+这时就会想可不可以用变长的字节来存储一个字符呢？如果使用了变长的字节表示一个字符，那就必须要知道是几个字节表示了一个字符，要不然计算机可没那么聪明。下面介绍一下最常用的UTF-8（UTF是Unicode Transformation Format的缩写）的设计。请看下图（来自阮一峰的博客） 
+
+x表示可用的位
+
+![](https://raw.github.com/acmerfight/insight_python/master/images/code.png)
+
+通过UTF-8的对应关系可以把每个字符在Unicode中对应的码点，转换成相应的计算机的二进制表示。可以发现按照UTF-8进行转换是完全兼容原先的ASCII的；而且在多字节表示一个字符时，开头有几个1就表示这个字符按照UTF-8转换后由几个字节表示。下面一个实例子来自阮一峰的博客
+
+> 已知“严”的unicode是4E25（100111000100101），根据上表，可以发现4E25处在第三行的范围内（0000 0800-0000 FFFF），因此“严”的UTF-8编码需要三个字节，即格式是“1110xxxx 10xxxxxx 10xxxxxx”。然后，从“严”的最后一个二进制位开始，依次从后向前填入格式中的x，多出的位补0。这样就得到了，“严”的UTF-8编码是“11100100 10111000 10100101”，转换成十六进制就是0xE4B8A5。  
+
+除了UTF-8这种转换方法，还存在UTF-16，UTF-32等等转换方法。这里就不再多做介绍。（注意UTF后边的数字代表的是码元的大小。码元（Code Unit）是指一个已编码的文本中具有最短的比特组合的单元。对于UTF-8来说，码元是8比特长；对于UTF-16来说，码元是16比特长。换一种说法就是UTF-8的是以一个字节为最小单位的，UTF-16是以两个字节为最小单位的。）
+###结束语
+花了两天时间终于写完了，相信看到这里大家对于字符编码有了较为清楚的认识，当然文章中肯定存在不准确之处，希望大家批评指正。  
+邮箱：acmerfight圈gmail.com
+
+#####参考资料
+[字符编码](https://zh.wikipedia.org/wiki/%E5%AD%97%E7%AC%A6%E7%BC%96%E7%A0%81)  
+[The Absolute Minimum Every Software Developer Absolutely, Positively Must Know About Unicode and Character Sets (No Excuses!)](http://www.joelonsoftware.com/articles/Unicode.html)  
+[字符编码笔记：ASCII，Unicode和UTF-8](http://www.ruanyifeng.com/blog/2007/10/ascii_unicode_and_utf-8.html)  
+[字符集和字符编码](http://www.cnblogs.com/skynet/archive/2011/05/03/2035105.html)  
+[Windows 记事本的 ANSI、Unicode、UTF-8 这三种编码模式有什么区别？](http://www.zhihu.com/question/20650946)  
+[如何向非技术人员解释 Unicode 是什么](http://www.zhihu.com/question/19943875)  
+[字符编解码的故事（ASCII，ANSI，Unicode，Utf-8）](http://www.cnblogs.com/zjking99/archive/2012/03/27/2419275.html)
+

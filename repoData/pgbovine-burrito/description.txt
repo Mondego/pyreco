@@ -1,0 +1,81 @@
+# Quickly test my script on all gui traces ...
+
+for x in `find /var/log/BurritoBook/ -name 'gui.*'`; do python parse_gui_trace.py $x; done
+
+---
+2011-11-20
+
+Install the Xpad sticky notes app on Fedora 14:
+
+  sudo yum install xpad
+
+Then add 'xpad' to:
+
+  System -> Preferences -> Startup Applications
+
+I like this app because it puts an icon in the upper-right GNOME panel,
+so that you can click the icon and it will instantly foreground all of
+the sticky notes.
+
+
+xpad stores its data in ~/.config/xpad/
+
+If you strace it to track open and write syscalls, you'll notice that it
+does a LOT of writes to its data directory.  Since this is stored in
+NILFS within ~/home/, all of these writes might be wasteful, so to
+optimize later, we might want to move this directory to a non-versioned
+filesystem.
+
+Interesting ... xpad continually writes data to a temporary
+.goutputstream* file and then renames it to content-* files for
+permanent storage ...
+
+rename("/home/researcher/.config/xpad/.goutputstream-FG1X4V", "/home/researcher/.config/xpad/content-GCQD5V") = 0
+
+
+Code is in XpadTracer.py
+
+
+Post-integration stuff
+
+This sub-directory contains programs that all read the 'burrito_db' MongoDB,
+(which contains the cleaned and integrated data streams)
+
+
+Burrito: An Electronic Lab Notebook for Computational Researchers
+by Philip Guo (philip@pgbovine.net)
+
+http://www.pgbovine.net/burrito.html
+
+Project started in October 2011, GitHub repository created on 2012-01-12
+
+---
+
+See INSTALL for an example installation on Fedora 14
+
+---
+LICENSE
+
+Copyright (C) 2011-2012 Philip J. Guo (philip@pgbovine.net)
+
+Permission is hereby granted, free of charge, to any person obtaining a
+copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be included
+in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+======
+

@@ -1,0 +1,109 @@
+This is just a directory for some experimental code that isn't fully baked yet.
+
+It may be generic code yet to be cleaned up and moved into Sebastian's core
+or it may be code exercising experimental features already in the core.
+
+This directory contains a first pass at the score for In C in lilypond format
+as well as the beginnings of code for generating a performance of In C.
+
+Running
+
+    ./in_c2midi.py
+
+will, depending on which function is called at the top-level in the source
+code, either generate a MIDI file for each In C pattern or a single MIDI file
+with each of the patterns played ten times.
+
+The next step is to support multiple instruments and aleatoric repetitions.
+
+Each directory here is an in-progress attempt to build a piece of music
+or part of a piece using Sebastian.
+
+The idea is to motivate new features in Sebastian by working on such
+projects.
+
+# Sebastian
+
+**Sebastian** is a symbolic music analysis and composition library written in
+Python.
+
+I partly think of it as being a "Mathematica for music". By symbolic, I mean
+that it is focused more on the sorts of abstractions made by music notation
+and theories of harmony and counterpoint than lower level numerical
+operations that one might use in, say, music synthesis.
+
+I hope it to be very practical as an analysis tool for existing compositions
+(especially from the common practice period) and also a tool for
+computer-assisted composition. It will also be a bit of a test bed for ideas
+I've had for a while around applying linguistics and abstract algebra to
+music.
+
+## PyCon 2013 Talk
+
+I spoke about Sebastian at PyCon 2013 and my slides are available at:
+
+<https://speakerdeck.com/jtauber/music-theory-and-performance-analysis-with-sebastian-and-czerny>
+
+The video of the talk is available on YouTube at:
+
+<http://www.youtube.com/watch?v=06h21nBqwec>
+
+## Mailing List
+
+You can join the Sebastian mailing list by emailing `sebastian@librelist.com`
+
+## IRC Channel
+
+We're using `#sebastian-dev` on Freenode.
+
+## License
+
+Sebastian is open source under an MIT license. See the LICENSE file.
+
+## Running Tests
+
+    pip install nose
+    nosetests
+
+or with coverage:
+
+    nosetests --with-coverage --cover-erase --cover-package=sebastian --cover-html
+    open cover/index.html
+
+## IPython Notebook Integration
+
+    pip install ipython
+    pip install tornado
+    pip install pyzmq
+    
+and install Lilypond, making sure commandline `lilypond` is on your path then:
+
+    ipython notebook
+
+This is the beginnings of a library and test suite for reading lilypond
+fragments.
+
+lilypond.interp.parse will take a lilypond fragment and generate a series of
+core.Points with attributes OFFSET_64, MIDI_PITCH and DURATION_64.
+
+To ensure trailing rests don't get lost, some Points have an OFFSET_64 but
+no MIDI_PITCH or DURATION_64. These don't correspond to any note but instead
+mark the end of the block.
+
+You can run tests with by running `lilypond_tests.py` under top-level `tests`
+directory.
+
+This is a library for parsing and writing Standard MIDI Files (SMFs)
+
+The parser currently just outputs the data it finds and can be run with
+
+    ./midi.py [midi-file]
+
+write_midi.py is intended to be used as a library for generating MIDI files
+and, while currently limited, can be seen in action in in_c/in_c2midi.py
+
+There is also the player module that enables you to (on OS X) easily fire up a
+MIDI player (e.g. QuickTime Player) to play a given sequence (say from the 
+interactive prompt) without having to explicitly save and open the file in a
+player yourself.
+

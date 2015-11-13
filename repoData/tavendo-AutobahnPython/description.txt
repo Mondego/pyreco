@@ -1,0 +1,2153 @@
+Twisted-based WebSocket/WAMP client and server framework.
+
+AutobahnPython provides a WebSocket (RFC6455, Hybi-10 to -17, Hixie-76)
+framework for creating WebSocket-based clients and servers.
+
+AutobahnPython also includes an implementation of WAMP
+(The WebSockets Application Messaging Protocol), a light-weight,
+asynchronous RPC/PubSub over JSON/WebSocket protocol.
+
+More information:
+
+   * http://autobahn.ws/python
+   * http://wamp.ws
+
+Source Code:
+
+   * https://github.com/tavendo/AutobahnPython
+
+# Autobahn|Python Documentation
+
+The **Autobahn**|Python reference documentation is generated using [Sphinx](http://sphinx.pocoo.org/) and available [online](http://autobahn.ws/python/reference).
+
+To generate the documentation yourself you will need to have **Autobahn**|Python installed locally plus install Sphinx:
+
+	pip install sphinx
+    pip install sphinx_rtd_theme
+    pip install sphinxcontrib-spelling
+    pip install repoze.sphinx.autointerface
+
+and then
+
+	cd doc
+	sphinx-build -b html . _html
+
+This will create the documentation under
+
+	_html
+
+
+## Custom Page Content
+
+To add custom page content to the generated pages, modify `templates/layout.html`.
+
+## Publishing
+
+> Note: this section is only relevant for administrators of the [Autobahn web site](http://autobahn.ws/).
+
+To publish to the Autobahn web site ([here](http://autobahn.ws/python/reference/)), you will need [SCons](http://scons.org/) and [Taschenmesser](https://pypi.python.org/pypi/taschenmesser).
+
+Then do
+
+	scons
+
+to build the docs and
+
+	scons publish
+
+to build and publish the docs and
+
+	scons -uc
+
+to cleanup.
+This folder contains a minimal skeleton of a **WAMPlet** application component.
+
+A **WAMPlet** can be thought of a reusable application component that can be deployed dynamically as needed.
+
+Get started by copying this folder and it's contents and begin by modifying a working base line.
+
+> This example is using **asyncio**. You can find the **Twisted** variant [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/wamp/wamplet/wamplet1)
+> 
+
+## WAMPlet Development
+
+All the interesting bits with our application component are in [here](wamplet1/component1.py).
+
+For development, start a locally running WAMP router, e.g. **Crossbar**.io:
+
+```shell
+cd $HOME
+crossbar init
+crossbar start
+```
+
+and in a second terminal run the file containing the application component:
+
+```shell
+python wamplet1/component1.py
+```
+
+## WAMPlet Installation and Distribution
+
+For installation as a local WAMPlet in your Python package directory
+
+```shell
+python setup.py install
+```
+
+Installation of the WAMPlet allows **Crossbar**.io to find your WAMPlet even if no explicit Python paths are configured.
+
+Above will also leave you an **.egg** file with your WAMPlet packaged up as a redistributable egg file that can be installed on other hosts. You can even publish your WAMPlet on the [Python Package Index](https://pypi.python.org).
+
+To make *automatic WAMPlet discovery* work, the [Setup file](setup.py) contains an item
+
+```python
+   entry_points = {
+      'autobahn.asyncio.wamplet': [
+         'component1 = wamplet1.component1:make'
+      ],
+   },
+```
+
+where `entry_points` must have an entry `autobahn.asyncio.wamplet` that lists application components the package exposes.
+
+Here, the factory function `make()` in the module `component1` in the package `wamplet1` is to be exposed as the WAMPlet `component1`.
+
+# WebSocket Echo (Asyncio-based)
+
+This example shows a WebSocket echo server that will echo back any WebSocket message it receives to the client that sent the message.
+
+It also includes a WebSocket client that will send a WebSocket message every second to the server it connected to. The Python client is available in two variants.
+
+Lastly, a HTML5 client is also included.
+
+This example uses the Asyncio integration of **Autobahn**|Python. You can find the corresponding example using the Twisted integration [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/websocket/echo).
+
+## Running
+
+Run the server:
+
+    python server.py
+
+and open
+
+    client.html
+
+in your browser.
+
+To activate debug output on the server:
+
+    python server.py debug
+
+To run the Python client
+
+    python client.py ws://127.0.0.1:9000
+
+or (Python 3)
+
+    python client_coroutines.py ws://127.0.0.1:9000
+
+or (Python 2)
+
+    python client_coroutines_py2.py ws://127.0.0.1:9000
+
+To activate debug output on the client
+
+    python client.py ws://127.0.0.1:9000 debug
+
+
+
+# WebSocket programming with Autobahn on asyncio
+
+This folder contains complete working code examples that demonstrate [WebSocket](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) programming with **Autobahn**|Python on [asyncio](http://docs.python.org/3.4/library/asyncio.html):
+
+ 1. [Echo](echo)
+ 2. [Slow Square](slowsquare)
+ 3. [Testee](testee)
+
+# WebSocket "Slow-Square" (Asyncio-based)
+
+This example shows a WebSocket server that will receive a JSON encode float over WebSocket, slowly compute the square, and send back the result.
+
+This example is intended to demonstrate how to use coroutines inside WebSocket handlers.
+
+> This example uses the Asyncio integration of **Autobahn**|Python. You can find the corresponding example using the Twisted integration [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/websocket/slowsquare).
+> 
+## Running
+
+Run the server (Python 3)
+
+    python server.py
+
+or (Python 2)
+
+    python server_py2.py
+
+To run the Python client (both Python 3 and 2)
+
+    python client.py
+
+# Autobahn|Python Examples
+
+This folder contains complete working code examples that demonstrate various
+features of **Autobahn**|Python:
+
+ 1. **Twisted**-based Examples
+   * [WebSocket](twisted/websocket)
+   * [WAMP](twisted/wamp)
+
+2. **asyncio**-based Examples
+   * [WebSocket](asyncio/websocket)
+   * [WAMP](asyncio/wamp)
+
+> Note: old Twisted / WAMP v1 examples are [here](twisted/wamp1)
+ 
+# Authenticating WAMP with Mozilla Persona
+
+Run this demo by starting the server
+
+	python server.py -d
+
+and opening `http://127.0.0.1:8080` in your browser. Open the JavaScript console and login via Mozilla Persona.
+
+
+> Note: To change the server URL, you also need to change the "Mozilla Persona Domain" used in the code.
+# WAMP v2 Examples
+
+The examples in this folder serve to illustrate **[WAMP version 2](https://github.com/tavendo/WAMP/blob/master/spec/README.md)** on [**Autobahn**|Python](http://autobahn.ws/):
+
+* WAMP **RPC** and **PubSub** features for application use
+* example WAMP **application components** and **routers**
+
+# Application Component Deployment
+
+**[WAMP v2](https://github.com/tavendo/WAMP/blob/master/spec/README.md)** on [**Autobahn**|Python](http://autobahn.ws/) allows to run application components in different deployment configurations without any changes to application code:
+
+![Application Code Deployment Options](figures/app_code_depl_options.png)
+
+## Running the Demos
+
+All demos use the same two example application routers to host the application components for a demo:
+
+ * [A WAMP/WebSocket server container](server.py)
+ * [A WAMP/WebSocket client container](client.py)
+
+The application components of the demos are separate from the example application routres, and each application component demonstrates a different RPC or PubSub feature.
+
+### Router with embedded application backend component
+
+Run the example application router on a WebSocket transport server and start a demo "backend" application component inside the router:
+
+	python server.py --component "rpc.timeservice.backend.Component"
+
+Run the demo "frontend" application component over a WebSocket transport client:
+
+	python client.py --component "rpc.timeservice.frontend.Component"
+
+
+### Application backend component in client
+
+Run the example application router on a WebSocket transport server:
+
+	python server.py
+
+Run the demo "backend" application component over a WebSocket transport client:
+
+	python client.py --component "rpc.timeservice.backend.Component"
+
+Run the demo "frontend" application component over a WebSocket transport client:
+
+	python client.py --component "rpc.timeservice.frontend.Component"
+
+
+### Other Transports
+
+To start a server accepting WAMP connections on TCP port 8080 using a **rawsocket** transport with MsgPack serialization:
+
+```shell
+python server.py --debug --endpoint "tcp:8080" --transport "rawsocket-msgpack" \
+   --component "rpc.timeservice.backend.Component"
+```
+
+To start a client connecting to this server:
+
+```shell
+python client.py --endpoint "tcp:127.0.0.1:8080" --transport "rawsocket-msgpack" \
+   --component "rpc.timeservice.frontend.Component"
+```
+
+
+## Available Demos
+
+### Remote Procedure Calls
+
+#### Time Service
+
+A trivial time service - demonstrates basic remote procedure feature.
+
+ * `rpc.timeservice.backend.Component`
+ * `rpc.timeservice.frontend.Component`
+
+#### Slow Square
+
+Demonstrates procedures which return promises and return asynchronously.
+
+ * `rpc.slowsquare.backend.Component`
+ * `rpc.slowsquare.frontend.Component`
+
+#### Arguments
+
+Demonstrates all variants of call arguments.
+
+ * `rpc.arguments.backend.Component`
+ * `rpc.arguments.frontend.Component`
+
+#### Complex Result
+
+Demonstrates complex call results (call results with more than one positional or keyword results).
+
+ * `rpc.complex.backend.Component`
+ * `rpc.complex.frontend.Component` 
+
+#### Errors
+
+Demonstrates error raising and catching over remote procedures.
+
+ * `rpc.errors.backend.Component`
+ * `rpc.errors.frontend.Component` 
+
+#### Progressive Results
+
+Demonstrates calling remote procedures that produce progressive results.
+
+ * `rpc.progress.backend.Component`
+ * `rpc.progress.frontend.Component` 
+
+#### Options
+
+Using options with RPC.
+
+ * `rpc.options.backend.Component`
+ * `rpc.options.backend.Component` 
+
+
+### Publish & Subscribe
+
+#### Time Service
+
+Demonstrates basic publish and subscribe.
+
+ * `pubsub.basic.backend.Component`
+ * `pubsub.basic.frontend.Component`
+
+#### Complex Events
+
+Demonstrates publish and subscribe with complex events.
+
+ * `pubsub.complex.backend.Component`
+ * `pubsub.complex.frontend.Component`
+
+#### Options
+
+Using options with PubSub.
+
+ * `pubsub.options.backend.Component`
+ * `pubsub.options.frontend.Component`
+
+#### Unsubscribing
+
+Shows how to unsubscribe.
+
+ * `pubsub.unsubscribe.backend.Component`
+ * `pubsub.unsubscribe.frontend.Component`
+
+
+### Session
+
+#### Session Series
+
+Demonstrates how multiple sessions can exist during the lifetime of the underlying transport.
+
+ * `session.series.backend.Component`
+ * `session.series.frontend.Component`
+
+
+## AutobahnJS-based Demos
+
+In addition, the demo front- and backends are available as AutobahnJS-based versions to run in browsers and NodeJS.
+
+For example, run the example application router on a WebSocket transport server and start a demo "backend" application component inside the router:
+
+	python server.py --component "rpc.timeservice.backend.Component"
+
+Then, open the JavaScript frontend in a browser:
+
+    rpc/timeservice_frontend.html
+
+To run the frontend from NodeJS, install AutobahnJS
+
+	npm install autobahn
+	npm install when
+
+and then
+
+	node rpc/timeservice_frontend.js
+
+To run the backend in NodeJS, run the plain router
+
+	python server.py
+
+and then start the backend:
+
+	node rpc/timeservice_backend.js
+
+### Deployment Options
+
+Application frontend in browser, application backend in browser:
+
+![Application Code Deployment Options](figures/timeservice1.png)
+
+Application frontend in browser, application backend in NodeJS:
+
+![Application Code Deployment Options](figures/timeservice2.png)
+
+Application frontend in browser, application backend in Python:
+
+![Application Code Deployment Options](figures/timeservice3.png)
+
+Application frontend in browser, application backend in Python (Router embedded):
+
+![Application Code Deployment Options](figures/timeservice4.png)
+
+This example demonstrates how to access an app session instance from outside - via the session factory.
+
+It runs an application component as a client connected to a WAMP router.
+
+Start a WAMP router:
+
+	python ../../server.py
+
+Start the backend component (which will run inside a client connecting to the router):
+
+	python client.py
+
+Open `frontend.html` in your browser.
+# WAMP programming with Autobahn on Twisted
+
+This folder contains complete working code examples that demonstrate [WAMP v2](http://wamp.ws) programming with **Autobahn**|Python on [Twisted](http://www.twistedmatrix.com/):
+
+ * [Basic Publish & Subscribe and Remote Procedure Calls](basic)
+
+This example demonstrates the use of databases (e.g. SQLite or PostgreSQL) from WAMP application components. The example is a simple voting app packaged up as a **WAMPlet** application component.
+
+A **WAMPlet** can be thought of a reusable application component that can be deployed dynamically as needed.
+
+Get started by copying this folder and it's contents and begin by modifying a working base line.
+
+## Try it
+
+All the interesting bits with our application component are in [here](votegame/backend.py).
+
+For development, start a locally running WAMP router, e.g. **Crossbar**.io:
+
+```shell
+cd $HOME
+crossbar init
+crossbar start
+```
+
+and in a second terminal run the file containing the application component:
+
+```shell
+python votegame/backend.py
+```
+
+In your browser, open the file `votegame/web/index.html`.
+
+## Deploying
+
+You can deploy your WAMPlet to a WAMPlet container for production.
+
+A configuration for [**Crossbar**.io](http://crossbar.io) which runs a WAMP router, loads the VoteGame backend component and serves static Web content from the VoteGame package can be found [here](config.json).
+# WAMP IRC
+
+WAMPlet that provides IRC bot services to applications.
+
+The component bridges IRC and [WAMP](http://wamp.ws). It exposes IRC to WAMP, e.g. there are RPC endpoints for starting a bot, joining channels, listening for activity, and publishing IRC activity as WAMP PubSub events.
+
+It is written as a WAMPlet, a reusable WAMP-based application component, that can be run connecting to any WAMP router (e.g. [**Crossbar**.io](https://github.com/crossbario/crossbar/wiki)). The component can be started directly, or WAMP routers capable of *hosting* WAMPlets can run the component under supervison.
+
+## Try it
+
+Start up a WAMP router in a first terminal - e.g. **Crossbar**.io:
+
+```shell
+crossbar init
+crossbar start
+```
+
+Run the WAMPlet from the local directory:
+
+```shell
+PYTHONPATH="." python wampirc/service.py
+```
+
+Open the test console `test/index.html` in your browser to control the component.
+
+This folder contains a minimal skeleton of a **WAMPlet** application component.
+
+A **WAMPlet** can be thought of a reusable application component that can be deployed dynamically as needed.
+
+Get started by copying this folder and it's contents and begin by modifying a working base line.
+
+> This example is using **Twisted**. You can find the **asyncio** variant [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/asyncio/wamp/wamplet/wamplet1)
+> 
+
+## WAMPlet Development
+
+All the interesting bits with our application component are in [here](wamplet1/component1.py).
+
+For development, start a locally running WAMP router, e.g. **Crossbar**.io:
+
+```shell
+cd $HOME
+crossbar init
+crossbar start
+```
+
+and in a second terminal run the file containing the application component:
+
+```shell
+python wamplet1/component1.py
+```
+
+## WAMPlet Installation and Distribution
+
+For installation as a local WAMPlet in your Python package directory
+
+```shell
+python setup.py install
+```
+
+Installation of the WAMPlet allows **Crossbar**.io to find your WAMPlet even if no explicit Python paths are configured.
+
+Above will also leave you an **.egg** file with your WAMPlet packaged up as a redistributable egg file that can be installed on other hosts. You can even publish your WAMPlet on the [Python Package Index](https://pypi.python.org).
+
+To make *automatic WAMPlet discovery* work, the [Setup file](setup.py) contains an item
+
+```python
+   entry_points = {
+      'autobahn.twisted.wamplet': [
+         'component1 = wamplet1.component1:make'
+      ],
+   },
+```
+
+where `entry_points` must have an entry `autobahn.twisted.wamplet` that lists application components the package exposes.
+
+Here, the factory function `make()` in the module `component1` in the package `wamplet1` is to be exposed as the WAMPlet `component1`.
+
+Decimal Calculator Service
+==========================
+
+This example implements a AutobahnPython based WAMP server with RPC
+endpoints providing a decimal calculator service.
+
+A browser based UI is included which uses AutobahnJS to access
+the decimal calculator service.
+
+Further, since it's a standard WAMP service, any WAMP client can use
+the service. You could access it i.e. from a native
+Android app via AutobahnAndroid or from a remote AutobahnPython based
+client.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+
+
+Background
+----------
+
+The calculator service performs correct decimal arithmetic, something not available
+(out of the box) in JavaScript.
+
+
+To see this just try
+
+    console.log(1.1 + 2.2);
+
+in your browser. The output is:
+
+    3.3000000000000003
+
+which is not the result a person would expect when using a calculator.
+
+
+The reason is that JavaScript implements all numbers as IEEE doubles, which is
+a binary floating-point type. Since it's a base-2 floating point, certain numbers
+cannot be represented exactly. To be precise, any rational number with a divisor
+having a prime factor other than 2 cannot be represented exactly. Decimal arithmetic
+uses a base-10, which has prime factors 2 and 5, and consequently all rationals which
+have no other prime factors in their divisor other than 2 or 5 can be represented exactly.
+
+
+Anyway, I hope you get what I mean;)
+
+
+Trigger DBus Desktop Notifications via WebSocket/WAMP
+=====================================================
+
+This example shows how to bridge WebSocket/WAMP and DBus.
+
+The example allows to trigger Linux desktop notifications on one or multiple machines
+from a browser based UI running anywhere via a WebSocket/WAMP PubSub
+message broker in between.
+
+For DBus support, we will use [txdbus](https://github.com/cocagne/txdbus),
+a new native Python DBus binding for Twisted which does not depend on the glib
+reactor or libdbus Python bindings.
+
+The example consists of 3 parts:
+
+  * client.py
+  * server.py
+  * index.html
+
+The **client.py** runs on a Linux desktop  and subscribes to 2 PubSub topics:
+
+ * user specific topic
+ * the "all" topic (for notifications to all)
+
+Upon receiving an event over WAMP for one of above topics, a desktop notification is triggered via *txdbus*.
+
+The **server.py** runs on an arbitrary machine and provides the PubSub message brokering. It also provides an embedded web server for the Web UI.
+
+The **index.html** is the Web UI used to trigger desktop notifications. It is a WAMP client using AutobahnJS and publishes notification events to topics for the **server.py** to forward to connected Linux desktops.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py debug
+
+and open
+
+    http://<Server IP>:8080/
+
+in your browser.
+
+Open a terminal on a Linux desktop and
+
+	python client.py ws://<Server IP>:9000 user1 secret
+
+Optionally, open a second terminal on another Linux desktop and
+
+	python client.py ws://<Server IP>:9000 user2 geheim
+
+Now, from the Web UI, send desktop notifications to
+
+ * all
+ * user1
+ * user2
+
+
+Directory Watcher
+=================
+
+This example includes a directory watcher that publishes WAMP events whenever a file is changed, created or deleted on a given filesystem directory. Events are received in a HTML frontend.
+
+This example consists of 3 parts:
+
+ * `dirwatch.py`: directory watcher and WAMP client
+ * `server.py`: a trivial WAMP server
+ * `index.html`: the HTML/JS client 
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py debug
+
+and open
+
+    http://<Server IP>:8080/
+
+in your browser.
+
+Open a terminal on a Linux desktop and
+
+	python dirwatch.py
+
+Then trigger some filesystem change (modify, create, delete file) within the example folder.
+Key-Value Store Service
+=======================
+
+This example implements a AutobahnPython based WAMP server with RPC
+endpoints providing a persistent key-value store.
+
+The example also demonstrates how to run the WAMP server and a
+Twisted Web based web server under one port/service.
+
+A browser based UI is included which uses AutobahnJS to access
+the decimal calculator service.
+
+A AutobahnPython based client is also included.
+
+Further, since it's a standard WAMP service, any WAMP client can use
+the service. You could access it i.e. from a native
+Android app via AutobahnAndroid.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+
+Perspective
+-----------
+
+**Persistence**
+
+
+The service uses the standard Python **shelve** module for persistence.
+
+You can easily adapt that to store data instead in something like
+*sqlite*, *PostgreSQL*, *memcached*, *Riak*, .. whatever.
+
+
+**Change Notification**
+
+
+You can also easily extend the example to provide PubSub events for automatic change notification.
+
+Upon creating, updating or deleting data for a key, just *dispatch* a PubSub event server-side.
+
+Clients can subscribe to *keys*, and will get notified when data changes.
+
+Bridging Arduino to AutobahnPython via Serial
+=============================================
+
+This demo shows how to shuffle data between WAMP clients and a device connected
+via a serial port like Arduino to a machine hosting the WAMP server.
+
+We use an *Arduino* device connected to a notebook, and a browser
+running somewhere.
+
+Here are some videos - sorry, bad quality. But you should get the idea:
+
+   * http://www.youtube.com/watch?v=va7j86thW5M
+   * http://www.youtube.com/watch?v=aVJV2z-lQJE
+
+
+Overview
+--------
+
+Here is how stuff is connected:
+
+
+      Arduino,
+      other serial devices
+
+         <= Serial over USB =>
+
+      PC / Autobahn
+
+         <= WebSocket/WAMP over Internet =>
+
+      Browser (AutobahnJS),
+      Python (AutobahnPython),
+      Smartphone (AutobahnAndroid),
+      ...
+
+
+How it works
+------------
+
+*serial device => WebSocket/WAMP client*
+
+The Autobahn-based server will receive data from the device vi serial (over USB)
+and dispatch data received as *WAMP PubSub* events on topics upon which clients
+can subscribe.
+
+*WebSocket/WAMP client => serial device*
+
+The Autobahn-based server provides *WAMP RPC* endpoints which clients can call.
+The server will then forward the commands to the device via serial (over USB)
+to the device.
+
+
+The protocol spoken on the serial wire is a very simple, small adhoc text based
+one.
+
+The protocol spoken on the internet connection is WAMP http://wamp.ws over
+WebSocket.
+
+We use *WAMP* running on top of standard WebSocket, since WAMP brings us
+simple *RPC* and *PubSub* .. higher level than raw WebSocket.
+
+
+
+Discussion
+----------
+
+Pros:
+
+ * Using serial means you can connect a lot of devices .. serial support is widespread.
+
+Cons:
+
+ * You need to invent some small custom protocol for the comms on serial wire
+
+ * You must have a physical connection between the device and the PC/Autobahn server
+
+
+For the reasons above, we plan to have a *AutobahnAndroid* implementation!
+
+Thing is: there are (somewhat) emerging WebSocket implementations for Arduino
+already.
+
+But what we want to have is full WAMP: http://wamp.ws
+
+Now, to do it right, we want to use the binary message payload option that
+WebSocket brings, and not use JSON, but Bencode for payload format, since that
+is much more resource efficient, which matters on restricted devices (like
+Arduino). Therefor, we will first define a *Bencode payload format* binding
+for *WAMP*.
+
+
+
+How to do it yourself
+---------------------
+
+You will need AutobahnPython as server + PySerial for serial support in
+Python/Twisted.
+
+Then, connect your serial device, run
+
+    python serial2ws.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+Note: The serial2ws.py has a number of command line options for setting
+COM port, baudrate etc. Simply do a
+
+    python serial2ws.py --help
+
+to get information on those.
+
+	/opt/python/bin/python serial2ws.py -p /dev/ttyATH0 --debugserial
+Authentication of WAMP Sessions
+===============================
+
+WAMP Challenge-Response-Authentication ("WAMP-CRA") is a WAMP v1 protocol feature
+that provides in-band authentication of WAMP clients to servers.
+
+It is based on HMAC-SHA256 and built into AutobahnPython, AutobahnJS and AutobahnAndroid.
+
+This example shows how a AutobahnJS client can authenticate to a AutobahnPython based
+server. The server grants RPC and PubSub permissions based on authentication.
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in **2 tabs/windows** of your browser.
+
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To use the Python client, do
+
+    python client.py
+
+Using custom PubSub Handlers
+============================
+
+This example show how to write custom PubSub handlers and use that for
+implementing fine-grained authorization. This is just an example: custom
+PubSub handlers can be used in general situation when you need more
+control over publish and subscribe message brokering, without writing
+a complete message broker from scratch.
+
+It includes a server which register a custom PubSub handler for topics,
+a JavaScript client using AutobahnJS and a Python client using AutobahnPython
+both doing publish and subscribe.
+
+Further, since it's a standard WAMP service, any WAMP client can use
+the service. You could access it i.e. from a native Android app via AutobahnAndroid.
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in **2 tabs/windows** of your browser.
+
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To use the Python client, do
+
+    python client.py
+
+
+Perspective
+-----------
+
+Fine-grained authorization for topics is just one application of custom PubSub handlers.
+
+Custom PubSub handlers allow you to hook into the AutobahnPython PubSub machinery
+and do very flexible things.
+# Simple WAMP PubSub Load Test
+
+For a full description, please see the blog post [here](http://tavendo.com/blog/post/autobahn-pi-benchmark/).
+
+Run the load test server:
+
+   pypy server.py
+
+Get help for load test server:
+
+   pypy server.py --help
+
+Run the load test client:
+
+   python client.py --wsuri ws://192.168.1.133:9000 --clients 500 --uprate 20 --rate 5 --batch 1 --payload 32
+
+Get help for load test client:
+
+   pypy client.py --help
+
+Publish & Subscribe with AutobahnPython
+=======================================
+
+The examples here show how to do and make use of the PubSub functionality that
+AutobahnPython provides.
+
+Using PubSub, you can decouple publishers and subscribers via topics and implement
+sophisticated real-time enabled applications.
+
+PubSub in AutobahnPython relies on standard [WAMP](http://wamp.ws), and hence can be used with
+any WAMP client (or server), such as AutobahnPython, AutobahnJS, AutobahnAndroid and others.
+
+# Publish and Subscribe with Autobahn
+
+This example shows a very basic Publish & Subscriber WAMP server in Python and clients both in Python and JavaScript.
+
+To start the server:
+
+	python server.py
+
+Now open
+
+	http://localhost:8080
+
+in one or more browser tabs, windows or different browsers (like Firefox, Chrome or IE10+).
+
+Run the Python client:
+
+	python client.py
+
+or do
+
+	python client.py ws://192.168.1.130:9000
+
+to connect to the server running on a different host like `192.168.1.130`.
+
+PubSub with AutobahnPython
+==========================
+
+This example show how to do Publish & Subscribe ("PubSub") with AutobahnPython.
+
+It includes a server which registers some PubSub topics,
+a JavaScript client using AutobahnJS and a Python client using AutobahnPython
+both doing publish and subscribe.
+
+Further, since it's a standard WAMP service, any WAMP client can use
+the service. You could access it i.e. from a native Android app via AutobahnAndroid.
+
+Also see the companion [AutobahnAndroid example](https://github.com/tavendo/AutobahnAndroid/tree/master/Demo/SimplePubSub).	
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in **2 tabs/windows** of your browser.
+
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To use the Python client, do
+
+    python client.py
+
+# WAMP v1 programming with Autobahn on Twisted
+
+This folder contains complete working code examples that demonstrate [WAMP v1](http://wamp.ws) programming with **Autobahn**|Python on [Twisted](http://www.twistedmatrix.com/):
+
+ * Publish & Subscribe
+   1. [Basic PubSub 1](pubsub/simple/example1)
+   1. [Basic PubSub 2](pubsub/simple/example2)
+   1. [Custom PubSub Handlers](pubsub/custom)
+   1. [Profiling PubSub](pubsub/loadlatency)
+ * Remote Procedure Calls
+   1. [Basic RPCs 1](rpc/simple/example1)
+   1. [Basic RPCs 2](rpc/simple/example1)
+   1. [Symmetric RPCs](rpc/symmetric)
+   1. [Profiling RPCs](rpc/profile)
+ * Authentication
+   1. [Authenticating via WAMP-CRA](authentication)
+
+and small apps
+
+ 1. [Decimal Calculator](apps/calculator)
+ 1. [A Key-Value Store](apps/keyvalue)
+ 1. [A WAMP-DBus Bridge](apps/dbus)
+ 1. [A directory watcher](apps/dirwatch)
+ 1. [Serial/Arduino-to-WAMP Bridge](apps/serial2ws)
+
+Remote Procedure Calls with AutobahnPython
+==========================================
+
+The examples here show how to do and make use of the asynchronous RPC that
+AutobahnPython provides.
+
+Using RPC, you can remote any Python callable and make it available as a
+endpoint which can be called from any [WAMP](http://wamp.ws "WAMP") client
+such as AutobahnPython, AutobahnJS, AutobahnAndroid and others.
+
+RPCs with AutobahnPython
+========================
+
+The examples introduce Remote Procedure Calls ("RPCs") programming with AutobahnPython.
+
+Included are servers which provide methods exported for RPC ("remoted methods"),
+JavaScript clients using AutobahnJS and a Python clients using AutobahnPython.
+
+Further, since AutobahnPython provides standard WAMP RPC services, any WAMP client
+can use the service. You can access it i.e. from a native Android app via AutobahnAndroid.
+
+Also see the companion [AutobahnAndroid example](https://github.com/tavendo/AutobahnAndroid/tree/master/Demo/SimpleRpc).	
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To use the Python client, do
+
+    python client.py
+
+
+Inline Callbacks
+----------------
+
+The 
+
+	client_icb.py
+
+client shows how to program RPCs using *Twisted Inline Callbacks*, a variant coding
+style for using *Twisted Deferreds*.
+
+Symmetric RPC
+=============
+
+RPC with WAMP works fully symmetric: clients can call procedures on servers and vice-versa.
+
+This example demonstrates how to call endpoints on the client from the server.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To run the Python client, do
+
+    python client.py
+
+WebSocket Authentication with Mozilla Persona
+=============================================
+
+This example shows how to authenticate WebSocket connections using [Mozilla Persona](http://www.mozilla.org/en-US/persona/) and HTTP Cookies. The example works with purely static Web pages and WebSocket only.
+
+Tested with:
+
+ * Firefox 27
+ * Chrome 33
+ * IE11
+
+Note: On IE11, using `localhost` as URL [does NOT work](https://groups.google.com/d/msg/mozilla.dev.identity/keEkVpvfLA8/2WIu7Q1mW10J). You must use `127.0.0.1` instead.
+
+References:
+
+* [Mozilla Persona Developer Site](https://developer.mozilla.org/en-US/Persona)
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+Here is the log output produced (on server) for a successful login:
+
+    oberstet@COREI7 ~/scm/tavendo/autobahn/AutobahnPython/examples/twisted/websocket/auth_persona (master)
+    $ python server.py
+    2014-03-11 12:20:05+0100 [-] Log opened.
+    2014-03-11 12:20:05+0100 [-] Running Autobahn|Python 0.8.4-3
+    2014-03-11 12:20:05+0100 [-] Site starting on 8080
+    2014-03-11 12:20:05+0100 [-] Starting factory <twisted.web.server.Site instance at 0x038113C8>
+    2014-03-11 12:20:23+0100 [HTTPChannel,1,127.0.0.1] Setting new cookie: 82vrA1drjZ_9lcBv
+    2014-03-11 12:20:36+0100 [HTTPChannel,1,127.0.0.1] Starting factory <HTTPClientFactory: https://verifier.login.persona.o
+    rg/verify>
+    2014-03-11 12:20:36+0100 [HTTPChannel,1,127.0.0.1] Authentication request sent.
+    2014-03-11 12:20:37+0100 [HTTPPageGetter (TLSMemoryBIOProtocol),client] Authenticated user tobias.oberstein@gmail.com
+    2014-03-11 12:20:37+0100 [HTTPPageGetter (TLSMemoryBIOProtocol),client] Stopping factory <HTTPClientFactory: https://verifier.login.persona.org/verify>
+    ...
+
+
+Broadcasting with WebSocket
+===========================
+
+This example provides a WebSocket server that will broadcast any message it receives
+to all connected WebSocket clients. Additionally, it will broadcast a "tick" message
+to all connected clients every second.
+
+Clients are provided for AutobahnJS and AutobahnPython.
+
+There is also a companion [example](https://github.com/tavendo/AutobahnAndroid/tree/master/Demo/BroadcastClient) using AutobahnAndroid.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+To use the Python client, do
+
+    python client.py
+
+
+# WebSocket Echo (Twisted-based)
+
+This example shows a WebSocket echo server that will echo back any WebSocket message it receives to the client that sent the message.
+
+It also includes a WebSocket client that will send a WebSocket message every second to the server it connected to. The Python client is available in two variants.
+
+Lastly, a HTML5 client is also included.
+
+This example uses the Twisted integration of **Autobahn**|Python. You can find the corresponding example using the Asyncio integration [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/asyncio/websocket/echo).
+
+## Running
+
+Run the server:
+
+    python server.py
+
+and open
+
+    client.html
+
+in your browser.
+
+To activate debug output on the server:
+
+    python server.py debug
+
+To run the Python client
+
+    python client.py ws://127.0.0.1:9000
+
+or
+
+    python client_coroutines.py ws://127.0.0.1:9000
+
+To activate debug output on the client
+
+    python client.py ws://127.0.0.1:9000 debug
+
+
+
+WebSocket Echo Server and Client
+================================
+
+This example demonstrates how to activate and use the WebSocket compression extension ([`permessage-deflate`](http://tools.ietf.org/html/draft-ietf-hybi-permessage-compression-09)).
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+> Note: Currently (06/04/2013), the only browsers implementing WebSocket `permessage-deflate` are [Chrome Canary](https://www.google.com/intl/en/chrome/browser/canary.html) and [Chromium (Dev Channel)](http://www.chromium.org/getting-involved/dev-channel).
+> To enable, go to `chrome://flags/` and enable the "experimental WebSocket implementation".
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+To run the Python client, do
+
+    python client.py ws://127.0.0.1:9000
+
+To activate debug output on the client, start it
+
+    python client.py ws://127.0.0.1:9000 debug
+
+
+Advanced Usage
+--------------
+
+AutobahnPython supports fine-grained control over which compression offers a client makes and exactly which offers a server accepts with which settings.
+
+See `server_advanced.py` and `client_advanced.py`.
+
+Besides `permessage-deflate`, AutobahnPython also supports
+
+ * `permessage-bzip2`
+ * `permessage-snappy`
+
+> Note: Those compression extensions are currently entirely non-standard, there isn't even a RFC draft for those.
+> 
+
+For `permessage-snappy`, you will need the [Snappy](http://code.google.com/p/snappy/) compression library and Python [wrapper](http://github.com/andrix/python-snappy) installed.
+
+On Windows, you can get a prebuilt binary from [here](http://www.lfd.uci.edu/~gohlke/pythonlibs/).
+
+On Linux/Debian, you can install it by doing:
+
+    sudo apt-get install libsnappy-dev
+    easy_install -U python-snappy
+
+
+# WebSocket over Stream-based Endpoints
+
+[Twisted Endpoints](http://twistedmatrix.com/documents/current/core/howto/endpoints.html) allow for creation of stream-oriented connections completely decoupled from creation of factories and protocols.
+
+Using endpoints, you can create connections from [server descriptor strings](http://twistedmatrix.com/documents/13.2.0/api/twisted.internet.endpoints.serverFromString.html) or [client descriptor strings](http://twistedmatrix.com/documents/13.2.0/api/twisted.internet.endpoints.clientFromString.html) which can be provided via command line arguments.
+
+**Autobahn**|Python now supports Twisted endpoints, and this allows you to speak WebSocket not only over
+
+ * TCPv4,
+ * TCPv6 and
+ * TLS,
+
+but also over
+
+ * Unix domain sockets
+ * Pipes to talk to Processes (modulo [this](https://twistedmatrix.com/trac/ticket/5813))
+ * Serial (modulo [this](https://twistedmatrix.com/trac/ticket/4847))
+
+and possible other endpoints. This is nifty and flexible.
+
+> This example is about running WebSocket over different stream-based Twisted endpoints.
+> **Autobahn**|Python also supports running any stream-based Twisted endpoint over WebSocket (which in turn runs over any stream-based underlying Twisted endpoint). Please see [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/websocket/wrapping).
+> 
+
+## Running WebSocket over TCP
+
+To run the echo server on TCP:
+
+	python server.py --websocket "tcp:9000"
+
+To run the echo client over TCP:
+
+	python client.py --websocket "tcp:localhost:9000"
+
+## Running WebSocket over Unix Domain Sockets
+
+To run the echo server on a Unix domain socket:
+
+	python server.py --websocket "unix:/tmp/mywebsocket"
+
+To run the echo client over the Unix domain socket:
+
+	python client.py --websocket "unix:path=/tmp/mywebsocket"
+
+WebSocket Echo Server and Client
+================================
+
+This example shows how to set and get custom HTTP headers for using during the initial WebSocket opening handshake.
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py debug
+
+Run the client by doing
+
+    python client.py ws://127.0.0.1:9000 debug
+
+The client will send a custom HTTP header `MyCustomClientHeader` during the initial WebSocket opening handshake:
+
+        User-Agent: AutobahnPython/0.6.0
+        Host: 127.0.0.1:9000
+        Upgrade: WebSocket
+        Connection: Upgrade
+        Pragma: no-cache
+        Cache-Control: no-cache
+        MyCustomClientHeader: Bazbar
+        Sec-WebSocket-Key: tI9KmKOGOAGTxgWfVn13zg==
+        Sec-WebSocket-Version: 13
+
+The server will respond with custom HTTP headers 
+
+        HTTP/1.1 101 Switching Protocols
+        Server: AutobahnPython/0.6.0
+        Upgrade: WebSocket
+        Connection: Upgrade
+        MyCustomServerHeader: Foobar
+        MyCustomDynamicServerHeader1: Hello
+        MyCustomDynamicServerHeader2: Bazbar
+        Sec-WebSocket-Accept: pQklbTbzxoUDuSDHpiYJThfd4vo=
+
+where `MyCustomServerHeader` is a custom header sent to any connecting client (defined on the `WebSocketServerFactory`) and `MyCustomDynamicServerHeader1` and `MyCustomDynamicServerHeader2` are custom headers which values can be specific to the connecting client (and set within `onConnect`).
+
+## Autobahn WebSocket Echo server on multicore
+
+This example demonstrates how to scale-up an AutobahnPython based WebSocket echo server on a multicore machine.
+
+## Usage
+
+Run the server with 4 workers:
+
+	pypy server.py --wsuri ws://localhost:9000 --workers 4
+
+In general, using more workers than CPU cores avaiable will not improve performance, likely to the contrary.
+
+Detailed usage:
+
+	$ pypy server.py --help
+	usage: server.py [-h] [--wsuri WSURI] [--port PORT] [--workers WORKERS]
+	                 [--noaffinity] [--backlog BACKLOG] [--silence] [--debug]
+	                 [--interval INTERVAL] [--profile] [--fd FD] [--cpuid CPUID]
+
+	Autobahn WebSocket Echo Multicore Server
+
+	optional arguments:
+	  -h, --help           show this help message and exit
+	  --wsuri WSURI        The WebSocket URI the server is listening on, e.g.
+	                       ws://localhost:9000.
+	  --port PORT          Port to listen on for embedded Web server. Set to 0 to
+	                       disable.
+	  --workers WORKERS    Number of workers to spawn - should fit the number of
+	                       (phyisical) CPU cores.
+	  --noaffinity         Do not set worker/CPU affinity.
+	  --backlog BACKLOG    TCP accept queue depth. You must tune your OS also as
+	                       this is just advisory!
+	  --silence            Silence log output.
+	  --debug              Enable WebSocket debug output.
+	  --interval INTERVAL  Worker stats update interval.
+	  --profile            Enable profiling.
+	  --fd FD              If given, this is a worker which will use provided FD
+	                       and all other options are ignored.
+	  --cpuid CPUID        If given, this is a worker which will use provided CPU
+	                       core to set its affinity.
+
+## Load Testing
+
+You will need some serious WebSocket load driver to get this thingy sweating. I recommend [wsperf](https://github.com/zaphoyd/wsperf) for various reasons. `wsperf` is a high-performance, C++/ASIO, multi-threaded based load driver. Caveat: currently, even when using `wsperf`, the bottleneck can still be `wsperf` when running against Autobahn/PyPy. You should give `wsperf` *more* CPU cores than Autobahn for this reason.
+
+You should also test on non-virtualized, real-hardware and you will also need to do OS / system level tuning, please see the instructions [here](https://github.com/oberstet/scratchbox/blob/master/python/twisted/sharedsocket/README.md).
+
+For results, please see [here](https://github.com/oberstet/wsperf_results).
+
+WebSocket Echo Service
+======================
+
+This example shows how to:
+
+ 1. package up Autobahn-based servers (and clients) as Twisted services
+ 2. provide an application as a Twisted plugin (for `twistd`)
+ 3. include static files into a package and access those in services
+
+
+Resources
+---------
+
+  * http://twistedmatrix.com/documents/current/core/howto/application.html
+  * http://twistedmatrix.com/documents/current/core/howto/plugin.html
+  * http://twistedmatrix.com/documents/current/core/howto/tap.html
+
+
+Running
+-------
+
+Run the server by doing
+
+    twistd echows
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    twistd echows -d
+
+This will show up all WebSocket messages exchanged between clients and server.
+
+WebSocket Echo Server as Twisted Web Resource
+=============================================
+
+This is a variant of a basic WebSocket Echo server that is running as a *Twisted Web Resource*.
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WebSocket messages exchanged between clients and server.
+
+WebSocket TLS Echo Server as Twisted Web Resource
+=================================================
+
+This is a variant of a basic WebSocket Echo server that is running as a *Twisted Web Resource* and under TLS (that is HTTPS for Web, and WSS for WebSocket).
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    https://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WebSocket messages exchanged between clients and server.
+
+Using TLS: secure WebSocket
+===========================
+
+Example that shows how to do secure WebSocket (wss), on server and client for AutobahnPython,
+and with a browser client.
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+Click to install the server certificate and start the echo client example.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To run the Python client, do
+
+    python client.py
+
+
+Creating TLS Server Keys and Certificates
+-----------------------------------------
+
+TLS server keys and certificate can be generated by doing:
+
+	openssl genrsa -out server.key 2048
+	openssl req -new -key server.key -out server.csr
+	openssl x509 -req -days 3650 -in server.csr -signkey server.key -out server.crt
+	openssl x509 -in server.crt -out server.pem
+
+To run the server 2 files are required.
+
+Private key (with *no* passphrase set!):
+
+	server.key
+
+Certificate:
+
+	server.crt
+
+
+WebSocket Echo Server and Client
+================================
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WAMP messages exchanged between clients and server.
+
+To run the Python client, do
+
+    python client.py ws://127.0.0.1:9000
+
+To activate debug output on the client, start it
+
+    python client.py ws://127.0.0.1:9000 debug
+
+
+
+WebSocket Echo Server with Fallbacks
+====================================
+
+This example has the [broadest browser](http://www.tavendo.de/webmq/browsers) support currently possible with Autobahn.
+
+It supports native WebSocket protocol variants Hixie-76, Hybi-10+ and RFC6455.
+
+On IE6-9 it uses [Google Chrome Frame](http://www.google.com/chromeframe) when available.
+
+On IE8,9 it can use a [Flash-based WebSocket implementation](https://github.com/gimite/web-socket-js). This requires Adobe Flash 10+.
+
+> The Flash implementation can also be used on older Android devices without Chrome Mobile, but with Flash. You need to remove the conditional comments around the Flash file includes though in this case from the `index.html`.
+> 
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser. Open the JS console to see if the WebSocket connection was successful.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+
+Here is a typical browser log when the Flash implementation kicks in:
+
+    [WebSocket] debug enabled
+    [WebSocket] policy file: xmlsocket://127.0.0.1:843
+    [WebSocket] connected
+
+    [WebSocket] request header:
+    GET / HTTP/1.1
+    Host: 127.0.0.1:9000
+    Upgrade: websocket
+    Connection: Upgrade
+    Sec-WebSocket-Key: Ol4WMQosGk0SBHIGTBQMAQ==
+    Origin: http://127.0.0.1:8080
+    Sec-WebSocket-Version: 13
+
+    [WebSocket] response header:
+    HTTP/1.1 101 Switching Protocols
+    Server: AutobahnPython/0.6.0
+    Upgrade: WebSocket
+    Connection: Upgrade
+    Sec-WebSocket-Accept: 4wHBJpfr8P419FMUv8sJ/rT0x/4=
+    
+    Connected!
+
+WebSocket Echo Server as Twisted Web Resource plus WSGI/Flask
+=============================================================
+
+This is a variant of a basic WebSocket Echo server that is running as a *Twisted Web Resource*.
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    http://localhost:8080/
+
+in your browser.
+
+To activate debug output on the server, start it
+
+    python server.py debug
+
+This will show up all WebSocket messages exchanged between clients and server.
+
+# Running multiple WebSocket services
+
+This example demonstrates how to run multiple, different WebSocket services in one server on one port.
+
+
+## Service Wrapper
+
+This example shows how to choose the service to be used in `onConnect` of a wrapping `webSocketServerProtocol`.
+
+This method has the advantage of being able to choose the service to be used using any information from the initial WebSocket opening handshake.
+
+Run the server
+
+	python server1.py
+
+Run the client with different WebSocket URLs:
+
+	python client.py ws://127.0.0.1:9000/echo1
+	python client.py ws://127.0.0.1:9000/echo2
+
+
+## Twisted Web
+
+AutobahnPython based WebSocket servers can run under Twisted Web as a resource.
+
+This is quite flexible and allows to mix different services like static file serving, WSGI servers (like Flask) and AutobahnPython-based WebSocket or WAMP servers all under one server and port.
+
+Run the server
+
+	python server2.py
+
+Run the client with different WebSocket URLs:
+
+	python client.py ws://127.0.0.1:9000/echo1
+	python client.py ws://127.0.0.1:9000/echo2
+	
+This method has the disadvantage compared to the other option in that you cannot choose your service dependent on WebSocket specific details from the WebSocket opening handshake like i.e. WebSocket subprotocol.
+WebSocket Ping Server and Client
+================================
+
+This example runs a WebSocket server that pings any connected WebSocket
+client every second (via WebSocket Ping frames).
+
+Included is a HTML and a Python client.
+
+*This example uses secure WebSocket (TLS).*
+
+
+Running
+-------
+
+Run the server by doing
+
+    python server.py
+
+and open
+
+    https://localhost:8080/
+
+in your browser.
+
+To run the Python client, do
+
+    python client.py wss://localhost:9000
+
+For both server and client you can add `debug` to the command line to **activate wire logging** of all sent and received WebSocket messages.
+
+
+
+
+# WebSocket programming with Autobahn on Twisted
+
+This folder contains complete working code examples that demonstrate [WebSocket](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) programming with **Autobahn**|Python on [Twisted](http://www.twistedmatrix.com/):
+
+ 1. [WebSocket Echo](echo)
+ 1. [Slow Square](slowsquare)
+ 1. [Testee](testee)
+
+and
+
+ 1. [Broadcasting over WebSocket](broadcast)
+ 1. [WebSocket Compression](echo_compressed)
+ 1. [WebSocket over Twisted Endpoints](echo_endpoints)
+ 1. [Using HTTP Headers with WebSocket](echo_httpheaders)
+ 1. [WebSocket on Multicore](echo_multicore)
+ 1. [WebSocket as a Twisted Service](echo_service)
+ 1. [Running WebSocket under Twisted Web](echo_site)
+ 1. [Running secure WebSocket under Twisted Web](echo_site_tls)
+ 1. [WebSocket Echo over secure WebSocket](echo_tls)
+ 1. [WebSocket Echo Variants](echo_variants)
+ 1. [WebSocket Fallbacks](echo_wsfallbacks)
+ 1. [WebSocket and WSGI/Flask](echo_wsgi)
+ 1. [Using multiple WebSocket Protocols](multiproto)
+ 1. [WebSocket Pings/Pongs](ping)
+ 1. [Streaming WebSocket](streaming)
+ 1. [Wrapping Twisted Protocol/Factories over WebSocket](wrapping)
+
+# WebSocket "Slow-Square" (Twisted-based)
+
+This example shows a WebSocket server that will receive a JSON encode float over WebSocket, slowly compute the square, and send back the result.
+
+This example is intended to demonstrate how to use coroutines inside WebSocket handlers.
+
+> This example uses the Twisted integration of **Autobahn**|Python. You can find the corresponding example using the Asyncio integration [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/asyncio/websocket/slowsquare).
+> 
+
+## Running
+
+Run the server
+
+    python server.py
+
+To run the Python client
+
+    python client.py
+
+Using Frame-/Streaming-based APIs in AutobahnPython
+===================================================
+
+The example here demonstrate how to use the (advanced) frame-based and streaming WebSocket APIs
+of AutobahnPython.
+
+They also show off how to do advanced flow-control via the Twisted producer-consumer pattern.
+
+The example clients produce random data, send it to a server which computes SHA256 fingerprints over the received data and send back the fingerprint to the client.
+
+Compared are 4 variants of above functionality:
+
+ * message-based API
+ * frame-based API
+ * streaming API
+ * streaming API with producer-consumer pattern
+
+
+You can find complete tutorials [here](http://autobahn.ws/python/tutorials/streaming) and [here](http://autobahn.ws/python/tutorials/producerconsumer).
+
+
+Message-based Processing
+------------------------
+
+This pair of client/server uses the standard *message-based WebSocket API* of AutobahnPython.
+
+Run the server by doing
+
+    python message_based_server.py
+
+and the client
+
+    python message_based_client.py
+
+
+Frame-based Processing
+-----------------------
+
+This pair of client/server uses the *frame-based WebSocket API* of AutobahnPython.
+
+Run the server by doing
+
+    python frame_based_server.py
+
+and the client
+
+    python frame_based_client.py
+
+
+Streaming Processing
+--------------------
+
+This pair of client/server uses the *streaming WebSocket API* of AutobahnPython.
+
+Run the server by doing
+
+    python streaming_server.py
+
+and the client
+
+    python streaming_client.py
+
+
+Producer-Consumer Processing
+----------------------------
+
+This pair of client/server uses the *streaming WebSocket API* of AutobahnPython together with the *Producer-Consumer Pattern* of Twisted.
+
+Run the server by doing
+
+    python streaming_server.py
+
+and the client
+
+    python streaming_producer_client.py
+
+
+# Stream-based Endpoints over WebSocket
+
+**Autobahn**|Python provides facilities to wrap existing stream-based Twisted factories and protocols with WebSocket.
+That means, you can run any stream-based protocol *over* WebSocket without any modification to the existing protocol and factory.
+
+Why would you want to do that? For example, to create a VNC, SSH, IRC, IMAP, MQTT or other client for some existing protocol that runs on browsers, and connects to an *unmodified* server.
+
+> This example is about running any stream-based Twisted endpoint over WebSocket.
+> **Autobahn**|Python also supports running WebSocket over any stream-based Twisted endpoint. Please see [here](https://github.com/tavendo/AutobahnPython/tree/master/examples/twisted/websocket/echo_endpoints).
+>
+
+## WebSocket Transport Scheme
+
+**Autobahn**|Python follows the transport scheme established by [websockify](https://github.com/kanaka/websockify): a WebSocket subprotocol is negotiated, either `binary` or `base64`. Alternative binary compatible subprotocols may also be specified, such as the MQTT `mqttv3.1` protocol, by using the `subprotocol` endpoint descriptor.
+
+With the `binary` WebSocket subprotocol, any data is simply sent as payload of WebSocket binary messages. With the `base64` WebSocket subprotocol, any data is first Base64 encoded before being sent as the payload of WebSocket text messages.
+
+Since **Autobahn**|Python implements WebSocket compression, traffic is automatically compressed ("permessage-deflate"). This can be turned off if you want.
+
+> Currently the only browser with support for WebSocket compression is Chrome 32+.
+>
+
+## Wrapping Factories and Protocols
+
+Here is how you wrap an existing Twisted client protocol `HelloClientProtocol`:
+
+```python
+from autobahn.twisted.websocket import WrappingWebSocketClientFactory
+
+wrappedFactory = Factory.forProtocol(HelloClientProtocol)
+factory = WrappingWebSocketClientFactory(wrappedFactory, "ws://localhost:9000")
+```
+
+The only required parameter to `WrappingWebSocketClientFactory` besides the wrapped factory is the WebSocket URL of the server the wrapping factory will connect to.
+
+There are a couple of optional arguments to `WrappingWebSocketClientFactory` for controlling it's WebSocket level behavior:
+
+ * `enableCompression` can be used to enable/disable WebSocket compression ("permessage-deflate")
+ * `autoFragmentSize` can be used to automatically fragment the stream data into WebSocket frames of at most this size
+ * `debug` enables/disables debug log output
+
+You can find a complete example for both client and server in these files:
+
+ 1. [client.py](client.py)
+ 2. [server.py](server.py)
+
+
+## Wrapping Endpoints
+
+Twisted provides a flexible machinery for creating clients and server from [**Endpoints**](http://twistedmatrix.com/documents/current/core/howto/endpoints.html) and **Autobahn**|Python includes a Twisted Plugin for both client and server stream endpoints.
+
+This allows you to run any stream-based, endpoint-using program over the WebSocket transport **Autobahn**|Python, without even referencing Autobahn at all:
+
+```python
+wrappedFactory = Factory.forProtocol(HelloClientProtocol)
+
+endpoint = clientFromString(reactor, "autobahn:tcp\:localhost\:9000:url=ws\:// localhost\:9000")
+endpoint.connect(wrappedFactory)
+```
+
+You can find a complete example for both client and server in these files:
+
+ 1. [client_endpoint.py](client_endpoint.py)
+ 2. [server_endpoint.py](server_endpoint.py)
+
+
+*Example Client Endpoint Descriptors*
+
+ 1. `"autobahn:tcp\:localhost\:9000:url=ws\:// localhost\:9000"`
+ 1. `"autobahn:tcp\:localhost\:9000:url=ws\:// localhost\:9000:compress=false"`
+ 1. `"autobahn:tcp\:localhost\:9000:url=ws\:// localhost\:9000:autofrag=4096:debug=true"`
+
+*Example Server Endpoint Descriptors*
+
+ 1. `"autobahn:tcp\:9000:url=ws\://localhost\:9000"`
+ 1. `"autobahn:tcp\:9000:url=ws\://localhost\:9000:autofrag=4096:debug=true"`
+ 1. `"autobahn:tcp\:9000\:interface\=0.0.0.0:url=ws\://localhost\:9000:compress=true"`
+
+
+## Twistd
+
+### Endpoint Forwarder
+
+**Autobahn**|Python further includes a `twistd` (the Twisted Daemon) plugin that provides a generic **stream endpoint forwarder**.
+
+The forwarder can listen on any stream-based server endpoint and forward traffic to any other stream-based client endpoint.
+
+As an example, here is how you forward WebSocket to Telnet:
+
+	twistd -n endpointforward --endpoint "autobahn:tcp\:9000:url=ws\://localhost\:9000" --dest_endpoint="tcp:127.0.0.1:23"
+
+Included in this directory is a Terminal client written in JavaScript (this code is from the [websockify project](https://github.com/kanaka/websockify)).
+
+Open `telnet.html` in your browser, provide the server IP and port (the one running `twistd`) and press connect.
+
+As soon as the Process support for endpoints in Twisted is fully here, the forwarder will allow you to expose any program over WebSocket, by forwarding the program's `stdin` and `stdout`.
+
+Another example is to create a WebSocket proxy in front of a MQTT broker. This makes use of the optional `subprotocol` input that allows the `mqttv3.1` binary compatible subprotocol to be accepted along with the default `binary` and `base64` subprotocols.
+
+	twistd -n endpointforward --endpoint "autobahn:tcp\:9000:url=ws\://localhost\:9000:subprotocol=mqttv3.1" --dest_endpoint="tcp:127.0.0.1:1883"
+
+Essentially, these features are equivalent of what the following two projects provide:
+
+ * [websockify](https://github.com/kanaka/websockify)
+ * [websocketd](https://github.com/joewalnes/websocketd)
+
+But since Twisted endpoints are extensible, eg support for serial is coming, this will also allow you to expose serial devices directly over WebSocket!
+
+### Manhole
+
+Start manhole
+
+	echo "admin:admin" > passwd
+	twistd -n manhole --telnetPort "autobahn:tcp\:9000:url=ws\://localhost\:9000:compress=false:debug=true" --passwd ./passwd
+
+It seems, login is possible, but then the JS Terminal seems to get confused by Manhole sending `fffc01`. I don't know what's going on.
+
+# Autobahn|Python
+
+[![Build Status](https://travis-ci.org/tavendo/AutobahnPython.png?branch=master)](https://travis-ci.org/tavendo/AutobahnPython)
+&nbsp; ![Version](https://pypip.in/v/autobahn/badge.png)
+&nbsp; ![Downloads](https://pypip.in/d/autobahn/badge.png)
+
+**Autobahn**|Python is a subproject of [Autobahn](http://autobahn.ws/) and provides open-source implementations of
+
+* **[The WebSocket Protocol](http://tools.ietf.org/html/rfc6455)**
+* **[The Web Application Messaging Protocol (WAMP)](http://wamp.ws/)**
+
+in Python running on [**Twisted**](http://twistedmatrix.com/) and [**asyncio**](http://docs.python.org/3.4/library/asyncio.html).
+
+You can use **Autobahn**|Python to create clients and servers in Python speaking just plain WebSocket or WAMP.
+
+WebSocket allows [bidirectional real-time messaging on the Web](http://tavendo.com/blog/post/websocket-why-what-can-i-use-it/) and WAMP adds asynchronous *Remote Procedure Calls* and *Publish & Subscribe* on top of WebSocket.
+
+WAMP provides asynchronous **Remote Procedure Calls** and **Publish & Subscribe** for applications in *one* protocol running over [WebSocket](http://tools.ietf.org/html/rfc6455) (and fallback transports for old browsers).
+
+It is ideal for distributed, multi-client and server applications, such as multi-user database-drive business applications, sensor networks (IoT), instant messaging or MMOGs (massively multi-player online games) .
+
+WAMP enables application architectures with application code distributed freely across processes and devices according to functional aspects. Since WAMP implementations exist for multiple languages, WAMP applications can be polyglott. Application components can be implemented in a language and run on a device which best fit the particular use case.
+
+## Show me some code
+
+A simple WebSocket echo server:
+
+```python
+class MyServerProtocol(WebSocketServerProtocol):
+
+   def onConnect(self, request):
+      print("Client connecting: {}".format(request.peer))
+
+   def onOpen(self):
+      print("WebSocket connection open.")
+
+   def onMessage(self, payload, isBinary):
+      if isBinary:
+         print("Binary message received: {} bytes".format(len(payload)))
+      else:
+         print("Text message received: {}".format(payload.decode('utf8')))
+
+      ## echo back message verbatim
+      self.sendMessage(payload, isBinary)
+
+   def onClose(self, wasClean, code, reason):
+      print("WebSocket connection closed: {}".format(reason))
+```
+
+... and a sample WAMP application component:
+
+```python
+
+class MyComponent(ApplicationSession):
+
+   def onConnect(self):
+      self.join("realm1")
+
+
+   @inlineCallbacks
+   def onJoin(self, details):
+
+      # 1) subscribe to a topic
+      def onevent(msg):
+         print("Got event: {}".format(msg))
+
+      yield self.subscribe(onevent, 'com.myapp.hello')
+
+      # 2) publish an event
+      self.publish('com.myapp.hello', 'Hello, world!')
+
+      # 3) register a procedure for remoting
+      def add2(x, y):
+         return x + y
+
+      self.register(add2, 'com.myapp.add2');
+
+      # 4) call a remote procedure
+      res = yield self.call('com.myapp.add2', 2, 3)
+      print("Got result: {}".format(res))
+```
+
+## Features
+
+* framework for [WebSocket](http://tools.ietf.org/html/rfc6455) / [WAMP](http://wamp.ws/) clients and servers
+* compatible with Python 2.6, 2.7, 3.3 and 3.4
+* runs on [CPython](http://python.org/), [PyPy](http://pypy.org/) and [Jython](http://jython.org/)
+* runs under [Twisted](http://twistedmatrix.com/) and [asyncio](http://docs.python.org/3.4/library/asyncio.html)
+* implements WebSocket [RFC6455](http://tools.ietf.org/html/rfc6455), Draft Hybi-10+, Hixie-76
+* implements [WebSocket compression](http://tools.ietf.org/html/draft-ietf-hybi-permessage-compression)
+* implements [WAMPv1](http://wamp.ws/spec/) and [WAMPv2](https://github.com/tavendo/WAMP/blob/master/spec/README.md) (*upcoming*)
+* high-performance, fully asynchronous implementation
+* best-in-class standards conformance (100% strict passes with [Autobahn Testsuite](http://autobahn.ws/testsuite))
+* message-, frame- and streaming-APIs for WebSocket
+* supports TLS (secure WebSocket) and proxies
+* Open-source (Apache 2 [license](https://github.com/tavendo/AutobahnPython/blob/master/LICENSE))
+
+
+## More Information
+
+For more information, take a look at the [project documentation](http://autobahn.ws/python). This provides:
+
+* [installation instructions](http://autobahn.ws/python/installation.html)
+* [a list of all examples in this repo](http://autobahn.ws/python/examples.html)
+* [an introduction to WebSocket programming](http://autobahn.ws/python/websocketprogramming.html)
+* [an introduction to WAMP programming](http://autobahn.ws/python/wampprogramming.html)
+* [a full API reference](http://autobahn.ws/python/reference.html)
+
+
+## Get in touch
+
+Get in touch on IRC `#autobahn` on `chat.freenode.net`, follow us on [Twitter](https://twitter.com/autobahnws) or join the [mailing list](http://groups.google.com/group/autobahnws).
+

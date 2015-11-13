@@ -1,0 +1,1085 @@
+<!-- title: Index -->
+
+# Dagny
+
+Dagny is a [Django][] adaptation of [Ruby on Rails][]’s Resource-Oriented
+Architecture (a.k.a. ‘RESTful Rails’).  
+Dagny makes it *really easy* to build **resourceful** web applications.
+
+  [django]: http://djangoproject.com/
+  [ruby on rails]: http://rubyonrails.org/
+
+At present, this project is in an experimental phase, so APIs are very liable to
+change. **You have been warned.**
+
+P.S.: the name is [a reference][dagny taggart].
+
+  [dagny taggart]: http://en.wikipedia.org/wiki/List_of_characters_in_Atlas_Shrugged#Dagny_Taggart
+
+
+## [Tutorial](/tutorial)
+
+
+## [Reference](/reference)
+
+
+## Motivation
+
+Rails makes building RESTful web applications incredibly easy, because
+resource-orientation is baked into the framework—it’s actually harder to make
+your app *un*RESTful.
+
+I wanted to build a similar system for Django; one that made it incredibly
+simple to model my resources and serve them up with the minimum possible code.
+
+One of the most important requirements was powerful yet simple content
+negotiation: separating application logic from the rendering of responses makes
+writing an API an effortless task.
+
+Finally, as strong as Rails’s inspiration was, it still needed to be consistent
+with the practices and idioms of the Django and Python ecosystems. Dagny
+doesn’t use any metaclasses (yet), and the code is well-documented and readable
+by most Pythonista’s standards.
+
+
+## Appetizer
+
+Define a resource:
+
+    #!python
+    from dagny import Resource, action
+    from django.shortcuts import get_object_or_404, redirect
+    from polls import forms, models
+
+    class Poll(Resource):
+
+        @action
+        def index(self):
+            self.polls = models.Poll.objects.all()
+
+        @action
+        def new(self):
+            self.form = forms.PollForm()
+
+        @action
+        def create(self):
+            self.form = forms.PollForm(self.request.POST)
+            if self.form.is_valid():
+                self.poll = self.form.save()
+                return redirect("Poll#show", self.poll.id)
+
+            return self.new.render()
+
+        @action
+        def edit(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.form = forms.PollForm(instance=self.poll)
+
+        @action
+        def update(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.form = forms.PollForm(self.request.POST, instance=self.poll)
+            if self.form.is_valid():
+                self.form.save()
+                return redirect("Poll#show", self.poll.id)
+
+            return self.edit.render()
+
+        @action
+        def destroy(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.poll.delete()
+            return redirect("Poll#index")
+
+Create the templates:
+
+    :::html+django
+    <!-- polls/index.html -->
+    <ol>
+      {% for poll in self.polls %}
+        <li><a href="{% url Poll#show poll.id %}">{{ poll.name }}</a></li>
+      {% endfor %}
+    </ol>
+    <p><a href="{% url Poll#new %}">Create a poll</a></p>
+
+    <!-- polls/new.html -->
+    <form method="post" action="{% url Poll#index %}">
+      {% csrf_token %}
+      {{ self.form.as_p }}
+      <input type="submit" value="Create Poll" />
+    </form>
+
+    <!-- polls/show.html -->
+    <p>Name: {{ self.poll.name }}</p>
+    <p><a href="{% url Poll#edit self.poll.id %}">Edit this poll</a></p>
+
+    <!-- polls/edit.html -->
+    <form method="post" action="{% url Poll#show self.poll.id %}">
+      {% csrf_token %}
+      {{ self.form.as_p }}
+      <input type="submit" value="Update poll" />
+    </form>
+
+Set up the URLs:
+
+    #!python
+    from django.conf.urls.defaults import *
+    from dagny.urls import resources
+
+    urlpatterns = patterns('',
+        (r'^polls/', resources('polls.resources.Poll', name='Poll')),
+    )
+
+Done.
+
+
+## Example Project
+
+There’s a more comprehensive [example project][] which showcases a user
+management app, built in very few lines of code on top of the standard
+`django.contrib.auth` app.
+
+  [example project]: http://github.com/zacharyvoase/dagny/tree/master/example/
+
+To get it running:
+
+    :::bash
+    git clone 'git://github.com/zacharyvoase/dagny.git'
+    cd dagny/
+    pip install -r REQUIREMENTS  # Installs runtime requirements
+    pip install -r REQUIREMENTS.test  # Installs testing requirements
+    cd example/
+    ./manage.py syncdb  # Creates db/development.sqlite3
+    ./manage.py test users  # Runs all the tests
+    ./manage.py runserver
+
+Then just visit <http://localhost:8000/users/> to see it in action!
+
+
+## License
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
+
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+
+# Reference
+
+## Fundamental Concepts
+
+Dagny’s fundamental unit is the **resource**. A resource is identified by, and
+can be accessed at, a single HTTP URI. A resource may be singular or plural; for
+example, `/users` is a collection of users, and `/users/31215` is a single user.
+See the [URI documentation](/uris) for a detailed schema on Dagny’s URIs and
+their behavior.
+
+In your code, resources are defined as classes with several **actions**. An
+action is essentially a method, routed to based on the request path and method,
+which is in charge of processing that particular request and returning a
+response. See the [Resources documentation](/resources) for a concrete
+explanation of how resources and actions are defined.
+
+Actions themselves are broken up into a main body, and a **renderer**. The body
+of the action does the processing—saves/retrieves a record, or perhaps performs
+some calculation. The renderer is responsible for producing a response. This
+split allows for modular content negotiation: you can define multiple
+**renderer backends** for an action, each of which is associated with a MIME
+type. These backends will be dispatched to based on what the client has
+requested; the default is to produce HTML, but you can easily write backends for
+JSON, XML, RDF, or even PNG if necessary. A full reference on the renderer
+system can be found in the [Renderer documentation](/renderer).
+
+# The Renderer
+
+An action comes in two parts: one part does the processing, and the other (known
+as the **renderer**) returns a response to the client. This allows for
+transparent content negotiation, and means you never have to write a separate
+‘API’ for your site, or call `render_to_response()` at the bottom of every view
+function.
+
+
+## Renderer Backends
+
+When an action is triggered by a request, the main body of the action is first
+run. If this does not return a `HttpResponse` outright, the renderer kicks in
+and performs content negotiation, to decide which **renderer backend** to use.
+Each backend is associated with a mimetype, so the renderer will examine the
+client headers and resolve a series of acceptable backends, which it will call
+in decreasing order of preference until one produces a response.
+
+There are two types of renderer backend. The most common is the
+**specific renderer backend**, which is attached to a single action for a
+particular mimetype. Here’s a simple example of a backend for rendering a JSON
+representation of a user:
+
+    #!python
+    from dagny import Resource, action
+    from django.http import HttpResponse
+    from django.shortcuts import get_object_or_404
+    import simplejson
+
+    class User(Resource):
+
+        # ... snip! ...
+
+        @action
+        def show(self, username):
+            self.user = get_object_or_404(User, username=username)
+
+        @show.render.json
+        def show(self):
+            return HttpResponse(content=simplejson.dumps(self.user.to_dict()),
+                                mimetype='application/json')
+
+The decorator API is inspired by Python’s built-in `property`. As you can see,
+specific renderer backends are methods which accept only `self` (which will be
+the resource instance). They’re typically highly coupled with the resource and
+action they’re defined on; this one assumes the presence of `self.user`, for
+example.
+
+### Content Negotiation
+
+Assume that the `User` resource is mounted at `/users/`. Now, if you fetch
+`/users/zacharyvoase/`, you’ll see the `"users/show.html"` template rendered as
+a HTML page. If you fetch `/users/zacharyvoase/?format=json`, however, you’ll
+get a JSON representation of that user.
+
+Dagny’s ConNeg mechanism is quite sophisticated; `webob.acceptparse` is used to
+parse HTTP `Accept` headers, and these are considered alongside explicit
+`format` parameters. So, you could also have passed an
+`Accept: application/json` HTTP header in that last example, and it would have
+worked. If you’re using `curl`, you could try the following command:
+
+    :::bash
+    curl -H"Accept: application/json" 'http://mysite.com/users/zacharyvoase/'
+
+
+## Skipping Renderers
+
+Sometimes, you will define multiple renderer backends for an action, but in a
+few cases a single backend won’t be able to generate a response for that
+particular request. You can indicate this by raising `dagny.renderer.Skip`:
+
+    #!python
+    from dagny.renderer import Skip
+    from django.http import HttpResponse
+
+    class User(Resource):
+        # ... snip! ...
+
+        @show.render.rdf_xml
+        def show(self):
+            if not hasattr(self, 'graph'):
+                raise Skip
+            return HttpResponse(content=self.graph.serialize(),
+                                content_type='application/rdf+xml')
+
+The renderer will literally skip over this backend and on to the next-best
+preferred one. This feature *really* comes in handy when writing
+[generic backends](#generic_backends), which will only be able to determine at
+runtime whether they are suitable for a given action and request.
+
+
+## Additional MIME types
+
+Additional renderers for a single action are defined using the decoration syntax
+(`@<action_name>.render.<format>`) as seen above, but since content negotiation
+is based on mimetypes, Dagny keeps a global `dict` (`dagny.conneg.MIMETYPES`)
+mapping these **shortcodes** to full mimetype strings. You can create your own
+shortcodes, and use them in resource definitions:
+
+    #!python
+    from dagny.conneg import MIMETYPES
+
+    MIMETYPES['rss'] = 'application/rss+xml'
+    MIMETYPES['png'] = 'image/png'
+    MIMETYPES.setdefault('json', 'text/javascript')
+
+There is already a relatively extensive list of types defined; see the
+[`dagny.conneg` module][dagny.conneg] for more information.
+
+  [dagny.conneg]: http://github.com/zacharyvoase/dagny/blob/master/src/dagny/conneg.py
+
+
+## Generic Backends
+
+Dagny also supports **generic renderer backends**; these are backends attached
+to a `Renderer` instance which will be available on *all* actions by default.
+They are simple functions which take both the action instance and the resource
+instance. For example, the HTML renderer (which every action has as standard)
+looks like:
+
+    #!python
+    from dagny.action import Action
+    from dagny.utils import camel_to_underscore, resource_name
+
+    from django.shortcuts import render_to_response
+    from django.template import RequestContext
+
+    @Action.RENDERER.html
+    def render_html(action, resource):
+        template_path_prefix = getattr(resource, 'template_path_prefix', "")
+        resource_label = camel_to_underscore(resource_name(resource))
+        template_name = "%s%s/%s.html" % (template_path_prefix, resource_label, action.name)
+
+        return render_to_response(template_name, {
+          'self': resource
+        }, context_instance=RequestContext(resource.request))
+
+To go deeper, `Action.RENDERER` is a globally-shared instance of
+`dagny.renderer.Renderer`, whereas the `render` attribute on actions is actually
+a `BoundRenderer`. This split is what allows you to define specific backends
+that just take `self` (the resource instance), and generic backends which also
+take the action.
+
+Each `BoundRenderer` has a copy of the whole set of generic backends, so you can
+operate on them as if they had been defined on that action:
+
+    :::python
+    class User(Resource):
+        @action
+        def show(self, username):
+            self.user = get_object_or_404(User, username=username)
+
+        # Remove the generic HTML backend from the `show` action alone.
+        del show.render['html']
+
+        # Item assignment, even on a `BoundRenderer`, takes generic backend
+        # functions (i.e. functions which accept both the action *and* the
+        # resource).
+        show.render['html'] = my_generic_html_backend
+
+
+### Skipping in Generic Backends
+
+As mentioned previously, `dagny.renderer.Skip` becomes very useful when writing
+generic backends. For example, here’s a backend which produces RDF/XML
+responses, but *only* if `self.graph` exists and is an instance of
+`rdflib.Graph`:
+
+    #!python
+    from dagny.action import Action
+    from dagny.conneg import MIMETYPES
+    from dagny.renderer import Skip
+    from django.http import HttpResponse
+    import rdflib
+
+    # This is already defined in Dagny by default.
+    MIMETYPES['rdf_xml'] = 'application/rdf+xml'
+
+    @Action.RENDERER.rdf_xml
+    def render_rdf_xml(action, resource):
+        graph = getattr(resource, 'graph', None)
+        if not isinstance(graph, rdflib.Graph):
+            raise Skip
+
+        return HttpResponse(content=graph.serialize(format='xml'),
+                            content_type='application/rdf+xml')
+
+# Resources
+
+The **resource** is the most basic concept in writing RESTful applications. A
+resource is identified by a URI, and clients interact with resources
+using the standard HTTP methods. Detailed information on the URI schema and the
+behavior of resources over HTTP is provided in the [URI documentation](/uris).
+
+
+## Defining Resources
+
+Resources are subclasses of `dagny.Resource`. Actions are methods on these
+subclasses, decorated with `@action`. Here’s a short example:
+
+    #!python
+    from dagny import Resource, action
+    from django.shortcuts import get_object_or_404, redirect
+
+    from django.contrib.auth import forms, models
+
+    class User(Resource):
+
+        @action
+        def index(self):
+            self.users = models.User.objects.all()
+
+        @action
+        def new(self):
+            self.form = forms.UserCreationForm()
+
+        @action
+        def create(self):
+            self.form = forms.UserCreationForm(request.POST)
+            if self.form.is_valid():
+                self.user = self.form.save()
+                return redirect(self.user)
+
+            response = self.new.render()
+            response.status_code = 403 # Forbidden
+            return response
+
+        @action
+        def show(self, username):
+            self.user = get_object_or_404(models.User, username=username)
+
+        @action
+        def edit(self, username):
+            self.user = get_object_or_404(models.User, username=username)
+            self.form = forms.UserChangeForm(instance=self.user)
+
+        @action
+        def update(self, username):
+            self.user = get_object_or_404(models.User, username=username)
+            self.form = forms.UserChangeForm(self.request.POST, instance=self.user)
+            if self.form.is_valid():
+                self.form.save()
+                return redirect(self.user)
+
+            response = self.edit.render()
+            response.status_code = 403
+            return response
+
+        @action
+        def destroy(self, username):
+            self.user = get_object_or_404(models.User, username=username)
+            self.user.delete()
+            return redirect('/users')
+
+`Resource` uses [django-clsview][] to define class-based views; the extensive
+use of `self` is safe because a new instance is created for each request.
+
+  [django-clsview]: http://github.com/zacharyvoase/django-clsview
+
+You might notice that there are no explicit calls to `render_to_response()`;
+most of the time you’ll want to render the same templates: `"user/index.html"`,
+`"user/new.html"`, `"user/show.html"` and `"user/edit.html"`. Therefore, if your
+action doesn’t return anything (i.e. returns `None`), a template corresponding
+to the resource and action will be rendered. See the
+[renderer documentation](/renderer) for more information.
+
+
+### Decorating Resources
+
+If you want to apply a view decorator to an entire `Resource`, you can use the
+`_decorate()` method (as provided by `django-clsview`):
+
+    :::python
+    class User(Resource):
+        ...
+    User = User._decorate(auth_required)
+
+Note that this returns a *new resource*, so you need to re-assign the result to
+the old name.
+
+
+### Decorating Actions
+
+Because actions don’t have the typical function signature of a Django view (i.e.
+`view(request, *args, **kwargs)`), most view decorators won’t work on an action
+method. For this reason, Dagny provides a simple decorator-wrapper which will
+adapt a normal view decorator to work on an action method. Use it like this:
+
+    :::python
+    class User(Resource):
+        @action
+        @action.deco(auth_required)
+        def edit(self, username):
+            ...
+
+`deco()` is a staticmethod on the `Action` class, purely for convenience.
+Remember: `@action.deco()` must come *below* `@action`, otherwise you’re likely
+to get a cryptic error message at runtime.
+
+<!-- title: Tutorial -->
+
+# The Dagny Tutorial
+
+In this tutorial, I’m going to walk through creating a project with
+authentication. The finished project will have signup, user pages, account
+settings management, login and logout. It should provide a good grounding in how
+to create resourceful web applications using Dagny.
+
+
+## Setup
+
+Begin by installing Dagny:
+
+    :::bash
+    pip install dagny  # or
+    easy_install dagny
+
+If you aren’t using pip yet, [you should be][pip].
+
+  [pip]: http://python-distribute.org/pip_distribute.png
+
+Now create a fresh Django project:
+
+    ::bash
+    django-admin.py startproject tutorial
+    cd tutorial/
+    chmod +x manage.py  # So we can run ./manage.py <command>
+    mkdir templates/  # Project-wide templates will go here.
+
+You need to edit the `settings.py` file; I’ve provided a sample file
+[here](http://gist.github.com/444455), which you can drop into your project—just
+fill in the two missing values (`ADMINS` and `SECRET_KEY`).
+
+Set up the database and run a quick test:
+
+    :::bash
+    ./manage.py syncdb
+    ./manage.py test
+
+You should see a few lines of output, ending in the following:
+
+    :::text
+    ----------------------------------------------------------------------
+    Ran 154 tests in 2.852s
+
+    OK
+    Destroying test database 'default'...
+
+That means everything worked.
+
+
+## The first resource: Users
+
+Create an app called `users`:
+
+    :::bash
+    ./manage.py startapp users
+
+This app will manage user and user session resources—this encompasses listing,
+displaying, creating and editing users, and logging in and out. You’ll see,
+however, that what would normally take a lot of code and configuration is
+actually very simple to do with Dagny.
+
+Create and start editing a `users.resources` module:
+
+    :::bash
+    vim users/resources.py
+
+Add this basic structure:
+
+    #!python
+    from dagny import Resource, action
+
+    class User(Resource):
+        @action
+        def index(self):
+            pass
+
+        @action
+        def new(self):
+            pass
+
+        @action
+        def create(self):
+            pass
+
+        @action
+        def show(self, user_id):
+            pass
+
+        @action
+        def edit(self, user_id):
+            pass
+
+        @action
+        def update(self, user_id):
+            pass
+
+        @action
+        def destroy(self, user_id):
+            pass
+
+As you can see, we’ve stubbed out 7 methods on the `User` resource: `index`,
+`new`, `create`, `show`, `edit`, `update` and `destroy`. The expected behavior
+of each of these is described in depth in the [URI reference](/uris).
+
+<!-- TODO: finish -->
+
+# URIs
+
+This document describes in depth Dagny’s default URI scheme for resources. In
+this aspect, Dagny follows the Rails convention, since it is well-established
+and familiar to many developers.
+
+You can also skip to the [URLconf reference](#urlconf).
+
+
+## Types of Resource
+
+Dagny supports two types of resource: collections and singular resources.
+Collections are lists of uniquely-identifiable members, such as blog posts,
+users and products. Singular resources (a.k.a. singletons) are resources of
+which only one ever exists, and are typically tied to the currently logged-in
+user (e.g. the current user's profile, the user session, etc.).
+
+
+## The Default URL Scheme
+
+What follows is the default URL scheme for resources. Dagny also supports
+configurable [URL styles](#alternative_url_styles), but you should get familiar
+with the defaults before moving on to those.
+
+
+### Collections
+
+The paths and their interaction with the standard HTTP methods are as follows:
+
+Name       | Path             | Method   | Action    | Behavior
+---------- | ---------------- | -------- | --------- | --------------------------------
+Collection | `/users/`        | `GET`    | `index`   | List all users
+           |                  | `POST`   | `create`  | Create a user
+Member     | `/users/1/`      | `GET`    | `show`    | Display user 1
+           |                  | `PUT`    | `update`  | Edit user 1
+           |                  | `POST`   | `update`  | Edit user 1
+           |                  | `DELETE` | `destroy` | Delete user 1
+New        | `/users/new/`    | `GET`    | `new`     | Display the new user form
+Edit       | `/users/1/edit/` | `GET`    | `edit`    | Display the edit form for user 1
+
+Note that not all of these actions are required; for example, you may not wish
+to provide `/users/new` and `/users/1/edit`, instead preferring to display the
+relevant forms under `/users/` and `/users/1/`. You may also support only
+certain HTTP methods at a given path; for example, only allowing `GET` on
+`/users/1/`.
+
+To work around the fact that `PUT` and `DELETE` are not typically supported in
+browsers, you can add a `_method` parameter to a `POST` form to override the
+request method:
+
+    :::html+django
+    <form method="post" action="/users/1/">
+      <input type="hidden" name="_method" value="delete" />
+      ...
+    </form>
+
+
+### Singular Resources
+
+Name   | Path             | Method   | Action            | Behavior
+------ | ---------------- | -------- | ----------------- | -----------------------------
+Member | `/account/`      | `GET`    | `Account.show`    | Display the account
+       |                  | `POST`   | `Account.create`  | Create the new account
+       |                  | `PUT`    | `Account.update`  | Update the account
+       |                  | `DELETE` | `Account.destroy` | Delete the account
+New    | `/account/new/`  | `GET`    | `Account.new`     | Display the new account form
+Edit   | `/account/edit/` | `GET`    | `Account.edit`    | Display the edit account form
+
+The same point applies here: you don’t need to specify all of these actions
+every time.
+
+
+## The URLconf
+
+### Collections
+
+Pointing to a collection resource from your URLconf is relatively simple:
+
+    #!python
+    from dagny.urls import resources  # plural!
+    from django.conf.urls.defaults import *
+
+    urlpatterns = patterns('',
+        (r'^users/', resources('myapp.resources.User'))
+    )
+
+You can customize this; for example, to use a slug/username instead of a numeric
+ID:
+
+    :::python
+    urlpatterns = patterns('',
+        (r'^users/', resources('myapp.resources.User',
+                               id=r'[\w\-_]+')),
+    )
+
+If you'd like the ID to appear as a named group in the regex (and hence be
+passed to your resource in `self.params` instead of as a positional argument),
+pass it as a two-tuple of `(param_name, regex)`:
+
+    :::python
+    urlpatterns = patterns('',
+        (r'^users/', resources('myapp.resources.User',
+                               id=('username', r'[\w\-_]+'))),
+    )
+
+This is especially useful if your URL already captures a parameter, as Django
+does not support mixing positional and keyword arguments in a URL.
+
+You can also restrict the actions that are routed to. Pass the `actions` keyword
+argument to specify which of these you would like to be available:
+
+    :::python
+    urlpatterns = patterns('',
+        (r'^users/', resources('myapp.resources.User',
+            actions=('index', 'show', 'create', 'update', 'destroy'))),
+    )
+
+This is useful if you’re going to display the `new` and `edit` forms on the
+`index` and `show` pages, for example. Excluding `new` and `edit` may also
+prevent naming clashes if you’re using slug identifiers in URIs.
+
+**N.B.:** most of the time, you won't need to use the `actions` keyword
+argument; if you just leave actions undefined, Dagny will automatically return
+the appropriate responses. The only case where `actions` would be useful is if
+those actions *are* defined on the resource but you don't want routes to them
+to be created.
+
+
+### Singular Resources
+
+For this, use the `resource()` helper:
+
+    #!python
+    from dagny.urls import resource  # singular!
+    from django.conf.urls.defaults import *
+
+    urlpatterns = patterns('',
+        (r'^account/', resource('myapp.resources.User'))
+    )
+
+`resource()` is similar to `resources()`, but it only generates `show`, `new`
+and `edit`, and doesn’t take an `id` parameter.
+
+
+## Reversing URLs
+
+`resource()` and `resources()` both attach names to the patterns they generate.
+This allows you to use the `{% url %}` templatetag, for example:
+
+    :::html+django
+    <!-- A user creation (signup) form -->
+    <form method="post" action="{% url myapp.resources.User#create %}">
+      ...
+    </form>
+
+    <!-- Signup link -->
+    <a href="{% url myapp.resources.User#new %}">Sign Up!</a>
+
+    <!-- User profile link -->
+    <a href="{% url myapp.resources.User#show user.id %}">View user</a>
+
+    <!-- User editing link -->
+    <a href="{% url myapp.resources.User#edit user.id %}">Edit user</a>
+
+    <!-- User editing form -->
+    <form method="post" action="{% url myapp.resources.User#update user.id %}">
+      ...
+    </form>
+
+You can also use these references in `get_absolute_url()` methods that have been
+wrapped with `@models.permalink`:
+
+    :::python
+    from django.db import models
+
+    class User(models.Model):
+        # ... snip! ...
+
+        @models.permalink
+        def get_absolute_url(self):
+            return ("myapp.resources.User#show", self.id)
+
+Of course, having to write out the full path to the resource is quite
+cumbersome, so you can give a `name` keyword argument to either of the URL
+helpers, and use the shortcut:
+
+    :::python
+    # In urls.py:
+    urlpatterns = patterns('',
+        (r'^users/', resources('myapp.resources.User', name='User'))
+    )
+
+    # In models.py:
+    class User(models.Model):
+        @models.permalink
+        def get_absolute_url(self):
+            return ("User#show", self.id)
+
+    # In resources.py:
+    class User(Resource):
+        # ... snip! ...
+        @action
+        def update(self, user_id):
+            # ... validate the form and save the user ...
+            return redirect("User#show", self.user.id)
+
+These shortcuts are also available in the templates:
+
+    :::html+django
+    <form method="post" action="{% url User#create %}">
+      ...
+    </form>
+
+    <a href="{% url User#new %}">Sign Up!</a>
+
+    <a href="{% url User#show user.id %}">View user</a>
+
+    <a href="{% url User#edit user.id %}">Edit user</a>
+
+    <form method="post" action="{% url User#update user.id %}">
+      ...
+    </form>
+
+
+## Alternative URL Styles
+
+Dagny supports configurable *URL styles*, of which the default is only a single
+instance. Following are the other two which Dagny comes packaged with.
+
+To use an alternative style, create a `dagny.urls.router.URLRouter` with the
+style and use the `resources()` and `resource()` methods defined on that as
+your URLconf helpers.
+
+    :::python
+    from dagny.urls.router import URLRouter
+    from myapp import MyURLStyle
+
+    style = MyURLStyle()
+    router = URLRouter(style)
+
+    # Use these instead when defining your URLs.
+    resources, resource = router.resources, router.resource
+
+The built-in alternative styles already have stub modules with the two helpers
+defined.
+
+
+### AtomPub URLs
+
+This style matches the URL conventions used in the
+[Atom Publishing Protocol][app].
+
+  [app]: http://tools.ietf.org/html/rfc5023
+
+Usage: `from dagny.urls.atompub import *`
+
+Path               | Action(s)
+------------------ | ----------------------------------------------
+`/accounts/`       | `Account.index`, `Account.create`
+`/accounts/new`    | `Account.new`
+`/accounts/1`      | `Account.show`, `Account.update`, `Account.destroy`
+`/accounts/1/edit` | `Account.edit`
+
+
+### Rails URLs
+
+These URLs mimic those of Rails, including the optional format extensions.
+
+Usage: `from dagny.urls.rails import *`
+
+Path               | Action(s)
+------------------ | ----------------------------------------------
+`/accounts`        | `Account.index`, `Account.create`
+`/accounts.json`   | 〃 (with kwargs `{'format': 'json'}`)
+`/accounts/`       | 〃
+`/accounts/new`    | `Account.new`
+`/accounts/1`      | `Account.show`, `Account.update`, `Account.destroy`
+`/accounts/1/`     | 〃
+`/accounts/1.json` | 〃 (with kwargs `{'format': 'json'}`)
+`/accounts/1/edit` | `Account.edit`
+
+**Note**: due to limitations of the URLconf system—to wit, the inability to mix
+keyword and positional arguments in the same URL—your IDs/slugs have to come
+in as named parameters. By default, the parameter will be called `id`, but you
+can select a different one using the `id` keyword argument to the URL helpers:
+
+    :::python
+    urlpatterns = patterns('',
+        # To get the slug, use `self.params['slug']` on the `Post` resource.
+        # Also note: there is no terminating slash on the top-level regex.
+        (r'posts', resources('myapp.resources.Post', name='Post',
+                             id=('slug', r'[\w\-]+'))),
+    )
+
+Another caveat: do not terminate your top-level regex with a slash, or the
+format extension on the resource index (e.g. `/posts.json`) won't work.
+
+# Dagny
+
+Dagny is a [Django][] adaptation of [Ruby on Rails][]’s Resource-Oriented
+Architecture (a.k.a. ‘RESTful Rails’).  
+Dagny makes it *really easy* to build **resourceful** web applications.
+
+  [django]: http://djangoproject.com/
+  [ruby on rails]: http://rubyonrails.org/
+
+You can read the full documentation [here](http://zacharyvoase.github.com/dagny/).
+
+At present, this project is in an experimental phase, so APIs are very liable to
+change. **You have been warned.**
+
+P.S.: the name is [a reference][dagny taggart].
+
+  [dagny taggart]: http://en.wikipedia.org/wiki/List_of_characters_in_Atlas_Shrugged#Dagny_Taggart
+
+
+## Motivation
+
+Rails makes building RESTful web applications incredibly easy, because
+resource-orientation is baked into the framework—it’s actually harder to make
+your app *un*RESTful.
+
+I wanted to build a similar system for Django; one that made it incredibly
+simple to model my resources and serve them up with the minimum possible code.
+
+One of the most important requirements was powerful yet simple content
+negotiation: separating application logic from the rendering of responses makes
+writing an API an effortless task.
+
+Finally, as strong as Rails’s inspiration was, it still needed to be consistent
+with the practices and idioms of the Django and Python ecosystems. Dagny doesn’t
+use any metaclasses (yet), and the code is well-documented and readable by most
+Pythonista’s standards.
+
+
+## Appetizer
+
+Define a resource:
+
+    from dagny import Resource, action
+    from django.shortcuts import get_object_or_404, redirect
+    from polls import forms, models
+    
+    class Poll(Resource):
+        
+        @action
+        def index(self):
+            self.polls = models.Poll.objects.all()
+        
+        @action
+        def new(self):
+            self.form = forms.PollForm()
+        
+        @action
+        def create(self):
+            self.form = forms.PollForm(self.request.POST)
+            if self.form.is_valid():
+                self.poll = self.form.save()
+                return redirect("Poll#show", self.poll.id)
+            
+            return self.new.render()
+        
+        @action
+        def edit(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.form = forms.PollForm(instance=self.poll)
+        
+        @action
+        def update(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.form = forms.PollForm(self.request.POST, instance=self.poll)
+            if self.form.is_valid():
+                self.form.save()
+                return redirect("Poll#show", self.poll.id)
+            
+            return self.edit.render()
+        
+        @action
+        def destroy(self, poll_id):
+            self.poll = get_object_or_404(models.Poll, id=int(poll_id))
+            self.poll.delete()
+            return redirect("Poll#index")
+
+Create the templates:
+
+    <!-- polls/index.html -->
+    <ol>
+      {% for poll in self.polls %}
+        <li><a href="{% url Poll#show poll.id %}">{{ poll.name }}</a></li>
+      {% endfor %}
+    </ol>
+    <p><a href="{% url Poll#new %}">Create a poll</a></p>
+    
+    <!-- polls/new.html -->
+    <form method="post" action="{% url Poll#create %}">
+      {% csrf_token %}
+      {{ self.form.as_p }}
+      <input type="submit" value="Create Poll" />
+    </form>
+    
+    <!-- polls/show.html -->
+    <p>Name: {{ self.poll.name }}</p>
+    <p><a href="{% url Poll#edit self.poll.id %}">Edit this poll</a></p>
+    
+    <!-- polls/edit.html -->
+    <form method="post" action="{% url Poll#update self.poll.id %}">
+      {% csrf_token %}
+      {{ self.form.as_p }}
+      <input type="submit" value="Update poll" />
+    </form>
+
+Set up the URLs:
+
+    from django.conf.urls.defaults import *
+    from dagny.urls import resources
+    
+    urlpatterns = patterns('',
+        (r'^polls/', resources('polls.resources.Poll', name='Poll')),
+    )
+
+Done.
+
+
+## Example Project
+
+There’s a more comprehensive [example project][] which showcases a user
+management app, built in very few lines of code on top of the standard
+`django.contrib.auth` app.
+
+  [example project]: http://github.com/zacharyvoase/dagny/tree/master/example/
+
+To get it running:
+
+    git clone 'git://github.com/zacharyvoase/dagny.git'
+    cd dagny/
+    pip install -r REQUIREMENTS  # Installs runtime requirements
+    pip install -r REQUIREMENTS.test  # Installs testing requirements
+    cd example/
+    ./manage.py syncdb  # Creates db/development.sqlite3
+    ./manage.py test users  # Runs all the tests
+    ./manage.py runserver
+
+Then just visit <http://localhost:8000/users/> to see it in action!
+
+
+## License
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or distribute this
+software, either in source code form or as a compiled binary, for any purpose,
+commercial or non-commercial, and by any means.
+
+In jurisdictions that recognize copyright laws, the author or authors of this
+software dedicate any and all copyright interest in the software to the public
+domain. We make this dedication for the benefit of the public at large and to
+the detriment of our heirs and successors. We intend this dedication to be an
+overt act of relinquishment in perpetuity of all present and future rights to
+this software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+

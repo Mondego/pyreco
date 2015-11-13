@@ -1,0 +1,130 @@
+census.ire.org
+==============
+
+A nationwide census browser for 2000 and 2010 census data.
+
+Dependencies
+============
+
+You will need Python 2.7, the PostGIS stack, virtualenv and virtualenvwrapper. Mac Installation instructions at: http://blog.apps.chicagotribune.com/2010/02/17/quick-install-pythonpostgis-geo-stack-on-snow-leopard/):
+
+Other required software:
+
+* mongodb
+* wget
+* mdbtools.
+
+On a Mac you can get these with Brew::
+
+    brew install mongodb
+    brew install wget
+    brew install mdbtools
+
+Bootstrapping the webapp
+========================
+
+To get the web application running::
+
+    cd censusweb
+    mkvirtualenv --no-site-packages censusweb
+    pip install -r requirements.txt
+    python manage.py runserver
+
+Configuring the webapp
+======================
+
+By default the webapp is going to use the data published to the IRE test site, which may not be accessible to you. To use your own data open censusweb/config/settings.py and modify the following line::
+
+    API_URL = 'http://s3.amazonaws.com/census-test' 
+
+See the next section to learn how to deploy data to your custom S3 bucket.
+
+Loading data
+============
+
+Once you've setup the webapp you will have the requirements needed to load data. If you want to load embargoed data you will need to define environment variables for your username and password::
+
+    CENSUS_USER=cgroskopf@tribune.com
+    CENSUS_PASS=NotMyRealPassword
+
+You will also need to have defined your Amazon Web Services credentials so that you can upload the rendered data files to S3::
+
+    export AWS_ACCESS_KEY_ID="foo"
+    export AWS_SECRET_ACCESS_KEY="bar"
+
+You will also need to modify the load configuration to point at the same S3 bucket you configured for the webapp. Open dataprocessing/config.py and modify the following lines::
+
+    S3_BUCKETS = {
+        'staging': 'census-test',
+        'production': 'censusdata.ire.org',
+    } 
+
+To load SF1 data for Hawaii make sure you have Mongo running and then execute the following commands::
+
+    cd dataprocessing
+    ./batch_sf.sh Hawaii staging
+
+Credits
+=======
+
+This application was a project of `Investigative Reporters and Editors <http://www.ire.org/>`_ / `National Institute for Computer-Assisted Reporting <http://data.nicar.org/>`_. Funding was generously provided by `The Reynolds Journalism Institute <http://www.rjionline.org/>`_.
+
+The following journalists and nerds contributed to this project:
+
+* Jeremy Ashkenas (New York Times)
+* Brian Boyer (Chicago Tribune)
+* Joe Germuska (Chicago Tribune)
+* Christopher Groskopf (Chicago Tribune)
+* Mark Horvit (IRE)
+* Ryan Mark (Chicago Tribune)
+* Curt Merrill (CNN)
+* Paul Overberg (USA Today)
+* Ted Peterson (IRE)
+* Aron Pilhofer (New York Times)
+* Mike Tigas (Spokesman-Review)
+* Matt Waite (University of Nebraska)
+
+License
+=======
+
+This software is licensed under the permissive MIT license. See COPYING for details.
+
+
+census.ire.org tools
+====================
+As an adjunct to the core census.ire.org web app, we are collecting scripts and other useful resources for the community of census data users. If you'd like to contribute something you've made, send us a pull request, or send an email to Joe Germuska <jgermuska@tribune.com>
+
+SQL
+===
+The SQL directory contains create table scripts for working with SF1 data, and a general script for Census 2010 geoheaders. These are meant to be used to directly load the raw data files, with all columns. It also contains create table scripts (in tools/sql/ire_export) for the bulk data exports downloadable from http://census.ire.org/data/bulkdata.html
+
+For the geoheader files, which are fixed width, you may find useful the csvkit library, which has a tool called 'in2csv' which can be used to convert fixed-width files to CSV.
+
+* Install CSVKit using "easy_install csvkit" or from https://github.com/onyxfish/csvkit
+* execute a command like this, taking care to use the correct paths and adjust for the specific geoheader file you are adapting:
+    in2csv -e latin1 -s census2010_geo_schema.csv higeo2010.sf1> higeo2010.csv
+
+NOTE: Take care with character encoding. Some place names (such as those with Spanish words) contain non-ASCII characters. The Census Bureau encodes the files using "latin-1" encoding.
+The in2csv example above handles this correctly. in2csv always writes output files in UTF-8, so adjust your database load scripts accordingly.
+
+Thanks to Ron Campbell of the Orange County Register for contributing the basis of **geo_2010.sql** Thanks to Mike Stucka of the Telegraph of Macon for suggestions to clarify the SQL and make it more compatible. Thanks to Tom Meagher of the Star-Ledger for SQL scripts for the 2000 census.
+
+Note that the column IDs do not exactly match the values printed in the SF1 technical documentation. Our method was to zero-pad digits to three positions, but we made no allowance for the occasional presence of letters qualifying race/ethnic variations on certain tables. Therefore, our column lengths vary in length somewhat compared to the SF1 versions of the labels. (If anyone is motivated to create an alternate SQL file or view which maintains tighter consistency with the SF1 technical documentation, please feel free to send a file or issue a pull request.)
+
+The column names in our SQL files align with the metadata files described below.
+
+SAS
+===
+Dan Keating of the Washington Post has contributed a SAS script for loading the SF1 tables into a SAS environment. Note that data field labels in this script adhere to a pattern different than those used for the SQL scripts and in the metadata.
+
+Metadata
+========
+These files provide machine-readable distillations of table and field codes and names. The label codes should match with column codes in the SQL script above.
+
+All files in this directory are UTF-8 encoded.
+
+JS (JavaScript)
+===============
+A first stab at encapsulating basic operations in JavaScript to make it easier for more people to use this. In need of 
+more examples and documentation, but should be somewhat straightforward for people accustomed to doing AJAX with jQuery.
+Depends upon jQuery for ajax boilerplate. Please feel free to help make this more awesome.

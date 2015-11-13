@@ -1,0 +1,417 @@
+Bootstrap customizations
+========================
+http://twitter.github.com/bootstrap/customize.html
+
+## Choose components
+
+### Scaffolding
+* [X] Normalize and reset
+* [X] Body type and links
+* [X] Grid system
+* [X] Layouts
+
+### Base CSS
+* [X] Headings, body, etc
+* [X] Code and pre
+* [X] Labels and badges
+* [X] Tables
+* [X] Forms
+* [X] Buttons
+* [ ] Icons
+
+### Components
+* [ ] Button groups and dropdowns
+* [ ] Navs, tabs, and pills
+* [ ] Navbar
+* [ ] Breadcrumbs
+* [ ] Pagination
+* [ ] Pager
+* [ ] Thumbnails
+* [X] Alerts
+* [ ] Progress bars
+* [ ] Hero unit
+
+### JS Components
+* [ ] Tooltips
+* [ ] Popovers
+* [ ] Modals
+* [ ] Dropdowns
+* [ ] Collapse
+* [ ] Carousel
+
+### Miscellaneous
+* [X] Wells
+* [X] Close icon
+* [X] Utilities
+* [ ] Component animations
+
+### Responsive
+* [X] Visible/hidden classes
+* [ ] Narrow tablets and below (<767px)
+* [ ] Tablets to desktops (767-979px)
+* [ ] Large desktops (>1200px)
+* [ ] Responsive navbar
+
+## Select jQuery plugins
+
+* [ ] Transitions (required for any animation)
+* [ ] Modals
+* [ ] Dropdowns
+* [ ] Scrollspy
+* [ ] Togglable tabs
+* [ ] Tooltips
+* [ ] Popovers (requires Tooltips)
+* [ ] Affix
+* [ ] Alert messages
+* [ ] Buttons
+* [ ] Collapse
+* [ ] Carousel
+* [ ] Typeahead
+
+## Customize variables
+All is default
+
+## After download
+
+* Use only bootstrap/css/bootstrap.min.css file (copy that to ramona/httpfend/static/bootstrap/css/ folder)
+
+Features
+========
+
+- ramonactl command line usage is compatible with init.d scripts (start/stop/restart/status/...)
+	- Also user can specify 'filtering' of start/stop/restart/status scope by:
+```bash
+./console start program-name1 program-name2 ...
+```
+
+- Console can be started without start of server and also server can be started without launch of any program
+- Each program is launched in dedicated process group
+- configuration is ConfigParser compatible
+- priority (order) in which programs are started/stopped
+- Following environment variables are available:
+	- RAMONA_CONFIGS (filled by console, list of config files as given on command line or by default mechanism)
+	- RAMONA_SECTION (name of [program:?] section in config that is relevant for current program)
+
+- Force start/restart of programs in 'FATAL' state (-f option)
+- Console is able to re-establish connection when server goes down during console run-time
+- When ramona server is exiting, it has to try to terminate all childs (using stop command)
+- Ramona server terminates after stopping all child programs if console stop command is issued in non-interactive mode
+- start command has option -S to launch server only (no program is started ... usable during development)
+- @tool support (in methods in console_app class)
+- @proxy_tool support (in methods in console_app class)
+- @tool can be method or class (class is useful when commandline arguments for tool needs to be used)
+- working directory is changed during console start to the location of console app script (should be root of the app)
+- immediate/yield modes of start/stop/restart commands
+- core dump enabled stop of program
+- Automatic (configurable) restart of failed program
+- [program:x] command now can contain environment variable reference (e.g. ${HOME}) that will be expanded; also [env] is taken in account
+- [program:x]'directory' option (change working directory prior program start)
+- [program:x]'umask' option
+- optional alternative configuration for environment variables: https://github.com/ateska/ramona/issues/2
+
+
+Console
+-------
+- ramona console is embeddable in custom python app + it is extendable to provide similar functionality as 'pan.sh':
+```python
+class MyConsoleApp(ramona.console_app):
+
+	@ramona.tool
+	def unittests(self):
+		'Seek for all unit tests and execute them'
+		import unittest
+		tl = unittest.TestLoader()
+		ts = tl.discover('.', '__utest__.py')
+
+		tr = unittest.runner.TextTestRunner(verbosity=2)
+		res = tr.run(ts)
+
+		return 0 if res.wasSuccessful() else 1
+```
+
+Logging
+-------
+- logging configuration:
+
+```ini
+[program:x]
+stdin=[<null>]
+stdout=[<null>|<stderr>|<logdir>|FILENAME]
+stderr=[<null>|<stdout>|<logdir>|FILENAME]
+```
+Options:
+  * &lt;null> (redirect to /dev/null)
+  * &lt;stderr> (redirect stdout to stderr)
+  * &lt;stdout> (redirect stderr to stdout)
+  * &lt;logdir>  (file in [server]logdir named [ident]-out.log, [ident]-err.log respectively [ident].log)
+
+Defaults:
+```
+stdin=<null>
+stdout=<stderr>
+stderr=<logdir>
+```
+
+- log location is given as directory by:
+	1. [server] logdir option
+	2. environment variable LOGDIR
+
+- (-s/--silent and -d/--debug) command-line options
+- tail command
+	- it works even when output is redirected or null
+- log rotate (options logmaxsize and logbackups) [logmaxsize is not hard limit just a trigger for rotate]
+- print "STARTING" and "EXITED" banners to log_err
+- tail '-f' mode 
+
+Configuration
+-------------
+- [program:x] disabled=true options
+- section [env] in config defines environment variables (blends them with actual environment vars)
+
+```ini
+[env]
+PYTHONPATH=./libraries
+CLASSPATH=
+```
+
+Empty variable (e.g. CLASSPATH in previous example) will explicitly remove mentioned environment variable
+
+- includes in config files:
+	- primary file is given by -C switch (app. level config) + user application class - both part of user application distribution
+	- secondary (optional) files is given by -c switch (site level config) + [general]include configuration option 
+	- [general]include format is: =file1.conf:file2.conf:<siteconf>:... (default is <siteconf> only)
+	- [general]include has also 'magic' option <siteconf> that delivers platform specific locations of the config:
+		- ./site.conf
+		- [prefix]/etc/[appname].conf (Linux|MacOSX)
+- Application name in configuration ([general] appname)
+- Some options uses 'magic' values (&lt;magic>)
+- [program:x] 'processgroup' switch for using/not-using process group approach (default is on)
+
+
+Mailing to admin
+----------------
+- Scan output streams of the program for keywords (by default 'error', 'fatal', 'exception') and send email when such event occurs
+- Config sample (from [program:x]): logscan_stdout=error>now:foo2@bar.com,fatal>now,exception>now,warn>daily
+
+HTTP frontend
+-------------
+- standalone process
+- displays states of programs 
+- allows to start/stop/restart each or all of them
+- allows displaying tail of log files 
+- basic authentication
+
+Configuration:
+- The HTTP frontend is added to configuration file as any other program, only with the special `command=<httpfend>`.
+- Configuration sample including comments:
+
+```ini
+[program:ramonahttpfend]
+command=<httpfend>
+# IP address/hostname where the HTTP frontend should listen
+host=127.0.0.1
+# Port where the HTTP frontend should listen
+port=5588
+# Use username and password options only if you want to enable basic authentication
+username=admin
+# Can get either plain text or a SHA1 hash, if the password starts with {SHA} prefix
+password=pass
+# SHA example. To generate use for example: echo -n "secret" | sha1sum
+#password={SHA}e5e9fa1ba31ecd1ae84f75caaa474f3a663f05f4
+```
+
+Windows
+-------
+- Running as Windows Service
+- working on Windows using pyev & Python Win32
+
+Release procedure
+=================
+
+1. Make sure master branch (or relevant originating branch) is stable and releasable
+2. Formulate release version 'string' (e.g. 0.9b1) -> use it instead placeholder [VERSION] bellow
+3. git checkout -b release-[VERSION-MASTER.VERSION-MINOR] master (git checkout -b release-0.9 master)
+	or if merging to existing release branch, perform switch to that release branch and merge from master.
+   DO NOT COMMIT YET!
+4. Now we are working in the release branch
+5. Check `./setup.py`:
+	- version info
+	- classifiers (e.g. Development Status)
+6. Check `./ramona/__init__.py`:
+	- version info
+7. Check `./docs/manual/conf.py`:
+	- version info (short and long)
+8. Check briefly `./README.md` and `./README`
+9. Check ./MANIFEST.in
+10. Run tests:
+	- `./ramona-dev.py unittests`
+	- Functional test:
+		- `./demo.py start`
+		- `./demo.py status`
+		- `./demo.py stop`
+11. Run upload to testpypi.python.org: `./ramona-dev.py upload_test`
+12. Check on http://testpypi.python.org/pypi/ramona
+13. Prepare for final release !
+14. Commit to Git
+15. Run upload to pypi.python.org: `./ramona-dev.py upload`
+16. Check on http://pypi.python.org/pypi/ramona
+17. Create tag 'release-[VERSION]' (e.g. release-0.9b3) with comment e.g. "Beta release 0.9b3"
+18. Switch back to 'master' branch and you are done
+
+Follow-ups
+----------
+- Update manual (documentation) and propagate that to github pages
+- Mark release in Google Analytics
+- Publish release to Freecode
+
+TODO list
+=========
+
+Generic
+-------
+- add version check to console-server communication handshake (and print warning if not matching)
+- exitcodes option for autorestart (autorestart=1,2,3)
+- (low prio): SSL (optional) for protecting console-server channel
+- ulimit/resources (similar to core dump) -> minfds, minprocs
+- Unify & document sys.exit codes 
+- Reload/reset command (restarting ramona server)
+- Restart in yield mode should also terminate & start ramona server
+- [tool:x] support (how to do this properly - config is read __after__ arguments are parsed)
+- console command enable/disable to allow change status during runtime
+- [program:x] disabled 'magic' options:
+	 - e.g. <on-platform linux:mac>
+- test Ramona how it runs in out-of-diskspace conditions
+- 'user' option - If ramona runs as root, this UNIX user account will be used as the account which runs the program. If ramona is not running as root, this option has no effect.
+- configuration platform selector should support OR operator (e.g. pidfile@linux|darwin)
+- configuration platform selector should support families (e.g. pidfile@posix); posix is so far only identified family (expanded to linux|darwin|cygwin)
+- `tail -f *` to show log of **ALL** running programs
+- Add support for [var] section - similar to [env] but in this case, values are not propagated into environment variables
+	Otherwise it remains complementary (useful for ${VAR} expressions on command-line).
+	Maybe this can be archived in a different (more elegant) way (e.g. not introduce [var]/[env] duality).
+- Better error message when directory of socket file does not exist: 
+    Current message when server starts: 2013-01-04 01:09:17,846 CRITICAL: It looks like that server is already running: [Errno 2] No such file or directory
+- Explore eventuality of forking TTY when launching program: http://stackoverflow.com/questions/1922254/python-when-to-use-pty-fork-versus-os-fork
+
+Logging
+-------
+- Support for SIGHUP (reopen log files OR reset fully)
+- log rotate of Ramona server log (stdout/stderr redirection)
+
+Configuration
+-------------
+- (environment) variables expansion in configuration
+
+Watchdog
+--------
+- watchdog functionality (child process is signaling that is alive periodically)
+- watchdog for non-managed programs (e.g. [watchdog:apache]) + restart commands
+
+Python specific
+---------------
+- native python program execution (using utils.get_python_exec - substitute for STRIGAPYTHON)
+- python version (minimal) check
+
+Mailing to admin
+----------------
+- On autorestart mail trigger
+- On FATAL mail trigger
+- Mailing issues to admin: https://github.com/ateska/ramona/issues/1
+- Standalone log scanner (not connected to particular program) to enable supervising of e.g. CGI scripts
+- daily/weekly/monthly targets
+
+HTTP frontend
+-------------
+- Store static files in a way that py2exe will work correctly.
+- RESTful API
+- (low prio): HTTPS
+
+Cron
+----
+- Ramona can be used to trigger tasks (tools) by given time - emulating functionality of cron
+
+Cluster
+-------
+- Ramona can be used as cluster controller - running on every node and managing application there.
+- Ramona cluster controller needs to be built to allow single point of control
+- Fail-over scenarion support
+- Amazon ECS integration (e.g. use of Amazon variables that are passed to the box)
+
+======
+Ramona
+======
+
+Ramona is an enterprise-grade runtime supervisor that allows controlling and monitoring software programs during their execution life cycle.
+
+It is primarily meant to be blended into your project source code set to provide supervisor/console functionality of init.d-like start/stop control, task frontend (e.g. unit/functional/performance test launcher) and other command-line oriented features. It should ideally represent the only executable of the project - kind of 'dispatcher' to rest of a project. It is design the way that you should be able to extend that easily if needed (e.g. to include your own tasks).
+
+For more info see http://ateska.github.com/ramona/
+
+Documentation can be found here: http://ateska.github.com/ramona/manual
+
+Mailing list is here: https://groups.google.com/forum/#!forum/ramona-supervisor
+
+Ramona
+======
+
+Your next favorite supervisor component.
+
+Ramona is an enterprise-grade **runtime supervisor** that allows controlling and monitoring software programs during their execution life cycle.
+
+It provides supervisor/console functionality of init.d-like start/stop control, continuous integration (e.g. unit/functional/performance test launcher), deployment automation and other command-line oriented features. It is design the way that you should be able to extend that easily if needed (e.g. to include your own commands or tasks).
+
+It is implemented in Python but it is not limited to be used only in Python projects.
+
+Target platforms are all modern UNIXes, BSD derivates and Windows.
+
+Quick introduction
+------------------
+
+Let's assume your project (named _foo_) directory looks as follow:
+```shell
+foo/
+	bin/
+	share/
+	src/
+	docs/
+	foo.py <--- this is Ramona
+	foo.conf
+```
+
+Ramona system will the provide you with following command-line API:
+```
+$ ./foo.py --help
+usage: foo.py [-h] [-c CONFIGFILE] [-d] [-s]
+               {start,stop,restart,status,help,console,server,clean,unittests}
+               ...
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -c CONFIGFILE, --config CONFIGFILE
+                        Specify configuration file(s) to read (this option can
+                        be given more times). This will override build-in
+                        application level configuration.
+  -d, --debug           Enable debug (verbose) output.
+  -s, --silent          Enable silent mode of operation (only errors are
+                        printed).
+
+subcommands:
+  {start,stop,restart,status,help,console,server}
+    start               Launch subprocess(es)
+    stop                Terminate subprocess(es)
+    restart             Restart subprocess(es)
+    status              Show status of subprocess(es)
+    help                Display help
+    console             Enter interactive console mode
+    server              Launch server in the foreground
+```
+
+Links
+-----
+
+* [Ramona project page](http://ateska.github.com/ramona/)
+* [Ramona documentation](http://ateska.github.com/ramona/manual)
+* [Ramona mailing list](https://groups.google.com/forum/#!forum/ramona-supervisor)
+* [Ramona @ GitHub](https://github.com/ateska/ramona)
+* [Ramona @ PyPi](http://pypi.python.org/pypi/ramona)
+* [Ramona @ Ohloh](https://www.ohloh.net/p/ateska_ramona)
+

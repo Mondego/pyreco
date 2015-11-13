@@ -1,0 +1,140 @@
+================================================================================
+Setup:
+
+Open emulators.txt and make an entry for every emulator you wish to use.
+If you are not sure how to add an emulator to the file, check out
+
+http://scottrice.github.io/Ice/emulators
+
+for example configurations for a lot of popular emulators. The entries on the
+site should be available to copy-paste, but you will need to update the location
+to the actual file location on your machine.
+
+Once you have an entry in emulators.txt for every emulator you want to use, go
+to consoles.txt. Make an entry for every console you would like to use (though
+the more popular ones should already have entries created). Next, under
+'emulator', put the name of the emulator you created in emulators.txt. For
+example, if you have an emulator set up like this:
+
+[Awesome Emulator]
+location=C:\Path\to\awesomeemu.exe
+
+And you would like to use it for your Sweet Console, consoles.txt would look
+like this:
+
+[Sweet Console]
+emulator=Awesome Emulator
+
+Once that is done, run Ice. Ice should output messages letting you know that
+it detected your emulators/consoles.
+
+================================================================================
+Using Ice:
+
+1) Run Ice once. Confirm that it found your emulators/consoles. This also
+creates a directory at C:\Users\*username*\ROMs (or ~/ROMs on Mac/Linux).
+2) Open the directory mentioned above (the 'ROMs directory'). There should be
+a subdirectory for every console that has an emulator attached
+3) Drop your ROMs into the subdirectory for the console. For example, if you
+wanted to add 'Super Mario World' for the SNES, you would put the ROM inside of
+C:\Users\*username*\ROMs\SNES.
+4) Run Ice again. You should get a message that Ice has added the game to Steam.
+5) Play!
+
+================================================================================
+Help!
+
+If you are having trouble with setup, check out
+
+http://scottrice.github.io/Ice/getting-started
+
+If you have question, go to
+
+http://scottrice.github.io/Ice/faq
+
+If neither of the above links are helpful, try posting an issue to
+
+http://github.com/scottrice/Ice/issues
+
+This folder contains configuration files to help easily set up a seamless emulator experience. Below is a description of the functionality provided by each file and how to use it.
+
+As a note for the registry files, I include them as separate files because registry files can be used to infect computers, so I would like to give you the opportunity to check the file yourself before you run it.
+
+=================Files=================
+
+---ExitCombo.cfg
+This is a JoyToKey configuration file which makes it so that holding select and then hitting start will close the currently running emulator. To set it up, download and install JoyToKey from the following website:
+
+http://www.electracode.com/4/joy2key/JoyToKey%20English%20Version.htm
+
+After putting JoyToKey in your Program Files folder, put the ExitCombo.cfg file inside the JoyToKey folder. This should make it show up as a current configuration in JoyToKey. Minimize JoyToKey, and then holding down select and pressing start should be the same as pressing ALT+F4 (aka will close the current window).
+
+---Project64 Configuration\Fullscreen on loading ROM.reg
+A registry file which sets the Project64 option to go into fullscreen immediately on loading. Double click to run it.
+
+---Project64 Configuration\Xbox Controller Key Setup.reg
+A registry file which sets an Xbox 360 controller key mapping as the default for Project 64. Double click to run it.
+![Example of Ice](ice-example.png "Example")
+
+##Ice
+
+###Description
+
+The purpose of this project is to leverage Steam's Big Picture mode to turn it into an emulator frontend (similar to Hyperspin). It accomplishes this by creating folders in specified locations on the user's hard drive, then adding any ROMs that are placed in these folders to Steam as non-Steam games. Emulators are installed and configured by the user before Ice is run.
+
+###License
+
+All of my code is licensed under MIT.
+
+###Getting Started
+
+Ice's official documentation is available at [Getting Started.](http://scottrice.github.io/Ice/getting-started/) 
+
+###Running the Source
+
+To run the source, besides the setup instructions, you will also need to have Python installed. Python 2.7 is required.
+
+If you have Python installed, simply run `python ice.py` from the repository's root directory. On Mac/Linux, you should also be able to use the command `./ice.py` provided the file has the execute permission.
+
+###Goal Updates
+
+Originally, I wanted to make an application that would constantly 'watch' the ROMs folder and modify the shortcuts.vdf file as changes were made to the folder. I have since found out that Steam doesn't take kindly to having it's shortcuts.vdf file updated while it is running, and will overwrite any changes that are made to the file on close.
+
+With this in mind, you now need to run Ice every time a change is made for it to update your shortcuts.vdf. This is not an ideal solution, and in the future I will see what I can do to make this experience better.
+
+##Steam Grid Images
+
+###Sources
+
+The user can specify which website they want to use to source their Steam Grid Images. I put this is in so people have options, but my code isn't completely flexible. If someone wants to make their site a valid Grid Image Source, the request path needs to...
+
+- Accept 2 arguments:
+  - Name - The name of the ROM
+  - Console - The shortname of the console this ROM is on. See below
+- Respond with a 204 No Content if the game was not found
+- Respond with the empty string if there is no picture for the game
+- Respond with a URL, which is the URL of the picture to download (needs to be a full URL, not a path).
+  
+##Emulators
+
+###Console Shortnames
+
+Shortnames are used in many places. They are used as the folder names where the user puts ROMs, and are used in the URL of the Grid Image Source request. The full list of shortnames is below.
+
+####Supported Consoles
+
+* NES - Nintendo Entertainment System
+* SNES - Super Nintendo
+* N64 - Nintendo 64
+* Gamecube - Nintendo Gamecube
+* PS1 - Sony Playstation
+* PS2 - Sony Playstation 2
+* Genesis - Sega Genesis
+* Gameboy - Nintendo Gameboy
+* GBA - Nintendo Gameboy Advance
+
+####Unsupported Consoles (which may be supported later)
+
+* Wii - Nintendo Wii
+* Dreamcast - Sega Dreamcast
+* DS - Nintendo DS

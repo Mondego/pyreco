@@ -1,0 +1,609 @@
+MAVLink Micro Air Vehicle Message Marshalling Library
+
+The mavlink_to_html_table.xsl file is used to transform the MAVLink XML into a human-readable HTML table for online documentation.
+
+For more information, please visit:
+
+http://pixhawk.ethz.ch/software/mavlink
+
+(c) 2009-2010 Lorenz Meier / PIXHAWK Team
+
+A more detailed version of this quickstart is available at:
+
+http://qgroundcontrol.org/dev/mavlink_linux_integration_tutorial
+
+MAVLINK UDP QUICKSTART INSTRUCTIONS
+===================================
+
+MAVLink UDP Example for *nix system (Linux, MacOS, BSD, etc.)
+
+To compile with GCC, just enter:
+
+gcc -I ../../include/common -o mavlink_udp mavlink_udp.c
+
+To run, type:
+
+./mavlink_udp
+
+
+If you run QGroundControl on the same machine, a MAV should pop up.
+
+Disclaimer:  The jspack module and documentation are essentially ports of the
+Python struct module and documentation, with such changes as were necessary.
+If any Python people are miffed that I've ripped off their docs, let me know,
+and I'll gladly revise them.
+
+This module performs conversions between JavaScript values and C structs
+represented as octet arrays (i.e. JavaScript arrays of integral numbers
+between 0 and 255, inclusive).  It uses format strings (explained below) as
+compact descriptions of the layout of the C structs and the intended conversion
+to/from JavaScript values.  This can be used to handle binary data stored in
+files, or received from network connections or other sources.
+
+
+The module defines the following functions:
+
+  Unpack(fmt, a, p)
+    Return an array containing values unpacked from the octet array a,
+  beginning at position p, according to the supplied format string.  If there
+  are more octets in a than required by the format string, the excess is
+  ignored.  If there are fewer octets than required, Unpack() will return
+  undefined.  If no value is supplied for the p argument, zero is assumed.
+
+  PackTo(fmt, a, p, values)
+    Pack and store the values array into the supplied octet array a, beginning
+  at position p.  If there are more values supplied than are specified in the
+  format string, the excess is ignored.  If there are fewer values supplied,
+  PackTo() will return false.  If there is insufficient space in a to store
+  the packed values, PackTo() will return false.  On success, PackTo() returns
+  the a argument. If any value is of an inappropriate type, the results are
+  undefined.
+
+  Pack(fmt, values)
+    Return an octet array containing the packed values array.  If there are
+  more values supplied than are specified in the format string, the excess is
+  ignored.  If there are fewer values supplied, Pack() will return false.  If
+  any value is of an inappropriate type, the results are undefined.
+
+  CalcLength(fmt)
+    Return the number of octets required to store the given format string.
+
+
+Format characters have the following meanings; the conversion between C and
+JavaScript values should be obvious given their types:
+
+    Format | C Type         | JavaScript Type   | Size (octets) | Notes
+    -------------------------------------------------------------------
+       A   | char[]         | Array             |     Length     |  (1)
+       x   | pad byte       | N/A               |        1       |
+       c   | char           | string (length 1) |        1       |  (2)
+       b   | signed char    | number            |        1       |  (3)
+       B   | unsigned char  | number            |        1       |  (3)
+       h   | signed short   | number            |        2       |  (3)
+       H   | unsigned short | number            |        2       |  (3)
+       i   | signed long    | number            |        4       |  (3)
+       I   | unsigned long  | number            |        4       |  (3)
+       l   | signed long    | number            |        4       |  (3)
+       L   | unsigned long  | number            |        4       |  (3)
+       s   | char[]         | string            |     Length     |  (2)
+       f   | float          | number            |        4       |  (4)
+       d   | double         | number            |        8       |  (5)
+
+Notes:
+
+  (1) The "A" code simply returns a slice of the source octet array.  This is
+  primarily useful when a data structure contains bytes which are subject to
+  multiple intepretations (e.g. unions), and the data structure is being
+  decoded in multiple passes.
+
+  (2) The "c" and "s" codes handle strings with codepoints between 0 and 255,
+  inclusive.  The data are not bounds-checked, so strings containing  characters
+  with codepoints outside this range will encode to "octet" arrays that contain
+  values outside the range of an octet.  Furthermore, since these codes decode
+  octet arrays by assuming the octets represent UNICODE codepoints, they may
+  not "correctly" decode bytes in the range 128-255, since that range is subject
+  to multiple interpretations.  Caveat coder!
+
+  (3) The 8 "integer" codes clip their encoded values to the minima and maxmima
+  of their respective types:  If you invoke Struct.Pack('b', [-129]), for
+  instance, the result will be [128], which is the octet encoding of -128,
+  which is the minima of a signed char.  Similarly, Struct.Pack('h', [-32769])
+  returns [128, 0].  Fractions are truncated.
+
+  (4) Since JavaScript doesn't natively support 32-bit floats, whenever a float
+  is stored, the source JavaScript number must be rounded.  This module applies
+  correct rounding during this process.  Numbers with magnitude greater than or
+  equal to 2**128-2**103 round to either positive or negative Infinity. The
+  rounding algorithm assumes that JavsScript is using exactly 64 bits of
+  floating point precision; 128-bit floating point will result in subtle errors.
+
+  (5) This module assumes that JavaScript is using 64 bits of floating point
+  precision, so the "d" code performs no rounding.  128-bit floating point will
+  cause the "d" code to simply truncate significands to 52 bits.
+
+A format character may be preceded by an integral repeat count.  For example,
+the format string "4h" means exactly the same thing as "hhhh".
+
+Whitespace characters between formats are ignored; a count and its format must
+not be separated by whitespace, however.
+
+For the "A" format character, the count is interpreted as the size of the
+array, not a repeat count as for the other format characters; for example, "10A"
+means a single 10-octet array.  When packing, the Array is truncated or padded
+with 0 bytes as appropriate to make it conform to the specified length.  When
+unpacking, the resulting Array always has exactly the specified number of bytes.
+As a special case, "0A" means a single, empty Array.
+
+For the "s" format character, the count is interpreted as the size of the
+string, not a repeat count as for the other format characters; for example,
+"10s" means a single 10-byte string, while "10c" means 10 characters.  When
+packing, the string is truncated or padded with 0 bytes as appropriate to make
+it conform to the specified length.  When unpacking, the resulting string always
+has exactly the specified number of bytes.  As a special case, "0s" means a
+single, empty string (while "0c" means 0 characters).
+
+
+By default, C numbers are represented in network (or big-endian) byte order.
+Alternatively, the first character of the format string can be used to indicate
+byte order of the packed data, according to the following table:
+
+    Character | Byte Order
+    ----------------------------------
+        <     | little-endian
+        >     | big-endian
+        !     | network (= big-endian)
+
+If the first character is not one of these, "!" is assumed.
+
+## Javascript MAVLink implementation ##
+
+This code generates ```npm``` modules that can be used with Node.js.  As with the other implementations in Python and C, the MAVLink protocol is specified in XML manifests which can be modified to add custom messages.
+
+*See the gotcha's and todo's section below* for some important caveats.  This implementation should be considered pre-beta: it creates a working MAVLink parser, but there's plenty of rough edges in terms of API.
+
+### Generating the JS implementation ###
+
+Folders in the ```implementations/``` directory are ```npm``` modules, automatically generated from XML manifests that are in the [mavlink/mavlink](https://github.com/mavlink/mavlink) project.  If you wish to generate custom MAVLink packets, you would need to follow the directions there.
+
+You need to have Node.js and npm installed to build.  
+
+To build the Javascript implementations:
+
+```bash
+cd mavlink/pymavlink/generator && make -f javascriptMakefile
+```
+
+### Usage in Node.js ###
+
+The generated modules emit events when valid MAVLink messages are encountered.  The name of the event is the same as the name of the message: ```HEARTBEAT```, ```FETCH_PARAM_LIST```, ```REQUEST_DATA_STREAM```, etc.  In addition, a generic ```message``` event is emitted whenever a message is successfully decoded.
+
+The below code is a rough sketch of how to use the generated module in Node.js.  A somewhat more complete (though early, early alpha) example can be found [here](https://github.com/acuasi/ground-control-station).
+
+#### Generating the parser
+
+After running the generator, copy the version of the MAVLink protocol you need into your project's ```node_modules``` folder, then enter that directory and install its dependencies using ```npm install```:
+
+```bash
+cp -R javascript/implementations/mavlink_ardupilotmega_v1.0 /path/to/my/project/node_modules/
+cd /path/to/my/project/node_modules/mavlink_ardupilotmega_v1.0 && npm install
+```
+
+Then, you can use the MAVLink module, as sketched below.
+
+#### Initializing the parser
+
+In your ```server.js``` script, you need to include the generated parser and instantiate it; you also need some kind of binary stream library that can read/write binary data and emit an event when new data is ready to be parsed (TCP, UDP, serial port all have appropriate libraries in the npm-o-sphere).  The connection's "data is ready" event is bound to invoke the MAVLink parser to try and extract a valid message.
+
+```javascript
+// requires Underscore.js, can use Winston for logging ,
+// see package.json for dependencies for the implementation
+var mavlink = require('mavlink_ardupilotmega_v1.0'), 
+	net = require('net');
+
+// Instantiate the parser
+mavlinkParser = new MAVLink();
+
+// Create a connection -- can be anything that can receive/send binary
+connection = net.createConnection(5760, '127.0.0.1');
+
+// When the connection issues a "got data" event, try and parse it
+connection.on('data', function(data) {
+	mavlinkParser.parseBuffer(data);
+});
+```
+
+#### Receiving MAVLink messages
+
+If the serial buffer has a valid MAVLink message, the message is removed from the buffer and parsed.  Upon parsing a valid message, the MAVLink implementation emits two events: ```message``` (for any message) and the specific message name that was parsed, so you can listen for specific messages and handle them.
+
+```javascript
+// Attach an event handler for any valid MAVLink message
+mavlinkParser.on('message', function(message) {
+	console.log('Got a message of any type!');
+	console.log(message);
+});
+
+// Attach an event handler for a specific MAVLink message
+mavlinkParser.on('HEARTBEAT', function(message) {
+	console.log('Got a heartbeat message!');
+	console.log(message); // message is a HEARTBEAT message
+});
+```
+
+#### Sending MAVLink messages
+
+*See the gotcha's and todo's section below* for some important caveats.  The below code is preliminary and *will* change to be more direct.  At this point, the MAVLink parser doesn't manage any state information about the UAV or the connection itself, so a few fields need to be fudged, as indicated below.
+
+Sending a MAVLink message is done by creating the message object, populating its fields, and packing/sending it across the wire.  Messages are defined in the generated code, and you can look up the parameter list/docs for each message type there.  For example, the message ```REQUEST_DATA_STREAM``` has this signature:
+
+```javascript
+mavlink.messages.request_data_stream = function(target_system, target_component, req_stream_id, req_message_rate, start_stop) //...
+```
+
+Creating the message is done like this:
+
+```javascript
+request = new mavlink.messages.request_data_stream(1, 1, mavlink.MAV_DATA_STREAM_ALL, 1, 1);
+
+// Hack alert: we tack on a few extra fields that could/should be inserted automagically by the MAVLink
+// connection itself.
+_.extend(request, {
+	  srcSystem: 255,
+	  srcComponent: 0,
+	  seq: 1
+});
+
+// Create a buffer consisting of the packed message, and send it across the wire.
+// Hack alert: again, the MAVLink connection could/should encapsulate this.
+p = new Buffer(request.pack());
+connection.write(p);
+```
+
+### Gotchas and todo's ###
+
+The JS library that is implementing the pack/unpack functions (```jspack```) doesn't match Python's struct library identically.  For example, it doesn't support the ```q``` or ```Q``` flags representing ```int64_t``` and ```uint64_t```, respectively.  Those have been replaced with ```d``` and  ```double```, for the moment.
+
+This code isn't great idiomatic Javascript (yet!), instead, it's more of a line-by-line translation from Python as much as possible.
+
+The Python MAVLink code manages some information about the connection status (system/component attached, bad packets, durations/times, etc), and that work isn't present in this code yet.
+
+Code to create/send MAVLink messages to a client is very clumsy at this point in time *and will change* to make it more direct.
+
+### Development ###
+
+Unit tests cover basic packing/unpacking functionality against mock binary buffers representing valid MAVlink generated by the Python implementation.  You need to have [mocha](http://visionmedia.github.com/mocha/) installed to run the unit tests.
+
+To run tests, use the makefile in the parent directory (mavlink/pymavlink/generator/):
+
+```bash
+make -f javascriptMakefile test
+```
+
+Specific instructions for generating Jenkins-friendly output is done through the makefile as well:
+
+```bash
+make -f javascriptMakefile ci
+```
+
+
+Release Notes for genxmlif, Release 0.9.0
+
+genxmlif is a generic XML interface package 
+which currently uses minidom, elementtree or 4DOM as XML parser
+Other parsers can be adapted by implementing an appropriate interface class
+
+--------------------------------------------------------------------
+ The genxmlif generic XML interface package is
+
+ Copyright (c) 2005-2008 by Roland Leuthe
+
+ By obtaining, using, and/or copying this software and/or its
+ associated documentation, you agree that you have read, understood,
+ and will comply with the following terms and conditions:
+
+ Permission to use, copy, modify, and distribute this software and
+ its associated documentation for any purpose and without fee is
+ hereby granted, provided that the above copyright notice appears in
+ all copies, and that both that copyright notice and this permission
+ notice appear in supporting documentation, and that the name of
+ the author not be used in advertising or publicity
+ pertaining to distribution of the software without specific, written
+ prior permission.
+
+ THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD
+ TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANT-
+ ABILITY AND FITNESS.  IN NO EVENT SHALL THE AUTHOR
+ BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY
+ DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ OF THIS SOFTWARE.
+---------------------------------------------------------------------
+
+Contents
+========
+
+README.txt
+__init__.py
+xmlif4Dom.py
+xmlifApi.py
+xmlifBase.py
+xmlifDom.py
+xmlifElementTree.py
+xmlifMinidom.py
+xmlifODict.py
+xmlifUtils.py
+xmliftest.py
+
+
+---------------------------------------------------------------------
+
+HISTORY:
+=======
+
+Changes for Release 0.9.0
+=========================
+
+- Caution, interface changed!
+  API changes:
+  * TreeWrapper and ElementWrapper classes re-designed and renamed
+    (Now derivation from these classes is possible)
+  * insertSubtree method moved from TreeWrapper class to ElementWrapper class
+  * some new public methods added (e.g. removeAttribute)
+  * print functionality improved
+  * GenXmlIfError exception introduced (parser and XInclude errors are mapped to this exception class)
+  * pydoc comments for all API methods added
+  * caching introduced (for performance optimization)
+
+
+Changes for Release 0.8
+=======================
+
+- Caution, interface changed! Method getXPathList returns now 3 parameters instead of 1 in release 0.7!
+- performance optimization (caching, mainly for elementtree interface)
+- some bugs fixed
+
+
+Changes for Release 0.7
+=======================
+
+- some special methods for XML schema validation support added
+
+Release Notes for minixsv, Release 0.9.0
+
+minixsv is a XML schema validator written in "pure" Python
+(minixsv requires at least Python 2.4)
+
+Currently a subset of the XML schema standard is supported
+(list of limitations/restrictions see below).
+
+minixsv is based on genxmlif, a generic XML interface class,
+which currently supports minidom, elementtree or 4DOM/pyXML as XML parser
+Other parsers can be adapted by implementing an appropriate derived interface class
+
+Using the 4DOM interface is rather slow. 
+For best performance the elementtree parser should be used!
+
+After successful validation minixsv provides the input XML tree with the following changes:
+- Whitespaces inside strings are automatically normalized/collapsed as specified
+  in the XML schema file
+- Default/Fixed attributes are automatically inserted if not specified in the input file
+- The "post validation" XML tree can be accessed using genxmlif or the contained
+  original interface (minidom, elementtree or 4DOM/pyXML).
+
+--------------------------------------------------------------------
+ The minixsv XML schema validator is
+
+ Copyright (c) 2004-2008 by Roland Leuthe
+
+ By obtaining, using, and/or copying this software and/or its
+ associated documentation, you agree that you have read, understood,
+ and will comply with the following terms and conditions:
+
+ Permission to use, copy, modify, and distribute this software and
+ its associated documentation for any purpose and without fee is
+ hereby granted, provided that the above copyright notice appears in
+ all copies, and that both that copyright notice and this permission
+ notice appear in supporting documentation, and that the name of
+ the author not be used in advertising or publicity
+ pertaining to distribution of the software without specific, written
+ prior permission.
+
+ THE AUTHOR DISCLAIMS ALL WARRANTIES WITH REGARD
+ TO THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANT-
+ ABILITY AND FITNESS.  IN NO EVENT SHALL THE AUTHOR
+ BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY
+ DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS,
+ WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS
+ ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
+ OF THIS SOFTWARE.
+---------------------------------------------------------------------
+
+
+Limitations/restrictions of the current release:
+
+- no checks if derived type and base type match
+- no check of attributes "final", "finalDefault"
+- no support of substitution groups
+- no support of abstract elements and types
+- restrictions regarding for pattern matching:
+  * subtraction of character sets not supported, e.g. regex = "[\w-[ab]]"
+  * characters sets with \I, \C, \P{...} not supported, e.g. regex = "[\S\I\?a-c\?]"
+    (character sets with \i, \c, \p{...} are supported!)
+
+Note: This constraint list may not be complete!!
+
+
+---------------------------------------------------------------------
+
+Contents
+========
+
+README.txt
+__init__.py
+minixsv
+minixsvWrapper.py
+pyxsval.py
+xsvalBase.py
+xsvalErrorHandler.py
+xsvalSchema.py
+xsvalSimpleTypes.py
+xsvalUtils.py
+xsvalXmlIf.py
+datatypes.xsd
+XInclude.xsd
+xml.xsd
+XMLSchema.xsd
+XMLSchema-instance.xsd
+
+---------------------------------------------------------------------
+
+HISTORY:
+=======
+
+Changes for Release 0.9.0
+=========================
+
+- Caution, Interface changed! 
+  * In case of parser and XInclude errors now a GenXmlIfError exception is raised!
+  * New optional parameter 'useCaching=1' and 'processXInclude=1' to XsValidator class added
+  
+- check of facets of derived primitive types added
+- unicode support added (except wide unicode characters)
+- major improvements for pattern matching (but there are still some restrictions, refer above)
+- limited support of XInclude added (no support of fallback tag)
+- performance optimizations (caching introduced)
+- several bugs fixed (new W3C test suite (2006-11-06) passed for supported features)
+  3943 of 3953 nisttest  testgroups passed
+  8645 of 9745 mstest    testgroups passed
+   559 of  679 suntest   testgroups passed
+  (most not passed test groups correspond to the limitations listed above)
+
+
+Changes for Release 0.8
+=======================
+
+- Caution, Interface changed! 
+  When calling the validator (e.g. using parseAndValidate or parseAndValidateString)
+  the input parameter xsdFile/xsdText is only used if no schema file is specified in the XML input file/string,
+  i.e. the schema specification in the XML input file/string has now priority!!
+  
+- uniqueness of attribute/attributeGroup/type IDs now checked
+- problems with different target namespaces fixed
+- "redefine" element now supported
+- performance optimization due to optimized genxmlif (when elementtree parser is used)
+- several bugs fixed (W3C test suite passed for supported features)
+  3953 of 3953 nisttest  testgroups passed
+  4260 of 4529 msxsdtest testgroups passed
+    31 of   40 suntest   testgroups passed
+  (most not passed test groups correspond to the limitations listed above)
+
+
+Changes for Release 0.7
+=======================
+
+- now all primitive data types are supported
+- check if no element content exists when xsi:nil = "true" is specified
+- support of "processContents" attribute
+- correct uniqueness checking of identity constraints (unique/key/keyref)
+- many bugs fixed (W3C test suite passed for supported features)
+  3953 of 3953 nisttest  testgroups passed
+  3996 of 4529 msxsdtest testgroups passed
+    27 of   40 suntest   testgroups passed
+  (most not passed test groups correspond to the limitations listed above)
+  
+
+Changes for Release 0.5
+=======================
+
+- generic XML interface extracted into a separate python package
+- namespace support added
+- 4DOM support added
+- support of attributes "elementFormDefault", "attributeFormDefault", "form" added
+- support of "import" element added
+- handling of "schemaLocation" and "noNamespaceSchemaLocation" corrected
+- support of derivation of complex types from simple types (extension) added
+- support of mixed content (child nodes and text nodes) added
+- new access function to add user defined XML interface class
+- new access function to add user defined validation function for unsupported predefined types
+- several bugs fixed
+
+
+Changes for Release 0.3
+=======================
+
+- API re-structured
+- XML text processing added
+- several bugs fixed
+- internal re-structuring
+
+
+Changes for Release 0.2
+=======================
+
+- Error/warning outputs contain now also filename and linenumber
+- Basic URI support for include directive added
+- XML interface classes completely re-designed
+- several bugs fixed
+
+
+
+This is a python implementation of the MAVLink protocol. 
+
+Please see http://www.qgroundcontrol.org/mavlink/pymavlink for
+documentation
+
+License
+-------
+
+pymavlink is released under the GNU Lesser General Public License v3 or later
+
+## MAVLink ##
+
+*   Website: http://qgroundcontrol.org/mavlink/
+*   Source: https://github.com/mavlink/mavlink
+*   Mailing list: [Google Groups](http://groups.google.com/group/mavlink)
+
+MAVLink -- Micro Air Vehicle Message Marshalling Library.
+
+This is a library for lightweight communication between Micro Air Vehicles (swarm) and/or ground control stations.
+It serializes C-structs for serial channels and can be used with any type of radio modem.
+
+Messages definitions are created in XML, and then converted into C header files.
+
+### Generating Headers ###
+
+Header files can be generated either with mavgen, or within QGroundControl.
+
+##### With mavgen  #####
+
+mavgen is a header generation tool written in python, which is included with MAVLink. It can be used directly or via the *generator.py* GUI. To use the GUI, run:
+
+    python mavgenerate.py
+
+If you would rather use mavgen from the command line see *pymavlink\generator\mavgen.py*.
+
+##### With QGroundControl #####
+
+To generate/update packets, select *mavlink_standard_message.xml* in the QGroundControl station settings view, select *mavlink/include* as the output directory and click on "Save and Generate". You will find the newly *generated/updated message_xx.h* files in the *mavlink/include/generated* folder.
+
+### Usage ###
+
+To use MAVLink, include the *mavlink.h* header file in your project:
+
+    #include <mavlink.h>
+    
+Do not include the individual message files. In some cases you will have to add the main folder to the include search path as well. To be safe, we recommend these flags:
+
+    gcc -I mavlink/include -I mavlink/include/<your message set, e.g. common>
+
+### License ###
+
+MAVLink is licensed under the terms of the Lesser General Public License of the Free Software Foundation (LGPL). As MAVLink is a header-only library, compiling an application with it is considered "using the libary", not a derived work. MAVLink can therefore be used without limits in any closed-source application without publishing the source code of the closed-source application.
+
+See the *COPYING* file for more info.
+
+### Credits ###
+
+&copy; 2009-2012 [Lorenz Meier](mailto:mail@qgroundcontrol.org)
+

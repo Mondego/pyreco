@@ -1,0 +1,470 @@
+From: Rui Carmo
+Date: 2011-11-20 17:06:58
+Title: Bootstrapping
+Tags: yaki, relnotes
+
+Finally had time to merge a number of disparate instances' source together into a cohesive whole.
+
+Right now, the Github source tree is (save minor tweaks) at least one month _ahead_ of the [Tao][t] feature-wise, which is a first.
+
+## What's new
+
+To make it easier for people to get up and running, I've stabilized the master branch and re-arranged the filesystem layout somewhat, and made a few more changes:
+
+* [Twitter Bootstrap][tb] is now the `ROOT` instance theme (the `minimal` theme is, well, too minimal)
+* Updated some dependencies in `userlib` (mostly [Whoosh][w])
+* Added multiple template support (each page can now specify its own template, provided you add the appropriate `.y` file to your theme folder)
+* Removed just about every `print` statement I saw and changed it to proper `logging` calls (there are a few dotted here and there still, but I'll get to them eventually).
+
+## Known issues
+
+The multiple wiki instance code is not quite ready yet. You can deploy and navigate multiple wikis and most of the back-end and rendering will work fine, but some things (for instance, searches) will only work properly on the `ROOT` instance.
+
+## In need of testing
+
+* Thumbnailing
+* Font previewing
+
+## In need of further tweaking
+
+Bootstrap itself. I'm not quite happy with the typography and layout for some reason. Also, docs.
+
+[tb]: http://twitter.github.com/bootstrap/
+[t]: http://the.taoofmac.com
+[w]: Whoosh
+
+From: Rui Carmo
+Date: 2012-03-01 22:05:40
+Tags: relnotes, yaki
+Title: Minor refresh
+
+Just went through the source and did a proper, responsive-style upgrade to [Bootstrap 2.0.1][tb]. 
+
+There hasn't been much time to delve into the engine itself other than to pinpoint some places where markup residue needs to be eliminated or moved outside into further templating, and some new tweaks are yet to be merged into the public codebase.
+
+[tb]: http://twitter.github.com/bootstrap/
+From: Rui Carmo
+Date: 2012-03-03 23:03:00
+Content-Type: text/x-markdown
+Title: Request
+Tags: snakelets, docs, draft
+
+A request object provides all the information you need to handle HTTP requests in your snakelets' `serve` method, and has the following methods:
+
+### `getServerSoftware()` ###
+Returns the server software version (`string`).
+
+### `getSnakeletsVersion()`### 
+Returns the Snakelets version (`string`).
+
+### `getServerIP()` ###
+Returns the server IP address (`string`).
+
+### `getServerName()` ###
+Returns the virtual host to which the request is being addressed (`string`).
+
+### `getRealServerName()` ###
+Returns the real (internal) server hostname (`string`).
+ 
+### `getServerProtocol()` ###
+Returns the HTTP protocol (i.e.. `HTTP/1.0`) in use (`string`).
+ 
+### `getServerPort()` ###
+Returns the HTTP port in use (`integer`).
+
+### `getRequestURL()` ###
+Returns the URL path and query string (i.e., `/page/test.cgi?arg=34`) (`string`). 
+Use with the `getBaseURL` method to assemble a complete URL.  
+
+### `getRequestURLplain()` ###
+Like `getRequestURL`, but also without any query args. 
+Use with the `getBaseURL` method to assemble a complete URL without query args.
+ 
+### `getBaseURL()` ###
+The base URL of the server (`string`)
+Example: `http://desertfish.xs4all.nl:9080`
+
+### `getPathInfo()` ###
+Any additional URL path components after the snakelet URL (`string`).
+Example: for `snoop.sn/foo/bar?arg=value`, it returns `/foo/bar`. 
+<small>Note: this is always empty when you use a `fnmatch` URL pattern for your snakelet, and this string is not url-escaped.</small>
+
+### `getMethod()` ###
+The HTTP method (`GET` or `POST`) used (`string`).
+
+### `getQuery()` ###
+The query args of the URL (`string`).
+Example: `arg=value&amp;name=foo%21` (this string is url-escaped)
+
+### `getFullQueryArgs()` ###
+All the query args including path info (`string`).
+Example: `/zip/zap?delete&amp;arg=value&amp;name=foo%21` 
+<small>Note: this is not the full URL, and this string is url-escaped.</small>
+
+### `getRemoteHost()` ###
+Remote hostname (`string`).
+
+### `getRemoteAddr()` ###
+Remote host IP (`string`).
+ 
+### `getRealRemoteAddr()` ###
+The 'real' IP address of the remote host (`string`).
+Extracted from any `X-Forwarded-For` headers inserted by reverse proxies.
+
+### `getContentType()` ###
+The `Content-type` header of the request (`string`).
+
+### `getContentLength()` ###  
+Content length of the request (`int`).
+
+### `getUserAgent()` ###
+Browser user agent or '' (`string`).
+
+### `getReferer()` ###
+the referring URL (that is: the url the client request came from), or '' (empty string)
+
+### `getCookie()` ###
+raw cookie information, as a comma separated string
+
+### `getCookies()` ###
+parsed cookies (`mycookie.SimpleRequestCookie` object - a `dict` mapping cookie names to a `list` of string values)
+
+
+### `clearCookies()` ###
+erases all cookie information from the request (not from the client!)
+
+### `getInput()` ###
+request input stream (socket/file)
+ 
+### `getArg()` ###
+URL argument. Example: when `url=snoop.sn?command&arg=name` it returns `command` (this string is _not_ url-escaped)
+
+### `setArg(arg)` ###
+reset the URL argument (`getArg()`) to something new.
+
+### `getWebApp()` ###
+the current WebApp object
+
+### `getRangeStr()` ###
+the unparsed string value of the HTTP `Range` header, or '' (empty string).
+
+### `getRange()` ###
+the parsed HTTP `Range` header, as a tuple: (from,to)
+
+### `getAuth()` ###
+the HTTP `Authorization` header value, or '' (empty string).
+
+### `getAllHeaders()` ###
+all HTTP headers (`mimetools.Message` object)
+
+### `getHeader(header)` ###
+value of specified HTTP header, or None if it isn't present
+
+### `getForm()` ###
+parsed form contents (a `dict`, as in `{paramname: value}` ) The form has an `urlencode()` utility method that returns an url-encoded query args string like `arg=value&foo=bar` for the form's parameters.
+ 
+### `getField(param, default='')` ###
+value of a single form field parameter (or the provided default value - which is an empty string if not otherwise given - if the parameter doesn't exist)
+ 
+### `getParameter(param, default='')` ###
+value of a single form field or request context parameter (or the provided default value - which is an empty string if not otherwise given - if the parameter doesn't exist).
+The request form is first examined - if it does not contain the required field, the request context is examined for a matching attribute. If it too does not have it, the default is returned.
+
+### `getContext()` ###
+Request context (`ContextContainer` object). Scope: request.
+Unique per user and per request, destroyed after request completes.
+
+### `getSession()` ###
+The session object (`snakeserver.snakelet.Session` object), `None` if there is no session
+
+### `deleteSession()` ###
+Logout current user and deletes the session object. Also clears all cookie info on the request (not on the client!)
+
+### `getSessionContext()` ###
+The session context (`ContextContainer` object). 
+Scope: session. Unique per user, shared for all requests of this user. None if there is no session.
+
+### `getMaxPOSTsize()` ###
+The current max size of a `POST` request (in bytes)
+
+### `setMaxPOSTsize(numbytes)` ###
+Set the maximum size in bytes of a `POST` request (default: 200KB). If it is larger, the server aborts the connection and the `POST` request fails, and a `FormFileUploadError` exception is raised.
+
+### `getEncoding()` ###
+The current request character encoding. `None` if not specified (means default).
+
+### `setEncoding(encoding)` ###
+Forces the request character encoding. This is often necessary to correctly read non-ASCII characters from form `POST`. Also note that returned form fields will be unicode objects (instead of regular strings) if you set the encoding.
+If you try to change the encoding after the request form fields have already been accessed, `ValueError` will be raised. Using this method will override any default `RequestEncoding` that may be defined on the webapp.
+
+Getting request parameters is done using `getForm()`, or `getParameter()`. You can clear all parameters for the duration of the request using `getForm().clear()` (since it is a `dict`).
+
+If you need to add or modify request parameters from inside your code, you should update the appropriate keys in the `dict` object returned from `getForm()`.
+From: Rui Carmo
+Date: 2012-03-03 23:10:00
+Content-Type: text/x-markdown
+Title: Virtual Hosts
+Tags: snakelets, docs, draft
+
+To make your web application available on multiple hosts, you have to add it to the virtual host configuration file. 
+
+> See [Starting the Server](docs/snakelets/Starting)
+
+## Python module/package names ##
+
+There is a big catch concerning the naming of your packages and modules in the web apps (for instance, the package where your snakelets are in, or the name(s) of the modules that contain your snakelets). <em>They are not unique over all web applications (because every webapp's directory is placed in Python's module search path)!</em> This means that you cannot have a module or package called `snakelets` in one webapp and also a module or package with that name in another web application. This also means that your code is not protected from (ab)use by another web application. <em>This will very likely not be fixed, so keep this in mind!</em>
+
+## Shared modules/libraries ##
+
+Place modules and packages that you want to easily share between webapps in the `userlibs` directory.
+
+### Create pages for the web application ###
+
+Let's say that you have created a web application `testapp` and that it has a `docroot` directory where you will put your page files, so you must point the docroot attribute to it in the webapp's init file, as described above. The files in that directory will now be accessible in your browser by using the url `http://server.com/testapp/`
+
+The index page of the webapp will be shown if you type `http://server.com/testapp/` or `http://server.com/testapp` in your browser - the trailing slash is not really required; you will be redirected to a correct url if it is missing (except when there is a page in the root webapp with the same name, in this case the page is loaded and you will not be redirected).
+
+Snakelets maps the rest of the URL to the filesystem (=the contents of the docroot directory) in a rather straightforward way, much the same as a normal web server such as Apache does this. A path component in the url maps to a directory on disk, and a file component usually maps to a file on disk. So that means that when the url <strong>http://server.com/testapp/office/page.html</strong> is requested, Snakelets will return the `page.html` file from the `office` directory in the docroot location. For Ypages it is the same, <strong>http://server.com/testapp/office/login.y </strong>will cause Snakelets to load and run the `login.y` ypage in the given location. </p>
+<p>It is <em>impossible</em> to request files outside the docroot location this way. That is nice, because you can protect your other files (web app source code and such) very easily just by placing them in a different directory as your web pages. You could fool around with the documentAllower function but this is more convenient and faster.</p>
+<p>There is a big exception to the simple URL-to-filesystem mapping: <em><a href="snakelet.html">Snakelets</a>. </em>Dynamic content created by a snakelet page is not found on disk in the regular way. Instead, there is a <em>snakelet</em> object defined in your Python source code that is called by the server when a URL is requested that triggers the snakelet. Which URLs trigger which snakelets, is configured in the `snakelets` attribute in your webapp init file (see above). Because you can use simple wildcard patterns there, a lot of URLs may be mapped onto a single snakelet object. </p>
+<p>The server uses the following order to determine what is returned for a requested URL:</p>
+<ol>
+  <li>Snakelet url/patterns</li>
+  <li>Dynamic page (Ypage)</li>
+  <li>Static page/file (.html etc) </li>
+</ol>
+<h4><a name="indexpages_title"><strong>Index pages</strong></a></h4>
+<p>When you leave out a specific page name from an url (example: `http://server.com/app/info/`)
+the server will try to fetch the <em>index page</em> for that directory.
+If there is a file `index.html` (or `index.y`) in that location, Snakelets
+will load that one. It is as if you typed the url `http://server.com/app/info/index.y`.
+<br/>
+See <a href="#indexpages">above</a> at the `indexPages` variable what the default list of
+files is that are searched for, and how you can change this.</p>
+<p>Snakelet as index page: if no other suitable page is found, the server will also try to use a Snakelet as index page.
+You have to configure a snakelet with a suitable URL pattern to make this work.
+The server looks for `index.sn` Snakelet in the requested URL path, so
+when the URL `http://server.com/test/dir/` is requested and you have configured
+a snakelet in the `test` webapp on the pattern `dir/index.sn` or `*/index.sn`
+it will be used as index page. You can also use a Snakelet as 'root' index page in your webapp,
+but you will have to add it explicitly to the Snakelet list (because of the way the fnmatch
+urlpatterns work): use the pattern `index.sn` (no pre- or suffixes).
+<br/>To avoid conflicts with other snakelets, <em>it is required</em> that the url pattern for your index snakelet(s)
+explicitly ends in '`index.sn`'.
+<br/><em>Note that you can create 'fake' directories using index Snakelets;</em> the directory that you use in
+the snakelet url path pattern doesn't have to exist on disk - in contrast to regular index pages.</p>
+
+<h4><strong>Smart Suffix Search </strong></h4>
+<p>Snakelets also uses a 'smart suffix search'. This means that it is not strictly required to have the correct file suffix in the URL. This allows for 'cleaner' URLs.
+If a page is not found, Snakelets will try again by -internally- appending the `.y`, `.html` and `.htm` suffixes (in that order).
+ For instance, <strong>http://server.com/testapp/office/login.y</strong> will load the `login.y` Ypage, but so will <strong>http://server.com/testapp/office/login </strong>(the same url but without the .y suffix). 
+ Notice that dynamic content has higher priority than static content, so if `login.y` and `login.html` both exist, the server will use `login.y`. This mechanism is rather useful when you are setting up a website: you can start with all static .html pages, and replace them later on with dynamic .y pages - without changing any of your URLs. </p>
+<p>There is one small issue: the 'smart suffix search' does not work if you are using path components in the URL query parameters. For instance, <strong>http://server.com/testapp/office/login.y/floor1 </strong>will work (it will call login.y with `/floor1` pathinfo on the <a href="request.html">request</a>), but <strong>http://server.com/testapp/office/login/floor1 </strong>will <em>not</em> work.
+(If you want something like this to work, use a Snakelet with a suitable URL pattern).
+Note that regular query parameters <em>do</em> work: <strong>http://server.com/testapp/office/login?floor=1 </strong>works fine (it will call login.y with correct query parameters). </p>
+<p>Smart suffixes and authorization patterns: when checking authorization patterns, Snakelets takes smart suffixes into account.
+For more info see <a href="authorization.html">authorization</a>.</p>
+<h4><strong>Automatic reloading</strong></h4>
+<p>For fast development, Snakelets supports automatic page reloading. This means that when you update
+an Ypage source file, or a Snakelets module source file, the server will detect that it has been updated
+and it will reload and recompile the new version. This happens on-the-fly so you will directly see
+the changes you have made in your browser.</p>
+<p>To avoid problems and performance issues, the automatic reloading is limited to the Ypage source file
+(and templates, if any) and the snakelet module file. Imported modules are <em>not</em> reloaded.
+</p>
+
+#### Directory Listings ####
+
+[Snakelets][s] will show a listing of the contents of a directory if you navigate to it in the browser.
+
+By default this funcion is disabled. Enable it by using an appropriate `dirListAllower` function in the webapp init file.
+
+You can supply a special `.snindex` file inside the directory to add extra information to the directory listing.
+
+It is a file with two configuration sections like so:
+
+<pre syntax="ini">
+[hidden]
+.svn=
+
+[filedescriptions]
+file.txt=Just a text file
+</pre>
+
+In the `hidden` section you put all names that you don't want to show up in the listing (mind the '='!).
+In the `filedescriptions` section you put all names with a comment text that you want to be shown in that entry's comment column in the listing.
+
+[auth]: docs/snakelets/authorization
+[s]: docs/snakelets
+
+This is where you'll store your page content and posts
+
+For demo purposes, this contains two different document roots:
+
+* `main` - which is where the main Wiki content resides
+* `secondary` - which is where a secondary barebones Wiki lives
+From: Rui Carmo
+Date: 2011-02-16 16:08:00
+Content-Type: text/x-markdown
+Title: HomePage
+
+# Welcome
+
+This is a secondary Wiki that is run in another path or vhost.
+# Yaki - A fast, powerful filesystem-based wiki
+
+## Deprecation Warning:
+
+This is being superseded by [yaki-tng](https://github.com/rcarmo/yaki-tng), which is a nearly complete re-write atop [Bottle](http://github.com/defnull/bottle).
+
+## About
+
+This was the second public release of Yaki (the first was in [Google Code][gc], and is long obsolete).
+
+Yaki is a filesystem-based wiki that is used as the underpinnings of [The Tao of Mac][t] (and a few other sites that started using the initial release).
+
+## Features
+
+* 100% pure Python, with extensive UTF-8 support
+* Entirely self-hosting, running atop a modified Snakelets application framework
+* Completely filesystem-based (pages are stored on a directory structure, not a database)
+* Heavily optimized HTTP processing:
+    * Pages are pre-processed to HTML 
+    * HTML and other internal info are stored in a single-file cache, _a la_ [Haystack](http://www.facebook.com/note.php?note_id=76191543919)
+    * Everything is served via `sendfile(2)` calls whenever possible
+    * Uses every HTTP caching trick in the book to minimize actual page hits
+* Completely markup-agnostic - all the internal processing relies on Beautiful Soup, and it ships with support for:
+    * raw HTML
+    * Textile
+    * Markdown
+* Any markup engine that generates HTML can be added, and markup can be defined on a site-wide or page-per-page basis
+* Has all the usual features, like:
+    * Page aliasing
+    * Interwiki
+    * RecentChanges
+    * etc.
+* Has a number of unusual Bliki features, like a blog-like home page, linkblog support, and the SeeAlso table at the bottom of each page.
+* Supports full-text indexing and search using [Whoosh](http://bitbucket.org/mchaput/whoosh/wiki/Home)
+
+## Requirements
+
+* Python 2.6 (2.7 will work just as well, and 2.5 may work with minimal tweaks)
+* That's it.
+
+## License
+
+Yaki is released under the [MIT License][mit]. Some third-party libraries in the `userlibs` folder are licensed differently and are included merely to ease deployment.
+
+The [Twitter Bootstrap][tb] HTML+CSS which is used as the default theme is licensed under the [Apache License v2.0][al].
+
+## Credits
+
+The Snakelets application server was originally developed by [Irmen de Jong][i], and as far as I know this is the only publicly maintained version of it.
+
+[mit]: http://www.opensource.org/licenses/mit-license.php
+[tb]: http://twitter.github.com/bootstrap/
+[al]: http://www.apache.org/licenses/LICENSE-2.0
+[gc]: http://code.google.com/p/yaki/
+[t]: http://the.taoofmac.com
+[i]: http://www.razorvine.net/
+
+This is where you'll store site templates and other web resources.
+
+For demo purposes, this contains two different web roots:
+
+* `main` - which is where the main Wiki is served, from `http://localhost:9090/`
+* `secondary` - which is where a secondary Wiki is served, from `http://localhost:9090/secondary/`
+This is the directory where server temp files are written. 
+Do not remove this file.
+
+This folder holds miscellaneous tools I find useful in deploying sites, namely [YUI Compressor][y], which is issued under the [BSD License][b].
+
+[y]: http://developer.yahoo.com/yui/compressor/
+[b]: http://developer.yahoo.com/yui/license.html
+# README
+
+Do not remove this file.
+
+This is the directory where common user libraries are stored, and it is added to the Python runtime search path.
+
+## History
+
+The following lists the third-party libraries included with Yaki, grouped by date they were added/updated:
+
+* 2011-11-20 - [whoosh][w] HEAD ([Apache][a])
+* 2011-03-08 - [xmpppy][x] 0.5.0-rc1
+* 2011-02-16 - [feedparser][f] 5.0, [tlslite][t] 0.3.8 (Public Domain), [BeautifulSoup][bs] 3.2.0 ([BSD][bsd]), [simplejson][sj] 2.1.3 ([MIT][mit]), [pygments][p] 1.4, [markdown][m] 2.1.0 (git, [BSD][bsd]), [httplib2][h] 0.6.0, [oauth2][o] 166 ([MIT][mit]), [python-twitter][pt]
+* 2010-04-17 - twitter 0.7-devel  
+* 2009-10-03 - [pygooglechart][pgc] 0.2.1 ([GPL][g]), titlecase 0.1, webthumb  
+
+[a]: http://en.wikipedia.org/wiki/Apache_license
+[bs]: http://www.crummy.com/software/BeautifulSoup
+[bsd]: http://en.wikipedia.org/wiki/BSD_licenses
+[f]: http://www.feedparser.org/
+[g]: http://www.gnu.org/licenses/
+[h]: http://code.google.com/p/httplib2
+[m]: http://www.freewisdom.org/projects/python-markdown/
+[mit]: http://en.wikipedia.org/wiki/MIT_license
+[p]: http://pygments.org/
+[pt]: http://code.google.com/p/python-twitter/
+[o]: http://github.com/simplegeo/python-oauth2
+[pgc]:http://pygooglechart.slowchop.com/
+[sj]: http://pypi.python.org/pypi/simplejson/
+[t]: http://trevp.net/tlslite/
+[w]: http://woosh.ca
+[x]: http://xmpppy.sourceforge.net/
+
+# README
+
+This is the main Yaki source folder.
+
+* `Engine.py` contains the HTTP request handlers
+* `Indexer.py` contains the separate indexing thread
+* the `Plugins` folder contains Wiki and markup plugins
+This file is a placeholder for the log folder.
+
+FileMgr - web-based file managing system.
+(written as a web application for Snakelets)
+
+
+This software is copyright © by Irmen de Jong.
+
+This software is released under the GNU General Public License (GPL),
+which can be found in the 'LICENSE' file.
+(some modules may have another license, that is clearly
+marked in the source of those modules).
+
+
+Please give me credit if you use this software.
+
+INSTALLATION:
+-------------
+Copy the 'filemgr' webapp to the webapps folder of your Snakelets 
+installation. Edit the webapp's init file to change the required
+configuration parameters (they're fairly self explanatory).
+You can use the 'mkuser.py' script to add new users.
+If you use Frog (see below), and you have the SharedAuth plugin,
+the filemgr will use Frog's user auth so that you don't have to
+duplicate Frog's users here.
+
+Start Snakelets, and open the index page in your browser :)
+(http://server:port/filemgr/)
+
+Frog:
+-----
+This file manager application is specially designed to work very
+well with Frog (my web log application). Actually, Frog links
+to this file manager by default from the menu :-)
+(and implements shared authentication for filemgr)
+
+----------
+
+Irmen de Jong
+irmen@users.sourceforge.net
+
+
+# README
+
+This folder contains some of the original webapps that shipped with the Snakelets source tree.
+
+To use them, move the respective folder(s) to `../webapps` and restart the server.

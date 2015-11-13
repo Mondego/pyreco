@@ -1,0 +1,3575 @@
+**To get description of an Auto Scaling group**
+
+The following ``describe-auto-scaling-groups`` command describes the specified Auto Scaling group::
+
+    aws autoscaling describe-auto-scaling-groups --auto-scaling-group-name my-test-asg
+
+The output of this command is a JSON block that describes the Auto Scaling group, similar to the following::
+
+    {
+        "AutoScalingGroups": [
+           {
+              "AutoScalingGroupARN": "arn:aws:autoscaling:us-west-2:803981987763:autoScalingGroup:930d940e-891e-4781-a11a-7b0acd480f03:autoScalingGroupName/my-test-asg",
+              "HealthCheckGracePeriod": 0,
+              "SuspendedProcesses": [],
+              "DesiredCapacity": 1,
+              "Tags": [],
+              "EnabledMetrics": [],
+              "LoadBalancerNames": [],
+              "AutoScalingGroupName": "my-test-asg",
+              "DefaultCooldown": 300,
+              "MinSize": 0,
+              "Instances": [
+                  {
+                      "InstanceId": "i-4ba0837f",
+                      "AvailabilityZone": "us-west-2c",
+                      "HealthStatus": "Healthy",
+                      "LifecycleState": "InService",
+                      "LaunchConfigurationName": "my-test-lc"
+                   }
+               ],
+               "MaxSize": 1,
+               "VPCZoneIdentifier": null,
+               "TerminationPolicies": [
+                     "Default"
+               ],
+               "LaunchConfigurationName": "my-test-lc",
+               "CreatedTime": "2013-08-19T20:53:25.584Z",
+               "AvailabilityZones": [
+                   "us-west-2c"
+               ],
+               "HealthCheckType": "EC2"
+           }
+        ]
+    }
+
+For more information, see `Basic Auto Scaling Configuration`_ in the *Auto Scaling Developer Guide*.
+
+.. _`Basic Auto Scaling Configuration`: http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_BasicSetup.html
+
+
+**To get description of all the specified instances**
+
+The following ``describe-auto-scaling-instances`` command describes all the specified instances::
+
+    aws autoscaling describe-auto-scaling-instances --instance-ids i-4ba0837f
+
+The output of this command is a JSON block that describes the specified instances, similar to the following::
+
+    {
+       "AutoScalingInstances": [
+           {
+               "AvailabilityZone": "us-west-2c",
+               "InstanceId": "i-4ba0837f",
+               "AutoScalingGroupName": "my-test-asg",
+               "HealthStatus": "HEALTHY",
+               "LifecycleState": "InService",
+               "LaunchConfigurationName": "my-test-lc"
+           }
+       ]
+    }
+
+For more information, see `Basic Auto Scaling Configuration`_ in the *Auto Scaling Developer Guide*.
+
+.. _`Basic Auto Scaling Configuration`: http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_BasicSetup.html
+
+
+**To get description of the scaling activities in an Auto Scaling group**
+
+The following ``describe-scaling-activities`` command describes the scaling activities for the specified Auto Scaling group::
+
+    aws autoscaling describe-scaling-activities --auto-scaling-group-name my-test-asg
+
+The output of this command is a JSON block that describes the scaling activities for the specified Auto Scaling group, similar to the following::
+
+      {
+          "Activities": [
+              {
+                  "Description": "Launching a new EC2 instance: i-4ba0837f",
+                  "AutoScalingGroupName": "my-test-asg",
+                  "ActivityId": "f9f2d65b-f1f2-43e7-b46d-d86756459699",
+                  "Details": "{"Availability Zone":"us-west-2c"}",
+                  "StartTime": "2013-08-19T20:53:29.930Z",
+                  "Progress": 100,
+                  "EndTime": "2013-08-19T20:54:02Z",
+                  "Cause": "At 2013-08-19T20:53:25Z a user request created an AutoScalingGroup changing the desired capacity from 0 to 1.  At 2013-08-19T20:53:29Z an instance was started in response to a difference between desired and actual capa city, increasing the capacity from 0 to 1.",
+                  "StatusCode": "Successful"
+              }
+         ]
+      }
+
+For more information, see `Basic Auto Scaling Configuration`_ in the *Auto Scaling Developer Guide*.
+
+.. _`Basic Auto Scaling Configuration`: http://docs.aws.amazon.com/AutoScaling/latest/DeveloperGuide/US_BasicSetup.html
+
+
+**To describe AWS CloudFormation stacks**
+
+The following ``describe-stacks`` command shows summary information for the ``myteststack`` stack::
+
+  aws cloudformation describe-stacks --stack-name myteststack
+
+Output::
+
+  {
+      "Stacks":  [
+          {
+              "StackId": "arn:aws:cloudformation:us-east-1:123456789012:stack/myteststack/466df9e0-0dff-08e3-8e2f-5088487c4896",
+              "Description": "AWS CloudFormation Sample Template S3_Bucket: Sample template showing how to create a publicly accessible S3 bucket. **WARNING** This template creates an S3 bucket. You will be billed for the AWS resources used if you create a stack from this template.",
+              "Tags": [],
+              "Outputs": [
+                  {
+                      "Description": "Name of S3 bucket to hold website content",
+                      "OutputKey": "BucketName",
+                      "OutputValue": "myteststack-s3bucket-jssofi1zie2w"
+                  }
+              ],
+              "StackStatusReason": null,
+              "CreationTime": "2013-08-23T01:02:15.422Z",
+              "Capabilities": [],
+              "StackName": "myteststack",
+              "StackStatus": "CREATE_COMPLETE",
+              "DisableRollback": false
+          }
+      ]
+
+For more information, see `Stacks`_ in the *AWS CloudFormation User Guide*.
+
+.. _`Stacks`: http://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/concept-stack.html
+
+Get a configuration value from the config file.
+
+The ``aws configure get`` command can be used to print a configuration value in
+the AWS config file.  The ``get`` command supports two types of configuration
+values, *unqualified* and *qualified* config values.
+
+
+Note that ``aws configure get`` only looks at values in the AWS configuration
+file.  It does **not** resolve configuration variables specified anywhere else,
+including environment variables, command line arguments, etc.
+
+
+Unqualified Names
+-----------------
+
+Every value in the AWS configuration file must be placed in a section (denoted
+by ``[section-name]`` in the config file).  To retrieve a value from the
+config file, the section name and the config name must be known.
+
+An unqualified configuration name refers to a name that is not scoped to a
+specific section in the configuration file.  Sections are specified by
+separating parts with the ``"."`` character (``section.config-name``).  An
+unqualified name will be scoped to the current profile.  For example,
+``aws configure get aws_access_key_id`` will retrieve the ``aws_access_key_id``
+from the current profile,  or the ``default`` profile if no profile is
+specified.  You can still provide a ``--profile`` argument to the ``aws
+configure get`` command.  For example, ``aws configure get region --profile
+testing`` will print the region value for the ``testing`` profile.
+
+
+Qualified Names
+---------------
+
+A qualified name is a name that has at least one ``"."`` character in the name.
+This name provides a way to specify the config section from which to retrieve
+the config variable.  When a qualified name is provided to ``aws configure
+get``, the currently specified profile is ignored.  Section names that have
+the format ``[profile profile-name]`` can be specified by using the
+``profile.profile-name.config-value`` syntax.
+
+Set a configuration value from the config file.
+
+The ``aws configure set`` command can be used to set a single configuration
+value in the AWS config file.  The ``set`` command supports both the
+*qualified* and *unqualified* config values documented in the ``get`` command
+(see ``aws configure get help`` for more information).
+
+To set a single value, provide the configuration name followed by the
+configuration value.
+
+If the config file does not exist, one will automatically be created.  If the
+configuration value already exists in the config file, it will updated with the
+new configuration value.
+
+Configure AWS CLI configuration data.  If this command is run with no
+arguments, you will be prompted for configuration values such as your AWS
+Access Key Id and you AWS Secret Access Key.  You can configure a specific
+profile using the ``--profile`` argument.  If your config file does not exist
+(the default location is ``~/.aws/config``), it will be automatically created
+for you.  To keep an existing value, hit enter when prompted for the value.
+When you are prompted for information, the current value will be displayed in
+``[brackets]``.  If the config item has no value, it be displayed as
+``[None]``.  Note that the ``configure`` command only work with values from the
+config file.  It does not use any configuration values from environment
+variables or the IAM role.
+
+=======================
+Configuration Variables
+=======================
+
+The following configuration variables are supported in the config file:
+
+* **aws_access_key_id** - The AWS access key part of your credentials
+* **aws_secret_access_key** - The AWS secret access key part of your credentials
+* **aws_security_token** - The security token part of your credentials (session tokens only)
+* **metadata_service_timeout** - The number of seconds to wait until the metadata service
+  request times out.  This is used if you are using an IAM role to provide
+  your credentials.
+* **metadata_service_num_attempts** - The number of attempts to try to retrieve
+  credentials.  If you know for certain you will be using an IAM role on an
+  Amazon EC2 instance, you can set this value to ensure any intermittent
+  failures are retried.  By default this value is 1.
+
+**To describe all the attributes for your AWS account**
+
+This example describes the attributes for your AWS account.
+
+Command::
+
+  aws ec2 describe-account-attributes
+
+Output::
+
+  {
+      "AccountAttributes": [
+          {
+              "AttributeName": "vpc-max-security-groups-per-interface",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "5"
+                  }
+              ]
+          },
+          {
+              "AttributeName": "max-instances",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "20"
+                  }
+              ]
+          },
+          {
+              "AttributeName": "supported-platforms",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "EC2"
+                  },
+                  {
+                      "AttributeValue": "VPC"
+                  }
+              ]
+          },
+          {
+              "AttributeName": "default-vpc",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "none"
+                  }
+              ]
+          },
+          {
+              "AttributeName": "max-elastic-ips",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "5"
+                  }
+              ]
+          },
+          {
+              "AttributeName": "vpc-max-elastic-ips",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "5"
+                  }
+              ]
+          }
+      ]
+  }
+
+**To describe a single attribute for your AWS account**
+
+This example describes the ``supported-platforms`` attribute for your AWS account.
+
+Command::
+
+  aws ec2 describe-account-attributes --attribute-names supported-platforms
+
+Output::
+
+  {
+      "AccountAttributes": [
+          {
+              "AttributeName": "supported-platforms",
+              "AttributeValues": [
+                  {
+                      "AttributeValue": "EC2"
+                  },
+                  {
+                      "AttributeValue": "VPC"
+                  }
+              ]
+          }
+      ]
+  }
+
+
+**To describe your Elastic IP addresses**
+
+This example describes your Elastic IP addresses.
+
+Command::
+
+  aws ec2 describe-addresses
+
+Output::
+
+  {
+      "Addresses": [
+          {
+              "InstanceId": null,
+              "PublicIp": "198.51.100.0",
+              "Domain": "standard"
+          },
+          {
+              "PublicIp": "203.0.113.0",
+              "Domain": "vpc",
+              "AllocationId": "eipalloc-64d5890a"
+          }
+      ]
+  }
+
+**To describe your Elastic IP addresses for EC2-VPC**
+
+This example describes your Elastic IP addresses for use with instances in a VPC.
+
+Command::
+
+  aws ec2 describe-addresses --filters "Name=domain,Values=vpc"
+
+Output::
+
+  {
+      "Addresses": [
+          {
+              "PublicIp": "203.0.113.0",
+              "Domain": "vpc",
+              "AllocationId": "eipalloc-64d5890a"
+          }
+      ]
+  }
+
+This example describes the Elastic IP address with the allocation ID ``eipalloc-282d9641``, which is associated with an instance in EC2-VPC.
+
+Command::
+
+    aws ec2 describe-addresses --allocation-ids eipalloc-282d9641
+
+Output::
+
+    {
+        "Addresses": [
+            {
+                "Domain": "vpc",
+                "InstanceId": "i-10a64379",
+                "NetworkInterfaceId": "eni-1a2b3c4d",
+                "AssociationId": "eipassoc-123abc12",
+                "NetworkInterfaceOwnerId": "1234567891012",
+                "PublicIp": "203.0.113.25",
+                "AllocationId": "eipalloc-282d9641",
+                "PrivateIpAddress": "10.251.50.12"
+            }
+        ]
+    }
+
+This example describes the Elastic IP address associated with a particular private IP address in EC2-VPC.
+
+Command::
+
+    aws ec2 describe-addresses --filters "Name=private-ip-address,Values=10.251.50.12"
+
+**To describe your Elastic IP addresses in EC2-Classic**
+
+This example describes your Elastic IP addresses for use in EC2-Classic.
+
+Command::
+
+    aws ec2 describe-addresses --filters "Name=domain,Values=standard"
+    
+Output::
+
+    {
+        "Addresses": [
+            {
+                "InstanceId": null, 
+                "PublicIp": "203.0.110.25", 
+                "Domain": "standard"
+            }
+        ]
+    }
+
+This example describes the Elastic IP address with the value ``203.0.110.25``, which is associated with an instance in EC2-Classic.
+
+Command::
+
+    aws ec2 describe-addresses --public-ips 203.0.110.25
+
+Output::
+
+    {
+        "Addresses": [
+            {
+                "InstanceId": "i-1a2b3c4d", 
+                "PublicIp": "203.0.110.25", 
+                "Domain": "standard"
+            }
+        ]
+    }
+
+
+**To describe your Availability Zones**
+
+This example describes the Availability Zones that are available to you. The response includes Availability Zones only for the current region.
+
+Command::
+
+  aws ec2 describe-availability-zones
+
+Output::
+
+  {
+      "AvailabilityZones": [
+          {
+              "State": "available",
+              "RegionName": "us-east-1",
+              "Messages": [],
+              "ZoneName": "us-east-1b"
+          },
+          {
+              "State": "available",
+              "RegionName": "us-east-1",
+              "Messages": [],
+              "ZoneName": "us-east-1c"
+          },
+          {
+              "State": "available",
+              "RegionName": "us-east-1",
+              "Messages": [],
+              "ZoneName": "us-east-1d"
+          }
+      ]
+  }
+
+**To describe your customer gateways**
+
+This example describes your customer gateways.
+
+Command::
+
+  aws ec2 describe-customer-gateways 
+
+Output::
+
+  {
+      "CustomerGateways": [
+          {
+              "CustomerGatewayId": "cgw-b4dc3961",
+              "IpAddress": "203.0.113.12",
+              "State": "available",
+              "Type": "ipsec.1",
+              "BgpAsn": "65000"
+          },
+          {
+              "CustomerGatewayId": "cgw-0e11f167",
+              "IpAddress": "12.1.2.3",
+              "State": "available",
+              "Type": "ipsec.1",
+              "BgpAsn": "65534"
+          }
+      ]  
+  }
+  
+**To describe a specific customer gateway**
+
+This example describes the specified customer gateway.
+
+Command::
+
+  aws ec2 describe-customer-gateways --customer-gateway-ids cgw-0e11f167
+
+Output::
+
+  {
+      "CustomerGateways": [
+          {
+              "CustomerGatewayId": "cgw-0e11f167",
+              "IpAddress": "12.1.2.3",
+              "State": "available",
+              "Type": "ipsec.1",
+              "BgpAsn": "65534"
+          }
+      ]  
+  }  
+**To describe your DHCP options sets**
+
+This example describes your DHCP options sets.
+
+Command::
+
+  aws ec2 describe-dhcp-options
+
+Output::
+
+  {
+      "DhcpOptions": [
+          {
+              "DhcpConfigurations": [
+                  {
+                      "Values": [
+                          "10.2.5.2",
+                          "10.2.5.1"
+                      ],
+                      "Key": "domain-name-servers"
+                  }
+              ],
+              "DhcpOptionsId": "dopt-d9070ebb"
+          },
+          {
+              "DhcpConfigurations": [
+                  {
+                      "Values": [
+                          "AmazonProvidedDNS"
+                      ],
+                      "Key": "domain-name-servers"
+                  }
+              ],
+              "DhcpOptionsId": "dopt-7a8b9c2d"
+          }
+      ]  
+  }
+**To describe the launch permissions for an AMI**
+
+This example describes the launch permissions for the specified AMI. 
+
+Command::
+
+  aws ec2 describe-image-attribute --image-id ami-5731123e --attribute launchPermission
+
+Output::
+
+  {
+      "LaunchPermissions": [
+          {
+              "UserId": "123456789012"
+          }
+      ],
+      "ImageId": "ami-5731123e",
+  }
+
+**To describe the product codes for an AMI**
+
+This example describes the product codes for the specified AMI. Note that this AMI has no product codes.
+
+Command::
+
+  aws ec2 describe-image-attribute --image-id ami-5731123e --attribute productCodes
+
+Output::
+
+  {
+      "ProductCodes": [],
+      "ImageId": "ami-5731123e",
+  }
+**To describe a specific AMI**
+
+This example describes the specified AMI.
+
+Command::
+
+  aws ec2 describe-images --image-ids ami-5731123e
+
+Output::
+
+  {
+      "Images": [
+          {
+              "VirtualizationType": "paravirtual",
+              "Name": "My server",
+              "Hypervisor": "xen",
+              "ImageId": "ami-5731123e",
+              "RootDeviceType": "ebs",
+              "State": "available",
+              "BlockDeviceMappings": [
+                  {
+                      "DeviceName": "/dev/sda1",
+                      "Ebs": {
+                          "DeleteOnTermination": true,
+                          "SnapshotId": "snap-ca7b3bd1",
+                          "VolumeSize": 8,
+                          "VolumeType": "standard"
+                      }
+                  }
+              ],
+              "Architecture": "x86_64",
+              "ImageLocation": "123456789012/My server",
+              "KernelId": "aki-88aa75e1",
+              "OwnerId": "123456789012",
+              "RootDeviceName": "/dev/sda1",
+              "Public": false,
+              "ImageType": "machine",
+              "Description": "An AMI for my server"
+          }
+      ]
+  }
+
+**To describe Windows AMIs from Amazon that are backed by Amazon EBS**
+
+This example describes Windows AMIs provided by Amazon that are backed by Amazon EBS.
+
+Command::
+
+  aws ec2 describe-images --filters "Name=is-public,Values=true" "Name=owner-alias,Values=amazon" "Name=platform,Values=Windows" "Name=root-device-type,Values=ebs"
+
+**To describe the instance type**
+
+This example describes the instance type of the specified instance.
+
+Command::
+
+  aws ec2 describe-instance-attribute --instance-id i-5203422c --attribute instanceType
+
+Output::
+
+  {
+      "InstanceId": "i-5203422c"
+      "InstanceType": {
+          "Value": "t1.micro"
+      }
+  }
+
+**To describe the disableApiTermination attribute**
+
+This example describes the ``disableApiTermination`` attribute of the specified instance.
+
+Command::
+
+  aws ec2 describe-instance-attribute --instance-id i-5203422c --attribute disableApiTermination
+
+Output::
+
+  {
+      "InstanceId": "i-5203422c"
+      "DisableApiTermination": {
+          "Value": "false"
+      }
+  }
+
+**To describe the block device mapping for an instance**
+
+This example describes the ``blockDeviceMapping`` attribute of the specified instance.
+
+Command::
+
+  aws ec2 describe-instance-attribute --instance-id i-5203422c --attribute blockDeviceMapping
+
+Output::
+
+  {
+      "InstanceId": "i-5203422c"
+      "BlockDeviceMappings": [
+          {
+              "DeviceName": "/dev/sda1",
+              "Ebs": {
+                  "Status": "attached",
+                  "DeleteOnTermination": true,
+                  "VolumeId": "vol-615a1339",
+                  "AttachTime": "2013-05-17T22:42:34.000Z"
+              }
+          },
+          {
+              "DeviceName": "/dev/sdf",
+              "Ebs": {
+                  "Status": "attached",
+                  "DeleteOnTermination": false,
+                  "VolumeId": "vol-9f54b8dc",
+                  "AttachTime": "2013-09-10T23:07:00.000Z"
+              }
+          }
+      ],
+  }
+
+**To describe the status of an instance**
+
+This example describes the current status of the specified instance.
+
+Command::
+
+  aws ec2 describe-instance-status --instance-id i-5203422c
+
+Output::
+
+  {
+      "InstanceStatuses": [
+          {
+              "InstanceId": "i-5203422c",
+              "InstanceState": {
+                  "Code": 16,
+                  "Name": "running"
+              },
+              "AvailabilityZone": "us-east-1d",
+              "SystemStatus": {
+                  "Status": "ok",
+                  "Details": [
+                      {
+                          "Status": "passed",
+                          "Name": "reachability"
+                      }
+                  ]
+              },
+              "InstanceStatus": {
+                  "Status": "ok",
+                  "Details": [
+                      {
+                          "Status": "passed",
+                          "Name": "reachability"
+                      }
+                  ]
+              }
+          }
+      ]
+  }
+
+**To describe an Amazon EC2 instance**
+
+Command::
+
+  aws ec2 describe-instances --instance-ids i-5203422c
+
+**To describe all instances with the instance type m1.small**
+
+Command::
+
+  aws ec2 describe-instances --filters "Name=instance-type,Values=m1.small"
+
+**To describe all instances with an Owner tag**
+
+Command::
+
+  aws ec2 describe-instances --filters "Name=tag-key,Values=Owner"
+
+**To describe all EC2  that have an instance type of m1.small or m1.medium that are also in the us-west-2c Availability Zone**
+
+Command::
+
+  aws ec2 describe-instances --filters "Name=instance-type,Values=m1.small,m1.medium" "Name=availability-zone,Values=us-west-2c"
+  
+The following JSON input performs the same filtering.
+
+Command::
+
+  aws ec2 describe-instances --filter file://filters.json
+
+filters.json::
+
+  [
+    {
+      "Name": "instance-type",
+      "Values": ["m1.small", "m1.medium"]
+    },
+    {
+      "Name": "availability-zone",
+      "Values": ["us-west-2c"]
+    }
+  ]
+
+For more information, see `Using Amazon EC2 Instances`_ in the *AWS Command Line Interface User Guide*.
+
+.. _`Using Amazon EC2 Instances`: http://docs.aws.amazon.com/cli/latest/userguide/cli-ec2-launch.html
+
+
+**To describe your Internet gateways**
+
+This example describes your Internet gateways.
+
+Command::
+
+  aws ec2 describe-internet-gateways
+
+Output::
+
+  {
+      "InternetGateways": [
+          {
+              "Tags": [],
+              "InternetGatewayId": "igw-c0a643a9",
+              "Attachments": [
+                  {
+                      "State": "available",
+                      "VpcId": "vpc-a01106c2"
+                  }
+              ]
+          },
+          {
+              "Tags": [],
+              "InternetGatewayId": "igw-046d7966",
+              "Attachments": []
+          }
+      ]  
+  }
+  
+**To describe the Internet gateway for a specific VPC**
+
+This example describes the Internet gateway for the specified VPC.
+
+Command::
+
+  aws ec2 describe-subnets --filter "Name=attachment.vpc-id,Values=vpc-a01106c2"
+
+Output::
+
+  {
+      "InternetGateways": [
+          {
+              "Tags": [],
+              "InternetGatewayId": "igw-c0a643a9",
+              "Attachments": [
+                  {
+                      "State": "available",
+                      "VpcId": "vpc-a01106c2"
+                  }
+              ]
+          }
+      ]  
+  }
+
+**To display a key pair**
+
+This example displays the fingerprint for the key pair named ``MyKeyPair``.
+
+Command::
+
+  aws ec2 describe-key-pairs --key-name MyKeyPair
+
+Output::
+
+  {
+      "KeyPairs": [
+          {
+              "KeyName": "MyKeyPair",
+              "KeyFingerprint": "1f:51:ae:28:bf:89:e9:d8:1f:25:5d:37:2d:7d:b8:ca:9f:f5:f1:6f"
+          }
+      ]
+  }
+
+For more information, see `Using Key Pairs`_ in the *AWS Command Line Interface User Guide*.
+
+.. _`Using Key Pairs`: http://docs.aws.amazon.com/cli/latest/userguide/cli-ec2-keypairs.html
+
+
+**To describe your network ACLs**
+
+This example describes your network ACLs.
+
+Command::
+
+  aws ec2 describe-network-acls
+
+Output::
+
+  {
+      "NetworkAcls": [
+          {
+              "Associations": [],
+              "NetworkAclId": "acl-7aaabd18",
+              "VpcId": "vpc-a01106c2",
+              "Tags": [],
+              "Entries": [
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 100,
+                      "Protocol": "-1",
+                      "Egress": true,
+                      "RuleAction": "allow"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": true,
+                      "RuleAction": "deny"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 100,
+                      "Protocol": "-1",
+                      "Egress": false,
+                      "RuleAction": "allow"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": false,
+                      "RuleAction": "deny"
+                  }
+              ],
+              "IsDefault": true
+          },  
+          {
+              "Associations": [],
+              "NetworkAclId": "acl-5fb85d36",
+              "VpcId": "vpc-a01106c2",
+              "Tags": [],
+              "Entries": [
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": true,
+                      "RuleAction": "deny"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": false,
+                      "RuleAction": "deny"
+                  }
+              ],
+              "IsDefault": false
+          },
+          {
+              "Associations": [
+                  {
+                      "SubnetId": "subnet-6bea5f06",
+                      "NetworkAclId": "acl-9aeb5ef7",
+                      "NetworkAclAssociationId": "aclassoc-67ea5f0a"
+                  },
+                  {
+                      "SubnetId": "subnet-65ea5f08",
+                      "NetworkAclId": "acl-9aeb5ef7",
+                      "NetworkAclAssociationId": "aclassoc-66ea5f0b"
+                  }
+              ],
+              "NetworkAclId": "acl-9aeb5ef7",
+              "VpcId": "vpc-98eb5ef5",
+              "Tags": [],
+              "Entries": [
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 100,
+                      "Protocol": "-1",
+                      "Egress": true,
+                      "RuleAction": "allow"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": true,
+                      "RuleAction": "deny"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 100,
+                      "Protocol": "-1",
+                      "Egress": false,
+                      "RuleAction": "allow"
+                  },
+                  {
+                      "CidrBlock": "0.0.0.0/0",
+                      "RuleNumber": 32767,
+                      "Protocol": "-1",
+                      "Egress": false,
+                      "RuleAction": "deny"
+                  }
+              ],
+              "IsDefault": true
+          }          
+      ]
+  }
+**To describe your network interfaces**
+
+This example describes all your network interfaces.
+
+Command::
+
+  aws ec2 describe-network-interfaces
+
+Output::
+
+  {
+    "NetworkInterfaces": [
+        {
+            "Status": "in-use",
+            "MacAddress": "02:2f:8f:b0:cf:75",
+            "SourceDestCheck": true,
+            "VpcId": "vpc-a01106c2",
+            "Description": "my network interface",
+            "Association": {
+                "PublicIp": "203.0.113.12",
+                "AssociationId": "eipassoc-0fbb766a",
+                "IpOwnerId": "123456789012"
+            },
+            "NetworkInterfaceId": "eni-e5aa89a3",
+            "PrivateIpAddresses": [
+                {
+                    "PrivateDnsName": "ip-10-0-1-17.ec2.internal",
+                    "Association": {
+                        "PublicIp": "203.0.113.12",
+                        "AssociationId": "eipassoc-0fbb766a",
+                        "IpOwnerId": "123456789012"
+                    },
+                    "Primary": true,
+                    "PrivateIpAddress": "10.0.1.17"
+                }
+            ],
+            "RequesterManaged": false,
+            "PrivateDnsName": "ip-10-0-1-17.ec2.internal",
+            "AvailabilityZone": "us-east-1d",
+            "Attachment": {
+                "Status": "attached",
+                "DeviceIndex": 1,
+                "AttachTime": "2013-11-30T23:36:42.000Z",
+                "InstanceId": "i-640a3c17",
+                "DeleteOnTermination": false,
+                "AttachmentId": "eni-attach-66c4350a",
+                "InstanceOwnerId": "123456789012"
+            },
+            "Groups": [
+                {
+                    "GroupName": "default",
+                    "GroupId": "sg-8637d3e3"
+                }
+            ],
+            "SubnetId": "subnet-b61f49f0",
+            "OwnerId": "123456789012",
+            "TagSet": [],
+            "PrivateIpAddress": "10.0.1.17"
+        },
+        {
+            "Status": "in-use",
+            "MacAddress": "02:58:f5:ef:4b:06",
+            "SourceDestCheck": true,
+            "VpcId": "vpc-a01106c2",
+            "Description": "Primary network interface",
+            "Association": {
+                "PublicIp": "198.51.100.0",
+                "IpOwnerId": "amazon"
+            },
+            "NetworkInterfaceId": "eni-f9ba99bf",
+            "PrivateIpAddresses": [
+                {
+                    "Association": {
+                        "PublicIp": "198.51.100.0",
+                        "IpOwnerId": "amazon"
+                    },
+                    "Primary": true,
+                    "PrivateIpAddress": "10.0.1.149"
+                }
+            ],
+            "RequesterManaged": false,
+            "AvailabilityZone": "us-east-1d",
+            "Attachment": {
+                "Status": "attached",
+                "DeviceIndex": 0,
+                "AttachTime": "2013-11-30T23:35:33.000Z",
+                "InstanceId": "i-640a3c17",
+                "DeleteOnTermination": true,
+                "AttachmentId": "eni-attach-1b9db777",
+                "InstanceOwnerId": "123456789012"
+            },
+            "Groups": [
+                {
+                    "GroupName": "default",
+                    "GroupId": "sg-8637d3e3"
+                }
+            ],
+            "SubnetId": "subnet-b61f49f0",
+            "OwnerId": "123456789012",
+            "TagSet": [],
+            "PrivateIpAddress": "10.0.1.149"
+        }
+    ]
+  }
+
+**To describe your regions**
+
+This example describes all the regions that are available to you.
+
+Command::
+
+  aws ec2 describe-regions
+
+Output::
+
+  {
+      "Regions": [
+          {
+              "Endpoint": "ec2.eu-west-1.amazonaws.com",
+              "RegionName": "eu-west-1"
+          },
+          {
+              "Endpoint": "ec2.sa-east-1.amazonaws.com",
+              "RegionName": "sa-east-1"
+          },
+          {
+              "Endpoint": "ec2.us-east-1.amazonaws.com",
+              "RegionName": "us-east-1"
+          },
+          {
+              "Endpoint": "ec2.ap-northeast-1.amazonaws.com",
+              "RegionName": "ap-northeast-1"
+          },
+          {
+              "Endpoint": "ec2.us-west-2.amazonaws.com",
+              "RegionName": "us-west-2"
+          },
+          {
+              "Endpoint": "ec2.us-west-1.amazonaws.com",
+              "RegionName": "us-west-1"
+          },
+          {
+              "Endpoint": "ec2.ap-southeast-1.amazonaws.com",
+              "RegionName": "ap-southeast-1"
+          },
+          {
+              "Endpoint": "ec2.ap-southeast-2.amazonaws.com",
+              "RegionName": "ap-southeast-2"
+          }
+      ]
+  }
+
+**To describe the regions with an endpoint that has a specific string**
+
+This example describes all regions that are available to you that have the string "us" in the endpoint.
+
+Command::
+
+  aws ec2 describe-regions --filters "Name=endpoint,Values=*us*"
+
+Output::
+
+  {
+      "Regions": [
+          {
+              "Endpoint": "ec2.us-east-1.amazonaws.com",
+              "RegionName": "us-east-1"
+          },
+          {
+              "Endpoint": "ec2.us-west-2.amazonaws.com",
+              "RegionName": "us-west-2"
+          },
+          {
+              "Endpoint": "ec2.us-west-1.amazonaws.com",
+              "RegionName": "us-west-1"
+          },
+      ]
+  }
+
+**To describe your route tables**
+
+This example describes your route tables.
+
+Command::
+
+  aws ec2 describe-route-tables
+
+Output::
+
+  {
+      "RouteTables": [
+          {
+              "Associations": [
+                  {
+                      "RouteTableAssociationId": "rtbassoc-d8ccddba",
+                      "Main": true,
+                      "RouteTableId": "rtb-1f382e7d"
+                  }
+              ],
+              "RouteTableId": "rtb-1f382e7d",
+              "VpcId": "vpc-a01106c2",
+              "PropagatingVgws": [],
+              "Tags": [],
+              "Routes": [
+                  {
+                      "GatewayId": "local",
+                      "DestinationCidrBlock": "10.0.0.0/16",
+                      "State": "active"
+                  }
+              ]
+          },
+          {
+              "Associations": [
+                  {
+                      "SubnetId": "subnet-b61f49f0",
+                      "RouteTableAssociationId": "rtbassoc-781d0d1a",
+                      "RouteTableId": "rtb-22574640"
+                  }
+              ],
+              "RouteTableId": "rtb-22574640",
+              "VpcId": "vpc-a01106c2",
+              "PropagatingVgws": [
+                  {
+                      "GatewayId": "vgw-f211f09b"
+                  }
+              ],
+              "Tags": [],
+              "Routes": [
+                  {
+                      "GatewayId": "local",
+                      "DestinationCidrBlock": "10.0.0.0/16",
+                      "State": "active"
+                  },
+                  {
+                      "GatewayId": "igw-046d7966",
+                      "DestinationCidrBlock": "0.0.0.0/0",
+                      "State": "active"
+                  }
+              ]
+          }          
+      ]
+  }
+**To display information about a security group for EC2-Classic**
+
+This example displays information about the security group named ``MySecurityGroup``.
+
+Command::
+
+  aws ec2 describe-security-groups --group-names MySecurityGroup
+
+Output::
+
+  {
+      "SecurityGroups": [
+          {
+              "IpPermissionsEgress": [],
+              "Description": "My security group",
+              "IpPermissions": [
+                  {
+                      "ToPort": 22,
+                      "IpProtocol": "tcp",
+                      "IpRanges": [
+                          {
+                              "CidrIp": "203.0.113.0/24"
+                          }
+                      ],
+                      "UserIdGroupPairs": [],
+                      "FromPort": 22
+                  }
+              ],
+              "GroupName": "MySecurityGroup",
+              "OwnerId": "123456789012",
+              "GroupId": "sg-903004f8",
+          }
+      ]
+  }
+
+**To display information about a security group for EC2-VPC**
+
+This example displays information about the security group with the ID sg-903004f8. Note that you can't reference a security group for EC2-VPC by name.
+
+Command::
+
+  aws ec2 describe-security-groups --group-ids sg-903004f8
+
+Output::
+
+  {
+      "SecurityGroups": [
+          {
+              "IpPermissionsEgress": [
+                  {
+                      "IpProtocol": "-1",
+                      "IpRanges": [
+                          {
+                              "CidrIp": "0.0.0.0/0"
+                          }
+                      ],
+                      "UserIdGroupPairs": []
+                  }
+              ],
+              "Description": "My security group",
+              "IpPermissions": [
+                  {
+                      "ToPort": 22,
+                      "IpProtocol": "tcp",
+                      "IpRanges": [
+                          {
+                              "CidrIp": "203.0.113.0/24"
+                          }
+                      ],
+                      "UserIdGroupPairs": [],
+                      "FromPort": 22
+                  }
+              ],
+              "GroupName": "MySecurityGroup",
+              "VpcId": "vpc-1a2b3c4d",
+              "OwnerId": "123456789012",
+              "GroupId": "sg-903004f8",
+          }
+      ]
+  }
+
+For more information, see `Using Security Groups`_ in the *AWS Command Line Interface User Guide*.
+
+.. _`Using Security Groups`: http://docs.aws.amazon.com/cli/latest/userguide/cli-ec2-sg.html
+
+
+**To describe snapshot attributes**
+
+This example command describes the ``createVolumePermission`` and ``productCodes`` attributes on a snapshot with the snapshot ID of ``snap-1234abcd``.
+
+Command::
+
+  aws ec2 describe-snapshot-attribute --snapshot-id snap-1234abcd --attribute createVolumePermission --attribute productCodes
+
+Output::
+
+   {
+       "SnapshotId": "snap-b52c0044",
+       "CreateVolumePermissions": [],
+       "ProductCodes": []
+   }
+**To describe a snapshot**
+
+This example command describes a snapshot with the snapshot ID of ``snap-1234abcd``.
+
+Command::
+
+  aws ec2 describe-snapshots --snapshot-id snap-1234abcd
+
+Output::
+
+   {
+       "Snapshots": [
+           {
+               "Description": "This is my snapshot.",
+               "VolumeId": "vol-a1b2c3d4",
+               "State": "completed",
+               "VolumeSize": 8,
+               "Progress": "100%",
+               "StartTime": "2014-02-28T21:28:32.000Z",
+               "SnapshotId": "snap-b2c3d4e5",
+               "OwnerId": "012345678910"
+           }
+       ]
+   }
+
+**To describe snapshots using filters**
+
+This example command describes all snapshots owned by the ID 012345678910 that are in the ``pending`` status.
+
+Command::
+
+  aws ec2 describe-snapshots --owner-ids 012345678910 --filters Name=status,Values=pending
+
+Output::
+
+   {
+       "Snapshots": [
+           {
+               "Description": "This is my copied snapshot.",
+               "VolumeId": "vol-4d3c2b1a",
+               "State": "pending",
+               "VolumeSize": 8,
+               "Progress": "87%",
+               "StartTime": "2014-02-28T21:37:27.000Z",
+               "SnapshotId": "snap-d4e5f6g7",
+               "OwnerId": "012345678910"
+           }
+       ]
+   }
+
+**To describe Spot price history**
+
+This example command returns the Spot Price history for m1.xlarge instances for a particular day in January.
+
+Command::
+
+  aws ec2 describe-spot-price-history --instance-types m1.xlarge --start-time 2014-01-06T07:08:09 --end-time 2014-01-06T08:09:10
+
+Output::
+
+  {
+    "SpotPriceHistory": [
+            {
+                "Timestamp": "2014-01-06T07:10:55.000Z",
+                "ProductDescription": "SUSE Linux",
+                "InstanceType": "m1.xlarge",
+                "SpotPrice": "0.087000",
+                "AvailabilityZone": "us-west-1b"
+            },
+            {
+                "Timestamp": "2014-01-06T07:10:55.000Z",
+                "ProductDescription": "SUSE Linux",
+                "InstanceType": "m1.xlarge",
+                "SpotPrice": "0.087000",
+                "AvailabilityZone": "us-west-1c"
+            },
+            {
+                "Timestamp": "2014-01-06T05:42:36.000Z",
+                "ProductDescription": "SUSE Linux (Amazon VPC)",
+                "InstanceType": "m1.xlarge",
+                "SpotPrice": "0.087000",
+                "AvailabilityZone": "us-west-1a"
+        },
+        ...
+  }
+
+
+**To describe Spot price history for Linux/UNIX Amazon VPC**
+
+This example command returns the Spot Price history for m1.xlarge, Linux/UNIX Amazon VPC instances for a particular day in January.
+
+Command::
+
+  aws ec2 describe-spot-price-history --instance-types m1.xlarge --product-description "Linux/UNIX (Amazon VPC)" --start-time 2014-01-06T07:08:09 --end-time 2014-01-06T08:09:10
+
+Output::
+
+  {
+    "SpotPriceHistory": [
+        {
+            "Timestamp": "2014-01-06T04:32:53.000Z",
+            "ProductDescription": "Linux/UNIX (Amazon VPC)",
+            "InstanceType": "m1.xlarge",
+            "SpotPrice": "0.080000",
+            "AvailabilityZone": "us-west-1a"
+        },
+        {
+            "Timestamp": "2014-01-05T11:28:26.000Z",
+            "ProductDescription": "Linux/UNIX (Amazon VPC)",
+            "InstanceType": "m1.xlarge",
+            "SpotPrice": "0.080000",
+            "AvailabilityZone": "us-west-1c"
+        }
+    ]
+  }
+**To describe your subnets**
+
+This example describes your subnets.
+
+Command::
+
+  aws ec2 describe-subnets 
+
+Output::
+
+  {
+      "Subnets": [
+          {
+              "VpcId": "vpc-a01106c2",
+              "CidrBlock": "10.0.1.0/24",
+              "MapPublicIpOnLaunch": false,
+              "DefaultForAz": false,
+              "State": "available",
+              "AvailabilityZone": "us-east-1c",
+              "SubnetId": "subnet-9d4a7b6c",
+              "AvailableIpAddressCount": 251
+          },
+          {
+              "VpcId": "vpc-b61106d4",
+              "CidrBlock": "10.0.0.0/24",
+              "MapPublicIpOnLaunch": false,
+              "DefaultForAz": false,
+              "State": "available",
+              "AvailabilityZone": "us-east-1d",
+              "SubnetId": "subnet-65ea5f08",
+              "AvailableIpAddressCount": 251
+          }
+      ]  
+  }
+  
+**To describe the subnets for a specific VPC**
+
+This example describes the subnets for the specified VPC.
+
+Command::
+
+  aws ec2 describe-subnets --filter "Name=vpc-id,Values=vpc-a01106c2"
+
+Output::
+
+  {
+      "Subnets": [
+          {
+              "VpcId": "vpc-a01106c2",
+              "CidrBlock": "10.0.1.0/24",
+              "MapPublicIpOnLaunch": false,
+              "DefaultForAz": false,
+              "State": "available",
+              "AvailabilityZone": "us-east-1c",
+              "SubnetId": "subnet-9d4a7b6c",
+              "AvailableIpAddressCount": 251
+          }
+      ]  
+  }
+
+**To describe your tags**
+
+This example describes the tags for all your resources.
+
+Command::
+
+  aws ec2 describe-tags
+
+Output::
+
+  {
+      "Tags": [
+          {
+              "ResourceType": "image",
+              "ResourceId": "ami-78a54011",
+              "Value": "Production",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "image",
+              "ResourceId": "ami-3ac33653",
+              "Value": "Test",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-12345678",
+              "Value": "Production",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-5f4e3d2a",
+              "Value": "Test",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-5f4e3d2a",
+              "Value": "Beta Server",
+              "Key": "Name"
+          },
+          {
+              "ResourceType": "volume",
+              "ResourceId": "vol-1a2b3c4d",
+              "Value": "Project1",
+              "Key": "Purpose"
+          },
+          {
+              "ResourceType": "volume",
+              "ResourceId": "vol-87654321",
+              "Value": "Logs",
+              "Key": "Purpose"
+          }
+      ]
+  }
+
+**To describe the tags for a single resource**
+
+This example describes the tags for the specified instance.
+
+Command::
+
+  aws ec2 describe-tags --filters "Name=resource-id,Values=i-5f4e3d2a"
+
+Output::
+
+  {
+      "Tags": [
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-5f4e3d2a",
+              "Value": "Test",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-5f4e3d2a",
+              "Value": "Beta Server",
+              "Key": "Name"
+          }
+      ]
+  }
+
+**To describe the tags for a type of resource**
+
+This example describes the tags for your volumes.
+
+Command::
+
+  aws ec2 describe-tags --filters "Name=resource-type,Values=volume"
+
+Output::
+
+  {
+      "Tags": [
+          {
+              "ResourceType": "volume",
+              "ResourceId": "vol-1a2b3c4d",
+              "Value": "Project1",
+              "Key": "Purpose"
+          },
+          {
+              "ResourceType": "volume",
+              "ResourceId": "vol-87654321",
+              "Value": "Logs",
+              "Key": "Purpose"
+          }
+      ]
+  }
+
+**To describe the tags for your resources based on a key and a value**
+
+This example describes the tags for your resources that have the key ``Stack`` and a value ``Test``.
+
+Command::
+
+  aws ec2 describe-tags --filters "Name=key,Values=Stack" "Name=value,Values=Test"
+
+Output::
+
+  {
+      "Tags": [
+          {
+              "ResourceType": "image",
+              "ResourceId": "ami-3ac33653",
+              "Value": "Test",
+              "Key": "Stack"
+          },
+          {
+              "ResourceType": "instance",
+              "ResourceId": "i-5f4e3d2a",
+              "Value": "Test",
+              "Key": "Stack"
+          }
+      ]
+  }
+
+This example describes the tags for all your instances that have a tag with the key ``Purpose`` and no value.
+
+Command::
+
+    aws ec2 describe-tags --filters "Name=resource-type,Values=instance" "Name=key,Values=Purpose" "Name=value,Values="
+    
+Output::
+
+    {
+        "Tags": [
+            {
+                "ResourceType": "instance", 
+                "ResourceId": "i-1a2b3c4d", 
+                "Value": null, 
+                "Key": "Purpose"
+            }
+        ]
+    }
+
+
+**To describe a volume attribute**
+
+This example command describes the ``autoEnableIo`` attribute of the volume with the ID ``vol-2725bc51``.
+
+Command::
+
+  aws ec2 describe-volume-attribute --volume-id vol-2725bc51 --attribute autoEnableIO
+
+Output::
+
+   {
+       "AutoEnableIO": {
+           "Value": false
+       },
+       "ProductCodes": [],
+       "VolumeId": "vol-2725bc51"
+   }
+**To describe the status of a single volume**
+
+This example command describes the status for the volume ``vol-2725bc51``.
+
+Command::
+
+  aws ec2 describe-volume-status --volume-ids vol-2725bc51
+
+Output::
+
+   {
+       "VolumeStatuses": [
+           {
+               "VolumeStatus": {
+                   "Status": "ok",
+                   "Details": [
+                       {
+                           "Status": "passed",
+                           "Name": "io-enabled"
+                       },
+                       {
+                           "Status": "not-applicable",
+                           "Name": "io-performance"
+                       }
+                   ]
+               },
+               "AvailabilityZone": "us-east-1a",
+               "VolumeId": "vol-2725bc51",
+               "Actions": [],
+               "Events": []
+           }
+       ]
+   }
+
+**To describe the status of impaired volumes**
+
+This example command describes the status for all volumes that are impaired. In this example output, there are no impaired volumes.
+
+Command::
+
+  aws ec2 describe-volume-status --filter Name=volume-status.status,Values=impaired
+
+Output::
+
+   {
+       "VolumeStatuses": []
+   }
+
+If you have a volume with a failed status check (status is impaired), see `Working with an Impaired Volume`_ in the *Amazon EC2 User Guide*.
+
+.. _`Working with an Impaired Volume`: http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/monitoring-volume-status.html#work_volumes_impaired
+**To view information on all volumes**
+
+This example command describes all of your volumes in the default region.
+
+Command::
+
+  aws ec2 describe-volumes
+
+Output::
+
+   {
+       "Volumes": [
+           {
+               "AvailabilityZone": "us-east-1a",
+               "Attachments": [
+                   {
+                       "AttachTime": "2013-12-18T22:35:00.000Z",
+                       "InstanceId": "i-abe041d4",
+                       "VolumeId": "vol-21083656",
+                       "State": "attached",
+                       "DeleteOnTermination": true,
+                       "Device": "/dev/sda1"
+                   }
+               ],
+               "VolumeType": "standard",
+               "VolumeId": "vol-21083656",
+               "State": "in-use",
+               "SnapshotId": "snap-b4ef17a9",
+               "CreateTime": "2013-12-18T22:35:00.084Z",
+               "Size": 8
+           },
+           {
+               "AvailabilityZone": "us-east-1a",
+               "Attachments": [],
+               "VolumeType": "io1",
+               "VolumeId": "vol-2725bc51",
+               "State": "available",
+               "Iops": 1000,
+               "SnapshotId": null,
+               "CreateTime": "2014-02-27T00:02:41.791Z",
+               "Size": 100
+           }
+       ]
+   }
+
+**To view filtered information on all volumes**
+
+This example command describes all volumes that are both attached to the instance with the ID i-abe041d4 and set to delete when the instance terminates.
+
+Command::
+
+  aws ec2 describe-volumes --region us-east-1 --filter Name=attachment.instance-id,Values=i-abe041d4 --filter Name=attachment.delete-on-termination,Values=true
+
+Output::
+
+   {
+       "Volumes": [
+           {
+               "AvailabilityZone": "us-east-1a",
+               "Attachments": [
+                   {
+                       "AttachTime": "2013-12-18T22:35:00.000Z",
+                       "InstanceId": "i-abe041d4",
+                       "VolumeId": "vol-21083656",
+                       "State": "attached",
+                       "DeleteOnTermination": true,
+                       "Device": "/dev/sda1"
+                   }
+               ],
+               "VolumeType": "standard",
+               "VolumeId": "vol-21083656",
+               "State": "in-use",
+               "SnapshotId": "snap-b4ef17a9",
+               "CreateTime": "2013-12-18T22:35:00.084Z",
+               "Size": 8
+           }
+       ]
+   }
+**To describe the enableDnsSupport attribute**
+
+This example describes the ``enableDnsSupport`` attribute. This attribute indicates whether DNS resolution is enabled for the VPC. If this attribute is ``true``, the Amazon DNS server resolves DNS hostnames for your instances to their corresponding IP addresses; otherwise, it does not.
+
+Command::
+
+  aws ec2 describe-vpc-attribute --vpc-id vpc-a01106c2 --attribute enableDnsSupport
+
+Output::
+
+  {
+      "VpcId": "vpc-a01106c2",
+      "EnableDnsSupport": {
+          "Value": true
+      }
+  }
+  
+**To describe the enableDnsHostnames attribute**
+
+This example describes the ``enableDnsHostnames`` attribute. This attribute indicates whether the instances launched in the VPC get DNS hostnames. If this attribute is ``true``, instances in the VPC get DNS hostnames; otherwise, they do not.
+
+Command::
+
+  aws ec2 describe-vpc-attribute --vpc-id vpc-a01106c2 --attribute enableDnsHostnames
+
+Output::
+
+  {
+      "VpcId": "vpc-a01106c2",
+      "EnableDnsHostnames": {
+          "Value": true
+      }
+  }
+**To describe your VPC peering connections**
+
+This example describes all of your VPC peering connections.
+
+Command::
+
+  aws ec2 describe-vpc-peering-connections
+
+Output::
+
+    {
+        "VpcPeeringConnections": [
+            {
+                "Status": {
+                    "Message": "Active",
+                    "Code": "active"
+                },
+                "Tags": [
+                    {
+                        "Value": "Peering-1",
+                        "Key": "Name"
+                    }
+                ],
+                "AccepterVpcInfo": {
+                    "OwnerId": "111122223333",
+                    "VpcId": "vpc-1a2b3c4d",
+                    "CidrBlock": "10.0.1.0/28"
+                },
+                "VpcPeeringConnectionId": "pcx-11122233",
+                "RequesterVpcInfo": {
+                    "OwnerId": "444455556666",
+                    "VpcId": "vpc-123abc45",
+                    "CidrBlock": "10.0.0.0/28"
+                }
+            },
+            {
+                "Status": {
+                    "Message": "Pending Acceptance by 123456789123",
+                    "Code": "pending-acceptance"
+                },
+                "Tags": [
+                    {
+                        "Value": null,
+                        "Key": "Name"
+                    }
+                ],
+                "RequesterVpcInfo": {
+                    "OwnerId": "123456789123",
+                    "VpcId": "vpc-11aa22bb",
+                    "CidrBlock": "10.0.0.0/28"
+                },
+                "VpcPeeringConnectionId": "pcx-abababab",
+                "ExpirationTime": "2014-04-03T09:12:43.000Z",
+                "AccepterVpcInfo": {
+                    "OwnerId": "123456789123",
+                    "VpcId": "vpc-33cc44dd"
+                }
+            }
+        ]
+    }
+
+
+**To describe specific VPC peering connections**
+
+This example describes all of your VPC peering connections that are in the pending-acceptance state.
+
+Command::
+
+  aws ec2 describe-vpc-peering-connections --filters Name=status-code,Values=pending-acceptance
+
+
+This example describes all of your VPC peering connections that have the tag Name=Finance or Name=Accounts.
+
+Command::
+
+  aws ec2 describe-vpc-peering-connections --filters Name=tag-key,Values=Name,Name=tag-value,Values=Finance,Accounts
+
+
+This example describes all of the VPC peering connections you requested for the specified VPC, vpc-1a2b3c4d.
+
+Command::
+
+  aws ec2 describe-vpc-peering-connections --filters Name=requester-vpc-info.vpc-id,Values=vpc-1a2b3c4d
+
+
+**To describe your VPCs**
+
+This example describes your VPCs.
+
+Command::
+
+  aws ec2 describe-vpcs
+
+Output::
+
+  {
+      "Vpcs": [
+          {
+              "VpcId": "vpc-a01106c2",
+              "InstanceTenancy": "default",
+              "Tags": [
+                  {
+                      "Value": "MyVPC",
+                      "Key": "Name"
+                  }
+              ],
+              "State": "available",
+              "DhcpOptionsId": "dopt-7a8b9c2d",
+              "CidrBlock": "10.0.0.0/16",
+              "IsDefault": false
+          },
+          {
+              "VpcId": "vpc-b61106d4",
+              "InstanceTenancy": "dedicated",
+              "State": "available",
+              "DhcpOptionsId": "dopt-97eb5efa",
+              "CidrBlock": "10.50.0.0/16",
+              "IsDefault": false
+          }
+      ]  
+  }
+  
+**To describe a specific VPC**
+
+This example describes the specified VPC.
+
+Command::
+
+  aws ec2 describe-vpcs --vpc-ids vpc-a01106c2
+
+Output::
+
+  {
+      "Vpcs": [
+          {
+              "VpcId": "vpc-a01106c2",
+              "InstanceTenancy": "default",
+              "Tags": [
+                  {
+                      "Value": "MyVPC",
+                      "Key": "Name"
+                  }
+              ],
+              "State": "available",
+              "DhcpOptionsId": "dopt-7a8b9c2d",
+              "CidrBlock": "10.0.0.0/16",
+              "IsDefault": false
+          }
+      ]  
+  }
+**To describe your VPN connections**
+
+This example describes your VPN connections.
+
+Command::
+
+  aws ec2 describe-vpn-connections
+
+Output::
+
+  {
+      "VpnConnections": {
+          "VpnConnectionId": "vpn-40f41529"
+          "CustomerGatewayConfiguration": "...configuration information...",
+          "VgwTelemetry": [
+              {
+                  "Status": "DOWN",
+                  "AcceptedRouteCount": 0,
+                  "OutsideIpAddress": "72.21.209.192",
+                  "LastStatusChange": "2013-02-04T20:19:34.000Z",
+                  "StatusMessage": "IPSEC IS DOWN"
+              },
+              {
+                  "Status": "DOWN",
+                  "AcceptedRouteCount": 0,
+                  "OutsideIpAddress": "72.21.209.224",
+                  "LastStatusChange": "2013-02-04T20:19:34.000Z",
+                  "StatusMessage": "IPSEC IS DOWN"
+              }
+          ],
+          "State": "available",
+          "VpnGatewayId": "vgw-9a4cacf3",
+          "CustomerGatewayId": "cgw-0e11f167"
+          "Type": "ipsec.1"
+      }
+  }
+  
+**To describe your available VPN connections**
+
+This example describes your VPN connections with a state of ``available``.
+
+Command::
+
+  aws ec2 describe-vpn-connections --filters "Name=state,Values=available"
+
+**To describe your virtual private gateways**
+
+This example describes your virtual private gateways.
+
+Command::
+
+  aws ec2 describe-virtual-private-gateways
+
+Output::
+
+  {
+      "VpnGateways": [
+          {
+              "State": "available",
+              "Type": "ipsec.1",
+              "VpnGatewayId": "vgw-f211f09b",
+              "VpcAttachments": [
+                  {
+                      "State": "attached",
+                      "VpcId": "vpc-98eb5ef5"
+                  }
+              ]
+          },
+          {
+              "State": "available",
+              "Type": "ipsec.1",
+              "VpnGatewayId": "vgw-9a4cacf3",
+              "VpcAttachments": [
+                  {
+                      "State": "attaching",
+                      "VpcId": "vpc-a01106c2"
+                  }
+              ]
+          }
+      ]  
+  }
+**To describe apps**
+
+The following ``describe-apps`` command describes the apps in a specified stack.
+
+This particular stack has one app::
+
+  aws opsworks --region us-east-1 describe-apps --stack-id 38ee91e2-abdc-4208-a107-0b7168b3cc7a
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Apps": [
+      {
+        "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+        "AppSource": {
+          "Url": "https://s3-us-west-2.amazonaws.com/opsworks-tomcat/simplejsp.zip",
+          "Type": "archive"
+        },
+        "Name": "SimpleJSP",
+        "EnableSsl": false,
+        "SslConfiguration": {},
+        "AppId": "da1decc1-0dff-43ea-ad7c-bb667cd87c8b",
+        "Attributes": {
+          "RailsEnv": null,
+          "AutoBundleOnDeploy": "true",
+          "DocumentRoot": "ROOT"
+        },
+        "Shortname": "simplejsp",
+        "Type": "other",
+        "CreatedAt": "2013-08-01T21:46:54+00:00"
+      }
+    ]
+  }
+
+For more information, see Apps_ in the *OpsWorks User Guide*.
+
+.. _Apps: http://docs.aws.amazon.com/opsworks/latest/userguide/workingapps.html
+
+
+**To describe commands**
+
+The following ``describe-commands`` commmand describes the commands in a specified instance::
+
+  aws opsworks --region us-east-1 describe-commands --instance-id 8c2673b9-3fe5-420d-9cfa-78d875ee7687
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Commands": [
+      {
+        "Status": "successful",
+        "CompletedAt": "2013-07-25T18:57:47+00:00",
+        "InstanceId": "8c2673b9-3fe5-420d-9cfa-78d875ee7687",
+        "DeploymentId": "6ed0df4c-9ef7-4812-8dac-d54a05be1029",
+        "AcknowledgedAt": "2013-07-25T18:57:41+00:00",
+        "LogUrl": "https://s3.amazonaws.com/prod_stage-log/logs/008c1a91-ec59-4d51-971d-3adff54b00cc?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE &Expires=1375394373&Signature=HkXil6UuNfxTCC37EPQAa462E1E%3D&response-cache-control=private&response-content-encoding=gzip&response-content- type=text%2Fplain",
+        "Type": "undeploy",
+        "CommandId": "008c1a91-ec59-4d51-971d-3adff54b00cc",
+        "CreatedAt": "2013-07-25T18:57:34+00:00",
+        "ExitCode": 0
+      },
+      {
+        "Status": "successful",
+        "CompletedAt": "2013-07-25T18:55:40+00:00",
+        "InstanceId": "8c2673b9-3fe5-420d-9cfa-78d875ee7687",
+        "DeploymentId": "19d3121e-d949-4ff2-9f9d-94eac087862a",
+        "AcknowledgedAt": "2013-07-25T18:55:32+00:00",
+        "LogUrl": "https://s3.amazonaws.com/prod_stage-log/logs/899d3d64-0384-47b6-a586-33433aad117c?AWSAccessKeyId=AKIAIOSFODNN7EXAMPLE &Expires=1375394373&Signature=xMsJvtLuUqWmsr8s%2FAjVru0BtRs%3D&response-cache-control=private&response-content-encoding=gzip&response-conten t-type=text%2Fplain",
+        "Type": "deploy",
+        "CommandId": "899d3d64-0384-47b6-a586-33433aad117c",
+        "CreatedAt": "2013-07-25T18:55:29+00:00",
+        "ExitCode": 0
+      }
+    ]
+  }
+
+For more information, see `AWS OpsWorks Lifecycle Events`_ in the *OpsWorks User Guide*.
+
+.. _`AWS OpsWorks Lifecycle Events`: http://docs.aws.amazon.com/opsworks/latest/userguide/workingcookbook-events.html
+
+
+**To describe deployments**
+
+The following ``describe-deployments`` commmand describes the deployments in a specified stack::
+
+  aws opsworks --region us-east-1 describe-deployments --stack-id 38ee91e2-abdc-4208-a107-0b7168b3cc7a
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Deployments": [
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "Status": "successful",
+            "CompletedAt": "2013-07-25T18:57:49+00:00",
+            "DeploymentId": "6ed0df4c-9ef7-4812-8dac-d54a05be1029",
+            "Command": {
+                "Args": {},
+                "Name": "undeploy"
+            },
+            "CreatedAt": "2013-07-25T18:57:34+00:00",
+            "Duration": 15,
+            "InstanceIds": [
+                "8c2673b9-3fe5-420d-9cfa-78d875ee7687",
+                "9e588a25-35b2-4804-bd43-488f85ebe5b7"
+            ]
+        },
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "Status": "successful",
+            "CompletedAt": "2013-07-25T18:56:41+00:00",
+            "IamUserArn": "arn:aws:iam::123456789012:user/someuser",
+            "DeploymentId": "19d3121e-d949-4ff2-9f9d-94eac087862a",
+            "Command": {
+                "Args": {},
+                "Name": "deploy"
+            },
+            "InstanceIds": [
+                "8c2673b9-3fe5-420d-9cfa-78d875ee7687",
+                "9e588a25-35b2-4804-bd43-488f85ebe5b7"
+            ],
+            "Duration": 72,
+            "CreatedAt": "2013-07-25T18:55:29+00:00"
+        }
+    ]
+  }
+
+For more information, see `Deploying Apps`_ in the *OpsWorks User Guide*.
+
+.. _`Deploying Apps`: http://docs.aws.amazon.com/opsworks/latest/userguide/workingapps-deploying.html
+
+
+**To describe Elastic IPs**
+
+The following ``describe-elastic-ips`` commmand describes the Elastic IP addresses in a specified instance::
+
+  aws opsworks --region us-east-1 describe-elastic-ips --instance-id b62f3e04-e9eb-436c-a91f-d9e9a396b7b0
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "ElasticIps": [
+        {
+            "Ip": "192.0.2.0",
+            "Domain": "standard",
+            "Region": "us-west-2"
+        }
+    ]
+  }
+
+For more information, see Instances_ in the *OpsWorks User Guide*.
+
+.. _Instances: http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances.html
+
+
+**To describe instances**
+
+The following ``describe-instances`` commmand describes the instances in a specified stack::
+
+  aws opsworks --region us-east-1 describe-instances --stack-id 38ee91e2-abdc-4208-a107-0b7168b3cc7a
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Instances": [
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "SshHostRsaKeyFingerprint": "f4:3b:8e:27:1b:73:98:80:5d:d7:33:e2:b8:c8:8f:de",
+            "Status": "stopped",
+            "AvailabilityZone": "us-west-2a",
+            "SshHostDsaKeyFingerprint": "e8:9b:c7:02:18:2a:bd:ab:45:89:21:4e:af:0b:07:ac",
+            "InstanceId": "8c2673b9-3fe5-420d-9cfa-78d875ee7687",
+            "Os": "Amazon Linux",
+            "Hostname": "db-master1",
+            "SecurityGroupIds": [],
+            "Architecture": "x86_64",
+            "RootDeviceType": "instance-store",
+            "LayerIds": [
+                "41a20847-d594-4325-8447-171821916b73"
+            ],
+            "InstanceType": "c1.medium",
+            "CreatedAt": "2013-07-25T18:11:27+00:00"
+        },
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "SshHostRsaKeyFingerprint": "ae:3a:85:54:66:f3:ce:98:d9:83:39:1e:10:a9:38:12",
+            "Status": "stopped",
+            "AvailabilityZone": "us-west-2a",
+            "SshHostDsaKeyFingerprint": "5b:b9:6f:5b:1c:ec:55:85:f3:45:f1:28:25:1f:de:e4",
+            "InstanceId": "9e588a25-35b2-4804-bd43-488f85ebe5b7",
+            "Os": "Amazon Linux",
+            "Hostname": "tomcustom1",
+            "SecurityGroupIds": [],
+            "Architecture": "x86_64",
+            "RootDeviceType": "instance-store",
+            "LayerIds": [
+                "e6cbcd29-d223-40fc-8243-2eb213377440"
+            ],
+            "InstanceType": "c1.medium",
+            "CreatedAt": "2013-07-25T18:15:52+00:00"
+        }
+    ]
+  }
+
+For more information, see Instances_ in the *OpsWorks User Guide*.
+
+.. _Instances: http://docs.aws.amazon.com/opsworks/latest/userguide/workinginstances.html
+
+
+**To describe a stack's layers**
+
+The following ``describe-layers`` commmand describes the layers in a specified stack::
+
+  aws opsworks --region us-east-1 describe-layers --stack-id 38ee91e2-abdc-4208-a107-0b7168b3cc7a
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Layers": [
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "Type": "db-master",
+            "DefaultSecurityGroupNames": [
+                "AWS-OpsWorks-DB-Master-Server"
+            ],
+            "Name": "MySQL",
+            "Packages": [],
+            "DefaultRecipes": {
+                "Undeploy": [],
+                "Setup": [
+                    "opsworks_initial_setup",
+                    "ssh_host_keys",
+                    "ssh_users",
+                    "mysql::client",
+                    "dependencies",
+                    "ebs",
+                    "opsworks_ganglia::client",
+                    "mysql::server",
+                    "dependencies",
+                    "deploy::mysql"
+                ],
+                "Configure": [
+                    "opsworks_ganglia::configure-client",
+                    "ssh_users",
+                    "agent_version",
+                    "deploy::mysql"
+                ],
+                "Shutdown": [
+                    "opsworks_shutdown::default",
+                    "mysql::stop"
+                ],
+                "Deploy": [
+                    "deploy::default",
+                    "deploy::mysql"
+                ]
+            },
+            "CustomRecipes": {
+                "Undeploy": [],
+                "Setup": [],
+                "Configure": [],
+                "Shutdown": [],
+                "Deploy": []
+            },
+            "EnableAutoHealing": false,
+            "LayerId": "41a20847-d594-4325-8447-171821916b73",
+            "Attributes": {
+                "MysqlRootPasswordUbiquitous": "true",
+                "RubygemsVersion": null,
+                "RailsStack": null,
+                "HaproxyHealthCheckMethod": null,
+                "RubyVersion": null,
+                "BundlerVersion": null,
+                "HaproxyStatsPassword": null,
+                "PassengerVersion": null,
+                "MemcachedMemory": null,
+                "EnableHaproxyStats": null,
+                "ManageBundler": null,
+                "NodejsVersion": null,
+                "HaproxyHealthCheckUrl": null,
+                "MysqlRootPassword": "*****FILTERED*****",
+                "GangliaPassword": null,
+                "GangliaUser": null,
+                "HaproxyStatsUrl": null,
+                "GangliaUrl": null,
+                "HaproxyStatsUser": null
+            },
+            "Shortname": "db-master",
+            "AutoAssignElasticIps": false,
+            "CustomSecurityGroupIds": [],
+            "CreatedAt": "2013-07-25T18:11:19+00:00",
+            "VolumeConfigurations": [
+                {
+                    "MountPoint": "/vol/mysql",
+                    "Size": 10,
+                    "NumberOfDisks": 1
+                }
+            ]
+        },
+        {
+            "StackId": "38ee91e2-abdc-4208-a107-0b7168b3cc7a",
+            "Type": "custom",
+            "DefaultSecurityGroupNames": [
+                "AWS-OpsWorks-Custom-Server"
+            ],
+            "Name": "TomCustom",
+            "Packages": [],
+            "DefaultRecipes": {
+                "Undeploy": [],
+                "Setup": [
+                    "opsworks_initial_setup",
+                    "ssh_host_keys",
+                    "ssh_users",
+                    "mysql::client",
+                    "dependencies",
+                    "ebs",
+                    "opsworks_ganglia::client"
+                ],
+                "Configure": [
+                    "opsworks_ganglia::configure-client",
+                    "ssh_users",
+                    "agent_version"
+                ],
+                "Shutdown": [
+                    "opsworks_shutdown::default"
+                ],
+                "Deploy": [
+                    "deploy::default"
+                ]
+            },
+            "CustomRecipes": {
+                "Undeploy": [],
+                "Setup": [
+                    "tomcat::setup"
+                ],
+                "Configure": [
+                    "tomcat::configure"
+                ],
+                "Shutdown": [],
+                "Deploy": [
+                    "tomcat::deploy"
+                ]
+            },
+            "EnableAutoHealing": true,
+            "LayerId": "e6cbcd29-d223-40fc-8243-2eb213377440",
+            "Attributes": {
+                "MysqlRootPasswordUbiquitous": null,
+                "RubygemsVersion": null,
+                "RailsStack": null,
+                "HaproxyHealthCheckMethod": null,
+                "RubyVersion": null,
+                "BundlerVersion": null,
+                "HaproxyStatsPassword": null,
+                "PassengerVersion": null,
+                "MemcachedMemory": null,
+                "EnableHaproxyStats": null,
+                "ManageBundler": null,
+                "NodejsVersion": null,
+                "HaproxyHealthCheckUrl": null,
+                "MysqlRootPassword": null,
+                "GangliaPassword": null,
+                "GangliaUser": null,
+                "HaproxyStatsUrl": null,
+                "GangliaUrl": null,
+                "HaproxyStatsUser": null
+            },
+            "Shortname": "tomcustom",
+            "AutoAssignElasticIps": false,
+            "CustomSecurityGroupIds": [],
+            "CreatedAt": "2013-07-25T18:12:53+00:00",
+            "VolumeConfigurations": []
+        }
+    ]
+  }
+
+For more information, see Layers_ in the *OpsWorks User Guide*.
+
+.. _Layers: http://docs.aws.amazon.com/opsworks/latest/userguide/workinglayers.html
+
+
+**To describe stacks**
+
+The following ``describe-stacks`` command describes an account's stacks::
+
+  aws opsworks --region us-east-1 describe-stacks
+
+**Note**: OpsWorks CLI commands should set the region to us-east-1, regardless of the stack's location.
+
+Output::
+
+  {
+    "Stacks": [
+      {
+        "ServiceRoleArn": "arn:aws:iam::444455556666:role/aws-opsworks-service-role",
+        "StackId": "aeb7523e-7c8b-49d4-b866-03aae9d4fbcb",
+        "DefaultRootDeviceType": "instance-store",
+        "Name": "TomStack-sd",
+        "ConfigurationManager": {
+          "Version": "11.4",
+          "Name": "Chef"
+        },
+        "UseCustomCookbooks": true,
+        "CustomJson": "{\n  \"tomcat\": {\n    \"base_version\": 7,\n    \"java_opts\": \"-Djava.awt.headless=true -Xmx256m\"\n  },\n  \"datasources\": {\n    \"ROOT\": \"jdbc/mydb\"\n  }\n}",
+        "Region": "us-east-1",
+        "DefaultInstanceProfileArn": "arn:aws:iam::444455556666:instance-profile/aws-opsworks-ec2-role",
+        "CustomCookbooksSource": {
+          "Url": "git://github.com/example-repo/tomcustom.git",
+          "Type": "git"
+        },
+        "DefaultAvailabilityZone": "us-east-1a",
+        "HostnameTheme": "Layer_Dependent",
+        "Attributes": {
+          "Color": "rgb(45, 114, 184)"
+        },
+        "DefaultOs": "Amazon Linux",
+        "CreatedAt": "2013-08-01T22:53:42+00:00"
+      },
+      {
+        "ServiceRoleArn": "arn:aws:iam::444455556666:role/aws-opsworks-service-role",
+        "StackId": "40738975-da59-4c5b-9789-3e422f2cf099",
+        "DefaultRootDeviceType": "instance-store",
+        "Name": "MyStack",
+        "ConfigurationManager": {
+          "Version": "11.4",
+          "Name": "Chef"
+        },
+        "UseCustomCookbooks": false,
+        "Region": "us-east-1",
+        "DefaultInstanceProfileArn": "arn:aws:iam::444455556666:instance-profile/aws-opsworks-ec2-role",
+        "CustomCookbooksSource": {},
+        "DefaultAvailabilityZone": "us-east-1a",
+        "HostnameTheme": "Layer_Dependent",
+        "Attributes": {
+          "Color": "rgb(45, 114, 184)"
+        },
+        "DefaultOs": "Amazon Linux",
+        "CreatedAt": "2013-10-25T19:24:30+00:00"
+      }
+    ]
+  }
+
+For more information, see `Stacks`_ in the *OpsWorks User Guide*.
+
+.. _`Stacks`: http://docs.aws.amazon.com/opsworks/latest/userguide/workingstacks.html
+
+
+**To Describe an Amazon RDS DB instance**
+
+The following ``describe-db-instances`` command describes all DB instances that are owned by the AWS account::
+
+    aws rds describe-db-instances
+
+This command output a JSON block that contains descriptive information about all the DB instances for this AWS account.
+
+For more information, see `Describe an Amazon RDS DB Instance`_ in the *AWS Command Line Interface User Guide*.
+
+.. _`Describe an Amazon RDS DB Instance`: http://docs.aws.amazon.com/cli/latest/userguide/cli-rds-describe-instance.html
+
+
+Get a Description of All Cluster Parameter Groups
+-------------------------------------------------
+
+This example returns a description of all cluster parameter groups for the
+account, with column headers.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-parameter-groups
+
+Result::
+
+    {
+       "ParameterGroups": [
+          {
+             "ParameterGroupFamily": "redshift-1.0",
+             "Description": "My first cluster parameter group",
+             "ParameterGroupName": "myclusterparametergroup"
+          } ],
+       "ResponseMetadata": {
+          "RequestId": "8ceb8f6f-64cc-11e2-bea9-49e0ce183f07"
+       }
+    }
+
+You can also obtain the same information in text format using the ``--output text`` option.
+
+Command::
+
+   aws redshift describe-cluster-parameter-groups --output text
+
+Result::
+
+    redshift-1.0	My first cluster parameter group	myclusterparametergroup
+    RESPONSEMETADATA	9e665a36-64cc-11e2-8f7d-3b939af52818
+
+
+
+Retrieve the Parameters for a Specified Cluster Parameter Group
+---------------------------------------------------------------
+
+This example retrieves the parameters for the named parameter group.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-parameters --parameter-group-name myclusterparametergroup
+
+Result::
+
+    {
+       "Parameters": [
+          {
+             "Description": "Sets the display format for date and time values.",
+             "DataType": "string",
+             "IsModifiable": true,
+             "Source": "engine-default",
+             "ParameterValue": "ISO, MDY",
+             "ParameterName": "datestyle"
+          },
+          {
+             "Description": "Sets the number of digits displayed for floating-point values",
+             "DataType": "integer",
+             "IsModifiable": true,
+             "AllowedValues": "-15-2",
+             "Source": "engine-default",
+             "ParameterValue": "0",
+             "ParameterName": "extra_float_digits"
+          },
+          (...remaining output omitted...)
+       ]
+    }
+
+You can also obtain the same information in text format using the ``--output text`` option.
+
+Command::
+
+   aws redshift describe-cluster-parameters --parameter-group-name myclusterparametergroup --output text
+
+Result::
+
+    RESPONSEMETADATA	cdac40aa-64cc-11e2-9e70-918437dd236d
+    Sets the display format for date and time values.	string	True	engine-default	ISO, MDY	datestyle
+    Sets the number of digits displayed for floating-point values	integer	True	-15-2	engine-default	0	extra_float_digits
+    This parameter applies a user-defined label to a group of queries that are run during the same session..	string	True	engine-default	default	query_group
+    require ssl for all databaseconnections	boolean	True	true,false	engine-default	false	require_ssl
+    Sets the schema search order for names that are not schema-qualified.	string	True	engine-default	$user, public	search_path
+    Aborts any statement that takes over the specified number of milliseconds.	integer	True	engine-default	0	statement_timeout
+    wlm json configuration	string	True	engine-default	\[{"query_concurrency":5}]	wlm_json_configuration
+
+
+
+Get a Description of All Cluster Security Groups
+------------------------------------------------
+
+This example returns a description of all cluster security groups for the account.
+By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-security-groups
+
+Result::
+
+    {
+       "ClusterSecurityGroups": [
+          {
+             "OwnerId": "100447751468",
+             "Description": "default",
+             "ClusterSecurityGroupName": "default",
+             "EC2SecurityGroups": \[],
+             "IPRanges": [
+                {
+                   "Status": "authorized",
+                   "CIDRIP": "0.0.0.0/0"
+                }
+             ]
+          },
+          {
+             "OwnerId": "100447751468",
+             "Description": "This is my cluster security group",
+             "ClusterSecurityGroupName": "mysecuritygroup",
+             "EC2SecurityGroups": \[],
+             "IPRanges": \[]
+          },
+          (...remaining output omitted...)
+       ]
+    }
+
+
+Get a Description of All Cluster Snapshots
+------------------------------------------
+
+This example returns a description of all cluster snapshots for the
+account.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-snapshots
+
+Result::
+
+    {
+       "Snapshots": [
+          {
+             "Status": "available",
+             "SnapshotCreateTime": "2013-07-17T22:02:22.852Z",
+             "EstimatedSecondsToCompletion": -1,
+             "AvailabilityZone": "us-east-1a",
+             "ClusterVersion": "1.0",
+             "MasterUsername": "adminuser",
+             "Encrypted": false,
+             "OwnerAccount": "111122223333",
+             "BackupProgressInMegabytes": 20.0,
+             "ElapsedTimeInSeconds": 0,
+             "DBName": "dev",
+             "CurrentBackupRateInMegabytesPerSecond: 0.0,
+             "ClusterCreateTime": "2013-01-22T21:59:29.559Z",
+             "ActualIncrementalBackupSizeInMegabytes"; 20.0
+             "SnapshotType": "automated",
+             "NodeType": "dw.hs1.xlarge",
+             "ClusterIdentifier": "mycluster",
+             "Port": 5439,
+             "TotalBackupSizeInMegabytes": 20.0,
+             "NumberOfNodes": "2",
+             "SnapshotIdentifier": "cm:mycluster-2013-01-22-22-04-18"
+          },
+          {
+             "EstimatedSecondsToCompletion": 0,
+             "OwnerAccount": "111122223333",
+             "CurrentBackupRateInMegabytesPerSecond: 0.1534,
+             "ActualIncrementalBackupSizeInMegabytes"; 11.0,
+             "NumberOfNodes": "2",
+             "Status": "available",
+             "ClusterVersion": "1.0",
+             "MasterUsername": "adminuser",
+             "AccountsWithRestoreAccess": [
+                {
+                   "AccountID": "444455556666"
+                } ],
+             "TotalBackupSizeInMegabytes": 20.0,
+             "DBName": "dev",
+             "BackupProgressInMegabytes": 11.0,
+             "ClusterCreateTime": "2013-01-22T21:59:29.559Z",
+             "ElapsedTimeInSeconds": 0,
+             "ClusterIdentifier": "mycluster",
+             "SnapshotCreateTime": "2013-07-17T22:04:18.947Z",
+             "AvailabilityZone": "us-east-1a",
+             "NodeType": "dw.hs1.xlarge",
+             "Encrypted": false,
+             "SnapshotType": "manual",
+             "Port": 5439,
+             "SnapshotIdentifier": "my-snapshot-id"
+          } ]
+       }
+       (...remaining output omitted...)
+
+
+
+Get a Description of All Cluster Subnet Groups
+----------------------------------------------
+
+This example returns a description of all cluster subnet groups.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-subnet-groups
+
+Result::
+
+    {
+       "ClusterSubnetGroups": [
+          {
+             "Subnets": [
+                {
+                   "SubnetStatus": "Active",
+                   "SubnetIdentifier": "subnet-763fdd1c",
+                   "SubnetAvailabilityZone": {
+                      "Name": "us-east-1a"
+                   }
+                }
+             ],
+             "VpcId": "vpc-7e3fdd14",
+             "SubnetGroupStatus": "Complete",
+             "Description": "My subnet group",
+             "ClusterSubnetGroupName": "mysubnetgroup"
+          }
+       ],
+       "ResponseMetadata": {
+          "RequestId": "37fa8c89-6990-11e2-8f75-ab4018764c77"
+       }
+    }
+
+
+Get a Description of All Cluster Versions
+-----------------------------------------
+
+This example returns a description of all cluster versions.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-cluster-versions
+
+Result::
+
+    {
+       "ClusterVersions": [
+          {
+          "ClusterVersion": "1.0",
+          "Description": "Initial release",
+          "ClusterParameterGroupFamily": "redshift-1.0"
+          } ],
+       "ResponseMetadata": {
+          "RequestId": "16a53de3-64cc-11e2-bec0-17624ad140dd"
+       }
+    }
+
+
+Get a Description of All Clusters
+---------------------------------
+
+This example returns a description of all clusters for the account.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-clusters
+
+Result::
+
+    {
+       "Clusters": [
+       {
+          "NodeType": "dw.hs1.xlarge",
+          "Endpoint": {
+             "Port": 5439,
+             "Address": "mycluster.coqoarplqhsn.us-east-1.redshift.amazonaws.com"
+          },
+          "ClusterVersion": "1.0",
+          "PubliclyAccessible": "true",
+          "MasterUsername": "adminuser",
+          "ClusterParameterGroups": [
+             {
+                "ParameterApplyStatus": "in-sync",
+                "ParameterGroupName": "default.redshift-1.0"
+             } ],
+          "ClusterSecurityGroups": [
+             {
+                "Status": "active",
+                "ClusterSecurityGroupName": "default"
+             } ],
+          "AllowVersionUpgrade": true,
+          "VpcSecurityGroups": \[],
+          "AvailabilityZone": "us-east-1a",
+          "ClusterCreateTime": "2013-01-22T21:59:29.559Z",
+          "PreferredMaintenanceWindow": "sat:03:30-sat:04:00",
+          "AutomatedSnapshotRetentionPeriod": 1,
+          "ClusterStatus": "available",
+          "ClusterIdentifier": "mycluster",
+          "DBName": "dev",
+          "NumberOfNodes": 2,
+          "PendingModifiedValues": {}
+       } ],
+       "ResponseMetadata": {
+          "RequestId": "65b71cac-64df-11e2-8f5b-e90bd6c77476"
+       }
+    }
+
+You can also obtain the same information in text format using the ``--output text`` option.
+
+Command::
+
+   aws redshift describe-clusters --output text
+
+Result::
+
+    dw.hs1.xlarge	1.0	true	adminuser	True	us-east-1a	2013-01-22T21:59:29.559Z	sat:03:30-sat:04:00	1	available	mycluster	dev	2
+    ENDPOINT	5439	mycluster.coqoarplqhsn.us-east-1.redshift.amazonaws.com
+    in-sync	default.redshift-1.0
+    active	default
+    PENDINGMODIFIEDVALUES
+    RESPONSEMETADATA	934281a8-64df-11e2-b07c-f7fbdd006c67
+
+
+Get a Description of Default Cluster Parameters
+-----------------------------------------------
+
+This example returns a description of the default cluster parameters for the
+``redshift-1.0`` family. By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-default-cluster-parameters --parameter-group-family redshift-1.0
+
+Result::
+
+    {
+       "DefaultClusterParameters": {
+       "ParameterGroupFamily": "redshift-1.0",
+       "Parameters": [
+          {
+             "Description": "Sets the display format for date and time values.",
+             "DataType": "string",
+             "IsModifiable": true,
+             "Source": "engine-default",
+             "ParameterValue": "ISO, MDY",
+             "ParameterName": "datestyle"
+          },
+          {
+             "Description": "Sets the number of digits displayed for floating-point values",
+             "DataType": "integer",
+             "IsModifiable": true,
+             "AllowedValues": "-15-2",
+             "Source": "engine-default",
+             "ParameterValue": "0",
+             "ParameterName": "extra_float_digits"
+          },
+          (...remaining output omitted...)
+          ]
+       }
+    }
+
+.. tip:: To see a list of valid parameter group families, use the ``describe-cluster-parameter-groups`` command.
+
+
+Describe All Events
+-------------------
+
+this example returns all events. By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-events
+
+Result::
+
+    {
+       "Events": [
+          {
+          "Date": "2013-01-22T19:17:03.640Z",
+          "SourceIdentifier": "myclusterparametergroup",
+          "Message": "Cluster parameter group myclusterparametergroup has been created.",
+          "SourceType": "cluster-parameter-group"
+          } ],
+       "ResponseMetadata": {
+          "RequestId": "9f056111-64c9-11e2-9390-ff04f2c1e638"
+       }
+    }
+
+You can also obtain the same information in text format using the ``--output text`` option.
+
+Command::
+
+   aws redshift describe-events --output text
+
+Result::
+
+    2013-01-22T19:17:03.640Z	myclusterparametergroup	Cluster parameter group myclusterparametergroup has been created.	cluster-parameter-group
+    RESPONSEMETADATA	8e5fe765-64c9-11e2-bce3-e56f52c50e17
+
+
+
+Describing All Orderable Cluster Options
+----------------------------------------
+
+This example returns descriptions of all orderable cluster options.  By default, the output is in JSON format.
+
+Command::
+
+   aws redshift describe-orderable-cluster-options
+
+Result::
+
+    {
+       "OrderableClusterOptions": [
+          {
+             "NodeType": "dw.hs1.8xlarge",
+             "AvailabilityZones": [
+                { "Name": "us-east-1a" },
+                { "Name": "us-east-1b" },
+                { "Name": "us-east-1c" } ],
+             "ClusterVersion": "1.0",
+             "ClusterType": "multi-node"
+          },
+          {
+             "NodeType": "dw.hs1.xlarge",
+             "AvailabilityZones": [
+                { "Name": "us-east-1a" },
+                { "Name": "us-east-1b" },
+                { "Name": "us-east-1c" } ],
+             "ClusterVersion": "1.0",
+             "ClusterType": "multi-node"
+          },
+          {
+          "NodeType": "dw.hs1.xlarge",
+          "AvailabilityZones": [
+             { "Name": "us-east-1a" },
+             { "Name": "us-east-1b" },
+             { "Name": "us-east-1c" } ],
+          "ClusterVersion": "1.0",
+          "ClusterType": "single-node"
+          } ],
+       "ResponseMetadata": {
+          "RequestId": "f6000035-64cb-11e2-9135-ff82df53a51a"
+       }
+    }
+
+You can also obtain the same information in text format using the ``--output text`` option.
+
+Command::
+
+   aws redshift describe-orderable-cluster-options --output text
+
+Result::
+
+    dw.hs1.8xlarge	1.0	multi-node
+    us-east-1a
+    us-east-1b
+    us-east-1c
+    dw.hs1.xlarge	1.0	multi-node
+    us-east-1a
+    us-east-1b
+    us-east-1c
+    dw.hs1.xlarge	1.0	single-node
+    us-east-1a
+    us-east-1b
+    us-east-1c
+    RESPONSEMETADATA	e648696b-64cb-11e2-bec0-17624ad140dd
+
+
+
+Describe Reserved Node Offerings
+--------------------------------
+
+This example shows all of the reserved node offerings that are available for
+purchase.
+
+Command::
+
+   aws redshift describe-reserved-node-offerings
+
+Result::
+
+    {
+       "ReservedNodeOfferings": [
+          {
+             "OfferingType": "Heavy Utilization",
+             "FixedPrice": "",
+             "NodeType": "dw.hs1.xlarge",
+             "UsagePrice": "",
+             "RecurringCharges": [
+                {
+                   "RecurringChargeAmount": "",
+                   "RecurringChargeFrequency": "Hourly"
+                } ],
+             "Duration": 31536000,
+             "ReservedNodeOfferingId": "ceb6a579-cf4c-4343-be8b-d832c45ab51c"
+          },
+          {
+             "OfferingType": "Heavy Utilization",
+             "FixedPrice": "",
+             "NodeType": "dw.hs1.8xlarge",
+             "UsagePrice": "",
+             "RecurringCharges": [
+                {
+                "RecurringChargeAmount": "",
+                "RecurringChargeFrequency": "Hourly"
+                } ],
+             "Duration": 31536000,
+             "ReservedNodeOfferingId": "e5a2ff3b-352d-4a9c-ad7d-373c4cab5dd2"
+          },
+          ...remaining output omitted...
+       ],
+       "ResponseMetadata": {
+          "RequestId": "8b1a1a43-75ff-11e2-9666-e142fe91ddd1"
+       }
+    }
+
+If you want to purchase a reserved node offering, you can call ``purchase-reserved-node-offering`` using a valid
+*ReservedNodeOfferingId*.
+
+
+Describe Reserved Nodes
+-----------------------
+
+This example shows a reserved node offering that has been purchased.
+
+Command::
+
+   aws redshift describe-reserved-nodes
+
+Result::
+
+    {
+       "ResponseMetadata": {
+          "RequestId": "bc29ce2e-7600-11e2-9949-4b361e7420b7"
+       },
+       "ReservedNodes": [
+          {
+             "OfferingType": "Heavy Utilization",
+             "FixedPrice": "",
+             "NodeType": "dw.hs1.xlarge",
+             "ReservedNodeId": "1ba8e2e3-bc01-4d65-b35d-a4a3e931547e",
+             "UsagePrice": "",
+             "RecurringCharges": [
+                {
+                   "RecurringChargeAmount": "",
+                   "RecurringChargeFrequency": "Hourly"
+                } ],
+             "NodeCount": 1,
+             "State": "payment-pending",
+             "StartTime": "2013-02-13T17:08:39.051Z",
+             "Duration": 31536000,
+             "ReservedNodeOfferingId": "ceb6a579-cf4c-4343-be8b-d832c45ab51c"
+          }
+       ]
+    }
+
+
+Describe Resize
+---------------
+
+This example describes the latest resize of a cluster. The request was for 3 nodes of type ``dw.hs1.8xlarge``.
+
+Command::
+
+   aws redshift describe-resize --cluster-identifier mycluster
+
+Result::
+
+    {
+       "Status": "NONE",
+       "TargetClusterType": "multi-node",
+       "TargetNodeType": "dw.hs1.8xlarge",
+       "ResponseMetadata": {
+          "RequestId": "9f52b0b4-7733-11e2-aa9b-318b2909bd27"
+       },
+       "TargetNumberOfNodes": "3"
+    }
+
+
+**To describe a gateway**
+
+The following ``describe-gateway-information`` command returns metadata about the specified gateway.
+To specify which gateway to describe, use the Amazon Resource Name (ARN) of the gateway in the command.
+This examples specifies the gateway named "ExampleGateway".
+
+::
+
+    aws storagegateway describe-gateway-information --gateway-arn "arn:aws:storagegateway:us-east-1:111122223333:gateway/ExampleGateway"
+
+This command outputs a JSON block that contains metadata about about the gateway such as its name,
+network interfaces, configured time zone, and the state (whether the gateway is running or not).
+
+Getting Information About a Domain
+----------------------------------
+
+To get detailed information about a particular domain, use the
+``swf describe-domain`` command. There is one required parameter:
+``--name``, which takes the name of the domain you want information
+about. For example:
+
+::
+
+    $ aws swf describe-domain --name DataFrobotz
+    {
+        "domainInfo": {
+            "status": "REGISTERED",
+            "name": "DataFrobotz"
+        },
+        "configuration": {
+            "workflowExecutionRetentionPeriodInDays": "1"
+        }
+    }
+
+You can also use ``describe-domain`` to get information about deprecated
+domains:
+
+::
+
+    $ aws swf describe-domain --name MyNeatNewDomain
+    {
+        "domainInfo": {
+            "status": "DEPRECATED",
+            "name": "MyNeatNewDomain"
+        },
+        "configuration": {
+            "workflowExecutionRetentionPeriodInDays": "0"
+        }
+    }
+
+See Also
+--------
+
+-  `DescribeDomain <http://docs.aws.amazon.com/amazonswf/latest/apireference/API_DescribeDomain.html>`__
+   in the *Amazon Simple Workflow Service API Reference*
+
+
+==========================
+Building The Documentation
+==========================
+
+Before building the documentation, make sure you have all the
+necessary dependencies installed.  You can do this by using
+the requirements.txt file at the root of this repo::
+
+    pip install -r requirements.txt
+
+The process for building the documention is:
+
+* Run ``make html`` which will build all of the HTML documentation
+  into the ``build/html`` directory.
+
+* Run ``make man`` which will build all of the man pages into
+  ``../doc/man/man1``.  These files are included in the source
+  distribution and installed by ``python setup.py install``.
+
+* Run ``make text`` which will build all of the text pages that
+  are used for interactive help on the Window platform.  These files
+  are included in the source distribution and installed by
+  ``python setup.py install``.
+
+You can perform all of these tasks by running ``make all`` in this
+directory.  If you have previously built the documentation and want
+to regenerate it, run ``make clean`` first.
+
+=======
+aws-cli
+=======
+
+.. image:: https://travis-ci.org/aws/aws-cli.png?branch=develop
+   :target: https://travis-ci.org/aws/aws-cli
+   :alt: Build Status
+
+This package provides a unified command line interface to many
+Amazon Web Services.
+
+The currently supported services include:
+
+* AWS CloudFormation
+* AWS Data Pipeline (Preview)
+* AWS Direct Connect
+* AWS Elastic Beanstalk
+* AWS Identity and Access Management
+* AWS Import/Export
+* AWS OpsWorks
+* AWS Security Token Service
+* AWS Storage Gateway
+* AWS Support
+* Amazon CloudFront (Preview)
+* Amazon CloudSearch
+* Amazon CloudWatch
+* Amazon DynamoDB
+* Amazon ElastiCache
+* Amazon Elastic Compute Cloud
+* Amazon Elastic MapReduce (Preview)
+* Amazon Elastic Transcoder
+* Amazon Kinesis
+* Amazon Redshift
+* Amazon Relational Database Service (Beta)
+* Amazon Route 53
+* Amazon Simple Email Service
+* Amazon Simple Notification Service
+* Amazon Simple Queue Service
+* Amazon Storage Gateway
+* Amazon Simple Storage Service
+* Amazon Simple Workflow Service
+* Auto Scaling
+* Elastic Load Balancing
+
+
+The aws-cli package works on Python versions:
+
+* 2.6.5 and greater
+* 2.7.x and greater
+* 3.3.x and greater
+
+.. attention::
+   We recommend that all customers regularly monitor the
+   `Amazon Web Services Security Bulletins website`_ for any important security bulletins related to
+   aws-cli.
+
+
+------------
+Installation
+------------
+
+The easiest way to install aws-cli is to use `pip`_::
+
+    $ pip install awscli
+
+or, if you are not installing in a ``virtualenv``::
+
+    $ sudo pip install awscli
+
+If you have the aws-cli installed and want to upgrade to the latest version
+you can run::
+
+    $ pip install --upgrade awscli
+
+This will install the aws-cli package as well as all dependencies.  You can
+also just `download the tarball`_.  Once you have the
+awscli directory structure on your workstation, you can just run::
+
+    $ cd <path_to_awscli>
+    $ python setup.py install
+
+If you want to run the ``develop`` branch of the CLI, see the
+"CLI Dev Version" section below.
+
+
+------------
+CLI Releases
+------------
+
+The release notes for the AWS CLI can be found `here <http://aws.amazon.com/releasenotes/CLI>`__.
+You can also find a `CHANGELOG <https://github.com/aws/aws-cli/blob/develop/CHANGELOG.rst>`__
+in the github repo.
+
+
+------------------
+Command Completion
+------------------
+
+The aws-cli package includes a very useful command completion feature.
+This feature is not automatically installed so you need to configure it manually.
+To enable tab completion for bash use the built-in command ``complete``::
+
+    $ complete -C aws_completer aws
+
+For tcsh::
+
+    $ complete aws 'p/*/`aws_completer`/'
+
+You should add this to your startup scripts to enable it for future sessions.
+
+For zsh please refer to bin/aws_zsh_completer.sh.  Source that file::
+
+    $ source bin/aws_zsh_completer.sh
+
+For now the bash compatibility auto completion (bashcompinit) is used.
+For further details please refer to the top of bin/aws_zsh_completer.sh.
+
+---------------
+Getting Started
+---------------
+
+Before using aws-cli, you need to tell it about your AWS credentials.  You
+can do this in several ways:
+
+* Environment variables
+* Config file
+* IAM Role
+
+To use environment variables, do the following::
+
+    $ export AWS_ACCESS_KEY_ID=<access_key>
+    $ export AWS_SECRET_ACCESS_KEY=<secret_key>
+
+To use a config file, create a configuration file like this::
+
+    [default]
+    aws_access_key_id=<default access key>
+    aws_secret_access_key=<default secret key>
+    # Optional, to define default region for this profile.
+    region=us-west-1
+
+    [profile testing]
+    aws_access_key_id=<testing access key>
+    aws_secret_access_key=<testing secret key>
+    region=us-west-2
+
+and place it in ``~/.aws/config`` (or in ``%UserProfile%\.aws\config`` on Windows).
+
+As you can see, you can have multiple ``profiles`` defined in this
+configuration file and specify which profile to use by using the ``--profile``
+option.  If no profile is specified the ``default`` profile is used.  Except
+for the default profile, you **must** prefix each config section of a profile
+group with ``profile``.  For example, if you have a profile named "testing" the
+section header would be ``[profile testing]``.
+
+If you wish to place the config file in a different location than the one
+specified above, you need to tell aws-cli where to find it.  Do this by setting
+the appropriate environment variable::
+
+    $ export AWS_CONFIG_FILE=/path/to/config_file
+
+The final option for credentials is highly recommended if you are
+using aws-cli on an EC2 instance.  IAM Roles are
+a great way to have credentials installed automatically on your
+instance.  If you are using IAM Roles, aws-cli will find them and use
+them automatically.
+
+----------------------------
+Other Configurable Variables
+----------------------------
+
+In addition to credentials, a number of other variables can be
+configured either with environment variables, configuration file
+entries or both.  The following table documents these.
+
+=========== ========= ===================== ===================== ============================
+Variable    Option    Config Entry          Environment Variable  Description
+=========== ========= ===================== ===================== ============================
+profile     --profile profile               AWS_DEFAULT_PROFILE   Default profile name
+----------- --------- --------------------- --------------------- ----------------------------
+region      --region  region                AWS_DEFAULT_REGION    Default AWS Region
+----------- --------- --------------------- --------------------- ----------------------------
+config_file                                 AWS_CONFIG_FILE       Alternate location of config
+----------- --------- --------------------- --------------------- ----------------------------
+output      --output  output                AWS_DEFAULT_OUTPUT    Default output style
+----------- --------- --------------------- --------------------- ----------------------------
+access_key            aws_access_key_id     AWS_ACCESS_KEY_ID     AWS Access Key
+----------- --------- --------------------- --------------------- ----------------------------
+secret_key            aws_secret_access_key AWS_SECRET_ACCESS_KEY AWS Secret Key
+----------- --------- --------------------- --------------------- ----------------------------
+token                 aws_security_token    AWS_SECURITY_TOKEN    AWS Token (temp credentials)
+=========== ========= ===================== ===================== ============================
+
+^^^^^^^^
+Examples
+^^^^^^^^
+
+If you get tired of specifying a ``--region`` option on the command line
+all of the time, you can specify a default region to use whenever no
+explicit ``--region`` option is included using the ``region`` variable.
+To specify this using an environment variable::
+
+    $ export AWS_DEFAULT_REGION=us-west-2
+
+To include it in your config file::
+
+    [default]
+    aws_access_key_id=<default access key>
+    aws_secret_access_key=<default secret key>
+    region=us-west-1  # This will be used as the default
+
+Similarly, the ``profile`` variable can be used to specify which profile to use
+if one is not explicitly specified on the command line via the
+``--profile`` option.  To set this via environment variable::
+
+    $ export AWS_DEFAULT_PROFILE=testing
+
+The ``profile`` variable can not be specified in the configuration file
+since it would have to be associated with a profile and would defeat the
+purpose.
+
+----------------------------------------
+Accessing Services With Global Endpoints
+----------------------------------------
+
+Some services, such as AWS Identity and Access Management (IAM),
+AWS Security Token Service (STS), and Amazon Simple Email Service (SES)
+have a single, global endpoint rather than different endpoints for
+each region.
+
+To make access to these services simpler, aws-cli will automatically
+use the global endpoint unless you explicitly supply a region (using
+the ``--region`` option) or a profile (using the ``--profile`` option).
+Therefore, the following::
+
+    $ aws iam list-users
+
+Will automatically use the global endpoint for the IAM service
+regardless of the value of the ``AWS_DEFAULT_REGION`` environment
+variable or the ``region`` variable specified in your profile.
+
+--------------------
+JSON Parameter Input
+--------------------
+
+Many options that need to be provided are simple string or numeric
+values.  However, some operations require JSON data structures
+as input parameters either on the command line or in files.
+
+For example, consider the command to authorize access to an EC2
+security group.  In this case, we will add ingress access to port 22
+for all IP addresses::
+
+    $ aws ec2 authorize-security-group-ingress --group-name MySecurityGroup \
+      --ip-permissions '{"FromPort":22,"ToPort":22,"IpProtocol":"tcp","IpRanges":[{"CidrIp": "0.0.0.0/0"}]}'
+
+--------------------------
+File-based Parameter Input
+--------------------------
+
+Some parameter values are so large or so complex that it would be easier
+to place the parameter value in a file and refer to that file rather than
+entering the value directly on the command line.
+
+Let's use the ``authorize-security-group-ingress`` command shown above.
+Rather than provide the value of the ``--ip-permissions`` parameter directly
+in the command, you could first store the values in a file.  Let's call
+the file ip_perms.json::
+
+    {"FromPort":22,
+     "ToPort":22,
+     "IpProtocol":"tcp",
+     "IpRanges":[{"CidrIp":"0.0.0.0/0"}]}
+
+Then, we could make the same call as above like this::
+
+    $ aws ec2 authorize-security-group-ingress --group-name MySecurityGroup \
+        --ip-permissions file://ip_perms.json
+
+The ``file://`` prefix on the parameter value signals that the parameter value
+is actually a reference to a file that contains the actual parameter value.
+aws-cli will open the file, read the value and pass use that value as the
+parameter value.
+
+This is also useful when the parameter is really referring to file-based
+data.  For example, the ``--user-data`` option of the ``aws ec2 run-instances``
+command or the ``--public-key-material`` parameter of the
+``aws ec2 import-key-pair`` command.
+
+-------------------------
+URI-based Parameter Input
+-------------------------
+
+Similar to the file-based input described above, aws-cli also includes a
+way to use data from a URI as the value of a parameter.  The idea is exactly
+the same except the prefix used is ``https://`` or ``http://``::
+
+    $ aws ec2 authorize-security-group-ingress --group-name MySecurityGroup \
+        --ip-permissions http://mybucket.s3.amazonaws.com/ip_perms.json
+
+--------------
+Command Output
+--------------
+
+The default output for commands is currently JSON.  This may change in the
+future but for now it provides the most complete output.  You may find the
+`jq <http://stedolan.github.com/jq/>`_ tool useful in processing the JSON
+output for other uses.
+
+There is also an ASCII table format available.  You can select this
+style with the ``--output`` option or you can make this style your default
+output style via environment variable or config file entry as described above.
+
+
+---------------
+CLI Dev Version
+---------------
+
+If you are just interested in using the latest released version of the AWS CLI,
+please see the "Installation" section above.  This section is for anyone that
+wants to install the development version of the CLI.  You normally would not
+need to do this unless:
+
+* You are developing a feature for the CLI and plan on submitting a Pull
+  Request.
+* You want to test the latest changes of the CLI before they make it into an
+  official release.
+
+The latest changes to the CLI are in the ``develop`` branch on github.  This is
+the default branch when you clone the git repository.
+
+Additionally, there are several other packages that are developed in tandem
+with the CLI.  This includes:
+
+* `botocore <https://github.com/boto/botocore>`__
+* `bcdoc <https://github.com/boto/bcdoc>`__
+* `jmespath <https://github.com/boto/jmespath>`__
+
+If you just want to install a snapshot of the latest development version of
+the CLI, you can use the ``requirements.txt`` file included in this repo.
+This file points to the development version of the above packages::
+
+    cd <path_to_awscli>
+    pip install -r requirements.txt
+    pip install -e .
+
+However, to keep up to date, you will continually have to run the
+``pip install -r requirements.txt`` file to pull in the latest changes
+from the develop branches of botocore, bcdoc, etc.
+
+You can optionally clone each of those repositories and run "pip install -e ."
+for each repository::
+
+    git clone <jmespath> && cd jmespath/
+    pip install -e . && cd ..
+    git clone <bcdoc> && cd bcdoc/
+    pip install -e . &&  cd ..
+    git clone <botocore> && cd botocore/
+    pip install -e . && cd ..
+    git clone <awscli> && cd aws-cli/
+    pip install -e .
+
+
+.. _`Amazon Web Services Security Bulletins website`: https://aws.amazon.com/security/security-bulletins
+.. _pip: http://www.pip-installer.org/en/latest/
+.. _`download the tarball`: https://pypi.python.org/pypi/awscli
+

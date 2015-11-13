@@ -1,0 +1,507 @@
+tabular-predDB/cython_code
+==============
+
+tabular predictive database cython wrapping
+
+Instructions for building
+-------------------------------------------------
+    > cd /path/to/tabular-predDB/cython_code
+    > make
+
+Running tests
+---------------------------
+    > cd /path/to/tabular-predDB/cython_code
+    > # capture stdout, stderr separately
+    > python state_test.py >out 2>err &
+
+crosscat/jsonrpc_http
+==============
+
+crosscat JSONRPCEngine stub server
+
+Running tests
+---------------------------
+    dirname=/path/to/crosscat
+    # Start the server
+    bash $dirname/scripts/service_scripts/run_server.sh
+    cd $dirname/crosscat/jsonrpc_http
+    # this is currently broken!
+    python stub_client_jsonrpc.py >stub_client_jsonrpc.out 2>stub_client_jsonrpc.err
+    python test_engine.py >test_engine.out 2>test_engine.err
+    # Kill the server
+    pkill -f server_jsonrpc
+
+# Component model class extensions for quality testing
+
+This document covers how to extend the cython class in python so that new data types can be added to quality tests.
+
+## Adding the git hook
+
+The hook script is `git_unittest_hook.sh` in the crosscat root directory. To add a pre-commit hook copy the contents of the file to `.git/hooks/pre-commit` then make it executable.
+
+	chmod +x .git/hooks/pre-commit
+
+The tests will run before each commit. You should see something like this:
+
+	$ git commit -m "added tests and documentation"
+	....................................................................
+	----------------------------------------------------------------------
+	Ran 68 tests in 0.054s
+
+	OK
+	[inference_testing_framework d551512] added tests and documentation
+	 10 files changed, 705 insertions(+), 21 deletions(-)
+
+## Quality testing considerations
+
+### Unit tests
+
+All unit tests use the `unittest` module and should go in the `unit_tests` folder. The git hook will automatically run all tests in the `unit_tests` folder.
+
+**Note:** Quality tests are separate from unit_tests because they rely on random processes (and sometime fail for statistically valid reasons [mixing]) and take over a minute to run. They should not be included in the pre-commit hook.
+
+### Error and goodness-of-fit
+
+The quality tests depend on goodness-of-fit and error measures. The default error measure (between the original data and predictive samples) is the mean sum of squares, the default goodness-of-fit test is a 2-sample Kolmogorov–Smirnov test. These test are not appropriate for categorical (multinomial) data so a conditional statement adds Chi-square tests for discrete data. 
+
+Other data types may require other test, in which case it might be a good idea to create a more robust conditional statement or to add specific error and goodness-of-fit utilities.
+
+### Data generation
+
+- The `gen_data` method in the `synthetic_data_generator` module may require additional arguments for your data type (see code for detailed documentation).
+
+- The `gen_data` method depends on a separation coefficient, C, that determines how well-separated the component model distributions are. C=0 implies that the distributions are identical and C=1 implies that they are well separated. You will need to add a routine to `generate_separated_model_parameters` to accomplish this.
+
+- The methods in `synthetic_data_generator` do a considerable amount of input validation. Please add to this when you add your data type. You will also need to add to the unit tests in `unit_tests/test_synthetic_data_generator.py`
+
+## Extending component models for testing
+
+This portion of the document will go over what methods and properties to add to your component model class.
+
+- If they do not exist, you will need to add methods to the cython class that retrieve the sufficient statistics and hyperparameters of the component model. 
+
+- For examples see `crosscat/tests/component_model_extensions`
+
+## Added properties:
+
+The following properties must be added
+
+### `cctype`
+
+The string value of the cctype, or variable type. For example, the current component models have cctypes `continuous` and `mutlinomial`. For consistency, this value should match the value used in BayesDB and in the state initialization code.
+
+### `model_type`
+
+The string value of the model type. For example, the current component models have model_type `normal_inverse_gammas` and `symmetric_dirichlet_discrete`. For consistency, this value should match the value used in the CrossCat metadata.
+
+## Added Methods:
+
+The following methods must be added
+
+## constructors
+
+###  from_parameters
+
+	@classmethod
+	def from_parameters(cls, N, data_params=default_data_parameters, hypers=None, gen_seed=0):
+
+Initialize a continuous component model with sufficient statistics generated from random data.
+
+**Inputs:**
+- N: the number of data points
+- data_params: (optional) a dict of distribution parameters
+- hypers: (optional) a dict of hyperparameters
+- gen_seed: (optional) an integer from which the rng is seeded
+
+
+### from_data
+
+	@classmethod
+    def from_data(cls, X, hypers=None, gen_seed=0):
+
+Initialize a continuous component model with sufficient statistics generated from data X
+
+**Inputs:**
+- X: a column of data (numpy)
+- hypers: (optional) dict of hyperparameters
+- gen_seed: (optional) a int to seed the rng
+
+## Probability
+
+### uncollapsed_likelihood
+
+	uncollapsed_likelihood(self, X, parameters)
+
+Calculates the score of the data X under this component model with given parameters. Likelihood * prior.
+
+*FIXME: Maybe change the name to log_score?*
+
+**Inputs:**
+- X: A column of data (numpy)
+- parameters: a dict of component model parameters
+
+**Returns:**
+- log_p: a float
+
+### log_likelihood
+
+	@staticmethod
+	def log_likelihood(X, parameters):
+
+Calculates the log likelihood of the data X given parameters
+
+**Inputs:**
+- X: a column of data (numpy)
+- parameters: a dict of component model parameters
+
+**Returns:**
+- log_likelihood: float. the likelihood to the data X
+
+### log_pdf
+
+	@staticmethod
+	def log_pdf(X, parameters):
+
+ Calculates the pdf for each point in the data X given parameters
+
+**Inputs:**
+- X: a column of data (numpy)
+- parameters: a dict of component model parameters
+
+**Returns:**
+- log_pdf: numpy.ndarray. the logpdf for each element in X
+
+### cdf
+
+cdf(X, parameters):
+
+	@staticmethod
+	def cdf(X, parameters):
+
+Calculates the cdf for each point in the data X given parameters
+
+**Inputs:**
+- X: a column of data (numpy)
+- parameters: a dict with the following keys
+
+**Returns:**
+- cdf: numpy.ndarray cdf of each element in X
+
+## Sampling
+
+### sample_parameters_given_hyper
+
+	def sample_parameters_given_hyper(self, gen_seed=0):
+
+Samples a set of component model parameter given the current hyperparameters
+
+**Inputs:**
+- gen_seed: integer used to seed the rng
+
+**Returns:**
+- params: dict of component model parameters
+
+### draw_hyperparameters
+
+	@staticmethod
+    def draw_hyperparameters(X, n_draws=1, gen_seed=0):
+
+Draws hyperparameters from the same distribution that generates the grid in the C++ code.
+
+**Inputs:**
+- X: a column of data (numpy)
+- n_draws: (optional) the number of draws
+- gen_seed: (optional) seed the rng
+
+**Returns:**
+- A list of dicts of draws where each entry has keys for each hyperparameter
+
+### generate_data_from_parameters
+
+	@staticmethod
+    def generate_data_from_parameters(params, N, gen_seed=0):
+
+Generates data from the distribution defined by params
+
+**Inputs:**
+- params: a dict of component model parameters
+- N: number of data points
+- gen_seed: (optional) integer seed for rng
+
+**Returns:**
+- X: numpy.ndarray of N data points
+
+## Utility
+
+### generate_discrete_support
+
+**Continuous:**
+	
+	@staticmethod
+    def generate_discrete_support(params, support=0.95, nbins=100):
+
+**Discrete:**
+
+	@staticmethod
+    def generate_discrete_support(params):
+
+If continuous, returns a nbins-length set of points along the support interval; if discrete and bounded, returns the entire support. Inputs will vary by data type, but the only required parameter should be the component model parameters; other parameters should have default values.
+
+
+Crosscat
+--------------
+
+CrossCat is a domain-general, Bayesian method for analyzing high-dimensional data tables. CrossCat estimates the full joint distribution over the variables in the table from the data, via approximate inference in a hierarchical, nonparametric Bayesian model, and provides efficient samplers for every conditional distribution. CrossCat combines strengths of nonparametric mixture modeling and Bayesian network structure learning: it can model any joint distribution given enough data by positing latent variables, but also discovers independencies between the observable variables.
+
+A range of exploratory analysis and predictive modeling tasks can be addressed via CrossCat, including detecting predictive relationships between variables, finding multiple overlapping clusterings, imputing missing values, and simultaneously selecting features and classifying rows. Research on CrossCat has shown that it is suitable for analysis of real-world tables of up to 10 million cells, including hospital cost and quality measures, voting records, handwritten digits, and state-level unemployment time series.
+
+# Installation
+
+### VM
+
+We provide a [VirtualBox VM](https://docs.google.com/file/d/0B_x0H2s37jOVanBmYVJMWElPQWM/edit?usp=drive_web) ([VM_README](https://github.com/mit-probabilistic-computing-project/vm-install-crosscat/blob/master/VM_README.md)) for small scale testing of CrossCat.
+
+**Note**: The VM is only meant to provide an out-of-the-box usable system setup.  Its resources are limited and large jobs will fail due to memory errors.  To run larger jobs, increase the VM resources or install directly to your system.
+
+### Local (Ubuntu)
+
+**We recommend using the VM when possible to preclude any issues that might arise from installing locally**
+
+**Please read the install scripts and consider their implications before using**
+
+CrossCat can be successfully installed locally on bare Ubuntu server 12.04 systems with
+
+    git clone https://github.com/mit-probabilistic-computing-project/crosscat.git
+    sudo bash crosscat/scripts/install_scripts/install.sh
+    sudo python crosscat/setup.py install
+
+# Documentation
+
+
+[Python Client](https://docs.google.com/file/d/0B_CtKGJ4pH2TdmNRZkhmamg5aVU/edit?usp=drive_web)
+
+[C++ backend](https://docs.google.com/file/d/0B_CtKGJ4pH2TeVo0Zk5IT3V6S0E/edit?usp=drive_web)
+
+# Example
+
+dha\_example.py ([github](https://github.com/mit-probabilistic-computing-project/crosscat/blob/master/examples/dha_example.py)) is a basic example of analysis using CrossCat.  For a first test, run the following from above the top level crosscat dir
+
+    python crosscat/examples/dha_example.py crosscat/www/data/dha.csv --num_chains 2 --num_transitions 2
+
+
+**Note**: the default argument values take a considerable amount of time to run and are best suited to a cluster.
+
+# License
+
+[Apache License, Version 2.0](https://github.com/mit-probabilistic-computing-project/crosscat/blob/master/LICENSE)
+
+CrossCat on StarCluster
+=======================
+
+This package is configured to be installed as a StarCluster plugin.  Roughly, the following are prerequisites.
+
+* An [Amazon EC2](http://aws.amazon.com/ec2/) account
+    * [EC2 key pair](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/generating-a-keypair.html)
+* [StarCluster](http://star.mit.edu/cluster/) installed on your local machine
+    * ~/.starcluster/config file includes this repo's [starcluster.config](https://github.com/mit-probabilistic-computing-project/crosscat/blob/master/starcluster.config) by including the following line in the [global] section
+
+     INCLUDE=/path/to/crosscat/starcluster.config
+* You are able to start a 'smallcluster' cluster as defined in the default StarCluster config file
+    * Make sure to fill in your credentials **and** have a properly defined keypair
+
+     AWS_ACCESS_KEY_ID = #your_aws_access_key_id
+     
+     AWS_SECRET_ACCESS_KEY = #your_secret_access_key
+     
+     AWS_USER_ID= #your userid
+     
+     KEYNAME = mykey
+
+    * To generate the default StarCluster config file, run
+
+     starcluster -c [NONEXISTANT_FILE] help
+
+A starcluster_plugin.py file in included in this repo.  Assuming the above prerequisites are fulfilled,
+
+    local> starcluster start -s 1 -c crosscat [CLUSTER_NAME]
+
+should start a single c1.medium StarCluster server on EC2, install the necessary software and compile the engine.
+
+Everything will be set up for a user named 'crosscat'.  Required python packages will be installed to the system python.
+
+
+Starting the engine
+---------------------------
+    local> starcluster sshmaster [CLUSTER_NAME] -u crosscat
+    crosscat> bash /path/to/crosscat/scripts/service_scripts/run_server.sh
+    crosscat> # test with 'python test_engine.py'
+
+Setting up password login via ssh
+---------------------------------
+    local> starcluster sshmaster [CLUSTER_NAME]
+    root> bash /home/crosscat/scripts/install_scripts/setup_password_login.sh -p <PASSWORD>
+
+## [Creating an AMI](http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/ApiReference-cmd-CreateImage.html) from booted instance
+
+* Determine the instance id of the instance you want to create an AMI from.
+   * You can list all instances with
+    
+    starcluster listinstances
+    
+* make sure you have your private key and X.509 certificate
+   * your private key file, PRIVATE_KEY_FILE below, usually looks like pk-\<NUMBERS\_AND\_LETTERS\>.pem
+   * your X.509 certificate file, CERT_FILE below, usually looks like cert-\<NUMBERS\_AND\_LETTERS\>.pem
+
+Note, this will temporarily shut down the instance
+
+    local> nohup ec2cim <instance-id> [--name <NAME>] [-d <DESCRIPTION>] -K ~/.ssh/<PRIVATE_KEY_FILE> -C ~/.ssh/<CERT_FILE> >out 2> err
+
+
+This will start the process of creating the AMI.  It will print 'IMAGE [AMI-NAME]' to the file 'out'.  Record AMI-NAME and modify ~/.starcluster/config to use that for the crosscat cluster's NODE\_IMAGE\_ID.
+
+<!---
+Caching HTTPS password
+----------------------
+When a StarCluster machine is spun up, its .git origin is changed to the github https address.  You can perform git operations but github repo operations will require a password.  You can cache the password by performing the following operations (from the related github [help page](https://help.github.com/articles/set-up-git#password-caching))
+
+     crosscat> git config --global credential.helper cache
+     crosscat> git config --global credential.helper 'cache --timeout=3600'
+
+This requires git 1.7.10 or higher.  To get on ubuntu, do
+sudo add-apt-repository ppa:git-core/ppa
+sudo apt-get update
+sudo apt-get install -y git
+--->
+
+# Mac OSX installation
+
+**Intended for CrossCat development only. The virtual machine is the preferred method of installation.**
+
+## Notes
+- Tested on OSX 10.7, 10.8, and 10.9
+- Requires XCode with command line tools
+- Requires [Homebrew](http://brew.sh/)
+
+
+## System impact
+- Installs CrossCat in a python [virtual environmentt](https://pypi.python.org/pypi/virtualenv) which is an isolated development environmental with its own modules (so it won't mess with your system modules)
+- Adds the following environmental variables to `~/.bash_profile`
+ - adds crosscat repo directory to `PYTHONPATH`
+ - adds the virtual environment variable `WORKON_HOME`
+ - adds `CROSSCAT_BOOST_ROOT` which tells the crosscat makefile where [boost](http://www.boost.org/) is installed
+
+
+## Installation Instructions
+
+Make the installation script executable
+
+     $ chmod +x install_mac.sh
+
+Run the script.
+
+     $ ./install_mac.sh
+
+ **Note:** The installation takes a while to complete. You will be prompted for your password multiple times.
+ 
+The script installs all python dependencies in a virtual environment called `crosscat`. If the installer detects an existing `crosscat` virtual environment, you have the option to delete and reinstall or to create a new virtual environment. 
+
+##Recompiling the Cython/C++ code
+
+The install script will compile the code for you, but if you wish to compile it yourself there is a makefile in `crosscat/cython_code` that will allow you to do so. Run it with the following command
+
+	$ make -f Makefile.mac
+
+The makefile requires that the environmental variable `CROSSCAT_BOOST_ROOT` exists and is set to the path that houses your Boost headers. If you have run the install script, you are set; the following line (or similar) has been added to your `~/.bash_profile`:
+
+	export CROSSCAT_BOOST_ROOT=/usr/local/Cellar/boost/1.54.0/include
+
+If you run the makefile and are told that everything is up-to-date run
+
+	$ make -f Makefile.mac clean
+
+to remove the compiled files and then run the makefile to compile.
+
+## Running code
+
+You will need to either source your `bash_profile`
+
+	$ source ~/.bash_profile	
+
+or reopen terminal. Then enter your virtual environment
+
+	$ workon crosscat
+
+At this point you should be good to go.
+VM setup
+========
+
+There are two steps to VM setup.
+
+1. In the `host` OS, we'll set up the VM
+1. In the `guest` OS, we'll run tests to verify functionality
+
+Afterwards, you can install Jenkins to the VM if desired by following the steps in Installing Jenkins in this README
+
+Setting up the VM
+==================
+
+We'll assume you have
+
+* A local copy of the tabular\_predDB repo with shell variable $LOCAL\_REPO\_LOCATION pointing to it.
+* VMware Player installed
+* VMware VIX API installed
+* Unzipped the VM image with shell variable $IMAGE\_LOCATION pointing to it
+* Started the VM via the 'vmplayer' GUI at least once to verify VM settings are appropriate for your host OS
+
+Executing the following commands
+
+    # from the `host` OS
+    cd $LOCAL_REPO_LOCATION/install_scripts/VM_install
+    bash setup_vm.sh -i $IMAGE_LOCATION
+    VM_IP=$(bash setup_vm.sh -a)
+
+Will
+
+1. Spin up the VM
+2. Set up ssh key login for the current VM
+3. Allow the bigdata user in the `guest` OS to sudo without a password
+4. Install tabular-predDB requirements to the `guest` OS using /path/to/tabular\_predDB/install\_scripts/programmatic\_install.sh
+5. set $VM\_IP to the VM's network address for SSH'ing in
+
+You can now ssh into the `guest` OS with
+
+    ssh bigdata@$VM_IP
+
+Verifying functionality
+=======================
+
+To test the install, we'll run tabular\_predDB/tests/test\_middleware.py which tests the C++ engine, the Cython wrapping and the Database layer.
+
+    # from the `guest` OS
+    export PYTHONPATH=~/tabular_predDB/:$PYTHONPATH
+    cd ~/tabular_predDB/
+    make tests
+    make cython
+    cd tabular_predDB/tests
+    python test_middleware.py
+
+Installing Jenkins
+==================
+
+Assuming you have
+
+1. tabular_predDB installed to ~/
+2. Your desired Jenkins job configuration in config.xml with shell variable $jenkins_config pointing to it 
+
+You can install jenkins with the following commands
+
+    # from the `guest` OS
+    cd ~/tabular_predDB/install_scripts/
+    sudo bash setup_jenkins.sh -u bigdata
+    python create_jenkins_job_from_config.py --config_filename $jenkins_config
+    bash VM_install/setup_jenkins_modifications.sh
+
+Note: for the build step 'Execute Shell', the command should be: zsh -i jenkins_script.sh
+
+FIXME: show use of jenkins_utils.py on the command line to create and invoke a job
+

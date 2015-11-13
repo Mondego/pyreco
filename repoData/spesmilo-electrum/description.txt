@@ -1,0 +1,110 @@
+These scripts can be used for cross-compilation of Windows Electrum executables from Linux/Wine.
+
+Usage:
+1. Copy content of this directory to /build-wine.
+2. Install Wine (version 1.4 or 1.5+ works fine, 1.4.1 has bug).
+3. Run "./prepare-wine.sh", it will download all dependencies. When you'll be asked, always leave default settings and press "Next >".
+4. By running "./build-electrum.sh", sources will be packed into three separate versions to dist/ directory:
+  * Standalone compressed executable is "dist/electrum.exe"
+  * Uncompressed binaries are in "dist/electrum". They're useful for comparsion with other builds.
+  * NSIS-based installer of Electrum is "electrum-setup.exe"
+7. Everytime you want to rebuild new version of Electrum just change the path to ZIP file in "build-electrum.sh" and re-run the script.
+
+For more information contact: slush <info@bitcoin.cz>
+
+To add a new theme, simply create a new directory in the electrum data directory (either ./data or your system wide local data).
+
+Inside your directory create a file called name.cfg with the name of that theme.
+
+Create another file called style.css - this will be your CSS for the theme (see other themes for reference).
+
+Documentation on Qt's stylesheets (used by Electrum):
+
+Overview: http://qt-project.org/doc/qt-4.8/stylesheet.html
+Examples: http://qt-project.org/doc/qt-4.8/stylesheet-examples.html
+Reference manual: http://doc.qt.nokia.com/4.7-snapshot/stylesheet-reference.html
+
+
+Electrum - lightweight Bitcoin client
+
+Licence: GNU GPL v3
+Author: Thomas Voegtlin
+Language: Python
+Homepage: https://electrum.org/
+
+
+1. GETTING STARTED
+------------------
+
+To run Electrum from this directory, just do:
+
+  ./electrum
+
+If you install Electrum on your system, you can run it from any
+directory:
+
+  sudo python setup.py install
+  electrum
+
+
+To start Electrum from your web browser, see
+http://electrum.org/bitcoin_URIs.html
+
+
+
+2. HOW OFFICIAL PACKAGES ARE CREATED
+------------------------------------
+
+python mki18n.py
+pyrcc4 icons.qrc -o gui/qt/icons_rc.py
+python setup.py sdist --format=zip,gztar
+
+On Mac OS X:
+
+  # On port based installs
+  sudo python setup-release.py py2app
+
+  # On brew installs
+  ARCHFLAGS="-arch i386 -arch x86_64" sudo python setup-release.py py2app --includes sip
+
+  sudo hdiutil create -fs HFS+ -volname "Electrum" -srcfolder dist/Electrum.app dist/electrum-VERSION-macosx.dmg
+
+
+
+merchant.py is a daemon that manages payments for a web server. It
+creates Bitcoin addresses using a master public key (so you do not
+leave your private keys on the server), detects when payments are
+received and notifies your web application.
+
+The workflow goes like this:
+
+ - the server sends a request to the daemon via POST. the request
+   contains an amount to be paid, a number of confirmations, and an
+   expiration period in hours.
+
+ - the daemon answers with a Bitcoin address, where the customer needs
+   to send the coins.
+
+ - later, the daemon will send a POST to the webserver, to notify that
+   the payment has been received OR that the request has expired
+
+
+Since addresses are generated using an Electrum master public key, it
+is possible to visualize payments in the Electrum client; you will,
+however, need to manually adjust your "gap limit". 
+
+In order to use this script, first edit and rename
+merchant.conf.template to merchant.conf
+
+to launch it, type:
+> python merchant.py
+
+In another terminal, you may send a request from the command line (it
+will send the request to the running daemon via http). For example,
+here is a request for 0.1 bitcoins, that requires two confirmations,
+and expires in 120 minutes:
+
+> python merchant.py request 0.1 2 120
+
+
+

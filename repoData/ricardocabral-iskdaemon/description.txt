@@ -1,0 +1,292 @@
+Release checklist
+-----------------
+
+    cd ~/Projects/iskdaemon/src
+    sed -i '' -e's/iskVersion = \"0.9.2\"/iskVersion = \"0.9.3\"/' core/imgdbapi.py 
+    sed -i '' -e's/0.9.2/0.9.3/' ui/admin-gwt/src/net/imgseek/server/admin/client/Iskdaemon_admin.java
+    sed -i '' -e's/Jan 2012/Jan 2012/' ui/admin-gwt/src/net/imgseek/server/admin/client/Iskdaemon_admin.java
+    sed -i '' -e's/0.9.2/0.9.3/' setup.py 
+    sed -i '' -e's/0.9.2/0.9.3/' installer.nsi 
+
+    compile GWT admin ui
+
+    python test_imgdb.py
+    python test/test_api.py
+ 
+    # gen py docs
+    epydoc -v --html --no-sourcecode --no-frames --no-private -o epyhtml core/imgdbapi.py
+    open epyhtml/core.imgdbapi-module.html
+    copy/paste to   
+    http://www.imgseek.net/isk-daemon/documents-1/api-reference
+    edit HTML and remove occurences of core.imgdbapi-module.html
+
+    # Windows
+    Git shell
+        cd /c/prj/iskdaemon
+        git pull
+    Visual Studio Prompt
+    cd /c/prj/iskdaemon
+    python setup.py build
+    rmdir /S /Q dist\isk-daemon
+    python ..\..\pyinstaller\PyInstaller.py isk-daemon.spec   
+    "c:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+    run installer
+    upload installer to https://github.com/ricardocabral/iskdaemon/downloads
+
+    # Linux
+    scp dist/*.gz rnc@192.168.0.108:
+    scp dist/*.gz rnc@192.168.0.107:
+
+    ssh rnc@192.168.0.107
+    rm -fr deb
+    mkdir deb
+    mv *.gz deb
+    cd deb
+    export DEBFULLNAME="Ricardo Niederberger Cabral"
+    export DEBEMAIL="ricardo.cabral@imgseek.net"
+    tar zxvf *.gz
+    cd isk-daemon
+    debuild -us -uc 
+    sudo debi
+    iskdaemon.py
+
+    git commit -a
+    git push
+    git tag "v0.9.3"
+    git push --tags        
+
+    python setup.py sdist --formats=gztar,zip register upload
+    python setup.py bdist
+
+    https://github.com/ricardocabral/iskdaemon/downloads
+    git log --pretty=format:%s v0.9.2..
+    http://www.imgseek.net/isk-daemon/changelog
+    http://www.imgseek.net/isk-daemon/download
+    post to imgseek_dev@googlegroups.com, imgseek_users@googlegroups.com
+        [Release] isk-daemon 0.9.3
+    http://www.imgseek.net/news
+    http://freecode.com/
+
+    Notify users on:
+    https://docs.google.com/a/imgseek.net/spreadsheet/ccc?key=0Am8ZmW0g7_c-dEFQb3hxOXlwYThMUUJ1VnpjMmRDWWc&hl=en_US#gid=0
+        with MailChimp
+
+Yum based
+---------
+
+    sudo yum install ImageMagick-c++-devel swig gcc-c++ python-setuptools python-devel
+ 
+OSX Dev environment
+-------------------
+
+    git config --global user.name "Ricardo Cabral"
+    git config --global user.email "ricardo@isnotworking.com"
+
+    sudo port install swig
+    sudo port install swig-python
+    sudo easy_install twisted
+    sudo port install imagemagick
+    sudo easy_install epydoc
+
+Ubuntu Dev environment
+----------------------
+
+    sudo apt-get install build-essential devscripts ubuntu-dev-tools debhelper dh-make diff patch cdbs quilt gnupg  fakeroot lintian  pbuilder piuparts
+    sudo apt-get install swig
+    sudo apt-get install python-twisted-web
+    sudo apt-get install libmagick++-dev
+    sudo apt-get install git-core
+    sudo apt-get install python-dev 
+
+    mkdir ~/prj
+    cd ~/prj
+    git clone git@github.com:ricardocabral/iskdaemon.git
+    git config --global user.name "Ricardo Niederberger Cabral"
+    git config --global user.email "ricardo@isnotworking.com"
+
+    Packaging tutorial: https://wiki.ubuntu.com/PackagingGuide/Python
+
+    export DEBFULLNAME="Ricardo Niederberger Cabral"
+    export DEBEMAIL="ricardo.cabral@imgseek.net"
+
+
+Windows
+-------
+
+New dev
+=======
+    Install Visual Studio C++ express 2008 http://msdn.microsoft.com/en-us/express/future/bb421473
+        (2010 express doesnt work well with python)
+    Install Git http://code.google.com/p/msysgit/
+    mkdir /prj
+    cd /prj
+    git clone https://ricardocabral@github.com/ricardocabral/iskdaemon.git
+    git config --global user.name "Ricardo Niederberger Cabral"
+    git config --global user.email "ricardo@isnotworking.com"
+
+    install imagemagick windows, select option to include dev headers:
+        http://www.imagemagick.org/script/binary-releases.php#windows
+        ImageMagick-6.7.4-8-Q16-windows-dll.exe
+    32bit python: http://www.python.org/download/releases/2.7.2/
+    http://pypi.python.org/packages/2.7/s/setuptools/setuptools-0.6c11.win32-py2.7.exe#md5=57e1e64f6b7c7f1d2eddfc9746bbaf20
+    http://www.swig.org/download.html
+        copy swigwin into C:\Program Files (x86),  add to PATH
+    checkout using Git UI https://ricardocabral@github.com/ricardocabral/iskdaemon.git
+    add C:\Python27 to PATH
+    launch Visual Studio Command prompt, run C:\Program Files (x86)\Microsoft Visual Studio 9.0\Common7\Tools\vsvars.bat
+    update imagemagick dir on setup.py (magick_dir)
+    c:\python27\scripts\easy_install twisted
+    this may be needed only on some cases: msvc9compiler.py from python27\distutils had to remove linker switch "/EXPORT:" (was getting "unresolved external initimgdb")
+    http://nsis.sourceforge.net/Download
+    http://www.pyinstaller.org/  (just extract on a folder)
+    http://sourceforge.net/projects/pywin32/files/pywin32/
+    http://nsis.sourceforge.net/NSIS_Simple_Service_Plugin
+
+Ubuntu packaging
+----------------
+
+https://wiki.ubuntu.com/PackagingGuide/Complete
+
+    sudo pbuilder create --distribution $(lsb_release -cs) \
+     --othermirror "deb http://archive.ubuntu.com/ubuntu $(lsb_release -cs) main restricted universe multiverse"
+
+
+imgdb lib dev
+--------------
+
+To update Python C++ wrappers
+
+    cd src/imgSeekLib
+    gen_swig.sh 
+    python build.py build
+    ln -s build/lib.macosx-10.7-x86_64-2.7/imgdb.so _imgdb.so
+
+
+Promote
+========
+
+memcached
+=========
+isk-damon (top):
+
+### Memcached client
+def initRemoteCache():
+    from imgSeekLib import memcache
+    return memcache.Client(settings.memcachedHosts, debug=settings.memcachedDebug)
+
+    """
+    mc.set("some_key", "Some value")
+    value = mc.get("some_key")
+
+    mc.set("another_key", 3)
+    mc.delete("another_key")
+    
+    mc.set("key", "1")   # note that the key used for incr/decr must be a string.
+    """    
+
+class MemcachedMemoized(object):
+   """Decorator that caches a function's return value each time it is called.
+   If called later with the same arguments, the cached value is returned, and
+   not re-evaluated.
+   """
+   def __init__(self, func):
+      self.func = func
+      self.cache = {}
+   def __call__(self, *args):
+      try:
+         return self.cache[args]
+      except KeyError:
+         self.cache[args] = value = self.func(*args)
+         return value
+      except TypeError:
+         # uncachable -- for instance, passing a list as an argument.
+         # Better to not cache than to blow up entirely.
+         return self.func(*args)
+   def __repr__(self):
+      """Return the function's docstring."""
+      return self.func.__doc__
+
+
+
+__main__:
+
+    fixSettings()
+
+    global remoteCache
+    if settings.useMemcached:
+        remoteCache = initRemoteCache()
+
+
+
+settings.py
+
+###### internal cache settings
+useInternalCache = True                       # True = enabled, False = disabled
+internalCacheSize = 3                     # comma separated list of 'host:port' pairs, one for each memcached server
+
+###### memcached settings
+useMemcached = False                       # True = enabled, False = disabled
+memcachedHosts = ['127.0.0.1:11211']       # comma separated list of 'host:port' pairs, one for each memcached server
+memcachedDebug = 1                         # 1 = print memcached debug messages, 0 otherwise
+
+
+# What
+
+isk-daemon is an open source database server capable of adding content-based (visual) image searching to any image related website or software.
+
+We‘re looking for ways to improve the adoption of such technology. Please let us know if you can benefit from it and need some help getting it to work for you.
+
+This technology allows users of any image-related website or software to sketch on a widget which image they want to find and have the website reply to them the most similar images or simply request for more similar photos at each image detail page.
+
+Key features:
+
+* Query for images similar to one already indexed by the database, returning a similarity degree for the images on database that most resemble the target query image;
+* Query for images similar to one described by its signature. A client-side widget may generate such signature from what a user sketched and submit it to the daemon;
+* Network interface for easy integration with other web or desktop applications: XML-RPC, SOAP;
+* Fast indexing of images one-by-one or in batch;
+* Associate keywords to images and perform image-similarity queries filtering by keywords;
+* Quickly remove images from database one-by-one or in batch;
+* Built-in web-based admin interface with statistics and ad-hoc maintenance commands/API testing;
+* Optimized image processing code (implemented in C++).
+
+# Install instructions
+
+Installation, usage instructions and more details are available online at http://www.imgseek.net/isk-daemon/documents-1/install-and-usage
+
+# Credits
+
+imgSeek and isk-daemon portions copyright Ricardo Niederberger Cabral (ricardo.cabral at imgseek.net).
+
+Image loading code is credited to "ImageMagick Studio LLC" and library linkage adheres to statements on ImageMagick-License.txt
+
+# Support or Donate
+
+Help on improving this software is needed, feel free to submit patches.
+
+Money donations are also welcome:
+
+[![Flattr this git repo](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=rnc000&url=https://github.com/ricardocabral/iskdaemon&title=iskdaemon&language=en_GB&tags=github&category=software)
+
+Or 
+
+[Donate using PayPal](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=J7XSCK2JNJB52&lc=US&item_name=imgSeek%20project&currency_code=USD&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted)
+
+For a complete java Eclipse project with jar dependencies please refer to
+http://www.imgseek.net/isk-daemon/demo
+These are example usages of the isk-daemon API on a few programming languages.
+
+A reference guide on the API methods are at:
+
+http://www.imgseek.net/isk-daemon/documents-1/api-reference
+
+For a 3rd-party contributed Ruby client, see https://github.com/tophe/iskr
+
+../README.md
+Open this project with the latest Eclipse and install Google GWT plugins.
+All admin UI code is at the net.imgseek.server.admin.client package.
+After changes are made to the Java code, it needs to be compiled into GWT Javascript:
+Click on the "GWT Compile Project" on the Google toolbar icon.
+GWT will place the output html+css+js is placed at src/ui/admin-gwt/war/iskdaemon_admin
+All this content needs to be copied to src/ui/admin-www:
+rm -fr ui/admin-www/* && cp -r ui/admin-gwt/war/iskdaemon_admin/* ui/admin-www 
+

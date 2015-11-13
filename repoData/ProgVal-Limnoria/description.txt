@@ -1,0 +1,502 @@
+# Contributing to Limnoria
+
+When you send pull request, please send it to the testing branch. 
+It will be merged to master when it's considered to be enough stable to be 
+supported.
+
+Don't fear that you spam Limnoria by sending many pull requests. According 
+to @ProgVal, it's easier for them to accept pull requests than to 
+cherry-pick everything manually.
+
+See also [Contributing to Limnoria] at [Limnoria documentation].
+
+[Contributing to Limnoria]:http://supybot.aperio.fr/doc/contribute/index.html#contributing-to-limnoria
+
+[Limnoria documentation]:http://supybot.aperio.fr/doc/index.html
+
+# Common
+
+First things first: Supybot *requires* at least Python 2.6.  There
+isn't any way to get around it.  You can get it from [Python homepage].
+
+[Python homepage]:http://python.org/
+
+# Recommended Software
+
+The following libraries are not needed for running Limnoria, but enable
+extra features you may want. (Order by decreasing estimated usefulness)
+
+[charade] -- enables better encoding handling
+
+[pytz] and [python-dateutil] -- enable additional features of the `Time` plugin
+
+[python-gnupg] -- enables user authentication with GPG
+
+[charade]:https://pypi.python.org/pypi/charade
+[pytz]:https://pypi.python.org/pypi/pytz
+[python-dateutil]:https://pypi.python.org/pypi/python-dateutil
+[python-gnupg]:https://pypi.python.org/pypi/python-gnupg
+
+To install them, run 
+
+```pip install -r requirements.txt``` 
+
+or if you don't have or want to use root, 
+
+````pip --install-option=--prefix=$HOME/.local install -r requirements.txt```
+
+For more information and help on how to use Supybot, checkout
+the documents under [docs/], especially [GETTING_STARTED] and
+[CONFIGURATION] .
+
+[docs/]:docs/index.rst
+[GETTING_STARTED]:docs/GETTING_STARTED
+[CONFIGURATION]:docs/CONFIGURATION
+
+So what do you do?  That depends on which operating system you're
+running.  We've split this document up to address the different
+methods, so find the section for your operating system and continue
+from there.
+
+# UNIX/Linux/BSD
+
+If you're installing Python using your distributor's packages, you may
+need a python-dev or python3-dev package installed, too.  If you don't have
+a '/usr/lib/python2.x/distutils' directory or 
+'/usr/lib/python2.x/config/Makefile' or with Python 3 
+'/usr/lib/python3.x/distutils' or '/usr/lib/python3.x/config/Makefile' (assuming '/usr/lib/python2.x' or '/usr/lib/python3.x' is where your Python 
+libs are installed), then you will need a python-dev or python3-dev package.
+
+First start by git cloning Limnoria and moving to the cloned repository.
+
+```
+git clone git://github.com/ProgVal/Limnoria.git
+cd Limnoria
+```
+
+The rest depends on do you have root access and do you want to perform global or local install.
+
+## Global install
+
+Run
+
+```
+python setup.py install
+```
+
+```python``` can be replaced with ```python2``` (if your distribution 
+uses Python 3 by default) or ```python3``` if you want to use Python 3 
+version.
+
+Now you have several new programs installed where Python scripts are normally
+installed on your system ('/usr/bin' or '/usr/local/bin' are common on
+UNIX systems).  The two that might be of particular interest to you, the
+new user, are 'supybot' and 'supybot-wizard'.  The former, 'supybot', is
+the script to run an actual bot; the latter, 'supybot-wizard', is an
+in-depth wizard that provides a nice user interface for creating a
+registry file for your bot.
+
+## Local install
+
+Run
+
+```
+python setup.py install --user
+```
+
+```python``` can be replaced with ```python2``` (if your distribution 
+uses Python 3 by default) or ```python3``` if you want to use 
+Python 3 version.
+
+and you will have new programs installed in ~/.local/bin. The two that might be of particular interest to you, the
+new user, are 'supybot' and 'supybot-wizard'.  The former, 'supybot', is
+the script to run an actual bot; the latter, 'supybot-wizard', is an
+in-depth wizard that provides a nice user interface for creating a
+registry file for your bot.
+
+By default you must run the bot with full path to the binary unless you specify $PATH.
+
+Run the following command to fix your PATH. We presume that you use bash 
+and if you don't, you most probably know how to do this with other shell.
+
+```
+echo 'PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+# Upgrading
+
+To upgrade, return to the cloned Limnoria repository and run:
+
+```
+git pull
+```
+
+and then install Limnoria normally. "python setup.py install" doesn't affect config files of the bot any way.
+
+If you don't have the cloned Limnoria repository, clone it again using the installation instructions.
+
+## Upgrading to Python 3
+
+Upgrading Python3 happens the same way, but if you want to move from 2 to 3 
+or 3 to 2, you must remove the build/ directory and the executable 
+supybot* files first. The build/ directory is on same directory as this 
+file and supybot* are usually in /usr/local/bin or ~/.local/bin
+
+```
+rm -rf build/
+rm /usr/local/bin/supybot*
+rm ~/.local/bin/supybot*
+```
+
+# Windows
+
+**Note**: If you are using an IPV6 connection, you will not be able
+to run Supybot under Windows (unless Python has fixed things).  Current
+versions of Python for Windows are *not* built with IPV6 support. This
+isn't expected to be fixed until Python 2.4, at the earliest.
+
+Now that you have Python installed, open up a command prompt.  The
+easiest way to do this is to open the run dialog (Programs -> run) and
+type "cmd" (for Windows 2000/XP/2003) or "command" (for Windows 9x).  In
+order to reduce the amount of typing you need to do, I suggest adding
+Python's directory to your path.  If you installed Python using the
+default settings, you would then do the following in the command prompt
+(otherwise change the path to match your settings)::
+
+```
+set PATH=C:\Python2x\;%PATH%
+```
+
+You should now be able to type 'python' to start the Python
+interpreter.  Exit by pressing CTRL-Z and then Return.  Now that that's
+setup, you'll want to cd into the directory that was created when you
+unzipped Supybot; I'll assume you unzipped it to 'C:\Supybot' for these
+instructions.  From 'C:\Supybot', run 
+
+```
+python setup.py install
+```
+
+This will install Supybot under 'C:\Python2x\'.  You will now have several new
+programs installed in 'C:\Python2x\Scripts\'.  The two that might be of
+particular interest to you, the new user, are 'supybot' and 'supybot-wizard'.
+The former, 'supybot', is the script to run an actual bot; the latter,
+'supybot-wizard', is an in-depth wizard that provides a nice user interface for
+creating a registry file for your bot.
+
+Copyright (c) 2002-2009 Jeremiah Fincher and others
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+    * Redistributions of source code must retain the above copyright notice,
+      this list of conditions, and the following disclaimer.
+    * Redistributions in binary form must reproduce the above copyright notice,
+      this list of conditions, and the following disclaimer in the
+      documentation and/or other materials provided with the distribution.
+    * Neither the name of the author of this software nor the name of
+      contributors to this software may be used to endorse or promote products
+      derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+Portions of the included source code are copyright by its original author(s)
+and remain subject to its associated license.
+
+This plugin allows the user to create various aliases (known as "Akas",
+since Alias is the name of another plugin Aka is based on) to other commands
+or combinations of other commands (via nested commands).  It is a good
+idea to always quote the commands that are being aliased so that any
+nested commands are not immediately run.
+
+Basic usage
+-----------
+
+Add an aka, trout, which expects a word as an argument
+
+<jamessan> @aka add trout "action slaps $1 with a large trout"
+<bot> jamessan: The operation succeeded.
+<jamessan> @trout me
+* bot slaps me with a large trout
+
+Add an aka, lastfm, which expects a last.fm user and replies with
+their recently played items.
+
+@aka add lastfm "rss [format concat http://ws.audioscrobbler.com/1.0/user/ [format concat [urlquote $1] /recenttracks.rss]]"
+
+Note that if the nested commands being aliased hadn't been quoted, then
+those commands would have been run immediately, and @lastfm would always
+reply with the same information, the result of those commands.
+ with any notes, etc. about using it.
+
+This plugin allows the user to create various aliases to other commands
+or combinations of other commands (via nested commands).  It is a good
+idea to always quote the commands that are being aliased so that any
+nested commands are not immediately run.
+
+Basic usage
+-----------
+
+Add an alias, trout, which expects a word as an argument
+
+<jamessan> @alias add trout "action slaps $1 with a large trout"
+<bot> jamessan: The operation succeeded.
+<jamessan> @trout me
+* bot slaps me with a large trout
+
+Add an alias, lastfm, which expects a last.fm user and replies with
+their recently played items.
+
+@alias add lastfm "rss [format concat http://ws.audioscrobbler.com/1.0/user/ [format concat [urlquote $1] /recenttracks.rss]]"
+
+Note that if the nested commands being aliased hadn't been quoted, then
+those commands would have been run immediately, and @lastfm would always
+reply with the same information, the result of those commands.
+
+Anonymous allows you to send messages anonymously as the bot. If 
+supybot.plugins.Anonymous.allowPrivateTarget is True, you can send messages in query too.
+
+One usage example is to identify the bot with NickServ if it fails to identify for some reason.
+
+This plugin automaticly voices/halfops/ops users with #channel,<voice/halfop/op> capability
+when they join to the channel.
+It will also ban automaticly everyone who is in channel ban list ( @channel ban list ).
+
+This plugin ensures that the bot won't say any words the bot owner finds
+offensive.  As an additional capability, it can (optionally) kick users who
+use such words from channels that have that capability enabled.
+
+This plugin automatically logs the channels where the bot is.
+
+This plugin keeps stats of the channel and returns them with the command channelstats.
+
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin gives command "@ctcp version" which returns all CTCP version responses to channel.
+It also adds CTCP responses to the bot.
+
+This is a simple plugin to allow querying dictionaries for word
+definitions.
+
+In order to use this plugin you must have the following modules
+installed:
+- dictclient: http://quux.org:70/devel/dictclient
+
+This plugin allows using of personalized error messages (Dunnos) in place of invalid command 
+("Error: qwertyytrewq is not a valid command") error messages.
+
+This plugin gives the bot ability to show factoids. It can also show information about how many times
+factoid has been called.
+
+This plugin offers several commands which transform text in some way.
+It also provides the capability of using such commands to 'filter'
+the output of the bot -- for instance, you could make everything the bot says be
+in leetspeak, or Morse code, or any number of other kinds of filters. 
+Not very useful, but definitely quite fun :)
+
+This plugin provides commands which change the output format of the bot. For example you can make
+the bot to bold something.
+
+This plugin provides some fun games like (Russian) roulette, 8ball, monologue which tells you
+how many lines you have spoken without anyone interrupting you, coin and dice.
+
+This is a simple plugin to provide access to the Google services we all know
+and love from our favorite IRC bot.
+
+This plugin allows you to set welcoming messages (heralds) to people who are regognized by the bot
+when they join the channel.
+
+This plugin provides commands to transform domain into IP address and IP address to domain.
+It also provides command to search WHOIS information. This plugin can also return hexips.
+
+This will increase or decrease karma for the item.
+
+If "config plugins.karma.allowUnaddressedKarma" is set to true (default since 2014.05.07), saying "boats++" will give 1 karma to "boats", and "ships--" will subtract 1 karma from "ships".
+
+However, if you use this in a sentence, like "That deserves a ++. Kevin++", 1 karma will be added to "That deserves a ++. Kevin", so you should only add or subtract karma in a line that doesn't have anything else in it.
+
+If "config plugins.karma.allowUnaddressedKarma" is set to false, you must use "botname: bots++" to add or subtract karma.
+
+Allows the use of the Luser Attitude Readjustment Tool on someone or something.
+Example:
+If you add 'slaps $who'.
+Someone says '@lart ChanServ'.
+* bot slaps ChanServ
+Later - leave small messages to users
+
+# Later
+
+Later allows you to leave small notes to people. The messages are delivered next time when the user is seen by the bot.
+
+# How to use it?
+
+Use the "later tell" command to leave a message to a user. If you sent the message by accident or want to cancel it, you can use the "later undo" command to remove the latest later, which you have sent.
+
+You can also see the people who have notes waiting for them by using the "later notes" command. If you specify a nickname in "later notes" command, you will see the notes, which are waiting for the nickname.
+
+# Privacy
+
+As you probably noticed from above, this plugin isn't private. Everyone can see notes sent by anyone as the "plugin help later" says:
+
+```
+Used to do things later; currently, it only allows the sending of nick-based notes. Do note (haha!) that these notes are *not* private and don't even pretend to be; if you want such features, consider using the Note plugin.
+```
+
+The Note plugin identifies people by username instead of nickname and allows only users to send notes. The only people who are able to read notes are the sender, receiver and the owner.
+
+This will set a limit on the channel based on plugins.Limiter.MaximumExcess plus the current number of users in the channel.
+This is useful to prevent flood attacks.
+This plugin provides a calculator, converter, a listo of units and other useful math functions.
+
+The MessageParser plugin allows you to set custom regexp triggers, which will trigger the bot to respond if they match anywhere in the message. This is useful for those cases when you want a bot response even when the bot was not explicitly addressed by name or prefix character.
+
+An updated page of this plugin's documentation is located here: http://sourceforge.net/apps/mediawiki/gribble/index.php?title=MessageParser_Plugin
+
+This plugin keeps factoids in your bot.
+
+To add factoid say
+"@something is something" And when you call @something the bot says 
+"something is something".
+
+If you want factoid to be in different format say (for example):
+"@Hi is <reply> Hello" And when you call @hi the bot says "Hello."
+
+If you want the bot to use /mes with Factoids, that is possible too.
+"@test is <action> tests." and everytime when someone calls for "test" the bot answers *bot tests.
+
+Allows connecting, reconnecting, display the bot's latency between the server and other useful network-related commands.
+This plugin provides a means of maintaining News for a channel.  It was
+partially inspired by the news system used on #debian's bot.
+
+This plugin allows users to use their network services account to
+authenticate to the bot.
+
+They first have to use @nickauth nick add <the nick>, then use @auth
+every time they want to be authenticated.
+
+
+This allows the bot to regain access to it's configured nick.
+
+Will tell you how lame a nick is by the command '@nickometer [nick]'.
+Allows you to send notes to other users.
+This plugin allows you to see the plugins, which plugin a command belongs to, you can find out who the author of the command is and who contributed to it.
+This plugin allows you to quickly download and install a plugin from other repositories.
+Allows someone to praise someone or something.
+Example:
+If you add 'hugs $who'.
+Someone says '@praise ChanServ'.
+* bot hugs ChanServ
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin allows you to add quotes to the database for the channel.
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin allows you to setup a relay between networks.
+This plugin allows you to use different reply commands.
+This plugin allows you to poll and periodically announce new items from
+RSS feeds.
+
+In order to use this plugin you must have the following modules
+installed:
+- feedparser: http://feedparser.org/
+
+If you are experiencing TypeError issues with Python 3, please apply this
+patch: http://code.google.com/p/feedparser/issues/detail?id=403
+
+Basic usage
+-----------
+
+Adding a feed
+@rss add supybot http://sourceforge.net/export/rss2_projfiles.php?group_id=58965
+
+Add announcements for a feed
+@rss announce add supybot
+
+Stop announcements for a feed
+@rss announce remove supybot
+
+This plugin allows you to scheduler commands to execute at a later time.
+For example, 'scheduler add [seconds 30m] "echo [cpu]"' will schedule the command "cpu" to be sent to the channel in 30 minutes.
+This plugin allows you to see when and what someone last said and what you missed since you parted the channel.
+This plugin allows the bot to interact with ChanServ and NickServ to regain access to channels and it's nick.
+This plugin features commands to shorten URLs through different services, like tinyurl.
+This plugin allows you to view different bot statistics, for example, uptime.
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin allows you to add your own success messages to replace the default 'The operation succeeded.' message.
+This plugin allows you to use different time functions.
+This plugin allows you to create your own personal todo list on the bot.
+This plugin allows you to use many topic-related functions, such as Add, Undo, and Remove.
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin records how many URLs have been mentioned in the channel and what the last URL was.
+Insert a description of your plugin here, with any notes, etc. about using it.
+
+This plugin allows you to view website information, like a title.
+Supybot is a robust (it doesn't crash), user friendly (it's easy to
+configure) and programmer friendly (plugins are *extremely* easy to
+write) Python IRC bot.  It aims to be an adequate replacement for most
+existing IRC bots.  It includes a very flexible and powerful ACL system
+for controlling access to commands, as well as more than 50 builtin plugins
+providing around 400 actual commands.
+
+Limnoria is a project which continues development of Supybot (you can
+call it a fork) by fixing bugs and adding features (see the
+[list of added features](https://github.com/ProgVal/Limnoria/wiki/LGC) for
+more details).
+
+# Build status
+
+Master branch: [![Build Status (master branch)](https://travis-ci.org/ProgVal/Limnoria.png?branch=master)](https://travis-ci.org/ProgVal/Limnoria)
+
+Testing branch: [![Build Status (testing branch)](https://travis-ci.org/ProgVal/Limnoria.png?branch=testing)](https://travis-ci.org/ProgVal/Limnoria)
+
+Limnoria is tested with Python 2.6, 2.7, 3.2, 3.3, and Pypy. Python 2.5 and
+older versions are not supported.
+
+# Support
+
+## Documentation
+
+If this is your first install, there is an [install guide](http://supybot.aperio.fr/doc/use/install.html).
+You will probably be pointed to it if you ask on IRC how to install Limnoria.
+
+There is much documentation
+at [supybot.aperio.fr] and at [Gribble wiki] for your perusal.  Please read it; we took the
+time to write it, you should take the time to read it.
+
+[supybot.aperio.fr]:http://supybot.aperio.fr/doc
+[Gribble wiki]:https://sourceforge.net/apps/mediawiki/gribble/index.php?title=Main_Page
+
+## IRC channels
+
+### In English
+
+If you have any trouble, feel free to swing by [#supybot and #limnoria](irc://chat.freenode.net/#supybot,#limnoria) on
+[irc.freenode.net](irc://chat.freenode.net) or [#supybot](irc://irc.oftc.net/#supybot) at [irc.oftc.net](irc://irc.oftc.net) (we have a Limnoria there relaying,
+so either network works) and ask questions.  We'll be happy to help
+wherever we can.  And by all means, if you find anything hard to
+understand or think you know of a better way to do something,
+*please* post it on the [issue tracker] so we can improve the bot!
+
+[issue tracker]:https://github.com/ProgVal/Limnoria/issues
+
+
+### In Other languages
+
+Only in French at the moment, located at [#supybot-fr on freenode](irc://chat.freenode.net/#supybot-fr).
+
+
+Insert a description of your plugin here, with any notes, etc. about using it.
+

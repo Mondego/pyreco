@@ -1,0 +1,105 @@
+	Install ansible:
+
+	$ pip install ansible
+
+Install Vagrant 1.1 and vagrant-ansible plugin:
+
+	$ vagrant plugin install vagrant-ansible
+
+From the root directory, run this command:
+
+	$ ansible-playbook -vvv discern-dev.yml -i hosts -c ssh --private-key=~/.vagrant.d/insecure_private_key
+
+===============================================
+Description
+===============================================
+
+The ML service API allows anyone to use machine learning based automated classification.  This automated classification can work on both free text (essays, content, etc), and on numeric values.
+
+Let's say that you have 10000 user reviews for 15 books (ie "I loved this!", "I didn't like it.", and so on). What you really want to do is use the user reviews to get an aggregate score for each book that indicates how well-received it is. But, in your haste to collect the data, you forgot to get scores from the users.  In this case, the text of the user reviews is your predictor, and the score that you want to collect from each user for each book is the target variable.
+
+So, how do you turn the text into numbers?  One very straightforward way is to just label each of the reviews by hand on a scale from 0 (the user didn't like it at all) to 5 (they really loved it).  But, somewhere around review 200 you are going to start to get very sick of the whole process.  A less labor intensive way is to use automated classification.
+
+If you choose to use automated classification for this task, you will score some reasonable subset of the reviews (if you score more, the classification will be more accurate, but 200 should be fine as a baseline).  Once you have your subset, which can also be called a "training" set, you will be able to "train" a machine learning model that learns how to map your scores to the text of the reviews.  It will then be able to automatically score the rest of the 9800 reviews.  Let's say you also want to take the user's activity level into account in order to weight the score.  You can add in a numeric predictor in addition to your existing text predictor (the review text itself) in order to predict the target variable (score).
+
+This API gives you a nice, clean way to do that.  You add your text in to the API, then add your scores, and it does the rest of the work automatically.  You can then retrieve your scores and do whatever you like with them.
+
+
+
+This directory contains documentation that can be built into HTML using sphinx (http://sphinx.pocoo.org/).
+
+Sphinx uses ReST (reStructuredText) as the source for its documentation files.
+
+To create an HTML version of the docs:
+
+* Install Sphinx (``pip install Sphinx``)
+
+* In this directory, type ``make html`` (or ``make.bat html`` on
+  Windows) at a shell prompt.
+
+The documentation in _build/html/index.html can then be viewed in a web browser.
+This is an example project for discern.
+
+
+Running the example
+---------------------------------
+
+If you are running discern at 127.0.0.1:7999 and you have performed all setup instructions, do the following from the discern top level directory to run the example::
+
+    $ cd /examples/problem_grader (this directory)
+    $ pip install -r requirements.txt
+    $ python manage.py syncdb --noinput
+    $ python manage.py migrate --noinput
+    $ python manage.py collectstatic --noinput
+    $ python manage.py runserver 127.0.0.1:7998 --nostatic
+
+You should now be able to navigate to 127.0.0.1:7998 and use the frontend.  You will be able to create a course.  After creation, clicking on the course will let you view the problems.  You can then add problems to the course.  You will then be able to use the write essays and grade essays actions.
+
+Pointing the example to another API endpoint
+------------------------------------
+
+If you want to point the example application to another API endpoint (ie a hosted instance), change `API_URL_BASE` in the `problem_grader/settings.py` file to point to the hosted API server you want to use.
+Discern
+====================
+
+Questions? (Mailing List/IRC Channel)
+---------------------
+Feel free to open an issue in the issue tracker, or use [this link](http://webchat.freenode.net/?channels=#edx-discern) to access an IRC chat room for real time
+communication with some of the edX developers.  Alternatively, you can use your own IRC chat client and point it at freenode(chat.freenode.net).  The channel is #edx-discern.
+
+We also have a [mailing list](https://groups.google.com/forum/#!forum/edx-discern).  Feel free to ask questions and discuss the code there.  If you find an issue (unless it is a security issue, see below), please mention it on our issue tracker.
+
+Overview
+---------------------
+This is an API wrapper for a service to grade arbitrary free text responses.
+This is licensed under the AGPL, please see LICENSE.txt for details.
+The goal here is to provide a high-performance, scalable solution that can effectively help students learn.
+Feedback is a major part of this process, the feedback system has been left very flexible on purpose (you will see this later on).
+
+Note that you will need the ease repository to use all of the functionality here.  This repo is now open source.  You will need to install both repos in the same directory.  Install directions for ease can be found at [Github](https://github.com/edx/ease)
+
+Examples and getting started
+-----------------------
+Please see docs/installation for installation information.  Examples can be found in docs/examples.  A built version of these can be found at [ReadtheDocs](http://discern.readthedocs.org/en/latest/), or you can feel free to clone the repo and build these yourself.
+
+How to Contribute
+-----------------
+Contributions are very welcome. The easiest way is to fork this repo, and then
+make a pull request from your fork. The first time you make a pull request, you
+may be asked to sign a Contributor Agreement.
+
+
+The current backlog is in the [issues section](http://github.com/edx/discern/issues?labels=&page=1&state=open).
+Please feel free to open new issues or work on existing ones.
+
+Detailed Information
+-------------------------
+Please look in the docs folder for more detailed documentation.  There is a README there that explains how to build
+and view the docs.
+
+You can also see the latest documentation at [ReadtheDocs](http://discern.readthedocs.org/en/latest/) .
+
+Reporting Security Issues
+--------------------------
+Please do not report security issues in public. Please email security@edx.org.
+

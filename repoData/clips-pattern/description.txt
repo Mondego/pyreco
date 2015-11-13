@@ -1,0 +1,1174 @@
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+PyWordNet - A Python Interface to WordNet
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Overview
+========
+
+PyWordNet is a Python_ interface to the WordNet_ database of word
+meanings and lexical relationships. (A lexical relationship is a
+relationship between words, such as **synonym**, **antonym**,
+**hypernym** (``"poodle"`` -> ``"dog"``), and **hyponym**
+(``"poodle"`` -> ``"dog"``).
+
+PyWordNet presents a concise interface to WordNet, that allows the
+user to type expressions such as ``N['dog']``,
+``hyponyms(N['dog'][0])``, and ``closure(ADJ['red'], SYNONYM)`` to
+query the database.
+
+If Python is already installed at your site, download PyWordNet from
+the project home page, at
+http://sourceforge.net/projects/pywordnet. For more information, read
+the documentation at the top of the source file, or skip to the
+example session `Example Session`_ below.
+
+PyWordNet is hosted on SourceForge_ <IMG
+src="http://sourceforge.net/sflogo.php?group_id=27422" width="88"
+height="31" border="0" alt="SourceForge Logo"></A>
+
+Copyright (c) 1998-2004 by Oliver Steele. Use is permitted under the
+`Artistic License`_.
+
+Requirements
+============
+
+Python 1.5 or later, available from http://www.python.org/download/.
+(For the MacOS, you can use MacPython, at http://www.python.org/download/download_mac.html.)
+
+WordNet 1.6 or 1.7, available from
+http://www.cogsci.princeton.edu/~wn/. (PyWordNet only uses the data
+files.)
+
+Other Links
+===========
+- `Change History`_
+- `Installation Instructions`_
+
+.. _`Change History`: changes.html
+.. _`Installation Instructions`: install.html
+
+Example Session
+===============
+``wordnet.py`` contains the core database access functions.
+``wntools.py`` contains the utility functions such as ``hyponyms``,
+``meet``, ``morphy``, ``closure``, etc.  Importing ``wntools`` imports
+all the public functions from both modules:
+
+	>>> from wordnet import *
+	>>> from wntools import *
+
+Retrieve a Word from the Noun database:
+
+	>>> N['dog']
+	dog(n.)
+
+"Dog" has six senses:
+
+	>>> N['dog'].getSenses()
+	('dog' in {noun: dog, domestic dog, Canis familiaris},
+	 'dog' in {noun: frump, dog}, 'dog' in {noun: dog},
+	 'dog' in {noun: cad, bounder, blackguard, dog, hound, heel},
+	 'dog' in {noun: pawl, detent, click, dog},
+	 'dog' in {noun: andiron, firedog, dog, dogiron})
+
+Bind the first-listed sense to a variable, for easier access.
+(``word[0]`` is shorthand for ``word.getSenses()[0]``.)
+
+	>>> dog = N['dog'][0]
+	>>> dog
+	'dog' in {noun: dog, domestic dog, Canis familiaris}
+
+Retrieve all the relations, of any kind, that have this sense of "dog"
+as the source.  (``dog.getPointers(HYPONYM)`` would retrieve the
+hyponyms, or names of subcategories of this sense of "dog".)
+
+	>>> dog.getPointers()
+	(hypernym -> {noun: canine, canid},
+	 member meronym -> {noun: Canis, genus Canis},
+	 member meronym -> {noun: pack},
+	 hyponym -> {noun: pooch, doggie, doggy, bow-wow},
+	 hyponym -> {noun: cur, mongrel, mutt},
+	 hyponym -> {noun: lapdog},
+	 hyponym -> {noun: toy dog, toy},
+	 hyponym -> {noun: hunting dog},
+	 hyponym -> {noun: working dog},
+	 hyponym -> {noun: dalmatian, coach dog, carriage dog},
+	 hyponym -> {noun: basenji},
+	 hyponym -> {noun: pug, pug-dog},
+	 hyponym -> {noun: Newfoundland},
+	 hyponym -> {noun: Great Pyrenees},
+	 hyponym -> {noun: spitz},
+	 hyponym -> {noun: griffon, Brussels griffon, Belgian griffon},
+	 hyponym -> {noun: corgi, Welsh corgi},
+	 hyponym -> {noun: poodle, poodle dog},
+	 hyponym -> {noun: Mexican hairless},
+	 part holonym -> {noun: flag})
+
+	>>> dog.pointerTargets(MEMBER_MERONYM)
+	[{noun: Canis, genus Canis}, {noun: pack}]
+
+Hypernyms of "dog", and their hypernyms, and so on until the links
+peter out.  (``hypernyms(dog)`` is a shortcut for the closure of this
+particular relationship.)
+
+	>>> closure(dog, HYPERNYM)
+	['dog' in {noun: dog, domestic dog, Canis familiaris}, {noun: canine, canid},
+	 {noun: carnivore}, {noun: placental, placental mammal, eutherian, eutherian
+	  mammal}, {noun: mammal}, {noun: vertebrate, craniate}, {noun: chordate},
+	 {noun: animal, animate being, beast, brute, creature, fauna}, {noun: life form,
+	  organism, being, living thing}, {noun: entity, something}]
+	>>> cat = N['cat']
+
+The ``meet`` of two items is their most subordinate common concept:
+
+	>>> meet(dog, cat[0])
+	{noun: carnivore}
+	>>> meet(dog, N['person'][0])
+	{noun: life form, organism, being, living thing}
+	>>> meet(N['thought'][0], N['belief'][0])
+	{noun: content, cognitive content, mental object}
+
+Hyponyms of "dog" (n.) that are homophonous with verbs:
+
+	>>> filter(lambda sense:V.get(sense.form),
+			   flatten1(map(lambda e:e.senses(), hyponyms(N['dog'][0]))))
+	['dog' in {noun: dog, domestic dog, Canis familiaris}, 'pooch' in {noun: pooch,
+	  doggie, doggy, bow-wow}, 'toy' in {noun: toy dog, toy}, 'hound' in
+	 {noun: hound, hound dog}, 'basset' in {noun: basset, basset hound}, 'cocker' in
+	 {noun: cocker spaniel, English cocker spaniel, cocker}, 'bulldog' in {noun:
+	  bulldog, English bulldog}]
+
+The first five adjectives that are transitively SIMILAR to red (there
+are 71 in all):
+
+	>>> closure(ADJ['red'][0], SIMILAR)
+	['red' in {adjective: red, reddish, ruddy, blood-red, carmine, cerise, cherry, cherry-red, crimson, ruby, ruby-red, scarlet}, {adjective: chromatic}, {adjective: amber, brownish-yellow, yellow-brown}, {adjective: amethyst}, {adjective: aureate, gilded, gilt, gold, golden}]
+
+Trace the senses of dog to the top concepts, and display the results
+in a readable form:
+
+	>>> from pprint import pprint
+	>>> pprint(tree(N['dog'], HYPERNYM))
+	[['dog' in {noun: dog, domestic dog, Canis familiaris},
+	  [{noun: canine, canid},
+	   [{noun: carnivore},
+		[{noun: placental, placental mammal, eutherian, eutherian mammal},
+		 [{noun: mammal},
+		  [{noun: vertebrate, craniate},
+		   [{noun: chordate},
+			[{noun: animal, animate being, beast, brute, creature, fauna},
+			 [{noun: life form, organism, being, living thing},
+			  [{noun: entity, something}]]]]]]]]]],
+	 ['dog' in {noun: frump, dog},
+	  [{noun: unpleasant woman, disagreeable woman},
+	   [{noun: unpleasant person, disagreeable person},
+		[{noun: unwelcome person, persona non grata},
+		 [{noun: person, individual, someone, somebody, mortal, human, soul},
+		  [{noun: life form, organism, being, living thing},
+		   [{noun: entity, something}]],
+		  [{noun: causal agent, cause, causal agency},
+		   [{noun: entity, something}]]]]]]],
+	 ['dog' in {noun: dog},
+	  [{noun: chap, fellow, lad, gent, fella, blighter, cuss},
+	   [{noun: male, male person},
+		[{noun: person, individual, someone, somebody, mortal, human, soul},
+		 [{noun: life form, organism, being, living thing},
+		  [{noun: entity, something}]],
+		 [{noun: causal agent, cause, causal agency},
+		  [{noun: entity, something}]]]]]],
+	 ['dog' in {noun: cad, bounder, blackguard, dog, hound, heel},
+	  [{noun: villain, scoundrel},
+	   [{noun: unwelcome person, persona non grata},
+		[{noun: person, individual, someone, somebody, mortal, human, soul},
+		 [{noun: life form, organism, being, living thing},
+		  [{noun: entity, something}]],
+		 [{noun: causal agent, cause, causal agency},
+		  [{noun: entity, something}]]]]]],
+	 ['dog' in {noun: pawl, detent, click, dog},
+	  [{noun: catch, stop},
+	   [{noun: restraint, constraint},
+		[{noun: device},
+		 [{noun: instrumentality, instrumentation},
+		  [{noun: artifact, artefact},
+		   [{noun: object, physical object}, [{noun: entity, something}]]]]]]]],
+	 ['dog' in {noun: andiron, firedog, dog, dogiron},
+	  [{noun: support},
+	   [{noun: device},
+		[{noun: instrumentality, instrumentation},
+		 [{noun: artifact, artefact},
+		  [{noun: object, physical object}, [{noun: entity, something}]]]]]]]]
+
+<hr>
+<address>
+<a href="http://oteele.com/">Oliver Steele</a><br>
+Modified 2004-04-19
+</address>
+
+.. _Python: http://www.python.org/
+.. _WordNet: http://www.cogsci.princeton.edu/~wn/
+.. _SourceForge: http://sourceforge.net
+.. _`Artistic License`: http://www.opensource.org/licenses/artistic-license.html
+
+----------------------------------
+--- Python interface of LIBSVM ---
+----------------------------------
+
+Table of Contents
+=================
+
+- Introduction
+- Installation
+- Quick Start
+- Design Description
+- Data Structures
+- Utility Functions
+- Additional Information
+
+Introduction
+============
+
+Python (http://www.python.org/) is a programming language suitable for rapid
+development. This tool provides a simple Python interface to LIBSVM, a library
+for support vector machines (http://www.csie.ntu.edu.tw/~cjlin/libsvm). The
+interface is very easy to use as the usage is the same as that of LIBSVM. The
+interface is developed with the built-in Python library "ctypes."
+
+Installation
+============
+
+On Unix systems, type
+
+> make
+
+The interface needs only LIBSVM shared library, which is generated by
+the above command. We assume that the shared library is on the LIBSVM
+main directory or in the system path.
+
+For windows, the shared library libsvm.dll for 32-bit python is ready
+in the directory `..\windows'. You can also copy it to the system
+directory (e.g., `C:\WINDOWS\system32\' for Windows XP). To regenerate
+the shared library, please follow the instruction of building windows
+binaries in LIBSVM README.
+
+Quick Start
+===========
+
+There are two levels of usage. The high-level one uses utility functions
+in svmutil.py and the usage is the same as the LIBSVM MATLAB interface.
+
+>>> from svmutil import *
+# Read data in LIBSVM format
+>>> y, x = svm_read_problem('../heart_scale')
+>>> m = svm_train(y[:200], x[:200], '-c 4')
+>>> p_label, p_acc, p_val = svm_predict(y[200:], x[200:], m)
+
+# Construct problem in python format
+# Dense data
+>>> y, x = [1,-1], [[1,0,1], [-1,0,-1]]
+# Sparse data
+>>> y, x = [1,-1], [{1:1, 3:1}, {1:-1,3:-1}]
+>>> prob  = svm_problem(y, x)
+>>> param = svm_parameter('-c 4 -b 1')
+>>> m = svm_train(prob, param)
+
+# Other utility functions
+>>> svm_save_model('heart_scale.model', m)
+>>> m = svm_load_model('heart_scale.model')
+>>> p_label, p_acc, p_val = svm_predict(y, x, m, '-b 1')
+>>> ACC, MSE, SCC = evaluations(y, p_val)
+
+# Getting online help
+>>> help(svm_train)
+
+The low-level use directly calls C interfaces imported by svm.py. Note that
+all arguments and return values are in ctypes format. You need to handle them
+carefully.
+
+>>> from svm import *
+>>> prob = svm_problem([1,-1], [{1:1, 3:1}, {1:-1,3:-1}])
+>>> param = svm_parameter('-c 4')
+>>> m = libsvm.svm_train(prob, param) # m is a ctype pointer to an svm_model
+# Convert a Python-format instance to svm_nodearray, a ctypes structure
+>>> x0, max_idx = gen_svm_nodearray({1:1, 3:1})
+>>> label = libsvm.svm_predict(m, x0)
+
+Design Description
+==================
+
+There are two files svm.py and svmutil.py, which respectively correspond to
+low-level and high-level use of the interface.
+
+In svm.py, we adopt the Python built-in library "ctypes," so that
+Python can directly access C structures and interface functions defined
+in svm.h.
+
+While advanced users can use structures/functions in svm.py, to
+avoid handling ctypes structures, in svmutil.py we provide some easy-to-use
+functions. The usage is similar to LIBSVM MATLAB interface.
+
+Data Structures
+===============
+
+Four data structures derived from svm.h are svm_node, svm_problem, svm_parameter, 
+and svm_model. They all contain fields with the same names in svm.h. Access 
+these fields carefully because you directly use a C structure instead of a 
+Python object. For svm_model, accessing the field directly is not recommanded. 
+Programmers should use the interface functions or methods of svm_model class
+in Python to get the values. The following description introduces additional
+fields and methods.
+
+Before using the data structures, execute the following command to load the
+LIBSVM shared library:
+
+    >>> from svm import *
+
+- class svm_node:
+
+    Construct an svm_node.
+
+    >>> node = svm_node(idx, val)
+
+    idx: an integer indicates the feature index.
+
+    val: a float indicates the feature value.
+
+- Function: gen_svm_nodearray(xi [,feature_max=None [,issparse=False]])
+
+    Generate a feature vector from a Python list/tuple or a dictionary:
+
+    >>> xi, max_idx = gen_svm_nodearray({1:1, 3:1, 5:-2})
+
+    xi: the returned svm_nodearray (a ctypes structure)
+
+    max_idx: the maximal feature index of xi
+
+    issparse: if issparse == True, zero feature values are removed. The default
+              value is False for supporting the pre-computed kernel.
+
+    feature_max: if feature_max is assigned, features with indices larger than
+                 feature_max are removed.
+
+- class svm_problem:
+
+    Construct an svm_problem instance
+
+    >>> prob = svm_problem(y, x)
+
+    y: a Python list/tuple of l labels (type must be int/double).
+
+    x: a Python list/tuple of l data instances. Each element of x must be
+       an instance of list/tuple/dictionary type.
+
+    Note that if your x contains sparse data (i.e., dictionary), the internal
+    ctypes data format is still sparse.
+
+- class svm_parameter:
+
+    Construct an svm_parameter instance
+
+    >>> param = svm_parameter('training_options')
+
+    If 'training_options' is empty, LIBSVM default values are applied.
+
+    Set param to LIBSVM default values.
+
+    >>> param.set_to_default_values()
+
+    Parse a string of options.
+
+    >>> param.parse_options('training_options')
+
+    Show values of parameters.
+
+    >>> param.show()
+
+- class svm_model:
+
+    There are two ways to obtain an instance of svm_model:
+
+    >>> model = svm_train(y, x)
+    >>> model = svm_load_model('model_file_name')
+
+    Note that the returned structure of interface functions
+    libsvm.svm_train and libsvm.svm_load_model is a ctypes pointer of
+    svm_model, which is different from the svm_model object returned
+    by svm_train and svm_load_model in svmutil.py. We provide a
+    function toPyModel for the conversion:
+
+    >>> model_ptr = libsvm.svm_train(prob, param)
+    >>> model = toPyModel(model_ptr)
+
+    If you obtain a model in a way other than the above approaches,
+    handle it carefully to avoid memory leak or segmentation fault.
+
+    Some interface functions to access LIBSVM models are wrapped as
+    members of the class svm_model:
+
+    >>> svm_type = model.get_svm_type()
+    >>> nr_class = model.get_nr_class()
+    >>> svr_probability = model.get_svr_probability()
+    >>> class_labels = model.get_labels()
+    >>> is_prob_model = model.is_probability_model()
+    >>> support_vector_coefficients = model.get_sv_coef()
+    >>> support_vectors = model.get_SV() 
+
+Utility Functions
+=================
+
+To use utility functions, type
+
+    >>> from svmutil import *
+
+The above command loads
+    svm_train()        : train an SVM model
+    svm_predict()      : predict testing data
+    svm_read_problem() : read the data from a LIBSVM-format file.
+    svm_load_model()   : load a LIBSVM model.
+    svm_save_model()   : save model to a file.
+    evaluations()      : evaluate prediction results.
+
+- Function: svm_train
+
+    There are three ways to call svm_train()
+
+    >>> model = svm_train(y, x [, 'training_options'])
+    >>> model = svm_train(prob [, 'training_options'])
+    >>> model = svm_train(prob, param)
+
+    y: a list/tuple of l training labels (type must be int/double).
+
+    x: a list/tuple of l training instances. The feature vector of
+       each training instance is an instance of list/tuple or dictionary.
+
+    training_options: a string in the same form as that for LIBSVM command
+                      mode.
+
+    prob: an svm_problem instance generated by calling
+          svm_problem(y, x).
+
+    param: an svm_parameter instance generated by calling
+           svm_parameter('training_options')
+
+    model: the returned svm_model instance. See svm.h for details of this
+           structure. If '-v' is specified, cross validation is
+           conducted and the returned model is just a scalar: cross-validation
+           accuracy for classification and mean-squared error for regression.
+
+    To train the same data many times with different
+    parameters, the second and the third ways should be faster..
+
+    Examples:
+
+    >>> y, x = svm_read_problem('../heart_scale')
+    >>> prob = svm_problem(y, x)
+    >>> param = svm_parameter('-s 3 -c 5 -h 0')
+    >>> m = svm_train(y, x, '-c 5')
+    >>> m = svm_train(prob, '-t 2 -c 5')
+    >>> m = svm_train(prob, param)
+    >>> CV_ACC = svm_train(y, x, '-v 3')
+
+- Function: svm_predict
+
+    To predict testing data with a model, use
+
+    >>> p_labs, p_acc, p_vals = svm_predict(y, x, model [,'predicting_options'])
+
+    y: a list/tuple of l true labels (type must be int/double). It is used
+       for calculating the accuracy. Use [0]*len(x) if true labels are
+       unavailable.
+
+    x: a list/tuple of l predicting instances. The feature vector of
+       each predicting instance is an instance of list/tuple or dictionary.
+
+    predicting_options: a string of predicting options in the same format as
+                        that of LIBSVM.
+
+    model: an svm_model instance.
+
+    p_labels: a list of predicted labels
+
+    p_acc: a tuple including accuracy (for classification), mean
+           squared error, and squared correlation coefficient (for
+           regression).
+
+    p_vals: a list of decision values or probability estimates (if '-b 1'
+            is specified). If k is the number of classes in training data, 
+	    for decision values, each element includes results of predicting 
+	    k(k-1)/2 binary-class SVMs. For classification, k = 1 is a 
+	    special case. Decision value [+1] is returned for each testing
+	    instance, instead of an empty list.
+	    For probabilities, each element contains k values indicating
+            the probability that the testing instance is in each class.
+            Note that the order of classes is the same as the 'model.label'
+            field in the model structure.
+
+    Example:
+
+    >>> m = svm_train(y, x, '-c 5')
+    >>> p_labels, p_acc, p_vals = svm_predict(y, x, m)
+
+- Functions:  svm_read_problem/svm_load_model/svm_save_model
+
+    See the usage by examples:
+
+    >>> y, x = svm_read_problem('data.txt')
+    >>> m = svm_load_model('model_file')
+    >>> svm_save_model('model_file', m)
+
+- Function: evaluations
+
+    Calculate some evaluations using the true values (ty) and predicted
+    values (pv):
+
+    >>> (ACC, MSE, SCC) = evaluations(ty, pv)
+
+    ty: a list of true values.
+
+    pv: a list of predict values.
+
+    ACC: accuracy.
+
+    MSE: mean squared error.
+
+    SCC: squared correlation coefficient.
+
+
+Additional Information
+======================
+
+This interface was written by Hsiang-Fu Yu from Department of Computer
+Science, National Taiwan University. If you find this tool useful, please
+cite LIBSVM as follows
+
+Chih-Chung Chang and Chih-Jen Lin, LIBSVM : a library for support
+vector machines. ACM Transactions on Intelligent Systems and
+Technology, 2:27:1--27:27, 2011. Software available at
+http://www.csie.ntu.edu.tw/~cjlin/libsvm
+
+For any question, please contact Chih-Jen Lin <cjlin@csie.ntu.edu.tw>,
+or check the FAQ page:
+
+http://www.csie.ntu.edu.tw/~cjlin/libsvm/faq.html
+
+###########
+Python docx
+###########
+
+Introduction
+============
+
+The docx module creates, reads and writes Microsoft Office Word 2007 docx
+files.
+
+These are referred to as 'WordML', 'Office Open XML' and 'Open XML' by
+Microsoft.
+
+These documents can be opened in Microsoft Office 2007 / 2010, Microsoft Mac
+Office 2008, Google Docs, OpenOffice.org 3, and Apple iWork 08.
+
+They also `validate as well formed XML <http://validator.w3.org/check>`_.
+
+The module was created when I was looking for a Python support for MS Word
+.docx files, but could only find various hacks involving COM automation,
+calling .Net or Java, or automating OpenOffice or MS Office.
+
+The docx module has the following features:
+
+Making documents
+----------------
+
+Features for making documents include:
+
+- Paragraphs
+- Bullets
+- Numbered lists
+- Document properties (author, company, etc)
+- Multiple levels of headings
+- Tables
+- Section and page breaks
+- Images
+
+.. image:: http://github.com/mikemaccana/python-docx/raw/master/screenshot.png
+
+
+Editing documents
+-----------------
+
+Thanks to the awesomeness of the lxml module, we can:
+
+- Search and replace
+- Extract plain text of document
+- Add and delete items anywhere within the document
+- Change document properties
+- Run xpath queries against particular locations in the document - useful for
+  retrieving data from user-completed templates.
+
+
+Getting started
+===============
+
+Making and Modifying Documents
+------------------------------
+
+- Just `download python docx <http://github.com/mikemaccana/python-docx/tarball/master>`_.
+- Use **pip** or **easy_install** to fetch the **lxml** and **PIL** modules.
+- Then run::
+
+    example-makedocument.py
+
+
+Congratulations, you just made and then modified a Word document!
+
+
+Extracting Text from a Document
+-------------------------------
+
+If you just want to extract the text from a Word file, run::
+
+    example-extracttext.py 'Some word file.docx' 'new file.txt'
+
+
+Ideas & To Do List
+~~~~~~~~~~~~~~~~~~
+
+- Further improvements to image handling
+- Document health checks
+- Egg
+- Markdown conversion support
+
+
+We love forks, changes and pull requests!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+- Check out the [HACKING](HACKING.markdown) to add your own changes!
+- For this project on github
+- Send a pull request via github and we'll add your changes!
+
+Want to talk? Need help?
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Email python-docx@googlegroups.com
+
+
+License
+~~~~~~~
+
+Licensed under the `MIT license <http://www.opensource.org/licenses/mit-license.php>`_
+
+Short version: this code is copyrighted to me (Mike MacCana), I give you
+permission to do what you want with it except remove my name from the credits.
+See the LICENSE file for specific terms.
+
+feedparser - Parse Atom and RSS feeds in Python.
+
+Copyright (c) 2010-2012 Kurt McKee <contactme@kurtmckee.org>
+Copyright (c) 2002-2008 Mark Pilgrim
+
+feedparser is open source. See the LICENSE file for more information.
+
+
+Installation
+============
+
+Feedparser can be installed using distutils or setuptools by running:
+
+    $ python setup.py install
+
+If you're using Python 3, feedparser will automatically be updated by the 2to3
+tool; installation should be seamless across Python 2 and Python 3.
+
+There's one caveat, however: sgmllib.py was deprecated in Python 2.6 and is no
+longer included in the Python 3 standard library. Because feedparser currently
+relies on sgmllib.py to handle illformed feeds (among other things), it's a
+useful library to have installed.
+
+If your feedparser download included a copy of sgmllib.py, it's probably called
+sgmllib3.py, and you can simply rename the file to sgmllib.py. It will not be
+automatically installed using the command above, so you will have to manually
+copy it to somewhere in your Python path.
+
+If a copy of sgmllib.py was not included in your feedparser download, you can
+grab a copy from the Python 2 standard library (preferably from the Python 2.7
+series) and run the 2to3 tool on it:
+
+    $ 2to3 -w sgmllib.py
+
+If you copied sgmllib.py from a Python 2.6 or 2.7 installation you'll
+additionally need to edit the resulting file to remove the `warnpy3k` lines at
+the top of the file. There should be four lines at the top of the file that you
+can delete.
+
+Because sgmllib.py is a part of the Python codebase, it's licensed under the
+Python Software Foundation License. You can find a copy of that license at
+python.org:
+
+    http://docs.python.org/license.html
+
+
+Documentation
+=============
+
+The feedparser documentation is available on the web at:
+
+    http://packages.python.org/feedparser
+
+It is also included in its source format, ReST, in the docs/ directory. To
+build the documentation you'll need the Sphinx package, which is available at:
+
+    http://sphinx.pocoo.org/
+
+You can then build HTML pages using a command similar to:
+
+    $ sphinx-build -b html docs/ fpdocs
+
+This will produce HTML documentation in the fpdocs/ directory.
+
+
+Testing
+=======
+
+Feedparser has an extensive test suite that has been growing for a decade. If
+you'd like to run the tests yourself, you can run the following command:
+
+    $ python feedparsertest.py
+
+This will spawn an HTTP server that will listen on port 8097. The tests will
+fail if that port is in use.
+
+PDFMiner
+http://www.unixuser.org/~euske/python/pdfminer/
+
+Copyright (c) 2004-2010 Yusuke Shinyama <yusuke at cs dot nyu dot edu>
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Pattern
+=======
+
+Pattern is a web mining module for Python. It has tools for:
+
+ * Data Mining: web services (Google, Twitter, Wikipedia), web crawler, HTML DOM parser
+ * Natural Language Processing: part-of-speech taggers, n-gram search, sentiment analysis, WordNet
+ * Machine Learning: vector space model, clustering, classification (KNN, SVM, Perceptron)
+ * Network Analysis: graph centrality and visualization.
+
+It is well documented and bundled with 50+ examples and 350+ unit tests. The source code is licensed under BSD and available from <http://www.clips.ua.ac.be/pages/pattern>.
+
+![Pattern example workflow](http://www.clips.ua.ac.be/media/pattern_schema.gif)
+
+Version
+-------
+
+2.6
+
+License
+-------
+
+**BSD**, see `LICENSE.txt` for further details.
+
+Installation
+------------
+
+Pattern is written for Python 2.5+ (no support for Python 3 yet). The module has no external dependencies except when using LSA in the pattern.vector module, which requires NumPy (installed by default on Mac OS X). To install Pattern so that it is available in all your scripts, unzip the download and from the command line do:
+```bash
+cd pattern-2.6
+python setup.py install
+```
+
+If you have pip, you can automatically download and install from the PyPi repository:
+```bash
+pip install pattern
+```
+
+If none of the above works, you can make Python aware of the module in three ways:
+- Put the pattern folder in the same folder as your script.
+- Put the pattern folder in the standard location for modules so it is available to all scripts:
+  * `c:\python26\Lib\site-packages\` (Windows),
+  * `/Library/Python/2.6/site-packages/` (Mac OS X),
+  * `/usr/lib/python2.6/site-packages/` (Unix).
+- Add the location of the module to `sys.path` in your script, before importing it:
+
+```python
+MODULE = '/users/tom/desktop/pattern'
+import sys; if MODULE not in sys.path: sys.path.append(MODULE)
+from pattern.en import parsetree
+```
+
+Example
+-------
+
+This example trains a classifier on adjectives mined from Twitter. First, tweets that contain hashtag #win or #fail are collected. For example: "$20 tip off a sweet little old lady today #win". The word part-of-speech tags are then parsed, keeping only adjectives. Each tweet is transformed to a vector, a dictionary of adjective → count items, labeled `WIN` or `FAIL`. The classifier uses the vectors to learn which other tweets look more like  `WIN` or more like `FAIL`.
+
+```python
+from pattern.web    import Twitter
+from pattern.en     import tag
+from pattern.vector import KNN, count
+
+twitter, knn = Twitter(), KNN()
+
+for i in range(1, 3):
+    for tweet in twitter.search('#win OR #fail', start=i, count=100):
+        s = tweet.text.lower()
+        p = '#win' in s and 'WIN' or 'FAIL'
+        v = tag(s)
+        v = [word for word, pos in v if pos == 'JJ'] # JJ = adjective
+        v = count(v) # {'sweet': 1}
+        if v:
+            knn.train(v, type=p)
+
+print knn.classify('sweet potato burger')
+print knn.classify('stupid autocorrect')
+```
+
+Documentation
+-------------
+
+<http://www.clips.ua.ac.be/pages/pattern>
+
+Reference
+---------
+
+De Smedt, T., Daelemans, W. (2012). Pattern for Python. *Journal of Machine Learning Research, 13*, 2031–2035.
+
+Contribute
+----------
+
+The source code is hosted on GitHub and contributions or donations are welcomed, see the [developer documentation](http://www.clips.ua.ac.be/pages/pattern#contribute). If you use Pattern in your work, please cite our reference paper.
+
+Bundled dependencies
+--------------------
+
+Pattern is bundled with the following data sets, algorithms and Python packages:
+
+- **Beautiful Soup**, Leonard Richardson
+- **Brill tagger**, Eric Brill
+- **Brill tagger for Dutch**, Jeroen Geertzen
+- **Brill tagger for German**, Gerold Schneider & Martin Volk
+- **Brill tagger for Spanish**, trained on Wikicorpus (Samuel Reese & Gemma Boleda et al.)
+- **Brill tagger for French**, trained on Lefff (Benoît Sagot & Lionel Clément et al.)
+- **Brill tagger for Italian**, mined from Wiktionary
+- **English pluralization**, Damian Conway
+- **Spanish verb inflection**, Fred Jehle
+- **French verb inflection**, Bob Salita
+- **Graph JavaScript framework**, Aslak Hellesoy & Dave Hoover
+- **LIBSVM**, Chih-Chung Chang & Chih-Jen Lin
+- **LIBLINEAR**, Rong-En Fan et al.
+- **NetworkX centrality**, Aric Hagberg, Dan Schult & Pieter Swart
+- **PDFMiner**, Yusuke Shinyama
+- **Python docx**, Mike Maccana
+- **PyWordNet**, Oliver Steele
+- **simplejson**, Bob Ippolito
+- **spelling corrector**, Peter Norvig
+- **Universal Feed Parser**, Mark Pilgrim
+- **WordNet**, Christiane Fellbaum et al.
+
+Acknowledgements
+----------------
+
+**Authors:**
+
+- Tom De Smedt (tom@organisms.be)
+- Walter Daelemans (walter.daelemans@ua.ac.be)
+
+**Contributors (chronological):**
+
+- Frederik De Bleser
+- Jason Wiener
+- Daniel Friesen
+- Jeroen Geertzen
+- Thomas Crombez
+- Ken Williams
+- Peteris Erins
+- Rajesh Nair
+- F. De Smedt
+- Radim Řehůřek
+- Tom Loredo
+- John DeBovis
+- Thomas Sileo
+- Gerold Schneider
+- Martin Volk
+- Samuel Joseph
+- Shubhanshu Mishra
+- Robert Elwell
+- Fred Jehle
+- Antoine Mazières + fabelier.org
+- Rémi de Zoeten + closealert.nl
+- Kenneth Koch
+- Jens Grivolla
+- Fabio Marfia
+- Steven Loria
+- Colin Molter + tevizz.com
+- Peter Bull
+- Maurizio Sambati
+- Dan Fu
+- Salvatore Di Dio
+- Vincent Van Asch
+- Frederik Elwert
+PATTERN
+=======
+
+Pattern is a web mining module for Python. It has tools for data mining (web services for Google, Twitter and Wikipedia, web crawler, HTML DOM parser), natural language processing (part-of-speech taggers, n-gram search, sentiment analysis, WordNet), machine learning (vector space model, clustering, classification using KNN, SVM, Perceptron) and network analysis (graph centrality and visualization). It is well documented and bundled with 50+ examples and 350+ unit tests. The source code is licensed under BSD and available from http://www.clips.ua.ac.be/pages/pattern. 
+
+VERSION
+=======
+
+2.6
+
+LICENSE
+=======
+
+BSD, see LICENSE.txt for further details.
+
+INSTALLATION
+============
+
+Pattern is written for Python 2.5+ (no support for Python 3 yet). The module has no external dependencies except when using LSA in the pattern.vector module, which requires NumPy (installed by default on Mac OS X). To install Pattern so that it is available in all your scripts, unzip the download and from the command line do:
+> cd pattern-2.6
+> python setup.py install
+
+If you have pip, you can automatically download and install from the PyPi repository:
+> pip install pattern
+
+If none of the above works, you can make Python aware of the module in three ways:
+- Put the pattern folder in the same folder as your script.
+- Put the pattern folder in the standard location for modules so it is available to all scripts:
+  c:\python26\Lib\site-packages\ (Windows),
+  /Library/Python/2.6/site-packages/ (Mac OS X),   
+  /usr/lib/python2.6/site-packages/ (Unix).
+- Add the location of the module to sys.path in your script, before importing it:
+  >>> MODULE = '/users/tom/desktop/pattern'
+  >>> import sys; if MODULE not in sys.path: sys.path.append(MODULE)
+  >>> from pattern.en import parsetree
+
+Example
+=======
+
+This example trains a classifier on adjectives mined from Twitter. First, tweets that contain hashtag #win or #fail are collected. For example: "$20 tip off a sweet little old lady today #win". The word part-of-speech tags are then parsed, keeping only adjectives. Each tweet is transformed to a vector, a dictionary of adjective → count items, labeled WIN or FAIL. The classifier uses the vectors to learn which other tweets look more like  WIN or more like FAIL.
+
+>>> from pattern.web    import Twitter
+>>> from pattern.en     import tag
+>>> from pattern.vector import KNN, count
+>>> 
+>>> twitter, knn = Twitter(), KNN()
+>>> 
+>>> for i in range(1, 3):
+>>>     for tweet in twitter.search('#win OR #fail', start=i, count=100):
+>>>         s = tweet.text.lower()
+>>>         p = '#win' in s and 'WIN' or 'FAIL'
+>>>         v = tag(s)
+>>>         v = [word for word, pos in v if pos == 'JJ'] # JJ = adjective
+>>>         v = count(v) # {'sweet': 1}
+>>>         if v:
+>>>             knn.train(v, type=p)
+>>> 
+>>> print knn.classify('sweet potato burger')
+>>> print knn.classify('stupid autocorrect')
+
+DOCUMENTATION
+=============
+
+http://www.clips.ua.ac.be/pages/pattern
+
+REFERENCE
+=========
+
+De Smedt, T., Daelemans, W. (2012). Pattern for Python. Journal of Machine Learning Research, 13, 2031–2035.
+
+CONTRIBUTE
+==========
+
+The source code is hosted on GitHub and contributions or donations are welcomed, see the developer documentation (http://www.clips.ua.ac.be/pages/pattern#contribute). If you use Pattern in your work, please cite our reference paper.
+
+BUNDLED DEPENDENCIES
+====================
+
+Pattern is bundled with the following data sets, algorithms and Python packages: 
+
+- Beautiful Soup, Leonard Richardson
+- Brill tagger, Eric Brill
+- Brill tagger for Dutch, Jeroen Geertzen
+- Brill tagger for German, Gerold Schneider & Martin Volk
+- Brill tagger for Spanish, trained on Wikicorpus (Samuel Reese & Gemma Boleda et al.)
+- Brill tagger for French, trained on Lefff (Benoît Sagot & Lionel Clément et al.)
+- Brill tagger for Italian, mined from Wiktionary
+- English pluralization, Damian Conway
+- Spanish verb inflection, Fred Jehle
+- French verb inflection, Bob Salita
+- Graph JavaScript framework, Aslak Hellesoy & Dave Hoover
+- LIBSVM, Chih-Chung Chang & Chih-Jen Lin
+- LIBLINEAR, Rong-En Fan et al.
+- NetworkX centrality, Aric Hagberg, Dan Schult & Pieter Swart
+- PDFMiner, Yusuke Shinyama
+- Python docx, Mike Maccana
+- PyWordNet, Oliver Steele
+- simplejson, Bob Ippolito
+- spelling corrector, Peter Norvig
+- Universal Feed Parser, Mark Pilgrim
+- WordNet, Christiane Fellbaum et al.
+
+ACKNOWLEDGEMENTS
+================
+
+Authors: 
+- Tom De Smedt (tom@organisms.be)
+- Walter Daelemans (walter.daelemans@ua.ac.be)
+
+Contributors (chronological):
+- Frederik De Bleser
+- Jason Wiener
+- Daniel Friesen
+- Jeroen Geertzen
+- Thomas Crombez
+- Ken Williams
+- Peteris Erins
+- Rajesh Nair
+- F. De Smedt
+- Radim Řehůřek
+- Tom Loredo
+- John DeBovis
+- Thomas Sileo
+- Gerold Schneider
+- Martin Volk
+- Samuel Joseph
+- Shubhanshu Mishra
+- Robert Elwell
+- Fred Jehle
+- Antoine Mazières + fabelier.org
+- Rémi de Zoeten + closealert.nl
+- Kenneth Koch
+- Jens Grivolla
+- Fabio Marfia
+- Steven Loria
+- Colin Molter + tevizz.com
+- Peter Bull
+- Maurizio Sambati
+- Dan Fu
+- Salvatore Di Dio
+- Vincent Van Asch
+- Frederik Elwert
+TEST CORPORA
+============
+
+The purpose of the corpora is for testing and evaluating the functionality in the Pattern module. These are not the original corpora; but samples that have been reduced in size and/or balanced. The original corpora can be found by following the links below.
+
+The corpora are meant for personal use, they are not part of the module's BSD license.
+
+1) Through the Looking-Glass, written by Lewis Carroll
+- carroll-lookingglass.pdf
+- http://www.gutenberg.org/
+- Chapter 1 of Through the Looking-Glass in Office Open XML format.
+
+2) Alice in Wonderland, written by Lewis Carroll
+- carroll-wonderland.pdf
+- http://www.gutenberg.org/
+- Full text of Alice in Wonderland in PDF format.
+
+3) Clough & Stevenson's plagiarism corpus
+- plagiarism-clough&stevenson.csv
+- http://ir.shef.ac.uk/cloughie/resources/plagiarism_corpus.html
+- 100 texts: authentic (0), heavy (1) or light revision (2), cut & paste (3).
+
+4) Amazon.de German book reviews
+- polarity-de-amazon.csv
+- http://www.amazon.de/gp/bestsellers/books/
+- 100 "positive" and 100 "negative" book reviews.
+
+5) Amazon.fr French book reviews
+- polarity-fr-amazon.csv
+- http://www.amazon.fr/
+- 750 "positive" and 750 "negative" movie reviews.
+
+6) Pang & Lee's sentence polarity dataset v1.0
+- polarity-en-pang&lee1.csv
+- http://www.cs.cornell.edu/people/pabo/movie-review-data/
+- 2000 "positive" and 2000 "negative" sentences.
+
+7) Pang & Lee's polarity dataset v2.0
+- polarity-en-pang&lee2.csv
+- http://www.cs.cornell.edu/people/pabo/movie-review-data/
+- 750 "positive" and 750 "negative" movie reviews.
+
+8) Bol.com Dutch book reviews
+- polarity-nl-bol.com.csv
+- http://www.bol.com/nl/m/nederlandse-boeken/literatuur/
+- 1500 "positive" and 1500 "negative" book reviews.
+
+9) German portion of Tiger Treebank (Brants et al.)
+- tagged-de-tiger.txt
+- http://www.ims.uni-stuttgart.de/forschung/ressourcen/korpora
+- 250 German sentences with STTS part-of-speech tags.
+
+10) English portion of Open American National Corpus (Ide et al.)
+- tagged-en-oanc.txt
+- http://www.anc.org/data/oanc/
+- 1000 English sentences with Penn Treebank part-of-speech tags.
+
+11) English portion of Penn Treebank (Marcus et al.)
+- tagged-en-wsj.txt
+- http://www.cis.upenn.edu/~treebank/home.html
+- 1000 English sentences with Penn Treebank part-of-speech tags.
+
+12) Spanish portion of Wikicorpus v.1.0 (Reese & Boleda et al.)
+- tagged-es-wikicorpus.txt
+- http://www.lsi.upc.edu/~nlp/wikicorpus/
+- 1000 Spanish sentences with Parole part-of-speech tags.
+
+13) Italian portion of WaCKy Corpus (Baroni et al.)
+- tagged-it-wacky.txt
+- http://wacky.sslmit.unibo.it/doku.php?id=corpora
+- 1000 Italian sentences with Penn Treebank II part-of-speech tags.
+
+14) Dutch portion of Twente Nieuws Corpus (Ordelman et al.)
+- tagged-nl-twnc.txt
+- http://hmi.ewi.utwente.nl/TwNC
+- 1000 Dutch sentences with Wotan part-of-speech tags.
+
+15) Apache SpamAssassin public mail corpus
+- spam-apache.csv
+- http://spamassassin.apache.org/publiccorpus/
+- 125 "spam" and 125 (mostly technical) "ham" messages.
+
+16) Birkbeck spelling error corpus
+- spelling-birkbeck.csv
+- http://www.ota.ox.ac.uk/headers/0643.xml
+- 500 words and how they are commonly misspelled.
+
+17) CoNLL 2010 Shared Task 1 - Wikipedia uncertainty
+- uncertainty-conll2010.csv
+- http://www.inf.u-szeged.hu/rgai/conll2010st/tasks.html#task1
+- 1500 "certain" and 1500 "uncertain" Wikipedia sentences.
+
+18) Celex 2.5 German word forms
+- wordforms-de-celex.csv
+- http://celex.mpi.nl/
+- 250 singular nouns and their plural form.
+- 250 predicative adjectives and their attributive form.
+
+19) Celex 2.5 English word forms
+- wordforms-en-celex.csv
+- http://celex.mpi.nl/
+- 4000 singular nouns and their plural form.
+
+20) Celex 2.5 Dutch word forms
+- wordforms-nl-celex.csv
+- http://celex.mpi.nl/
+- 1000 singular nouns and their plural form.
+- 1000 predicative adjectives and their attributive form.
+
+21) Davies Corpus del Espa�ol word forms
+- wordforms-es-davies.csv
+- http://www.wordfrequency.info/files/spanish/spanish_lemmas20k.txt
+- 3000 word forms with lemma, part-of-speech and frequency.
+
+22) Wiktionary Italian word forms
+- wordforms-it-wiktionary.csv
+- https://en.wiktionary.org/wiki/Category:Italian_language
+- 2000 word forms with lemma, part-of-speech and gender.
+
+23) Lexique 3 French word forms
+- wordforms-fr-lexique.csv
+- http://www.lexique.org/
+- 2000 word forms with lemma and part-of-speech.

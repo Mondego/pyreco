@@ -1,0 +1,499 @@
+Team owner: bcourt
+
+Note: createrepo-0.9.9 is available in EL7.
+
+pulp requires this, and the newest is not available in Fedora or EPEL. Once jortel updates it there, we can possibly remove this.
+Team owner: jortel
+
+This version is newer than what is available in RHEL 6.
+
+We might not require this version, and further investigation will be required.
+
+Team owner: skarmarkar
+
+pulp requires 3.4, which is not available in EPEL 6.
+
+Team owner: rbarlow
+
+kombu 3.0.15 requires amqp>=1.4.5,<2.0, which is not available in EPEL <= 7, or Fedora <= 20.
+
+This requirement may not actually be necessary once proton and qpid are used with celery.
+
+Team owner: rbarlow
+
+python-kombu 3.0.8 requires 0.3.3 or greater, which is not available in EPEL 6.
+
+Team owner: rbarlow
+
+celery-3.1.11 requires billiard>=3.3.0.17,<3.4, and a new-enough version is not available in
+Fedora <= 20 or EPEL <= 7.
+
+Team owner: rbarlow
+
+Pulp requires celery 3.1, which is not available in Fedora <= 20 or EPEL <= 7.
+
+Team owner: skarmarkar
+
+This appears to be unmaintained upstream, and there is no knowledge of why we have
+a patch. This version is newer than what is in Fedora <= 20 and EPEL <= 7, so we should
+consider using a different library.
+
+Team owner: bbouters
+
+Celery 3.1.11 requires kombu>=3.0.15,<4.0, which is not in Fedora <= 20, or EPEL <= 7.
+
+Pulp would like to use the Qpid transport through a PR celery/kombu#335 that
+has been submitted upstream, but not yet merged.  This patch is introduced
+through the spec file, and can be removed once:
+
+1.  celery/kombu#335 is merged upstream.
+2.  celery/kombu#335 is included in a Kombu release
+3.  This dependency is updated to the release containing celery/kombu#335.
+
+
+This is required by pulp and authored by the pulp team. Once pulp building is
+moved into koji, this can probably be removed as a dep and build through normal
+koji means.
+Team owner: skarmarkar
+
+nectar requires version 2.2.1 or greater, which is not available in EPEL <= 7 or Fedora <= 20.
+
+Team owner: mhrivnak
+
+This is required for pulp-puppet-plugins.
+
+This is not currently in epel <= 7 or fedora <= 20.
+
+There are no known restrictions on what version to use.
+
+The plan is to get this into Fedora and EPEL. mhrivnak got it to build successfully
+on the fedora koji and will continue on that path.
+
+Team owner: cduryee
+
+This is the same as the EPEL6 srpm. It is included here for building for el7, since EPEL7 does not carry python-webpy.
+
+
++-----------------------------------------------------------------------------+
+Building
+
+From this directory, run:
+
+  make clean && make html
+
+The built documentation will be under _build/html
+
++-----------------------------------------------------------------------------+
+reST Cheatsheet
+
+Below are a few useful commands to know:
+* Bold is gotten by wrapping the text with double *. Example: **awesome**
+* Italics is wrapped with single *. Example: *rock*
+* A link to the glossary is done using the :term: role. The value of the role
+  is the text to include as the link and then the actual target in the glossary.
+  For example: :term:`distributors <distributor>` will name the link "distributors"
+  and reference the distributor entry in the glossary.
+* Adding an entry in the glossary is very simple, just follow the format of an
+  existing item in glossary.rst.
+
++-----------------------------------------------------------------------------+
+API Pages
+
+APIs should be divided into logical groupings to keep from making pages too
+long and cumbersome to deal with. The page title should be rendered as a reST
+section using = as the underline. For example:
+
+Creation and Configuration
+==========================
+
+Each individual API then uses - as the underline:
+
+Create a Repository
+-------------------
+
++-----------------------------------------------------------------------------+
+API Template
+
+Below is the template used for a single API. Things to keep in mind:
+
+* For response_list and sample_request, the `_` part is required.
+* For sample_request, make sure to have a space after the ` and before ::
+* Variables in a path are denoted by <> (e.g. /repositories/<repo_id>/)
+* Order response codes in ascending order
+* A ? at the start of a param name will flag it as optional
+* param_list takes the method value as an argument
+* sample_response takes the code of the response being sampled
+
+See ../extensions/rest_api.py for the implementations of each role used in the
+template below. The docstrings for each role method describe the format of the
+values to pass to each role.
+
+
+
+API TITLE
+---------
+
+DESCRIPTION
+
+BLANK LINES BETWEEN MULTIPLE PARAGRAPHS
+
+| :method:`post`
+| :path:`/v2/repositories/<id>/`
+| :permission:`create`
+| :param_list:`post`
+
+* :param:`id,str,unique identifier for the repository`
+* :param:`?display_name,str,user-friendly name for the repository`
+
+| :response_list:`_`
+
+* :response_code:`201,if the repository was created`
+* :response_code:`409,if a repository already exists with the given ID`
+
+| :return:`serialized version of the created repository`
+
+:sample_request:`_` ::
+
+ {
+  "display_name": "Harness Repository: harness_repo_1",
+  "id": "harness_repo_1"
+ }
+
+:sample_response:`200` ::
+
+ {
+  "display_name": "Harness Repository: harness_repo_1",
+  "description": null,
+  "_ns": "gc_repositories",
+  "notes": {},
+  "content_unit_count": 0,
+  "_id": "harness_repo_1",
+  "id": "harness_repo_1"
+ }
+
+
+To run the script:
+------------------
+* symlink the auth_token.conf under /etc/httpd/conf.d/
+
+* restart apache
+
+* python mod_auth_token_prototype.py <filename>
+
+
+1) Run `./create_certs_to_revoke.sh` to generate test data of:
+ CA:            ./certs/revoking_ca.pem
+ CRL:           ./certs/revoking_crl.pem
+ Revoked Cert:  ./certs/revoked_cert.pem
+
+Use the example verify_* scripts to test out openssl commands for verifying a cert has been revoked with a CRL.
+
+
+
+Overview:
+Helper scripts to:
+ 1) generate a CA for apache with a CN of your server hostname
+ 2) generate a custom x509 entitlement cert to be used with Repo Authentication
+
+These scripts some notes Jason Dobies posted at:
+http://blog.pulpproject.org/2011/05/18/pulp-protected-repositories/
+
+Further reference, see RepoAuth wiki:
+https://fedorahosted.org/pulp/wiki/RepoAuth
+
+
+Usage:
+[Generate a CA with your hostname]
+    ./create_ca.py
+
+This will determine your hostname and set the CN to that.
+If you want to override anything see './create_ca.py --help'
+
+[Create a custom x509 entitlement cert]
+    ./create_content_cert.py
+
+This will use 'extensions.txt' and will add the info there into a x509 cert.
+It relies on the CA previously generated.
+If you want to override anything see './create_content_cert.py --help'
+
+
+[Create a test pulp repo with these certs]
+    ./create_test_repos.py
+
+This will create pulp repos from 'config_test_repos.cfg' with the previously generated certs
+
+Config:
+    config_pulp_certs.cfg - This has configuration options for the script, change cert names/locations here
+    config_test_repos.cfg - Config options for creating pulp repos
+    template_openssl.cnf - Openssl configuration template, we'll update 'REPLACE_COMMON_NAME' with the hostname
+    extensions.txt - These are the x509 extensions we'll add to the entitlement cert
+
+
+Example using defaults:
+
+./create_ca.py
+Running: openssl genrsa -out ./certs/Pulp_CA.key 2048
+Running: openssl req -new -x509 -days 365 -key ./certs/Pulp_CA.key -out ./certs/Pulp_CA.cert -config ./certs/openssl.cnf
+CA Key: ./certs/Pulp_CA.key
+CA Cert: ./certs/Pulp_CA.cert
+
+./create_content_cert.py
+Running: openssl genrsa -out ./certs/ent.key 2048
+Running: openssl req -new -key ./certs/ent.key -out ./certs/ent.csr -config ./certs/openssl.cnf
+Running: openssl x509 -req -days 365 -CA ./certs/Pulp_CA.cert -CAkey ./certs/Pulp_CA.key -extfile ./extensions.txt -extensions pulp-repos -in ./certs/ent.csr -out ./certs/ent.cert -CAserial ./certs/Pulp_CA.srl -CAcreateserial
+Entitlement Cert: ./certs/ent.cert
+Entitlement Key: ./certs/ent.key
+
+
+./create_test_repos.py
+Running: sudo pulp-admin repo create --id pulp_f15_i386 --feed http://repos.fedorapeople.org/repos/pulp/pulp/fedora-15/i386/ --consumer_ca ./certs/Pulp_CA.cert --consumer_cert ./certs/ent.cert --consumer_key ./certs/ent.key
+Running: sudo pulp-admin repo create --id pulp_f15_x86_64 --feed http://repos.fedorapeople.org/repos/pulp/pulp/fedora-15/x86_64/ --consumer_ca ./certs/Pulp_CA.cert --consumer_cert ./certs/ent.cert --consumer_key ./certs/ent.key
+
+The output files we care about:
+CA Certificate:     certs/Pulp_CA.cert
+CA Key:             certs/Pulp_CA.key
+Ent Certificate:    certs/ent.cert
+Ent Key:            certs/ent.key
+
+
+
+Instructions for setting up a new pulp system for repo auth testing.
+Assumes:
+ 1) Pulp is installed and we are running from the pulp server
+ 2) We will use the Pulp Fedora 15 i386 repo as a test.  
+   If this repo has already been synced, delete it.
+
+Run:
+ 1) ./create_ca.py
+ 2) ./create_content_cert.py
+ 3) ./install.py
+ 4) ./create_test_repos.py
+
+The above will create the certs and install them into httpd.
+It will also create a test repo and upload certs
+
+Now to test run:
+ ./test_fetch.py
+
+ If everything is working you should see the contents of 'repomd.xml'.
+
+
+
+If you find yourself needing to work in our
+distributed-tasks branch, there are a few things you will need to do in
+order to get up and running.
+
+1) Disable qpidd (Optional. We still support qpidd for consumers, in addition to rabbitmq.)
+
+    $ sudo systemctl stop qpidd
+
+    $ sudo systemctl disable qpidd
+
+2) Install and start RabbitMQ:
+
+    $ sudo yum install rabbitmq-server
+
+    If you didn't disable qpidd, you will need to configure Rabbit to run on a different port, as
+    they both use the same port by default. Put the following into /etc/rabbitmq/rabbitmq-env.conf:
+
+        NODE_PORT=<insert port you want here>
+
+    $ sudo systemctl enable rabbitmq-server
+
+    $ sudo systemctl start rabbitmq-server
+
+    Add a rabbit user. You will need to remember the username and password you set here for the
+    broker_url in step 3.
+
+    $ sudo rabbitmqctl add_user <username> <password>
+
+    Optionally, you can create a vhost here. If you do, you need to put it in the <vhost> part of
+    the broker_url in step 3. If you don't, leave the trailing slash on the broker_url, but put
+    nothing.
+
+    $ sudo rabbitmqctl add_vhost <vhost>
+
+    If you added a vhost, you need the -p <vhost> part of this next command, and if you didn't,
+    simply omit that portion.
+
+    $ sudo rabbitmqctl set_permissions -p <vhost> <username> ".*" ".*" ".*"
+
+3) Edit Pulp's server.conf to reflect the correct settings for the consumer (if you disabled qpidd),
+   and for the new tasking system.
+
+   [tasks]
+   broker_url: amqp://<username>:<password>@<hostname>:<port>/<vhost>
+
+   Don't forget to update the [messaging] section if you aren't using qpidd anymore. I'm not sure
+   what goes there, so ask jortel :)
+
+4) Now you must install Celery and start at least two celeryd's. You can run each celeryd in it's own
+   terminal, or you can use our init scripts or unit files to run Celery. See the installation guide to learn
+   how to use the init scripts and unit files. Below we will cover how to run celeryd in the terminal.
+   The --loglevel can be seasoned to taste. INFO will print out each task that was accepted, and will also
+   note when they complete and how long they took. I think the default loglevel doesn't print anything unless
+   there's a problem or a print statement.
+
+     First, you will need at least one celeryd to do the work of the reserved tasks. This is very
+     important, as reserved tasks will just pile up if there isn't at least one process around to
+     deal with them. It is also important that these workers are run by the apache user. Start as many of
+     these as you like, but take care to assign them all the -c 1 flag (concurrency of 1), and make sure they
+     have unique names. Each of them must be named (with the -n flag) with the prefix
+     "reserved_resource_worker-". The resource manager will look for workers with names that start with that
+     prefix to identify that they wish to perform these duties. If you want them to only process reserved
+     work, you should use the -Q flag to assign them to queues of their own name. If you don't supply the -Q
+     flag, the resource_manager will automatically subscribe them to their own queue, and they will also be
+     subscribed to the general Celery queue. I (rbarlow) recommend leaving the -Q flag off so they can perform
+     work from both queues, but feel free to do as you please. This will start two of them, for example:
+
+     $ sudo -u apache celery worker -A pulp.server.async.app --loglevel INFO -c 1 -n reserved_resource_worker-1@%h
+
+     $ sudo -u apache celery worker -A pulp.server.async.app --loglevel INFO -c 1 -n reserved_resource_worker-2@%h
+
+     The last one is the resource manager. It is very important, as its job is to route tasks
+     that reserve resources to the correct workers. You can adjust the -n flag to whatever you like,
+     but it is critical that you do not change the -c or -Q flags on this command. It is important that only
+     one resource manager is running across the entire Pulp application, so do not start this on more than one
+     computer.
+
+     $ sudo -u apache celery worker -A pulp.server.async.app --loglevel INFO -c 1 -n resource_manager@%h -Q resource_manager
+
+5) Lastly, you need to run a Celery Beat. This is similar to a crond for Celery. It is important
+   that only one Celery Beat be run across the entire application, no matter how many Pulp servers
+   are part of the system. Celery Beat must run long enough to send at least one "babysit" task before the
+   Pulp application will work correctly, as this is how Pulp discovers the available workers.
+
+   $ sudo -u apache celery beat -A pulp.server.async.app --loglevel INFO --pidfile /tmp/beat.pid
+
+I believe that is all that is required to get up and running with Celery in Pulp at the moment. Happy coding,
+and feel free to ask if you have questions, or to update this document if you feel more info would be helpful,
+or if you find a mistake.
+
+These scripts will allow grinder to essentially mirror a pulp server.
+ - We get a list of the repos from a pulp server
+ - Then run grinder to sync each repo
+
+ Motivation:    We are using these scripts to debug a memory leak.
+                Desire is to isolate the grinder sync portion with the exact repos the pulp repo has been syncing.
+
+
+1) Get a list of repos:  
+  Run "repo_list.sh"  Update for username/password
+2) Convert repo_list.json to a series of id,feed_url,feed_ca,feed_cert
+  Output is: feed_urls
+3) grinder_reproducer_memleak.py feed_urls
+ 
+
+
+The puppet module contained in this directory can be used to prepare a fedora 18 or Fedora 19 server
+for use in testing pulp.  This module only installs the prerequisites you will still have to install pulp
+separately.
+
+Instructions:
+1.  Install puppet: yum install puppet
+2.  Install the puppet standard libraries: puppet module install puppetlabs/stdlib
+3.  Apply this module: puppet apply pulp.pp
+    This command may have to be run more than once to get everything to apply successfully.
+4.  Restart the server so that the changes to disable selinux will take effect.
+
+This directory is for scripts and other tools to help manage, test, and debug
+pulp. Feel free to drop anything you like in here, but please take a little
+time to document it.
+
+- The Pulp Team
+
+1) Edit rules in example.te and bump the version number if desired
+2) If desired, add file contexts to example.fc
+3) Run "sudo ./setup.sh" 
+  Allow several minutes
+4) Confirm rules have been installed with:
+ sudo semodule -l | grep example
+
+To uninstall:
+ sudo ./uninstall.sh
+
+
+
+Example for testing multiple repository syncs in a standalone Pulp (outside of mod_wsgi)
+ sudo ./sync_memory_test.py --feed_urls ./feed_urls_small --num_syncs 1
+
+The input parameter '--feed_urls' is the path to a file of repo information.
+It must be in the format.  
+ Each line:  repo_id, feed_url, feed_ca, feed_cert
+
+ This file can be generated from existing repos in a Pulp server by using:
+  pulp/playpen/grinder/mirror_pulp/repo_list.sh
+    then converting the output to JSON to this format by running:
+  pulp/playpen/grinder/mirror_pulp/convert_repo_list.py
+
+
+
+
+
+The following configuration parameters can be passed to the distributor either
+in its static configuration when it is added to a repo or with an individual
+publish call.
+
+write_files : If true, the distributor will copy the file created by the importer
+  to the publish directory.
+
+publish_dir : Location on disk the files will be written to when the repository
+  is published. This has no effect if write_files is false.
+
+publish_delay_in_seconds : Number of seconds to wait at the tail end of the publish
+  before informing Pulp the operation has completed. This can be used to simulate
+  a long running publish operation.
+
+The following configuration parameters can be passed to the importer either
+in its static configuration when it is added to a repo or with an individual
+sync call.
+
+num_units : Indicates how many units should be in the repository after the sync
+  completes. Units will be named incrementally following the pattern
+  harness_unit_%d. If the repository previously contained more units than this
+  number, the extra units will be removed as part of the sync.
+
+write_files : If true, the importer will write an empty file with the appropriate
+  name and location as it it had actually downloaded a file. If this is false,
+  the metadata for each unit will still be added to the Pulp server but the
+  file system will not be touched. When written, files are chunked into 5 different
+  subdirectories to exercise Pulp's ability to retain the importer's requested
+  relative path for a unit while determining the final storage location.
+
+sync_delay_in_seconds : Number of seconds to wait at the tail end of the sync
+  before informing Pulp the sync has completed. This can be used to simulate
+  slow connections in the plugin.
+
+This directory contains sample plugins that can be used for testing Pulp v2
+capabilities.
+
+The plugins need to be deployed to /var/lib/pulp/plugins, each in the appropriate
+subdirectory. The install.sh script in this directory will create symlinks for
+all of the included plugins. It's a bit sloppy, so subsequent invocations of it
+will complain that the symlink already exists.
+
+Each plugin can accept different configuration parameters that dictate how it
+will behave. Details can be found in README files in each plugin directory.
+
+The harness directory includes infrastructure to script out scenarios the
+plugins should simulate. The harness.py script will use the configuration values
+in scenarios/_default.ini and the scenario file passed at the command line to
+make the appropriate REST calls to Pulp.
+
+Example:
+python harness.py scenarios/basic.ini
+
+See the _default.ini file for more information on the parameters that can be
+overridden in an individual scenario file.
+
+Pulp is a platform for managing repositories of content, such as software
+packages, and pushing that content out to large numbers of consumers.
+
+For more information, check out the project website:
+
+http://www.pulpproject.org
+
+the rel-eng/packages directory contains metadata files
+named after their packages. Each file has the latest tagged
+version and the project's relative directory.
+

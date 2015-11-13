@@ -1,0 +1,539 @@
+Bench Template Library
+
+****************************************
+Introduction :
+
+The aim of this project is to compare the performance
+of available numerical libraries. The code is designed
+as generic and modular as possible. Thus, adding new
+numerical libraries or new numerical tests should
+require minimal effort.
+
+
+*****************************************
+
+Installation :
+
+BTL uses cmake / ctest:
+
+1 - create a build directory:
+
+  $ mkdir build
+  $ cd build
+
+2 - configure:
+
+  $ ccmake ..
+
+3 - run the bench using ctest:
+
+  $ ctest -V
+
+You can run the benchmarks only on libraries matching a given regular expression:
+  ctest -V -R <regexp>
+For instance:
+  ctest -V -R eigen2
+
+You can also select a given set of actions defining the environment variable BTL_CONFIG this way:
+  BTL_CONFIG="-a action1{:action2}*" ctest -V
+An exemple:
+  BTL_CONFIG="-a axpy:vector_matrix:trisolve:ata" ctest -V -R eigen2
+
+Finally, if bench results already exist (the bench*.dat files) then they merges by keeping the best for each matrix size. If you want to overwrite the previous ones you can simply add the "--overwrite" option:
+  BTL_CONFIG="-a axpy:vector_matrix:trisolve:ata --overwrite" ctest -V -R eigen2
+
+4 : Analyze the result. different data files (.dat) are produced in each libs directories.
+ If gnuplot is available, choose a directory name in the data directory to store the results and type:
+        $ cd data
+        $ mkdir my_directory
+        $ cp ../libs/*/*.dat my_directory
+ Build the data utilities in this (data) directory
+        make
+ Then you can look the raw data,
+        go_mean my_directory
+ or smooth the data first :
+	smooth_all.sh my_directory
+	go_mean my_directory_smooth
+
+
+*************************************************
+
+Files and directories :
+
+ generic_bench : all the bench sources common to all libraries
+
+ actions : sources for different action wrappers (axpy, matrix-matrix product) to be tested.
+
+ libs/* : bench sources specific to each tested libraries.
+
+ machine_dep : directory used to store machine specific Makefile.in
+
+ data : directory used to store gnuplot scripts and data analysis utilities
+
+**************************************************
+
+Principles : the code modularity is achieved by defining two concepts :
+
+ ****** Action concept : This is a class defining which kind
+  of test must be performed (e.g. a matrix_vector_product).
+	An Action should define the following methods :
+
+        *** Ctor using the size of the problem (matrix or vector size) as an argument
+	    Action action(size);
+        *** initialize : this method initialize the calculation (e.g. initialize the matrices and vectors arguments)
+	    action.initialize();
+	*** calculate : this method actually launch the calculation to be benchmarked
+	    action.calculate;
+	*** nb_op_base() : this method returns the complexity of the calculate method (allowing the mflops evaluation)
+        *** name() : this method returns the name of the action (std::string)
+
+ ****** Interface concept : This is a class or namespace defining how to use a given library and
+  its specific containers (matrix and vector). Up to now an interface should following types
+
+	*** real_type : kind of float to be used (float or double)
+	*** stl_vector : must correspond to std::vector<real_type>
+	*** stl_matrix : must correspond to std::vector<stl_vector>
+	*** gene_vector : the vector type for this interface        --> e.g. (real_type *) for the C_interface
+	*** gene_matrix : the matrix type for this interface        --> e.g. (gene_vector *) for the C_interface
+
+	+ the following common methods
+
+        *** free_matrix(gene_matrix & A, int N)  dealocation of a N sized gene_matrix A
+        *** free_vector(gene_vector & B)  dealocation of a N sized gene_vector B
+        *** matrix_from_stl(gene_matrix & A, stl_matrix & A_stl) copy the content of an stl_matrix A_stl into a gene_matrix A.
+	     The allocation of A is done in this function.
+	*** vector_to_stl(gene_vector & B, stl_vector & B_stl)  copy the content of an stl_vector B_stl into a gene_vector B.
+	     The allocation of B is done in this function.
+        *** matrix_to_stl(gene_matrix & A, stl_matrix & A_stl) copy the content of an gene_matrix A into an stl_matrix A_stl.
+             The size of A_STL must corresponds to the size of A.
+        *** vector_to_stl(gene_vector & A, stl_vector & A_stl) copy the content of an gene_vector A into an stl_vector A_stl.
+             The size of B_STL must corresponds to the size of B.
+	*** copy_matrix(gene_matrix & source, gene_matrix & cible, int N) : copy the content of source in cible. Both source
+		and cible must be sized NxN.
+	*** copy_vector(gene_vector & source, gene_vector & cible, int N) : copy the content of source in cible. Both source
+ 		and cible must be sized N.
+
+	and the following method corresponding to the action one wants to be benchmarked :
+
+	***  matrix_vector_product(const gene_matrix & A, const gene_vector & B, gene_vector & X, int N)
+	***  matrix_matrix_product(const gene_matrix & A, const gene_matrix & B, gene_matrix & X, int N)
+        ***  ata_product(const gene_matrix & A, gene_matrix & X, int N)
+	***  aat_product(const gene_matrix & A, gene_matrix & X, int N)
+        ***  axpy(real coef, const gene_vector & X, gene_vector & Y, int N)
+
+ The bench algorithm (generic_bench/bench.hh) is templated with an action itself templated with
+ an interface. A typical main.cpp source stored in a given library directory libs/A_LIB
+ looks like :
+
+ bench< AN_ACTION < AN_INTERFACE > >( 10 , 1000 , 50 ) ;
+
+ this function will produce XY data file containing measured  mflops as a function of the size for 50
+ sizes between 10 and 10000.
+
+ This algorithm can be adapted by providing a given Perf_Analyzer object which determines how the time
+ measurements must be done. For example, the X86_Perf_Analyzer use the asm rdtsc function and provides
+ a very fast and accurate (but less portable) timing method. The default is the Portable_Perf_Analyzer
+ so
+
+ bench< AN_ACTION < AN_INTERFACE > >( 10 , 1000 , 50 ) ;
+
+ is equivalent to
+
+ bench< Portable_Perf_Analyzer,AN_ACTION < AN_INTERFACE > >( 10 , 1000 , 50 ) ;
+
+ If your system supports it we suggest to use a mixed implementation (X86_perf_Analyzer+Portable_Perf_Analyzer).
+ replace
+     bench<Portable_Perf_Analyzer,Action>(size_min,size_max,nb_point);
+ with
+     bench<Mixed_Perf_Analyzer,Action>(size_min,size_max,nb_point);
+ in generic/bench.hh
+
+.
+
+
+
+
+
+This folder contains a couple of benchmark utities and Eigen benchmarks.
+
+****************************
+* bench_multi_compilers.sh *
+****************************
+
+This script allows to run a benchmark on a set of different compilers/compiler options.
+It takes two arguments:
+ - a file defining the list of the compilers with their options
+ - the .cpp file of the benchmark
+
+Examples:
+
+$ ./bench_multi_compilers.sh basicbench.cxxlist basicbenchmark.cpp
+
+    g++-4.1 -O3 -DNDEBUG -finline-limit=10000
+    3d-3x3   /   4d-4x4   /   Xd-4x4   /   Xd-20x20   /
+    0.271102   0.131416   0.422322   0.198633
+    0.201658   0.102436   0.397566   0.207282
+
+    g++-4.2 -O3 -DNDEBUG -finline-limit=10000
+    3d-3x3   /   4d-4x4   /   Xd-4x4   /   Xd-20x20   /
+    0.107805   0.0890579   0.30265   0.161843
+    0.127157   0.0712581   0.278341   0.191029
+
+    g++-4.3 -O3 -DNDEBUG -finline-limit=10000
+    3d-3x3   /   4d-4x4   /   Xd-4x4   /   Xd-20x20   /
+    0.134318   0.105291   0.3704   0.180966
+    0.137703   0.0732472   0.31225   0.202204
+
+    icpc -fast -DNDEBUG -fno-exceptions -no-inline-max-size
+    3d-3x3   /   4d-4x4   /   Xd-4x4   /   Xd-20x20   /
+    0.226145   0.0941319   0.371873   0.159433
+    0.109302   0.0837538   0.328102   0.173891
+
+
+$ ./bench_multi_compilers.sh ompbench.cxxlist ompbenchmark.cpp
+
+    g++-4.2 -O3 -DNDEBUG -finline-limit=10000 -fopenmp
+    double, fixed-size 4x4: 0.00165105s  0.0778739s
+    double, 32x32: 0.0654769s 0.075289s  => x0.869674 (2)
+    double, 128x128: 0.054148s 0.0419669s  => x1.29025 (2)
+    double, 512x512: 0.913799s 0.428533s  => x2.13239 (2)
+    double, 1024x1024: 14.5972s 9.3542s  => x1.5605 (2)
+
+    icpc -fast -DNDEBUG -fno-exceptions -no-inline-max-size -openmp
+    double, fixed-size 4x4: 0.000589848s  0.019949s
+    double, 32x32: 0.0682781s 0.0449722s  => x1.51823 (2)
+    double, 128x128: 0.0547509s 0.0435519s  => x1.25714 (2)
+    double, 512x512: 0.829436s 0.424438s  => x1.9542 (2)
+    double, 1024x1024: 14.5243s 10.7735s  => x1.34815 (2)
+
+
+
+
+
+This directory contains a BLAS library built on top of Eigen.
+
+This is currently a work in progress which is far to be ready for use,
+but feel free to contribute to it if you wish.
+
+This module is not built by default. In order to compile it, you need to
+type 'make blas' from within your build dir.
+
+
+Eigen is primarily MPL2 licensed. See COPYING.MPL2 and these links:
+  http://www.mozilla.org/MPL/2.0/
+  http://www.mozilla.org/MPL/2.0/FAQ.html
+
+Some files contain third-party code under BSD or LGPL licenses, whence the other
+COPYING.* files here.
+
+All the LGPL code is either LGPL 2.1-only, or LGPL 2.1-or-later.
+For this reason, the COPYING.LGPL file contains the LGPL 2.1 text.
+
+If you want to guarantee that the Eigen code that you are #including is licensed
+under the MPL2 and possibly more permissive licenses (like BSD), #define this
+preprocessor symbol:
+  EIGEN_MPL2_ONLY
+For example, with most compilers, you could add this to your project CXXFLAGS:
+  -DEIGEN_MPL2_ONLY
+This will cause a compilation error to be generated if you #include any code that is
+LGPL licensed.
+
+*** Mandelbrot demo ***
+
+Controls:
+* Left mouse button to center view at a point.
+* Drag vertically with left mouse button to zoom in and out.
+
+Be sure to enable SSE2 or AltiVec to improve performance.
+
+The number of iterations, and the choice between single and double precision, are
+determined at runtime depending on the zoom level.
+
+This is an example of how one can wrap some of Eigen into a C library.
+
+To try this with GCC, do:
+
+  g++ -c binary_library.cpp -O2 -msse2 -I ../..
+  gcc example.c binary_library.o -o example -lstdc++
+  ./example
+
+TODO: add CMakeLists, add more explanations here
+
+Navigation:
+ left button:           rotate around the target
+ middle button:         zoom
+ left button + ctrl     quake rotate (rotate around camera position)
+ middle button + ctrl   walk (progress along camera's z direction)
+ left button:           pan (translate in the XY camera's plane)
+
+R : move the camera to initial position
+A : start/stop animation
+C : clear the animation
+G : add a key frame
+
+
+This directory contains contributions from various users.
+They are provided "as is", without any support. Nevertheless,
+most of them are subject to be included in Eigen in the future.
+
+In order to use an unsupported module you have to do either:
+
+ - add the path_to_eigen/unsupported directory to your include path and do:
+   #include <Eigen/ModuleHeader>
+
+ - or directly do:
+   #include <unsupported/Eigen/ModuleHeader>
+
+
+If you are interested in contributing to one of them, or have other stuff
+you would like to share, feel free to contact us:
+http://eigen.tuxfamily.org/index.php?title=Main_Page#Mailing_list
+
+Any kind of contributions are much appreciated, even very preliminary ones.
+However, it:
+ - must rely on Eigen,
+ - must be highly related to math,
+ - should have some general purpose in the sense that it could
+   potentially become an offical Eigen module (or be merged into another one).
+
+In doubt feel free to contact us. For instance, if your addons is very too specific
+but it shows an interesting way of using Eigen, then it could be a nice demo.
+
+
+This directory is organized as follow:
+
+unsupported/Eigen/ModuleHeader1
+unsupported/Eigen/ModuleHeader2
+unsupported/Eigen/...
+unsupported/Eigen/src/Module1/SourceFile1.h
+unsupported/Eigen/src/Module1/SourceFile2.h
+unsupported/Eigen/src/Module1/...
+unsupported/Eigen/src/Module2/SourceFile1.h
+unsupported/Eigen/src/Module2/SourceFile2.h
+unsupported/Eigen/src/Module2/...
+unsupported/Eigen/src/...
+unsupported/doc/snippets/.cpp   <- code snippets for the doc
+unsupported/doc/examples/.cpp   <- examples for the doc
+unsupported/doc/TutorialModule1.dox
+unsupported/doc/TutorialModule2.dox
+unsupported/doc/...
+unsupported/test/.cpp           <- unit test files
+
+The documentation is generated at the same time than the main Eigen documentation.
+The .html files are generated in: build_dir/doc/html/unsupported/
+
+
+# Bayesian inference in HSMMs and HMMs #
+This is a Python library for approximate unsupervised inference in
+Bayesian Hidden Markov Models (HMMs) and explicit-duration Hidden semi-Markov
+Models (HSMMs), focusing on the Bayesian Nonparametric extensions, the HDP-HMM
+and HDP-HSMM, mostly with weak-limit approximations.
+
+There are also some extensions:
+
+* [autoregressive models](https://github.com/mattjj/pyhsmm-autoregressive)
+* [factorial models](https://github.com/mattjj/pyhsmm-factorial)
+* [collapsed HDP sampling inference](https://github.com/mattjj/pyhsmm-collapsedinfinite).
+
+## Building and Running ##
+This library depends on having numpy, scipy, cython, and matplotlib installed.
+You can clone this library and its other dependencies into your current working
+directory with
+
+```bash
+git clone --recursive git://github.com/mattjj/pyhsmm.git
+```
+
+Build it with
+
+```bash
+cd pyhsmm
+python setup.py build_ext --inplace
+```
+
+Tested with g++ 4.8 (recommended) and the clang++ that ships with OS X 10.8.
+
+Some things to keep in mind:
+* if you use OS X's default (clang) compiler on OS 10.8 or earlier, you should
+  pass the `--with-old-clang` option or set `CCFLAGS` and `LDFLAGS` to include
+`-stdlib=libc++`
+* to use processor-tuned instructions with g++, you can pass the
+  `--with-native` flag or set `CCFLAGS` to include `-march=native`, but the
+  assembler that ships with OS X 10.8 is too old to know about AVX instructions
+
+## Running ##
+
+See the examples directory.
+
+For the Python interpreter to be able to import pyhsmm, you'll need it on your
+Python path. Since the current working directory is usually included in the
+Python path, you can probably run the examples from the same directory in which
+you run the git clone with commands like `python pyhsmm/examples/hsmm.py`. You
+might also want to add pyhsmm to your global Python path (e.g. by copying it to
+your site-packages directory).
+
+## A Simple Demonstration ##
+Here's how to draw from the HDP-HSMM posterior over HSMMs given a sequence of
+observations. (The same example, along with the code to generate the synthetic
+data loaded in this example, can be found in `examples/basic.py`.)
+
+Let's say we have some 2D data in a data.txt file:
+
+```bash
+$ head -5 data.txt
+-3.711962552600095444e-02 1.456401745267922598e-01
+7.553818775915704942e-02 2.457422192223903679e-01
+-2.465977987699214502e+00 5.537627981813508793e-01
+-7.031638516485749779e-01 1.536468304146855757e-01
+-9.224669847039665971e-01 3.680035337673161489e-01
+```
+
+In Python, we can plot the data in a 2D plot, collapsing out the time dimension:
+
+```python
+import numpy as np
+from matplotlib import pyplot as plt
+
+data = np.loadtxt('data.txt')
+plt.plot(data[:,0],data[:,1],'kx')
+```
+
+![2D data](http://www.mit.edu/~mattjj/github/pyhsmm/data.png)
+
+We can also make a plot of time versus the first principal component:
+
+```python
+from pyhsmm.util.plot import pca_project_data
+plt.plot(pca_project_data(data,1))
+```
+
+![Data first principal component vs time](http://www.mit.edu/~mattjj/github/pyhsmm/data_vs_time.png)
+
+To learn an HSMM, we'll use `pyhsmm` to create a `WeakLimitHDPHSMM` instance
+using some reasonable hyperparameters. We'll ask this model to infer the number
+of states as well, so we'll give it an `Nmax` parameter:
+
+```python
+import pyhsmm
+import pyhsmm.basic.distributions as distributions
+
+obs_dim = 2
+Nmax = 25
+
+obs_hypparams = {'mu_0':np.zeros(obs_dim),
+                'sigma_0':np.eye(obs_dim),
+                'kappa_0':0.3,
+                'nu_0':obs_dim+5}
+dur_hypparams = {'alpha_0':2*30,
+                 'beta_0':2}
+
+obs_distns = [distributions.Gaussian(**obs_hypparams) for state in range(Nmax)]
+dur_distns = [distributions.PoissonDuration(**dur_hypparams) for state in range(Nmax)]
+
+posteriormodel = pyhsmm.models.WeakLimitHDPHSMM(
+        alpha=6.,gamma=6., # better to sample over these; see concentration-resampling.py
+        init_state_concentration=6., # pretty inconsequential
+        obs_distns=obs_distns,
+        dur_distns=dur_distns)
+```
+
+(The first two arguments set the "new-table" proportionality constant for the
+meta-Chinese Restaurant Process and the other CRPs, respectively, in the HDP
+prior on transition matrices. For this example, they really don't matter at
+all, but on real data it's much better to infer these parameters, as in
+`examples/concentration_resampling.py`.)
+
+Then, we add the data we want to condition on:
+
+```python
+posteriormodel.add_data(data,trunc=60)
+```
+
+The `trunc` parameter is an optional argument that can speed up inference: it
+sets a truncation limit on the maximum duration for any state. If you don't
+pass in the `trunc` argument, no truncation is used and all possible state
+duration lengths are considered. (pyhsmm has fancier ways to speed up message
+passing over durations, but they aren't documented.)
+
+If we had multiple observation sequences to learn from, we could add them to the
+model just by calling `add_data()` for each observation sequence.
+
+Now we run a resampling loop. For each iteration of the loop, all the latent
+variables of the model will be resampled by Gibbs sampling steps, including the
+transition matrix, the observation means and covariances, the duration
+parameters, and the hidden state sequence. We'll also copy some samples so that
+we can plot them.
+
+```python
+models = []
+for idx in progprint_xrange(150):
+    posteriormodel.resample_model()
+    if (idx+1) % 10 == 0:
+        models.append(copy.deepcopy(posteriormodel))
+```
+
+Now we can plot our saved samples:
+
+```python
+fig = plt.figure()
+for idx, model in enumerate(models):
+    plt.clf()
+    model.plot()
+    plt.gcf().suptitle('HDP-HSMM sampled after %d iterations' % (10*(idx+1)))
+    plt.savefig('iter_%.3d.png' % (10*(idx+1)))
+```
+
+![Sampled models](http://www.mit.edu/~mattjj/github/pyhsmm/posterior_animation.gif)
+
+I generated these data from an HSMM that looked like this:
+
+![Randomly-generated model and data](http://www.mit.edu/~mattjj/github/pyhsmm/truth.png)
+
+So the posterior samples look pretty good!
+
+A convenient shortcut to build a list of sampled models is to write
+
+```python
+model_samples = [model.resample_and_copy() for itr in progprint_xrange(150)]
+```
+
+That will build a list of model objects (each of which can be inspected,
+plotted, pickled, etc, independently) in a way that won't duplicate data that
+isn't changed (like the observations or hyperparameter arrays) so that memory
+usage is minimized. It also minimizes file size if you save samples like
+
+```python
+import cPickle
+with open('sampled_models.pickle','w') as outfile:
+    cPickle.dump(model_samples,outfile,protocol=-1)
+```
+
+## Extending the Code ##
+To add your own observation or duration distributions, implement the interfaces
+defined in `basic/abstractions.py`. Also see the plugins. To get a flavor of
+the style, see [pybasicbayes](https://github.com/mattjj/pybasicbayes).
+
+## References ##
+* Matthew J. Johnson and Alan S. Willsky. [Bayesian Nonparametric Hidden
+  Semi-Markov Models](http://www.jmlr.org/papers/volume14/johnson13a/johnson13a.pdf).
+  Journal of Machine Learning Research (JMLR), 14:673–701, February 2013.
+
+* Matthew J. Johnson and Alan S. Willsky, [The Hierarchical Dirichlet Process
+  Hidden Semi-Markov Model](http://www.mit.edu/~mattjj/papers/uai2010.pdf). 26th
+  Conference on Uncertainty in Artificial Intelligence (UAI 2010), Avalon,
+  California, July 2010.
+
+```bibtex
+@article{johnson2013hdphsmm,
+    title={Bayesian Nonparametric Hidden Semi-Markov Models},
+    author={Johnson, Matthew J. and Willsky, Alan S.},
+    journal={Journal of Machine Learning Research},
+    pages={673--701},
+    volume={14},
+    month={February},
+    year={2013},
+}
+```
+
+
+

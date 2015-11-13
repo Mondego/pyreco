@@ -1,0 +1,174 @@
+# Django Template for OpenShift
+
+## Template App Information
+Product: Django  
+Version: 1.4  
+Source:  https://github.com/django/django.git  
+Commit:  2591fb8d4c0246f68b79554976c012039df75359
+
+## Maintenance
+This folder contains a diff file that includes the changes made to the
+stock Django app in order to make it OpenShift-Template-ready. If
+you are a maintainer tasked with updating the Django template, you
+may be able to use this patch file on the updated Django code to
+automatically reapply these changes.
+
+Here are the steps involved:
+
+1. Under the 'wsgi' directory, apply any patches required to update the 'openshift' Django app.
+2. From the template root directory, run 'git apply --check .openshift/template.patch' to test for patching problems.
+3. Next run 'git am --signoff < .openshift/template.patch' to apply the patch to the template.
+
+If this process succeeds, then the changes have been automatically
+applied. Otherwise it may be necessary to manually apply the
+changes. If the base package has changed enough, you may need to
+re-audit the base code and generate a new patch file.
+
+Feel free to change or remove this file, it is informational only.
+
+Repo layout
+===========
+wsgi/ - Externally exposed wsgi code goes
+wsgi/static/ - Public static content gets served here
+libs/ - Additional libraries
+data/ - For not-externally exposed wsgi code
+setup.py - Standard setup.py, specify deps here
+../data - For persistent data (also env var: OPENSHIFT_DATA_DIR)
+.openshift/action_hooks/pre_build - Script that gets run every git push before the build
+.openshift/action_hooks/build - Script that gets run every git push as part of the build process (on the CI system if available)
+.openshift/action_hooks/deploy - Script that gets run every git push after build but before the app is restarted
+.openshift/action_hooks/post_deploy - Script that gets run every git push after the app is restarted
+
+
+Environment Variables
+=====================
+
+OpenShift provides several environment variables to reference for ease
+of use.  The following list are some common variables but far from exhaustive:
+
+    os.environ['OPENSHIFT_APP_NAME']  - Application name
+    os.environ['OPENSHIFT_DATA_DIR']  - For persistent storage (between pushes)
+    os.environ['OPENSHIFT_TMP_DIR']   - Temp storage (unmodified files deleted after 10 days)
+
+When embedding a database using 'rhc cartridge add', you can reference environment
+variables for username, host and password:
+
+If you embed MySQL, then:
+
+    os.environ['OPENSHIFT_MYSQL_DB_HOST']      - DB host
+    os.environ['OPENSHIFT_MYSQL_DB_PORT']      - DB Port
+    os.environ['OPENSHIFT_MYSQL_DB_USERNAME']  - DB Username
+    os.environ['OPENSHIFT_MYSQL_DB_PASSWORD']  - DB Password
+
+To get a full list of environment variables, simply add a line in your
+.openshift/action_hooks/build script that says "export" and push.
+
+
+Notes about layout
+==================
+Please leave wsgi, libs and data directories but feel free to create additional
+directories if needed.
+
+Note: Every time you push, everything in your remote repo dir gets recreated
+please store long term items (like an sqlite database) in ../data which will
+persist between pushes of your repo.
+
+
+Notes about setup.py
+====================
+
+Adding deps to the install_requires will have the OpenShift server actually
+install those deps at git push time.
+
+Django on OpenShift
+===================
+
+This git repository helps you get up and running quickly w/ a Django
+installation on OpenShift.  The Django project name used in this repo
+is 'openshift' but you can feel free to change it.  Right now the
+backend is sqlite3 and the database runtime is found in
+`$OPENSHIFT_DATA_DIR/sqlite3.db`.
+
+Before you push this app for the first time, you will need to change
+the [Django admin password](#admin-user-name-and-password).
+Then, when you first push this
+application to the cloud instance, the sqlite database is copied from
+`wsgi/openshift/sqlite3.db` with your newly changed login
+credentials. Other than the password change, this is the stock
+database that is created when `python manage.py syncdb` is run with
+only the admin app installed.
+
+On subsequent pushes, a `python manage.py syncdb` is executed to make
+sure that any models you added are created in the DB.  If you do
+anything that requires an alter table, you could add the alter
+statements in `GIT_ROOT/.openshift/action_hooks/alter.sql` and then use
+`GIT_ROOT/.openshift/action_hooks/deploy` to execute that script (make
+sure to back up your database w/ `rhc app snapshot save` first :) )
+
+You can also turn on the DEBUG mode for Django application using the
+`rhc env set DEBUG=True --app APP_NAME`. If you do this, you'll get
+nicely formatted error pages in browser for HTTP 500 errors.
+
+Do not forget to turn this environment variable off and fully restart
+the application when you finish:
+
+```
+$ rhc env unset DEBUG
+$ rhc app stop && rhc app start
+```
+
+Running on OpenShift
+--------------------
+
+Create an account at https://www.openshift.com
+
+Install the RHC client tools if you have not already done so:
+    
+    sudo gem install rhc
+    rhc setup
+
+Create a python application
+
+    rhc app create django python-2.6
+
+Add this upstream repo
+
+    cd django
+    git remote add upstream -m master git://github.com/openshift/django-example.git
+    git pull -s recursive -X theirs upstream master
+
+Then push the repo upstream
+
+    git push
+
+Here, the [admin user name and password will be displayed](#admin-user-name-and-password), so pay
+special attention.
+	
+That's it. You can now checkout your application at:
+
+    http://django-$yournamespace.rhcloud.com
+
+Admin user name and password
+----------------------------
+As the `git push` output scrolls by, keep an eye out for a
+line of output that starts with `Django application credentials: `. This line
+contains the generated admin password that you will need to begin
+administering your Django app. This is the only time the password
+will be displayed, so be sure to save it somewhere. You might want 
+to pipe the output of the git push to a text file so you can grep for
+the password later.
+
+
+Public, static content goes here.  Users can create rewrite rules to link to
+content in the static dir.  For example, django commonly uses /media/
+directories for static content.  For example in a .htaccess file in a
+wsgi/.htaccess location, developers could put:
+
+RewriteEngine On
+RewriteRule ^application/media/(.+)$ /static/media/$1 [L]
+
+Then copy the media/* content to yourapp/wsgi/static/media/ and it should
+just work.
+
+Note: The ^application/ part of the URI match is required.
+

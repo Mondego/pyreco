@@ -1,0 +1,661 @@
+# Changelog
+
+## 0.1
+
+* Renamed DeadDrop to SecureDrop
+* Redesigned source and document web interface
+* Wrote detailed documentation
+* Improved installation process
+* Wrote unit & integration tests
+* Improved code name wordlist, based on Diceware
+* Use bcrypt instead of SHA
+* Removed VPN, replaced with authenticated Tor hidden service
+* Freedom of the Press Foundation taking over project
+
+DeadDrop was originally written by Aaron Swartz.
+
+SecureDrop Installation Guide
+=============================
+
+These instructions are intended for admins setting up SecureDrop for a journalist organization.
+
+## Before you begin
+
+Before installing SecureDrop, you should make sure you have everything you need.
+
+* You must have two servers — called the `App Server` and the `Monitor Server`, with [Ubuntu Server installed](/docs/ubuntu_config.md).
+
+* You must have two USB sticks with [Tails installed on them](/docs/tails_config.md) and persistent storage enabled. One will be air-gapped, the other will be used to connect to the internet. Make sure to label them.
+
+* You need an extra USB stick for transferring files.
+
+* You must have a device capable of running the Google Authenticator app, such an Android or iOS device. Google Authenticator is an app for producing one-time passwords for two-factor authentication. You can find download instructions [here](https://support.google.com/accounts/answer/1066447?hl=en).
+
+* Finally, you should have selected two secure passphrases: one for the persistent volume on the internet-connected Tails, and one for the persistent volume on the air-gapped Tails. If your organization doesn't yet have a good password policy, [you really should have one](http://howto.wired.com/wiki/Choose_a_Strong_Password).
+
+In addition to the requirements above, each journalist will also have their own device capable of running Google Authenticator, a USB stick for transferring files between the `Secure Viewing Station` and their `Journalist Workstation`, and a personal GPG key. See [this section](/docs/install.md#set-up-journalist-gpg-keys) for instructions to set one up for journalists who don't have already have a key. 
+
+We also suggest that you have an external hard drive for backing up encrypted submitted documents and some form of removable media for backing up the application's GPG keyring.
+
+## Secure Viewing Station
+
+The `Secure Viewing Station` will be air-gapped (never connected to the Internet) and will always boot from your air-gapped Tails USB stick. Because of this, you don't need a hard drive or network device. You may want to consider physically opening this computer and removing the hard drive and wifi card, but doing this is outside the scope of this manual.
+
+### Generate GPG Key and Import Journalist Public Keys
+
+In order to avoid transferring plaintext files between the `Secure Viewing Station` and `Journalist Workstations`, each journalist should have their [own personal GPG key](/docs/install.md#set-up-journalist-gpg-keys). Start by copying all of the journalists' public keys to a USB stick. Plug this into the `Secure Viewing Station` running Tails and open the file manager. Double-click on each public key to import it. If the public key isn't importing, try renaming it to end in ".asc".
+
+![Importing Journalist GPG Keys](/docs/images/install/viewing1.jpg)
+
+To generate the application GPG key:
+
+* Open a terminal and run `gpg --gen-key`
+* When it says, `Please select what kind of key you want`, choose `(1) RSA and RSA (default)`
+* When it asks, `What keysize do you want?` type `4096`
+* When it asks, `Key is valid for?` press enter to keep the default
+* When it asks, `Is this correct?` verify that you've entered everything correctly so far, and type `y`
+* For `Real name` type: `SecureDrop`
+* For `Email address`, leave the field blank and press enter
+* For `Comment` type `SecureDrop Application GPG Key`
+* Verify that everything is correct so far, and type `o` for `(O)kay`
+* It will pop up a box asking you to type a passphrase, but it's safe to click okay with typing one (since your persistent volume is encrypted, this GPG key is stored encrypted on disk)
+* Wait for your GPG key to finish generating
+
+To manage GPG keys using the Tails graphical interface, click the clipboard icon in the top right and choose "Manage Keys". If you switch to the "My Personal Keys" tab you can see the key that you just generated.
+
+![My Keys](/docs/images/install/viewing7.jpg)
+
+Right-click on the key you just generated and click `Export`. Save it to your USB stick as `SecureDrop.asc`. This is the public key only.
+
+![My Keys](/docs/images/install/viewing8.jpg)
+
+You'll also need to verify the 40 character hex fingerprint for this new key during the `App Server` installation. Double-click on the new key you just generated and change to the `Details` tab. Write down the 40 digits under `Fingerprint`. (Your GPG key fingerprint will be different than what's in this photo.)
+
+![Fingerprint](/docs/images/install/viewing9.jpg)
+
+## Server Installation
+
+Both the `App Server` and `Monitor Server` should already have Ubuntu Server installed. To follow these instructions you should know how to navigate the command line.
+
+Download the latest version of SecureDrop to your workstation by downloading the latest tar.gz file from https://pressfreedomfoundation.org/securedrop and extracting it. 
+
+The setup script needs the application GPG public key you created earlier, `SecureDrop.asc`. Plug in the USB stick that you copied `SecureDrop.asc` to and copy it to securedrop/install_files/
+
+Then scp the `securedrop` folder to the home directory on the `Monitor Server` and `App Server`, doing something like this:
+
+    scp -r securedrop user@MONITOR_IP:~/
+    scp -r securedrop user@APP_IP:~/
+
+Now SSH to the `Monitor Server`. When you're in, enter your environment details in the CONFIG_OPTIONS file and edit the installation script:
+
+    cd ~/securedrop
+    nano CONFIG_OPTIONS
+
+Fill out all of the global and `Monitor Server` options. Here are descriptions of the items you should fill out:
+
+* `ROLE`: This is either "monitor" or "app". Since both servers share the same codebase, the installation script needs to know which server it's running on. For now, enter "monitor".
+* `APP_IP`: The IP address of the `App Server` that you have set up.
+* `MONITOR_IP`: The IP address of the `Monitor Server` that you have set up (the one you are SSHed into).
+* `SSH_USERS`: A list of Linux users that will SSH into this server. Note that the installation script will disable SSHing as the root account, so you must have a non-root account set up on the server that you plan on using to administer this server.
+* `SMTP_SERVER`: The `Monitor Server` can send email updates. This is the hostname of your external SMTP server. At the moment SMTP authentication isn't supported.
+* `EMAIL_DISTRO`: The email address to send email alerts to.
+* `EMAIL_FROM`: The "From" address of email alerts.
+
+Fill out the relevant options, save and exit. Then run the production script.
+
+    sudo ./production_installation.sh
+
+Wait for the script to run. When it's done, it should say this:
+
+    Start the installation on app server.
+    After installation on the app server is complete
+    enter 'Y' to continue: (Y|N): 
+
+Before entering 'Y', leave that window open and go SSH into the `App Server` and edit CONFIG_OPTIONS:
+
+    cd ~/securedrop
+    nano CONFIG_OPTIONS
+
+This time edit the global and `App Server` settings. Here are descriptions of the items you should fill out:
+
+* `ROLE`: This should be "app".
+* `APP_IP` and `MONITOR_IP` should be the same as they were on the `Monitor Server`.
+* `SSH_USERS`: A list of Linux users that will SSH into this server.
+* `JOURNALIST_USERS`: Make up a username for each journalist that will be using this SecureDrop instance.
+* `KEY`: The filename that contains the application GPG public key you created on the `Secure Viewing Station`. It's probably `SecureDrop.asc`.
+* `SOURCE_SCRIPTS`: You can leave this blank.
+* `DOCUMENT_SCRIPTS`: You can leave this blank.
+
+Save and exit. When you're done, run the production script:
+
+    sudo ./production_installation.sh
+
+A Google Authenticator code will be generated for the identified SSH_USERS in the CONFIG_OPTIONS file.
+
+Follow the instructions for adding your secret key to your Google Authenticator app
+
+At the end of a successful `App Server` installation the script will output the `Source Interface`'s onion URL, the `Document Interface`'s onion URL and auth codes, the `App Server`'s SSH onion address and auth code.
+
+    The Source Interface's onion URL is:
+    bh33efgmt5ai32te.onion
+    The Document Interface's onion URL and auth value are:
+    b6ferdazsj2v6agu.onion AHgaX9YrO/zanQmSJnILvB # client: journalist1
+    kx7bdewk4x4wait2.onion qpTMeWZSTdld7gWrB72RtR # client: journalist2
+    The App Server's SSH onion address and auth values are:
+    sz3yuv5hdipt2icy.onion PKZ8sKjp5Z08AGq5BB7BKx # admin1
+    oz4ezuhym2zfugjn.onion xCQf9IrFAXuoo7KfrMURzB # admin2
+    The App Server's installation is complete.
+    Please finsish the installation on the Monitor Server
+
+This lists the Tor hidden service URLs for the `Source Interface`, the two journalists on the `Document Interface`, and the onion addresses for SSH access. It also lists the auth value for each journalist and admin. Save those lines because the journalists and admins will need them to access the `Document Interface` and `App Server`.
+
+In this case:
+* The `Source Interface`'s Tor hidden service URL is http://bh33efgmt5ai32te.onion/.
+* The `Document Interface`'s Tor hidden service URL for the first journalist is: http://b6ferdazsj2v6agu.onion/
+* The `Document Interface`'s Tor hidden service Auth value for the first journalist is: AHgaX9YrO/zanQmSJnILvB
+* The `Document Interface`'s Tor hidden service URL for the second journalist is: http://kx7bdewk4x4wait2.onion/
+* The `Document Interface`'s Tor hidden service Auth value for the second journalist is: qpTMeWZSTdld7gWrB72RtR
+* The `App Server`'s Tor hidden service SSH address for the first admin is: sz3yuv5hdipt2icy.onion
+* The `App Server`'s Tor hidden service SSH Auth value for the first admin is: PKZ8sKjp5Z08AGq5BB7BKx
+
+Once the `App Server`'s installation is successfully completed. Go back to the SSH session for the `Monitor Server` and enter `Y` to continue.
+
+A Google Authenticator code will be generated for the identified SSH_USERS in the CONFIG_OPTIONS file.
+
+Follow the instructions for adding your secret key to your mobile Google Authenticator app.
+
+At the end of a successful `Monitor Server` installation the script will output the `Monitor Server` SSH onion address.
+
+Once you have completed these steps, the SecureDrop web application should be set up.
+
+## Journalist's Workstation Setup
+
+The journalist workstation computer is the laptop that the journalist uses on a daily basis. It can be running Windows, Mac OS X, or GNU/Linux. This computer must have GPG installed.
+
+### Set up journalist GPG keys
+
+Each journalist must have a personal GPG key that they use for encrypting files transferred from the `Secure Viewing Station` to their `Journalist Workstation`. The private key, used for decryption, stays on their `Journalist Workstation`. The public key, used for encryption, gets copied to the `Secure Viewing Station`.
+
+If a journalist does not yet have a GPG key, they can follow these instructions to set one up with GnuPG (GPG).
+
+* [GNU/Linux](http://www.gnupg.org/gph/en/manual.html#AEN26)
+* [Windows](http://gpg4win.org/)
+* [Mac OS X](http://support.gpgtools.org/kb/how-to/first-steps-where-do-i-start-where-do-i-begin)
+
+### Journalist Logging In
+
+In order to view the `Document Interface`, journalists needs to either 1) install the Tor Browser Bundle and modify it to authenticate their hidden service, or 2) modify Tor through their Tails operating system to accomplish the same task. The latter is highly recommended since many news organzation's corporate computer systems have been compromised in the past.
+
+**Though the Tails Operating System**
+
+Each journalist that will be using Tails to connect to the `Document Interface` will need to install a persistent script onto their Tails USB stick. Follow [these instructions](/tails_files/README.md) to continue.
+
+In order to follow those instructions you'll need the HidServAuth string that you had previously created (a different one for each journalist's Tails USB stick), which looks something like this:
+
+    HidServAuth b6ferdazsj2v6agu.onion AHgaX9YrO/zanQmSJnILvB # client: journalist1
+
+Once you have installed this script, the journalist will have to run it each time they boot Tails and connect to the Tor network in order to login to the `Journalist Interface`.
+
+**Through the Tor Browser Bundle**
+
+* On the `Journalist Workstation`, [download and install the Tor Browser Bundle](https://www.torproject.org/download/download-easy.html.en). Extract Tor Browser Bundle to somewhere you will find it, such as your desktop.
+
+* Navigate to the Tor Browser Directory
+* Open the `torrc-defaults` file which should be located in `tor-browser_en-US/Data/Tor/torrc-defaults`
+* Add a line that begins with `HidServAuth` followed by the journalist's Document Interface URL and Auth value that was output at the end of the App Server installation
+
+In this case the `torrc-defaults` file for the first journalist should look something like:
+
+    # If non-zero, try to write to disk less frequently than we would otherwise.
+    AvoidDiskWrites 1
+    # Where to send logging messages.  Format is minSeverity[-maxSeverity]
+    # (stderr|stdout|syslog|file FILENAME).
+    Log notice stdout
+    # Bind to this address to listen to connections from SOCKS-speaking
+    # applications.
+    SocksListenAddress 127.0.0.1
+    SocksPort 9150
+    ControlPort 9151
+    CookieAuthentication 1
+    HidServAuth b6ferdazsj2v6agu.onion AHgaX9YrO/zanQmSJnILvB # client: journalist1
+
+And the `torrc-defaults` file for the second journalist should look like something this:
+
+    # If non-zero, try to write to disk less frequently than we would otherwise.
+    AvoidDiskWrites 1
+    # Where to send logging messages.  Format is minSeverity[-maxSeverity]
+    # (stderr|stdout|syslog|file FILENAME).
+    Log notice stdout
+    # Bind to this address to listen to connections from SOCKS-speaking
+    # applications.
+    SocksListenAddress 127.0.0.1
+    SocksPort 9150
+    ControlPort 9151
+    CookieAuthentication 1
+    HidServAuth kx7bdewk4x4wait2.onion qpTMeWZSTdld7gWrB72RtR # client: journalist2
+
+* Open the Tor Browser Bundle and navigate to the journalist's unique Document Interface URL without the Auth value
+
+![Journalist_workstation1](/docs/images/install/journalist_workstation1.png)
+
+## Test It
+
+Once it's installed, test it out. See [How to Use SecureDrop](/docs/user_manual.md).
+
+# Installing Tails on USB sticks
+
+Tails is an operating system that boots off of removable media, either a DVD or a USB stick. For SecureDrop you'll need to install Tails onto USB sticks so that you can enable persistent storage.
+
+The [Tails website](https://tails.boum.org/) has detailed and up-to-date instructions on how to download and verify Tails, and how to create a Tails USB stick. Here are some links to help you out:
+
+* [Download, verify, install](https://tails.boum.org/download/index.en.html)
+* [Installing onto a USB stick or SD card](https://tails.boum.org/doc/first_steps/installation/index.en.html)
+
+You need to create two Tails USB sticks. Once you have them, use the `Secure Viewing Station` to configure persistent storage on each of them. Make sure your persistent volume includes "Personal Data" on the internet-connected one, and both "Personal Data" and "GnuPG" on the air-gapped one.
+
+* [Create & configure the persistent volume](https://tails.boum.org/doc/first_steps/persistence/configure/index.en.html)
+
+
+# Preparing Ubuntu servers for installation
+
+The `App Server` and `Monitor Server` require [Ubuntu Server 12.04.3](http://www.ubuntu.com/download/server). Download the ISO, burn it to CDs, and begin installing it on each of these computers. The following setup process is the same for each server.
+
+After booting the the Ubuntu Server CD, select "Install Ubuntu Server".
+
+![Ubuntu Server](/docs/images/install/ubuntu_server.png)
+
+Follow the steps to choose your language and keyboard, and let the setup continue. When it asks for your hostname choose a name that makes sense. Each server should have its own hostname.  You can choose whatever username and password you would like. There's no need to encrypt home directories. Configure your time zone.
+
+We recommend that you enable [full disk encryption](https://www.eff.org/deeplinks/2012/11/privacy-ubuntu-1210-full-disk-encryption) with LUKS. During the disk partitioning step, select "Guided - use entire disk and set up encrypted LVM". Write the changes to disk. Follow the recommendations as to choosing a strong password. **Important**: this password will need to be entered at every boot, and during reboots after installing security updates. As the administrator, you will be responsible for keeping this passphrase safe. Write it down somewhere and memorize it if you can. If inadvertently lost it could result in total loss of the SecureDrop system.
+
+**Warning**: Enabling encrypted disks along with unattended-upgrades means that SecureDrop will become unreachable after an automatic reboot. An administrator should be on hand to enter the password in order to mount the disks. We recommend that the servers be integrated with a monitoring solution that so that you receive an alert when the system becomes unavailable.
+
+![Encrypted LVM](/docs/images/install/ubuntu_encrypt.png)
+
+If you wish to opt out of full disk encryption at your own risk, then choose "Guided - use entire disk and set up LVM" instead. Then wait for base system to finish installing. 
+
+When you get to the configure tasksel screen, choose "Install security updates automatically". When you get to the software selection screen, only choose "OpenSSH server". Then wait for the packages to finish installing.
+
+When everything is done, install grub and reboot.
+
+After booting up for the first time, do updates.
+
+    sudo apt-get update
+    sudo apt-get upgrade
+
+We also recommend that you patch your kernel with grsecurity in order to harden these servers from attacks. Instuctions for doing this are outside the scope of this installation guide. Visit the official [Grsecurity documentation](http://en.wikibooks.org/wiki/Grsecurity) for more information about [obtaining](http://en.wikibooks.org/wiki/Grsecurity/Obtaining_grsecurity) and [configuring and installing](http://en.wikibooks.org/wiki/Grsecurity/Configuring_and_Installing_grsecurity) the kernel patch.
+
+# How to Use SecureDrop
+
+## SecureDrop Depends on the Tor Browser
+
+Sources submitting documents or messages to SecureDrop, and the journalists viewing this correspondence, must connect to the respective Source or Document Interface using the Tor network, free software that makes users' internet activity much more difficult to trace. The easiest and most secure way to use Tor is to download the Tor Browser Bundle from https://www.torproject.org/. This bundle installs the Tor browser, as well as an application that is used to connect to the Tor network.
+
+The Tor Browser can be used to access Tor _hidden service URLs_, which have domain names that end in ".onion". Media organizations will provide links to the .onion URLs of their SecureDrop pages, and each journalist that uses SecureDrop connects to the service with his or her own personal .onion URL.
+
+## Using SecureDrop As a Source
+
+Open the Tor Browser and navigate to the .onion hidden service URL provided by the media organization whose SecureDrop page you would like to visit. The page should look similar to the screenshot below. If this is the first time you're using the Tor browser, it's likely that you have Javascript enabled. If you do, you will see the red warning below which will explainin that this is a security risk. If you don't have Javascript enabled, you can skip the next step.
+
+![Javascript warning](/docs/images/manual/source1.png)
+
+Click the `Click here` link on the Javascript warning and a message will pop up telling you how to disable Javascript. Once you follow the instructions, refresh the page.
+
+![Fix Javascript warning](/docs/images/manual/source2.png)
+
+The page should now look similar to the screenshot below. If this is the first time you are using SecureDrop, click the `Submit Documents` button.
+
+![Source Interface](/docs/images/manual/source3.png)
+
+You should now see a screen that shows the unique code name that SecureDrop has generated for you. In the example screenshot below the codename is `bough fisk jed sold essen nail 1 prissy`, but yours will be different. It is extremely important that you both remember this code and keep it secret. Memorize the code or write it down and keep it in a safe place, but do not save it on your computer. After submitting documents, you will need to provide this code to log back in and check for responses.
+
+SecureDrop allows you to choose the length of your code name, in case you want to create a longer code name for extra security. Once you have generated a code name and put it somewhere safe, click `Continue`.
+
+![Memorizing your code name](/docs/images/manual/source4.png)
+
+You will next be brought to the submission interface, where you may upload a document, enter a message to send to journalists, or both. You can only submit one document at a time, so you may want to combine several files into a zip archive if necessary. When your submission is ready, click `Submit`.
+
+![Submit a document](/docs/images/manual/source5.png)
+
+After clicking `Submit`, a confirmation page should appear, showing that your message and/or documents have been sent successfully. On this page you can make another submission or view responses to your previous messages.
+
+![Confirmation page](/docs/images/manual/source6.png)
+
+If you have already submitted a document and would like to check for responses, click the `Check for a Response` button on the media organizations' SecureDrop homepage.
+
+![Source Interface](/docs/images/manual/source7.png)
+
+The next page will ask for your secret code name; enter it and click `Continue`.
+
+![Check for response](/docs/images/manual/source8.png)
+
+If a journalist wishes to reply to you, they will flag your message on their end and you will see the following message below. They can't reply to you until you've seen this message for security reasons. This will only happen the first time a journalist replies and with subsequent replies you will skip this step.
+
+![Check for an initial response](/docs/images/manual/source9.png)
+
+Click `Refresh` or log in again. If a journalist has responded, his or her message will appear on the next page. This page also allows you to upload another document or send another message to the journalist. Be sure to delete any messages here before navigating away.
+
+![Check for a real response](/docs/images/manual/source10.png)
+
+After you delete the message from the journalist, make sure you see the below message.
+
+![Delete received messages](/docs/images/manual/source11.png)
+
+Repeat to continue communicating with the journalist.
+
+## Using SecureDrop As a Journalist
+
+### Connecting to the Document Interface
+
+Each journalist has their own authenticated Tor hidden service URL to login to the `Document Interface`. The journalist needs to use Tor through the Tails operating system to connect to the `Docuement Interface`. This is for extra security. This will take an extra few steps each time you want to login, but after practicing a few times, it will become automatic.
+
+*Using Tails*
+
+* Boot Tails on the Journalist Workstation using the Tails USB you created in the beginning (Note: this should be a different Tails USB stick that you use to boot the Secure Viewing Station).
+
+* Under "Use persistence?" click "YES" and type in your password (do not hit enter).
+
+* Under "More options?" clikc "YES", then click "Forward"
+
+* Set an administration password. This password will only be active during your current Tails session. Each time you will have to create this again, though it can be the same password everytime.
+
+* Click login.
+
+* Go to the upper right hand corner of your screen and enable your Internet connection.
+
+* Click on `Computer` in the top left of your desktop, and go to the `Persistant` folder.
+
+* Double click the 'copy_torrc.sh' file. This should have been created on installation by your admin.
+
+* Click `Run In Terminal`
+
+* Type in the administration password you created at the beginning of your session and click enter.
+
+* When you go to your browser, in the bookmarks menu, you will now see links to both the source's SecureDrop page and the journalist's `Document Interface`.
+
+* Click on the SecureDrop `Document Interface` link and you will be automatically logged-in. Now go down to the first screen shot below.
+
+If any sources have uploaded documents or sent you message, they will be listed on the homepage by a code name. **Note: The code name the journalists see is different than the code name that sources see.**
+
+![Document Interface](/docs/images/manual/document1.png)
+
+### Moving Documents to the Secure Viewing Station
+
+You will only be able to view the documents the source has sent you on the `Secure Viewing Station`. After clicking on an individual source you will see the below page with the messages that source has sent you. Click on a document or message name to save it.
+
+![Load external content](/docs/images/manual/document4.png)
+
+In order to protect you from malware, Tor Browser pops up a notice every time you try to download a file that can't be opened in Tor Browser itself. Go ahead and click `Launch application` anyway, and save the document to the designated USB stick you will use to transfer the documents from your Tails `Journalist Workstation` to the `Secure Viewing Station`. This will be known as your `Transfer USB`.
+
+Eject your `Transfer USB` from your `Journalist Workstation`.
+
+Next, boot up the `Secure Viewing Station` using Tails (remember, you must use a different Tails USB than you use your normal `Journalist Workstation`) and enter the password for the `Secure Viewing Station` the persistent volume. Once you have logged in, plug in the `Transfer USB`.
+
+**Copy these documents to the Persistent folder before decrypting them. This an important step. Otherwise you might accidentally decrypt the documents on the USB stick, and they could be recoverable in the future.** You can do this by clicking on the `Computer` icon on your desk top, clicking on the `Transfer USB`, and then you can drag and drop the file into your Persistent folder.
+
+![Copy files to Persistent](/docs/images/manual/viewing1.jpg)
+
+Make sure to then return to your `Transfer USB` folder, right click on the file, and then click "Wipe" to securely wipe the file from your USB stick.
+
+### Decrypting and Working on the Secure Viewing Station
+
+To decrypt documents, return to your Persistent folder and double-click on zipped file folder. After you extract the files, click on each file individually, and it will prompt you for the application PGP key passphrase to decrypt the document.
+
+![Decrypting](/docs/images/manual/viewing2.jpg)
+
+When you decrypt the file it will have the same filename, but without the .gpg at the end.
+
+![Decrypted documents](/docs/images/manual/viewing3.jpg)
+
+You can double-click on the decrypted document to open it in its default application.
+
+![Opened document](/docs/images/manual/viewing4.jpg)
+
+If the default application doesn't work, you can right-click on the document and choose `Open with Other Application...` to try opening the document with OpenOffice Writer, or Document Viewer. You can right-click on a file and choose `Rename...` to rename a document and give it a file extension.
+
+### Interacting With Sources
+
+Click on the code name to see the page specifically for that source. You will see all of the messages that they have written and documents that they have uploaded. Documents and messages are encrypted to the application's PGP public key. In order to read the messages or look at the documents you will need to transfer them to the `Secure Viewing Station`. But first, if you'd like to reply to the source, click the `Flag this source for reply` button.
+
+![Read documents](/docs/images/manual/document2.png)
+
+After clicking the `Flag this source for reply button`, you'll see this confirmation page. Click through to get back to the page that displays that souce's documents and replies.
+
+![Flag source for reply](/docs/images/manual/document3.png)
+
+*Note:* You will not be able to reply until after the source logs in again and sees that you would like to talk to him or her. So you may have to sit and wait.
+
+But after the source sees that you'd like to reply, a GPG key pair will automatically be generated and you can log back in and send a reply back.
+
+![Sent reply](/docs/images/manual/document4.png)
+
+Once your reply has been submitted, you will see this confirmation page.
+
+![Sent reply confirmation](/docs/images/manual/document5.png)
+
+Rinse and repeat.
+
+### Working with Documents
+
+As long as you're using the latest version of Tails, you should be able to open any document that gets submitted to you without the risk of malicious documents compromising the `Viewing Station`. However, if they do compromise it, Tails is designed so that the next time you reboot the malware will be gone.
+
+Tails comes with lots of applications that will help you securely work with documents, including an office suite, graphics tools, desktop publishing tools, audio tools, and printing and scanning tools. For more information, visit [Work on sensitive documents](https://tails.boum.org/doc/sensitive_documents/index.en.html) on the Tails website.
+
+Tails also comes with the [Metadata Anonymization Toolkit](https://mat.boum.org/) (MAT) that is used to help strip metadata from a variety of types of files, including png, jpg, OpenOffice/LibreOffice documents, Microsoft Office documents, pdf, tar, tar.bz2, tar.gz, zip, mp3, mp2, mp1, mpa, ogg, and flac. You can open MAT by clicking `Applications` in the top left corner, Accessories, Metadata Anonymisation Toolkit.
+
+We recommend that you do as much work as you can inside of Tails before copying these documents back to your `Journalist Workstation`, including stripping metadata with MAT.
+
+When you no longer need documents you can right-click on them and choose Wipe to delete them.
+
+![Wiping documents](/docs/images/manual/viewing5.jpg)
+
+### Encrypting and Moving Documents to Journalist Workstation
+
+Before you move documents back to the USB stick to copy them to your workstation you should encrypt them to your personal PGP public key that you imported when setting up the `Secure Viewing Station` to begin with.
+
+Right-click on the document you want to encrypt and choose `Encrypt...`
+
+![Encrypting 1](/docs/images/manual/viewing6.jpg)
+
+Then choose the public keys of the journalist you want to encrypt the documents to and click `OK`.
+
+![Encrypting 2](/docs/images/manual/viewing7.jpg)
+
+When you are done you will have another document with the same filename but ending in .pgp that is encrypted to the PGP keys you selected. You can copy the encrypted documents to the USB stick to transfer them to your workstation.
+
+![Encrypted document](/docs/images/manual/viewing8.jpg)
+
+### Decrypting and Preparing to Publish
+
+Plug the USB stick into your workstation computer and copy the encrypted documents to it. Decrypt them with `gnupg`.
+
+Write articles and blog posts, edit video and audio, and publish. Expose crimes and corruption, and change the world.
+
+# The SecureDrop Development Community
+
+You can subscribe to our mailing list here: [securedrop-dev](https://lists.riseup.net/www/subscribe/securedrop-dev). Or join is in #securedrop-dev on [irc.oftc.net](http://www.oftc.net/).
+
+# Hacking on the Code
+
+The SecureDrop production environment runs Ubuntu precise. In order to make it so all developers have as similar an environment as possible, we have made it easy to write and test code changes in precise, even if that's not the operating system you're running.
+
+The two ways to do this are using Vagrant or using a chroot jail. Vagrant works by creating an Ubuntu precise VM using VirtualBox and installing a development environment inside of it. Vagrant and VirtualBox are cross-platform, which means this method works in GNU/Linux, OS X, and Windows. However, it won't work if your development environment is already a VM, like if you run Qubes. It also might not work if you're using old hardware that doesn't support 64-bit virtualization. If you can't use Vagrant, you can use a chroot jail instead. Using a chroot jail only works if you're already running GNU/Linux.
+
+## Vagrant and VirtualBox
+
+Install [Vagrant](http://vagrantup.com) and [VirtualBox](http://www.virtualbox.org), clone the git repository, and start vagrant:
+
+	git clone https://github.com/freedomofpress/securedrop.git
+	cd securedrop
+	vagrant up
+
+This creates a virtual machine with the SecureDrop codebase in /vagrant. You can edit files on your host machine in your favorite editor, and restart the web servers in the VM to test your changes.
+
+You can ssh into the VM by typing `vagrant ssh`.
+
+SecureDrop consists of two related web applications, one for sources and one for journalists. You can start the web servers from within the VM with:
+
+    cd /vagrant/securedrop
+    python source.py &
+    python journalist.py &
+
+Now you can visit SecureDrop by loading [http://localhost:8080] for the source interface and [http://localhost:8081] for the journalist interface in your web browser.
+
+To run tests:
+
+	cd /vagrant/securedrop
+	./test.sh
+
+For more instructions on how to interact with your VM, refer to the [Vagrant website](http://vagrantup.com).
+
+## Chroot Jail
+
+First install the appropriate dependencies for your VM's OS:
+
+    sudo apt-get install debootstrap schroot
+    sudo yum install debootstrap schroot
+
+You can use the script chroot-dev to setup and use your development environment.
+
+	git clone https://github.com/freedomofpress/securedrop.git
+	cd securedrop
+    ./chroot-dev
+
+This will show you a list of commands:
+
+    Usage: ./chroot-dev [command]
+
+        up      # create chroot if needed, mount filesystems, start servers
+        down    # stop servers, unmount filesystems from chroot
+        start   # start securedrop web app servers
+        stop    # stop securedrop web app servers
+        restart # restart securedrop web app servers
+        test    # run tests
+        destroy # destroy chroot jail
+
+All you need to do is run `./chroot-dev up`. The first time you do this it will take some time to install and configure your chroot development environment. In the future, all you have to do is run `./chroot-dev up` and you'll be ready to start working.
+
+You can run tests with `./chroot-dev test`.
+
+# Using manage.py
+
+The `securedrop/manage.py` script is provied to help automate common tasks. At
+the moment, the following commands are available:
+
+* `start` - start the source and journalist servers
+* `test` - run the test suite
+* `reset` - reset the state of the development instance
+
+    This is useful if you've changed the database schema and are getting
+    errors, but don't want to bother with doing a migration.
+
+![SecureDrop](/docs/images/logo.png)
+
+[![Build Status](https://travis-ci.org/freedomofpress/securedrop.png)](http://travis-ci.org/freedomofpress/securedrop)
+
+SecureDrop is an open-source whistleblower submission system that media organizations can use to securely accept documents from and communicate with anonymous sources. It was originally created by the late Aaron Swartz and is currently managed by [Freedom of the Press Foundation](https://pressfreedomfoundation.org).
+
+# Technical Summary
+
+SecureDrop is a tool for sources to communicate securely with journalists. The SecureDrop application environment consists of three dedicated computers:
+
+* `Secure Viewing Station`: An airgapped laptop running the [Tails operating system](https://tails.boum.org/) from a USB stick that journalists use to decrypt and view submitted documents. (If this laptop does not have a DVD drive, buy an external DVD drive you can use with it.)
+* `Application Server`: Ubuntu server running two segmented Tor hidden services. The source connects to the first, public-facing Tor hidden service to send messages and documents to the journalist. The journalist connects to the second authenticated Tor hidden service to download encrypted documents and respond to sources.
+* `Monitor server`: Ubuntu server that monitors the `Application Server` and sends email alerts.
+
+In addition to these dedicated computers, the journalist will also use his or her normal workstation computer:
+
+* `Journalist Workstation`: The every-day laptop that the journalist uses for his or her work. The journalist will use this computer to connect to the `Application Server` to download encrypted documents that he or she will transfer to the `Secure Viewing Station`. The `Journalist Workstation` is also used to respond to sources.
+
+Depending on the news organizations's threat model, it is recommended that journalists always use the [Tails operating system](https://tails.boum.org/) on their `Journalist Workstation` when connecting to the `Application Server`. Alternatively, this can also be its own dedicated computer.
+
+These computers should all physically be in your organization's office. 
+
+## Before You Begin
+
+Before beginning installation, you should have two servers running Ubuntu Server 12.04.3 LTS, each with the grsec kernel patches installed. If you don't yet have those computers configured, see additional documentation for [Preparing Ubuntu servers for installation](/docs/ubuntu_config.md).
+
+You will need a DVD with the latest version of the [Tails operating system](https://tails.boum.org/download/index.en.html) burned to it. Go [here for instructions](https://tails.boum.org/download/index.en.html) on how to download and burn Tails to a DVD.  You will only have to use this DVD once: After the first run from a Live DVD, you can create a Live USB to boot from instead. If you already have a Tails Live USB, you may skip this requirement. If you can't or don't want to burn a DVD, see the [Tails documentation](https://tails.boum.org/download/index.en.html) for alternative instructions.
+
+You will also need a total of four USB sticks, preferably color-coded for easy distinction:
+* USB stick with Tails for the `Secure Viewing Station`
+* USB stick with Tails for the `Journalist Workstation`
+* USB stick for transfering files from the `Journalist Workstation` to the `Secure Viewing Station`
+* USB stick for transfering files from the `Secure Viewing Station` to the `Journalist Workstation`
+
+The `Monitor Server` also sends emails. You will need an SMTP server, such as your company's mail server.
+
+Finally, you will also need to come up with and memorize a series of passphrases. The best way to generate secure passphrases is to follow the [Diceware method](http://world.std.com/~reinhold/diceware.html). Generating secure passphrase takes time, so we recommend you generate these at the beginning of the installation process. You will need passphrases for:
+
+* `Secure Viewing Station`'s Tails [Persistent Volume](https://tails.boum.org/doc/first_steps/persistence/index.en.html) that allows you to store files
+* `Secure Viewing Station`'s GPG secret key
+* `Journalist Workstation`'s Tails [Persistent Volume](https://tails.boum.org/doc/first_steps/persistence/index.en.html) that allows you to store files
+
+If the journalist does not have a personal GPG secret keypair, he or she will have to create one as well.
+
+## How to Install SecureDrop
+
+After installing and configuring Ubuntu Server on `Application Server` and `Monitor Server`, and downloading, verifying, and burning Tails to a Live DVD, follow the [SecureDrop Installation Guide](/docs/install.md).
+
+## How to Use SecureDrop
+
+See [How to Use SecureDrop](/docs/user_manual.md).
+
+## Demo
+
+You can see live demos of the source and document interfaces at the following links. **These are for testing purposes only; please don't submit any documents here!**
+
+In an actual SecureDrop setup, these websites are separate Tor hidden services running on the `Application Server`.
+
+* [Source Interface](http://SecureDropDemo.org)
+* [Journalist Interface](http://SecureDropDemo.org/journalist/) (needs the ending slash to work)
+
+## License
+
+SecureDrop is open source and released under the [GNU General Public License v2](/LICENSE). 
+
+The [wordlist](/securedrop/wordlist) we use to generate source passphrases comes from [Diceware](http://world.std.com/~reinhold/diceware.html), and is licensed under Creative Commons Attribution 3.0 Unported thanks to A G Reinhold.
+
+Securedrop is a tool for communicating securely with journalists.
+
+Securedrop is a server application intended to let news organizations and others set up an online drop box for sources. It's open source software originally created by Aaron Swartz in consultation with a volunteer team of security experts. It is currently maintained by the Freedom of the Press Foundation. In addition to the server application, the project includes installation scripts and set-up instructions both for the software, and for a hardened Ubuntu environment on which to run it.
+
+Securedrop was created with the goal of placing a secure drop box within reach of anyone with the need.
+
+The code is is a Python application that accepts messages and documents from the web and GPG-encrypts them for secure storage. Essentially, it's a more secure alternative to the "contact us" form found on a typical news site.
+
+In operation, every source is given a unique "codename." The codename lets the source establish a relationship with the news organization without revealing her real identity or resorting to e-mail. They can enter the code name on a future visit to read any messages sent back from the journalist -- "Thanks for the Roswell photos! Got any more??" -- or submit additional documents or messages under the same persistent, but anonymous, identifier.
+
+The source is known by a different code name on the journalist's side. All of that source's submissions are grouped together into a "collection." Every time there's a new submission by that source, their collection is bumped to the top of the submission queue.
+
+DeadDrop was designed to use two physical servers: a public-facing server that runs the submisison website and stores messages and documents, and a second that does security monitoring of the first. The New Yorker's public-facing server also has a USB dongle called an Entropy Key plugged attached to generate a pool of random numbers for the crypto.
+
+The original "Deaddrop" web app was coded and architected by [Aaron Swartz](https://github.com/aaronsw). The hardening guide and other security material is the work of [James Dolan](https://github.com/dolanjs). The default web design and the DeadDrop logo were crafted by Dennis Crothers. Journalist [Kevin Poulsen](https://github.com/klpwired) organized the project. The New Yorker launched the first implementation as the New Yorker Strongbox in May 2013. *TODO: describe continued history of the project*
+# SecureDrop Tails Files
+
+The recommended way for journalists to connect to the SecureDrop document interface is by using Tails. But to access it you need to edit your torrc file and restart tor each time you boot Tails. We've provided a program that makes this much simpler to do.
+
+## Installation
+
+Boot to your internet-connected Tails USB, making sure to mount the persistent volume. Also make sure to choose More Options at the Tails greeter and set a password (so you can use sudo). Connect to the internet.
+
+Copy the securedrop folder to your home directory, or git clone it directly in tails.
+
+Open a terminal and run:
+
+    cd securedrop/tails_files/
+    sudo ./install.sh
+
+It will then ask for the password you set before. Type it and press enter.
+
+A text editor window will pop up, editing the file `torrc_additions`. Add your HidServAuth line to the end of this file. When you're done, the file should look something like this, except with your owninformation: 
+
+    # add HidServAuth lines here
+    HidServAuth b6ferdazsj2v6agu.onion AHgaX9YrO/zanQmSJnILvB # client: journalist1
+
+When you're done, save the document and close the text editor. Reboot Tails, and this time mount your persistent volume but don't set a password. 
+
+## Usage
+
+After you login to Tails, connect to the internet and wait until you connect to the Tor network. Then open your Persistence folder and double-click on `securedrop_init`. After that you can connect to your SecureDrop document interface. You have to do this once each time you login to Tails. 
+

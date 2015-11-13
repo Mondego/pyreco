@@ -1,0 +1,1854 @@
+Sass Watch:
+
+sass --watch cms/static/sass:cms/static/sass -r ./cms/static/sass/bourbon/lib/bourbon.rb
+
+django-cache-toolbox
+============================
+
+Documentation: http://code.playfire.com/django-cache-toolbox/
+
+
+The code in this directory is based on:
+
+    django-mako Copyright (c) 2008 Mikeal Rogers
+
+and is redistributed here with modifications under the same Apache 2.0 license
+as the orginal.
+
+
+================================================================================
+django-mako
+================================================================================
+This module provides a drop in replacement of Django templates for Mako 
+Templates.
+
+Django: http://www.djangoproject.com/
+Mako: http://www.makotemplates.org/
+
+================================================================================
+How to install?
+================================================================================
+
+ $ sudo python setup.py install
+
+
+Configuring Capa sandboxed execution
+====================================
+
+Capa problems can contain code authored by the course author.  We need to
+execute that code in a sandbox.  We use CodeJail as the sandboxing facility,
+but it needs to be configured specifically for Capa's use.
+
+As a developer, you don't have to do anything to configure sandboxing if you
+don't want to, and everything will operate properly, you just won't have
+protection on that code.
+
+If you want to configure sandboxing, you're going to use the `README from
+CodeJail`__, with a few customized tweaks.
+
+__ https://github.com/edx/codejail/blob/master/README.rst
+
+
+1. At the instruction to install packages into the sandboxed code, you'll 
+   need to install the requirements from requirements/edx-sandbox::
+
+    $ pip install -r requirements/edx-sandbox/base.txt
+    $ pip install -r requirements/edx-sandbox/local.txt
+    $ pip install -r requirements/edx-sandbox/post.txt
+
+2. At the instruction to create the AppArmor profile, you'll need a line in
+   the profile for the sandbox packages.  <EDXPLATFORM> is the full path to
+   your edx_platform repo::
+
+    <EDXPLATFORM>/common/lib/sandbox-packages/** r,
+
+3. You can configure resource limits in settings.py.  A CODE_JAIL setting is
+   available, a dictionary.  The "limits" key lets you adjust the limits for
+   CPU time, real time, and memory use.  Setting any of them to zero disables
+   that limit::
+
+    # in settings.py...
+    CODE_JAIL = {
+        # Configurable limits.
+        'limits': {
+            # How many CPU seconds can jailed code use?
+            'CPU': 1,
+            # How many real-time seconds will a sandbox survive?
+            'REALTIME': 1,
+            # How much memory (in bytes) can a sandbox use?
+            'VMEM': 30000000,
+        },
+    }
+
+
+That's it.  Once you've finished the CodeJail configuration instructions,
+your course-hosted Python code should be run securely.
+
+This directory is in the Python path for sandboxed Python execution.
+
+(Originally written by Ike.)
+
+At a high level, the main challenges of checking symbolic math expressions are
+(1) making sure the expression is mathematically legal, and (2) simplifying the
+expression for comparison with what is expected.
+
+(1) Generation (and testing) of legal input is done by using MathJax to provide
+input math in an XML format known as Presentation MathML (PMathML).  Such
+expressions typeset correctly, but may not be mathematically legal, like "5 /
+(1 = 2)".  The PMathML is converted into "Content MathML" (CMathML), which is
+by definition mathematically legal, using an XSLT 2.0 stylesheet, via a module
+in SnuggleTeX. CMathML is then converted into a sympy expression.  This work is
+all done in `symmath/formula.py`.
+
+(2) Simplifying the expression and checking against what is expected is done by
+using sympy, and a set of heuristics based on options flags provided by the
+problem author.  For example, the problem author may specify that the expected
+expression is a matrix, in which case the dimensionality of the input
+expression is checked.  Other options include specifying that the comparison be
+checked numerically in addition to symbolically.  The checking is done in
+stages, first with no simplification, then with increasing levels of testing;
+if a match is found at any stage, then an "ok" is returned.  Helpful messages
+are also returned, eg if the input expression is of a different type than the
+expected.  This work is all done in `symmath/symmath_check.py`.
+
+Links:
+
+SnuggleTex: http://www2.ph.ed.ac.uk/snuggletex/documentation/overview-and-features.html
+MathML: http://www.w3.org/TR/MathML2/overview.html
+SymPy: http://sympy.org/en/index.html
+
+.supertestclass{
+	color: red;
+}
+
+
+.supertestclass{
+	color: red;
+}
+
+
+This product includes GeoLite data created by MaxMind, available from
+http://www.maxmind.com.
+These files really should be in the capa module, but we don't have a way to load js from there at the moment.  (TODO)
+
+Instructions for creating codemirror-compressed.js (in top-level vendor directory).
+
+1. Install uglifyjs and put it on your path.
+2. In the CodeMirror directory, run "cat codemirror.js addons/* addons/dialog/dialog.js | uglifyjs > codemirror-compressed.js"
+3. Replace existing codemirror-compressed.js file with the generated one.
+
+Additions to codemirror.css are done by manually copying in the new content.
+
+# jQuery File Upload Plugin
+
+## Demo
+[Demo File Upload](http://blueimp.github.io/jQuery-File-Upload/)
+
+## Description
+File Upload widget with multiple file selection, drag&amp;drop support, progress bars, validation and preview images, audio and video for jQuery.  
+Supports cross-domain, chunked and resumable file uploads and client-side image resizing. Works with any server-side platform (PHP, Python, Ruby on Rails, Java, Node.js, Go etc.) that supports standard HTML form file uploads.
+
+## Setup
+* [How to setup the plugin on your website](https://github.com/blueimp/jQuery-File-Upload/wiki/Setup)
+* [How to use only the basic plugin (minimal setup guide).](https://github.com/blueimp/jQuery-File-Upload/wiki/Basic-plugin)
+
+## Support
+
+* **[Support Forum](https://groups.google.com/d/forum/jquery-fileupload)**  
+**Support requests** and **general discussions** about the File Upload plugin can be posted to the official
+[Support Forum](https://groups.google.com/d/forum/jquery-fileupload).  
+If your question is not directly related to the File Upload plugin, you might have a better chance to get a reply by posting to [Stack Overflow](http://stackoverflow.com/questions/tagged/blueimp+jquery+file-upload).
+
+* Bugs and Feature requests  
+**Bugs** and **Feature requests** can be reported using the [issues tracker](https://github.com/blueimp/jQuery-File-Upload/issues).  
+Please read the [issue guidelines](https://github.com/blueimp/jQuery-File-Upload/blob/master/CONTRIBUTING.md) before posting.
+
+## Features
+* **Multiple file upload:**  
+  Allows to select multiple files at once and upload them simultaneously.
+* **Drag & Drop support:**  
+  Allows to upload files by dragging them from your desktop or filemanager and dropping them on your browser window.
+* **Upload progress bar:**  
+  Shows a progress bar indicating the upload progress for individual files and for all uploads combined.
+* **Cancelable uploads:**  
+  Individual file uploads can be canceled to stop the upload progress.
+* **Resumable uploads:**  
+  Aborted uploads can be resumed with browsers supporting the Blob API.
+* **Chunked uploads:**  
+  Large files can be uploaded in smaller chunks with browsers supporting the Blob API.
+* **Client-side image resizing:**  
+  Images can be automatically resized on client-side with browsers supporting the required JS APIs.
+* **Preview images, audio and video:**  
+  A preview of image, audio and video files can be displayed before uploading with browsers supporting the required APIs.
+* **No browser plugins (e.g. Adobe Flash) required:**  
+  The implementation is based on open standards like HTML5 and JavaScript and requires no additional browser plugins.
+* **Graceful fallback for legacy browsers:**  
+  Uploads files via XMLHttpRequests if supported and uses iframes as fallback for legacy browsers.
+* **HTML file upload form fallback:**  
+  Allows progressive enhancement by using a standard HTML file upload form as widget element.
+* **Cross-site file uploads:**  
+  Supports uploading files to a different domain with cross-site XMLHttpRequests or iframe redirects.
+* **Multiple plugin instances:**  
+  Allows to use multiple plugin instances on the same webpage.
+* **Customizable and extensible:**  
+  Provides an API to set individual options and define callBack methods for various upload events.
+* **Multipart and file contents stream uploads:**  
+  Files can be uploaded as standard "multipart/form-data" or file contents stream (HTTP PUT file upload).
+* **Compatible with any server-side application platform:**  
+  Works with any server-side platform (PHP, Python, Ruby on Rails, Java, Node.js, Go etc.) that supports standard HTML form file uploads.
+
+## Requirements
+
+### Mandatory requirements
+* [jQuery](http://jquery.com/) v. 1.6+
+* [jQuery UI widget factory](http://api.jqueryui.com/jQuery.widget/) v. 1.9+ (included)
+* [jQuery Iframe Transport plugin](https://github.com/blueimp/jQuery-File-Upload/blob/master/js/jquery.iframe-transport.js) (included)
+
+The jQuery UI widget factory is a requirement for the basic File Upload plugin, but very lightweight without any other dependencies from the jQuery UI suite.
+
+The jQuery Iframe Transport is required for [browsers without XHR file upload support](https://github.com/blueimp/jQuery-File-Upload/wiki/Browser-support).
+
+### Optional requirements
+* [JavaScript Templates engine](https://github.com/blueimp/JavaScript-Templates) v. 2.3.0+
+* [JavaScript Load Image library](https://github.com/blueimp/JavaScript-Load-Image) v. 1.9.1+
+* [JavaScript Canvas to Blob polyfill](https://github.com/blueimp/JavaScript-Canvas-to-Blob) v. 2.0.7+
+* [blueimp Gallery](https://github.com/blueimp/Gallery) v. 2.7.1+
+* [Bootstrap CSS framework](https://github.com/twitter/bootstrap/) v. 2.3
+* [Font Awesome icon font](http://fortawesome.github.io/Font-Awesome/) v. 3.2.1+
+
+The JavaScript Templates engine is used to render the selected and uploaded files for the Basic Plus UI and jQuery UI versions.
+
+The JavaScript Load Image library and JavaScript Canvas to Blob polyfill are required for the image previews and resizing functionality.
+
+The blueimp Gallery is used to display the uploaded images in a lightbox.
+
+The user interface of all versions except the jQuery UI version is built with Twitter's [Bootstrap](https://github.com/twitter/bootstrap/) framework and icons from [Font Awesome](http://fortawesome.github.io/Font-Awesome/).
+
+### Cross-domain requirements
+[Cross-domain File Uploads](https://github.com/blueimp/jQuery-File-Upload/wiki/Cross-domain-uploads) using the [Iframe Transport plugin](https://github.com/blueimp/jQuery-File-Upload/blob/master/js/jquery.iframe-transport.js) require a redirect back to the origin server to retrieve the upload results. The [example implementation](https://github.com/blueimp/jQuery-File-Upload/blob/master/js/main.js) makes use of [result.html](https://github.com/blueimp/jQuery-File-Upload/blob/master/cors/result.html) as a static redirect page for the origin server.
+
+The repository also includes the [jQuery XDomainRequest Transport plugin](https://github.com/blueimp/jQuery-File-Upload/blob/master/js/cors/jquery.xdr-transport.js), which enables limited cross-domain AJAX requests in Microsoft Internet Explorer 8 and 9 (IE 10 supports cross-domain XHR requests).  
+The XDomainRequest object allows GET and POST requests only and doesn't support file uploads. It is used on the [Demo](http://blueimp.github.io/jQuery-File-Upload/) to delete uploaded files from the cross-domain demo file upload service.
+
+## Browsers
+
+### Desktop browsers
+The File Upload plugin is regularly tested with the latest browser versions and supports the following minimal versions:
+
+* Google Chrome
+* Apple Safari 4.0+
+* Mozilla Firefox 3.0+
+* Opera 11.0+
+* Microsoft Internet Explorer 6.0+
+
+### Mobile browsers
+The File Upload plugin has been tested with and supports the following mobile browsers:
+
+* Apple Safari on iOS 6.0+
+* Google Chrome on iOS 6.0+
+* Google Chrome on Android 4.0+
+* Default Browser on Android 2.3+
+* Opera Mobile 12.0+
+
+### Supported features
+For a detailed overview of the features supported by each browser version please have a look at the [Extended browser support information](https://github.com/blueimp/jQuery-File-Upload/wiki/Browser-support).
+
+## License
+Released under the [MIT license](http://www.opensource.org/licenses/MIT).
+
+## Donations
+jQuery File Upload is free software, but you can donate to support the developer, Sebastian Tschan:
+
+Flattr: [![Flattr](https://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/thing/286433/jQuery-File-Upload-Plugin)
+
+PayPal: [![PayPal](https://www.paypalobjects.com/WEBSCR-640-20110429-1/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=PYWYSYP77KL54)
+
+This is release branch v2.0 of MathJax.
+
+# MathJax
+
+## Beautiful math in all browsers
+
+MathJax is an open-source JavaScript display engine for LaTeX, MathML, and
+AsciiMath notation that works in all modern browsers.  It was designed with
+the goal of consolidating the recent advances in web technologies into a
+single, definitive, math-on-the-web platform supporting the major browsers
+and operating systems.  It requires no setup on the part of the user (no
+plugins to download or software to install), so the page author can write
+web documents that include mathematics and be confident that users will be
+able to view it naturally and easily.  Simply include MathJax and some
+mathematics in a web page, and MathJax does the rest.
+
+Some of the main features of MathJax include:
+
+- High-quality display of LaTeX, MathML, and AsciiMath notation in HTML pages
+
+- Supported in most browsers with no plug-ins, extra fonts, or special
+  setup for the reader
+
+- Easy for authors, flexible for publishers, extensible for developers
+
+- Supports math accessibility, cut-and-paste interoperability, and other
+  advanced functionality
+
+- Powerful API for integration with other web applications
+
+See <http://www.mathjax.org/> for additional details.
+
+
+## Installation and Usage
+
+The MathJax installation and usage documentation is available in the
+`docs/html` directory of the MathJax distribution (see
+`docs/html/index.html` for the starting point).  The documents are also
+available on the MathJax web site on line at <http://www.mathjax.org/resources/docs/>.
+
+
+## Community
+
+The main MathJax website is <http://www.mathjax.org>, and it includes
+announcements and other important information.  MathJax is maintained and
+distributed on GitHub at <http://github.com/mathjax/MathJax>.  A user forum
+for asking questions and getting assistance is hosted at Google, and the
+bug tracker is hosted at GitHub:
+
+Bug tracker:         <https://github.com/mathjax/MathJax/issues>  
+MathJax-Users Group: <http://groups.google.com/group/mathjax-users>
+
+Before reporting a bug, please check that it has not already been reported.
+Also, please use the bug tracker for reporting bugs rather than the help forum.
+
+Instructions for creating js/tinymce.full.min.js
+
+1. Ensure that the dependencies (NodeJS, Jake, and other dependencies) are installed. If necessary,
+   install them per the directions on https://github.com/tinymce/tinymce/tree/4.0.20.
+2. Unzip edx-platform/vendor_extra/tinymce/jake_package.zip into this directory (so that Jakefile.js resides in this directory).
+3. Run the following command in the tinymce directory:
+   jake minify bundle[themes:modern,plugins:image,link,codemirror,paste,table,textcolor]
+4. Cleanup by deleting the Unversioned files that were created from unzipping jake_package.zip.
+
+Instructions for updating tinymce to a newer version:
+
+1. Download the desired version from https://github.com/tinymce/tinymce/releases
+2. Find all the EDX specific changes that were made to the currently used version of tinymce by searching for
+   the string "EDX" in this directory.
+3. Merge the EDX specific changes with the new version.
+4. Follow the instructions above for creating the new version of js/tinymce.full.min.js
+
+This is where language files should be placed.
+
+Please DO NOT translate these directly use this service: https://www.transifex.com/projects/p/tinymce/
+
++=========================+
+| CodeMirror for TinyMCE4 |
++=========================+
+
+(c) 2013-2014 Arjan Haverkamp (arjan@avoid.org)
+Download: http://www.avoid.org/codemirror-for-tinymce4/
+Version: 1.3 (2014-03-04)
+License: see LICENSE.txt
+
+Changelog
+=========
+Version 1.3 - 2014-03-04
+- Bugfix: If any text was highlighted in CodeMirror and the code dialog is closed and saved,
+          the selected text was removed from TinyMCE.
+- Macintosh users now see Macintosh keyboard shortcuts.
+
+Version 1.2 - 2013-09-04
+- Dirty state of CodeMirror now passed on to TinyMCE.
+- When submitting CodeMirror code to TinyMCE, cursor position is retained.
+  Note: this only works when the cursor is *not* inside a <tag>.
+
+Version 1.1 - 2013-07-19
+- New options jsFiles and cssFiles.
+
+Version 1.0 - 2013-06-29
+- Initial release.
+
+Icons are generated and provided by the http://icomoon.io service.
+
+Course for testing conditional module.
+
+Note that 'i4x://edX/different_course/html/for_testing_import_rewrites' in sources
+is only present for testing that import does NOT rewrite references to
+courses that differ from the original course being imported.
+
+It is not expected that i4x://edX/different_course/html/for_testing_import_rewrites will render.
+
+ 
+
+JusticeX is an introduction to moral and political philosophy, including discussion of contemporary dilemmas and controversies.
+content-harvard-justicex
+========================
+Images, handouts, and other statically-served content should go ONLY
+in this directory.
+
+Images for the front page should go in static/images. The frontpage
+banner MUST be named course_image.jpg
+This is a very very simple course, useful for initial debugging of processing code.
+
+This is a very very simple course, useful for debugging graphical slider tool
+code.
+
+This is a very very simple course, useful for debugging open ended grading code.
+
+This is a very very simple course, useful for debugging open ended grading code.  This is specifically for testing if a peer grading module with no path to it in the course will be handled properly.
+
+This is a very very simple course, useful for debugging self assessment code.
+
+This is a simple, but non-trivial, course using multiple module types and some nested structure.
+ 
+
+This is a simple, but non-trivial, course using multiple module types and some nested structure.
+ 
+
+Test course for checking the end date displayed on the course about page.
+This course has both an end_date HTML "blob", and it also has a course end date set.
+The end_date "blob" has higher precedence and will show.
+
+See also test_end course.
+
+Test course for checking the end date displayed on the course about page.
+This course does not have an end_date HTML "blob", but it does have a course end date set.
+Therefore the course end date should show on the course about page.
+
+See also test_about_blob_end_date course.
+
+Simple course with test center exam information included in policy.json.
+
+
+Simple course.  If start dates are on, non-staff users should see Overview, but not Ch 2.
+
+DO NOT DELETE TILDE FILES
+
+This course simulates an export that has been edited by hand, where the editor's
+text editor has left behind some backup files (about/index.html~ and
+static/example.txt~). Normally, we do not commit files that end with tildes to
+the repository, for precisely this reason -- they are backup files, and do
+not belong with the content. However, in this case, we *need* these backup files
+to be committed to the repository, so that we can exercise logic in the codebase
+that checks for these sort of editor backup files and skips them on export.
+
+A course about toys.
+This is a very very simple course, useful for initial debugging of processing code.
+
+A copy of the toy course, with different metadata.  Used to test policy loading for course with identical org course fields and shared content.
+
+JusticeX is an introduction to moral and political philosophy, including discussion of contemporary dilemmas and controversies.
+content-harvard-justicex
+========================
+Images, handouts, and other statically-served content should go ONLY
+in this directory.
+
+Images for the front page should go in static/images. The frontpage
+banner MUST be named course_image.jpg
+This directory is intentionally empty.
+
+We need to have a directory on disk for the corresponding Microsite configuration to be considered 'valid'. Therefore to execute some 'default' use-cases, we have this empty directory.
+
+‰PNG
+
+# Development Tasks
+
+## Prerequisites
+
+### Ruby
+
+To install all of the libraries needed for our rake commands, run `bundle install`.
+This will read the `Gemfile` and install all of the gems specified there.
+Note: Rake has been deprecated to the Python Paver. This is only needed until rake is fully deprecated
+
+### Python
+
+Run the following::
+
+    pip install -r requirements.txt
+
+### Binaries
+
+Install the following:
+
+* Mongodb (http://www.mongodb.org/)
+
+### Databases
+
+First start up the MongoDB daemon. E.g. to start it up in the background
+using a config file (sometimes using `sudo` is required):
+
+    mongod --config /usr/local/etc/mongod.conf &
+
+On some Linux distributions the configuration script is located at:
+
+    /etc/mongodb.conf
+
+If MongoDB does not start properly, it might be the case that there is a stray
+lock file somewhere, or that the configuration file is corrupt. In this case
+try deleting the lock files, and then running the MongoDB repair script:
+
+    sudo rm -rf /data/db/mongod.lock
+    sudo rm -rf /var/lib/mongodb/mongod.lock
+    sudo -u mongodb mongod -f /usr/local/etc/mongod.conf --repair
+
+To verify that MongoDB started up OK, run the MongoDB client:
+
+    mongo
+
+After MongoDB daemon is successfully running, check out the course data
+directories that you want to work with into the `GITHUB_REPO_ROOT` (by default,
+`../data`). Then run the following command:
+
+    paver update_db
+
+## Installing
+
+To create your development environment, run the shell script in the root of
+the repo:
+
+    scripts/create-dev-env.sh
+
+
+## Starting development servers
+
+Both the LMS and Studio can be started using the following shortcut tasks
+
+    paver lms  # Start the LMS
+    paver studio  # Start studio
+    paver lms --settings=cms.dev  # Start LMS to run alongside Studio
+    paver lms --settings=cms.dev_preview  # Start LMS to run alongside Studio in preview mode
+
+Under the hood, this executes `./manage.py {lms|cms} --settings $ENV runserver`,
+which starts a local development server.
+
+Both of these commands take arguments to start the servers in different environments
+or with additional options:
+
+    # Start the LMS using the test configuration, on port 5000
+    paver lms --settings=test --port=5000  # Executes ./manage.py lms --settings test runserver 5000
+
+To get a full list of available paver tasks, run:
+
+     paver --help
+
+
+### Troubleshooting
+
+#### Reference Error: XModule is not defined (javascript)
+This means that the javascript defining an xmodule hasn't loaded correctly. There are a number
+of different things that could be causing this:
+
+1. See `Error: watch EMFILE`
+
+#### Error: watch EMFILE (coffee)
+When running a development server, we also start a watcher process alongside to recompile coffeescript
+and sass as changes are made. On Mac OSX systems, the coffee watcher process takes more file handles
+than are allowed by default. This will result in `EMFILE` errors when coffeescript is running, and
+will prevent javascript from compiling, leading to the error 'XModule is not defined'
+
+To work around this issue, we use `Process::setrlimit` to set the number of allowed open files.
+Coffee watches both directories and files, so you will need to set this fairly high (anecdotally,
+8000 seems to do the trick on OSX 10.7.5, 10.8.3, and 10.8.4)
+
+
+## Running Tests
+
+See `testing.md` for instructions on running the test suite.
+
+## Content development
+
+If you change course content, while running the LMS in dev mode, it is unnecessary to restart to refresh the modulestore.
+
+Instead, hit /migrate/modules to see a list of all modules loaded, and click on links (eg /migrate/reload/edx4edx) to reload a course.
+
+### Gitreload-based workflow
+
+github (or other equivalent git-based repository systems) used for
+course content can be setup to trigger an automatic reload when changes are pushed.  Here is how:
+
+1. Each content directory in edx_all/data should be a clone of a git repo
+
+2. The user running the edx gunicorn process should have its ssh key registered with the git repo
+
+3. The list settings.ALLOWED_GITRELOAD_IPS should contain the IP address of the git repo originating the gitreload request.
+    By default, this list is ['207.97.227.253', '50.57.128.197', '108.171.174.178'] (the github IPs).
+    The list can be overridden in the startup file used, eg lms/envs/dev*.py
+
+4. The git post-receive-hook should POST to /gitreload with a JSON payload.  This payload should define at least
+
+   { "repository" : { "name" : reload_dir }
+
+    where reload_dir is the directory name of the content to reload (ie edx_all/data/reload_dir should exist)
+
+    The edx server will then do "git reset --hard HEAD; git clean -f -d; git pull origin" in that directory.  After the pull,
+    it will reload the modulestore for that course.
+
+Note that the gitreload-based workflow is not meant for deployments on AWS (or elsewhere) which use collectstatic, since collectstatic is not run by a gitreload event.
+
+Also, the gitreload feature needs FEATURES['ENABLE_LMS_MIGRATION'] = True in the django settings.
+
+
+# Running the discussion service
+
+## Instruction for Mac
+
+## Installing Mongodb
+
+If you haven't done so already:
+
+    brew install mongodb
+
+Make sure that you have mongodb running. You can simply open a new terminal tab and type:
+
+    mongod
+
+## Installing elasticsearch
+
+    brew install elasticsearch
+
+For debugging, it's often more convenient to have elasticsearch running in a terminal tab instead of in background. To do so, simply open a new terminal tab and then type:
+
+    elasticsearch -f
+
+## Setting up the discussion service
+
+You can retrieve the source code from the [github repository](https://github.com/edx/cs_comments_service).
+
+First go into the edx_all directory. Then type
+
+    git clone https://github.com/edx/cs_comments_service.git
+    cd cs_comments_service/
+
+If you see a prompt asking "Do you wish to trust this .rvmrc file?", type "y"
+
+Now if you see this error "Gemset 'cs_comments_service' does not exist," run the following command to create the gemset and then use the rvm environment manually:
+
+    rvm gemset create 'cs_comments_service'
+    rvm use 1.9.3@cs_comments_service
+
+Now use the following command to install required packages:
+
+    bundle install
+
+The following command creates database indexes:
+
+    bundle exec rake db:init
+
+Now use the following command to generate seeds (basically some random comments in Latin):
+
+    bundle exec rake db:seed
+
+It's done! Launch the app now:
+
+    ruby app.rb
+
+## Integrating with the edx platform
+
+The API key must match on both sides. It is configured here:
+* edx-platform: COMMENTS_SERVICE_KEY in your dev.py file (dev environment) or ENV_TOKENS (prod environment)
+* cs_comments_service: api_key in the application.yml file (dev environment) or ENV variable (prod environment)
+
+
+## Running the delayed job worker
+
+In the discussion service, notifications are handled asynchronously using a third party gem called delayed_job. If you want to test this functionality, run the following command in a separate tab:
+
+    bundle exec rake jobs:work
+
+## From the edx-platform django app, initialize roles and permissions
+
+To fully test the discussion forum, you might want to act as a moderator or an administrator. Currently, the roles are:
+
+ * moderators can manage everything in the forum, and
+ * administrators can manage everything plus assigning and revoking moderator status of other users.
+
+First make sure that the database is up-to-date:
+
+    paver update_db
+
+If you have created users in the edx-platform django apps when the comment service was not running, you will need to one-way sync the users into the comment service back end database:
+
+    ./manage.py lms sync_user_info
+
+Now initialize roles and permissions, providing a course id. See the example below. Note that you do not need to do this for Studio-created courses, as the Studio application does this for you.
+
+    ./manage.py lms seed_permissions_roles "MITx/6.002x/2012_Fall"
+
+To assign yourself as a moderator, use the following command (assuming your username is "test", and the course id is "MITx/6.002x/2012_Fall"):
+
+    ./manage.py lms assign_role test Moderator "MITx/6.002x/2012_Fall"
+
+To assign yourself as an administrator, use the following command
+
+    ./manage.py lms assign_role test Administrator "MITx/6.002x/2012_Fall"
+
+## Some other useful commands
+
+### generate seeds for a specific forum
+The seed generating command above assumes that you have the following discussion tags somewhere in the course data:
+
+    <discussion for="Welcome Video" id="video_1" discussion_category="Video"/>
+    <discussion for="Lab 0: Using the Tools" id="lab_1" discussion_category="Lab"/>
+    <discussion for="Lab Circuit Sandbox" id="lab_2" discussion_category="Lab"/>
+
+For example, you can insert them into overview section as following:
+
+    <chapter name="Overview">
+      <section format="Video" name="Welcome">
+        <vertical>
+          <video youtube="0.75:izygArpw-Qo,1.0:p2Q6BrNhdh8,1.25:1EeWXzPdhSA,1.50:rABDYkeK0x8"/>
+          <discussion for="Welcome Video" id="video_1" discussion_category="Video"/>
+        </vertical>
+      </section>
+      <section format="Lecture Sequence" name="System Usage Sequence">
+        <%include file="sections/introseq.xml"/>
+      </section>
+      <section format="Lab" name="Lab0: Using the tools">
+        <vertical>
+          <html> See the <a href="/section/labintro"> Lab Introduction </a> or <a href="/static/handouts/schematic_tutorial.pdf">Interactive Lab Usage Handout </a> for information on how to do the lab </html>
+          <problem name="Lab 0: Using the Tools" filename="Lab0" rerandomize="false"/>
+          <discussion for="Lab 0: Using the Tools" id="lab_1" discussion_category="Lab"/>
+        </vertical>
+      </section>
+      <section format="Lab" name="Circuit Sandbox">
+        <vertical>
+          <problem name="Circuit Sandbox" filename="Lab_sandbox" rerandomize="false"/>
+          <discussion for="Lab Circuit Sandbox" id="lab_2" discussion_category="Lab"/>
+        </vertical>
+      </section>
+    </chapter>
+
+Currently, only the attribute "id" is actually used, which identifies discussion forum. In the code for the data generator, the corresponding lines are:
+
+    generate_comments_for("video_1")
+    generate_comments_for("lab_1")
+    generate_comments_for("lab_2")
+
+We also have a command for generating comments within a forum with the specified id:
+
+    bundle exec rake db:generate_comments[type_the_discussion_id_here]
+
+For instance, if you want to generate comments for a new discussion tab named "lab_3", then use the following command
+
+    bundle exec rake db:generate_comments[lab_3]
+
+### Running tests for the service
+
+    bundle exec rspec
+
+Warning: the development and test environments share the same elasticsearch index. After running tests, search may not work in the development environment. You simply need to reindex:
+
+    bundle exec rake db:reindex_search
+
+### debugging the service
+
+You can use the following command to launch a console within the service environment:
+
+    bundle exec rake console
+
+### show user roles and permissions
+
+Use the following command to see the roles and permissions of a user in a given course (assuming, again, that the username is "test"):
+
+    ./manage.py lms show_permissions moderator
+
+You need to make sure that the environment variables are exported. Otherwise you would need to do
+
+    ./manage.py lms show_permissions moderator
+
+# Notes on using mongodb backed LMS and CMS
+
+These are some random notes for developers, on how things are stored in mongodb, and how to debug mongodb data.
+
+## Databases
+
+Two mongodb databases are used:
+
+- xmodule: stores module definitions and metadata (modulestore)
+- xcontent: stores filesystem content, like PDF files
+
+modulestore documents are stored with an _id which has fields like this:
+
+    {"_id": {"tag":"i4x","org":"HarvardX","course":"CS50x","category":"chapter","name":"Week_1","revision":null}}
+
+## Document fields
+
+### Problems
+
+Here is an example showing the fields available in problem documents:
+
+    {
+	"_id" : {
+		"tag" : "i4x",
+		"org" : "MITx",
+		"course" : "6.00x",
+		"category" : "problem",
+		"name" : "ps03:ps03-Hangman_part_2_The_Game",
+		"revision" : null
+	},
+	"definition" : {
+		"data" : " ..."
+	},
+	"metadata" : {
+		"display_name" : "Hangman Part 2: The Game",
+		"attempts" : "30",
+		"title" : "Hangman, Part 2",
+		"data_dir" : "6.00x",
+		"type" : "lecture"
+	}
+    }
+
+## Sample interaction with mongodb
+
+1. "mongo"
+2. "use xmodule"
+3. "show collections" should give "modulestore" and "system.indexes"
+4. 'db.modulestore.find( {"_id.org": "MITx"} )' will produce a list of all MITx course documents
+5. 'db.modulestore.find( {"_id.org": "MITx", "_id.category": "problem"} )' will produce a list of all problems in MITx courses
+
+Example query for finding all files with "image" in the filename:
+
+- use xcontent
+- db.fs.files.find({'filename': /image/ } )
+- db.fs.files.find({'filename': /image/ } ).count()
+
+## Debugging the mongodb contents
+
+A convenient tool is http://phpmoadmin.com/  (needs php)
+
+Under ubuntu, do:
+
+  - apt-get install php5-fpm php-pear
+  - pecl install mongo
+  - edit /etc/php5/fpm/php.ini to add "extension=mongo.so"
+  - /etc/init.d/php5-fpm restart
+
+and also setup nginx to run php through fastcgi.
+
+## Backing up mongodb
+
+- mogodump  (dumps all dbs)
+- mongodump --collection modulestore --db xmodule (dumps just xmodule/modulestore)
+- mongodump  -d xmodule -q '{"_id.org": "MITx"}' (dumps just MITx documents in xmodule)
+- mongodump -q '{"_id.org": "MITx"}' (dumps all MITx documents)
+
+## Deleting course content
+
+Use "remove" instead of "find":
+
+- db.modulestore.remove( {"_id.course": "8.01greytak"})
+
+## Finding useful information from the mongodb modulestore
+
+- Organizations
+
+    > db.modulestore.distinct( "_id.org")
+    [ "HarvardX", "MITx", "edX", "edx" ]
+
+- Courses
+
+    > db.modulestore.distinct( "_id.course")
+    [
+    	"CS50x",
+    	"PH207x",
+    	"3.091x",
+    	"6.002x",
+    	"6.00x",
+    	"8.01esg",
+    	"8.01rq_MW",
+    	"8.02teal",
+    	"8.02x",
+    	"edx4edx",
+    	"toy",
+    	"templates"
+    ]
+
+- Find a problem which has the word "quantum" in its definition
+
+    db.modulestore.findOne( {"definition.data":/quantum/})n
+
+- Find Location for all problems with the word "quantum" in its definition
+
+    db.modulestore.find( {"definition.data":/quantum/}, {'_id':1})
+
+- Number of problems in each course
+
+    db.runCommand({
+      mapreduce: "modulestore",
+      query: { '_id.category': 'problem' },
+      map: function(){ emit(this._id.course, {count:1}); },
+      reduce: function(key, values){
+                  var result = {count:0};
+     	      values.forEach(function(value) {
+    	          result.count += value.count;
+    	      });
+    	      return result;
+    	   },
+      out: 'pbyc',
+      verbose: true
+    });
+
+    produces:
+
+    > db.pbyc.find()
+    { "_id" : "3.091x", "value" : { "count" : 184 } }
+    { "_id" : "6.002x", "value" : { "count" : 176 } }
+    { "_id" : "6.00x", "value" : { "count" : 147 } }
+    { "_id" : "8.01esg", "value" : { "count" : 184 } }
+    { "_id" : "8.01rq_MW", "value" : { "count" : 73 } }
+    { "_id" : "8.02teal", "value" : { "count" : 5 } }
+    { "_id" : "8.02x", "value" : { "count" : 99 } }
+    { "_id" : "PH207x", "value" : { "count" : 25 } }
+    { "_id" : "edx4edx", "value" : { "count" : 50 } }
+    { "_id" : "templates", "value" : { "count" : 11 } }
+
+# Documentation for edX code (edx-platform repo)
+
+This document explains the general structure of the edX platform, and defines some of the acronyms and terms you'll see flying around in the code.
+
+## Assumptions:
+
+You should be familiar with the following.  If you're not, go read some docs...
+
+ - python
+ - django
+ - javascript
+ - html, xml -- xpath, xslt
+ - css
+ - git
+ - mako templates -- we use these instead of django templates, because they support embedding real python.
+
+## Other relevant terms
+
+ - CAPA -- lon-capa.org -- content management system that has defined a standard for online learning and assessment materials.  Many of our materials follow this standard.
+    - TODO: add more details / link to relevant docs.  lon-capa.org is not immediately intuitive.
+    - lcp = loncapa problem
+
+
+## Parts of the system
+
+  - LMS -- Learning Management System.   The student-facing parts of the system.  Handles student accounts, displaying videos, tutorials, exercies, problems, etc.
+
+  - CMS -- Course Management System.  The instructor-facing parts of the system.  Allows instructors to see and modify their course, add lectures, problems, reorder things, etc.
+
+  - Forums -- this is a ruby on rails service that runs on Heroku.  Contributed by berkeley folks.  The LMS has a wrapper lib that talks to it.
+
+  - Data.  In the data/ dir.  There is currently a single `course.xml` file that describes an entire course.  Speaking of which...
+
+  - Courses.  A course is broken up into Chapters ("week 1", "week 2", etc).  A chapter is broken up into Sections ("Lecture 1", "Simple Circuits Exercises", "HW1", etc).  A section can contain modules: Problems, Html, Videos, Verticals, or Sequences.
+     - Problems: specified in problem files.  May have python scripts embedded to both generate random parameters and check answers.  Also allows specifying things like tolerance or precision in answers
+     - Html: any html - often description, or links to outside resources
+     - Videos: links to youtube or elsewhere
+     - Verticals: a nesting tag: collect several videos, problems, html modules and display them vertically.
+     - Sequences: a sequence of modules, displayed with a horizontal navigation bar, displaying one component at a time.
+     - see `data/course.xml` for more examples
+
+
+## High Level Entities in the code
+
+### Common libraries
+
+- xmodule: generic learning modules. *x* can be sequence, video, template, html,
+           vertical, capa, etc.  These are the things that one puts inside sections
+           in the course structure.
+
+    - XModuleDescriptor: This defines the problem and all data and UI needed to edit
+           that problem. It is unaware of any student data, but can be used to retrieve
+           an XModule, which is aware of that student state.
+
+    - XModule: The XModule is a problem instance that is particular to a student. It knows
+           how to render itself to html to display the problem, how to score itself,
+           and how to handle ajax calls from the front end.
+
+    - Both XModule and XModuleDescriptor take system context parameters. These are named
+           ModuleSystem and DescriptorSystem respectively. These help isolate the XModules
+           from any interactions with external resources that they require.
+
+           For instance, the DescriptorSystem has a function to load an XModuleDescriptor
+           from a Location object, and the ModuleSystem knows how to render things,
+           track events, and complain about 404s
+
+    - XModules and XModuleDescriptors are uniquely identified by a Location object, encoding the organization, course, category, name, and possibly revision of the module.
+
+    - XModule initialization: XModules are instantiated by the `XModuleDescriptor.xmodule` method, and given a ModuleSystem, the descriptor which instantiated it, and their relevant model data.
+
+    - XModuleDescriptor initialization: If an XModuleDescriptor is loaded from an XML-based course, the XML data is passed into its `from_xml` method, which is responsible for instantiating a descriptor with the correct attributes. If it's in Mongo, the descriptor is instantiated directly. The module's attributes will be present in the `model_data` dict.
+
+    - `course.xml` format.  We use python setuptools to connect supported tags with the descriptors that handle them.  See `common/lib/xmodule/setup.py`.  There are checking and validation tools in `common/validate`.
+
+         - the xml import+export functionality is in `xml_module.py:XmlDescriptor`, which is a mixin class that's used by the actual descriptor classes.
+
+         - There is a distinction between descriptor _definitions_ that stay the same for any use of that descriptor (e.g. here is what a particular problem is), and _metadata_ describing how that descriptor is used (e.g. whether to allow checking of answers, due date, etc).  When reading in `from_xml`, the code pulls out the metadata attributes into a separate structure, and puts it back on export.
+
+    - in `common/lib/xmodule`
+
+- capa modules -- defines `LoncapaProblem` and many related things.
+    - in `common/lib/capa`
+
+### LMS
+
+The LMS is a django site, with root in `lms/`.  It runs in many different environments--the settings files are in `lms/envs`.
+
+- We use the Django Auth system, including the is_staff and is_superuser flags.  User profiles and related code lives in `lms/djangoapps/student/`.   There is support for groups of students (e.g. 'want emails about future courses', 'have unenrolled', etc) in `lms/djangoapps/student/models.py`.
+
+- `StudentModule` -- keeps track of where a particular student is in a module (problem, video, html)--what's their grade, have they started, are they done, etc.  [This is only partly implemented so far.]
+    - `lms/djangoapps/courseware/models.py`
+
+- Core rendering path:
+  - `lms/urls.py` points to `courseware.views.index`, which gets module info from the course xml file, pulls list of `StudentModule` objects for this user (to avoid multiple db hits).
+
+  - Calls `render_accordion` to render the "accordion"--the display of the course structure.
+
+  - To render the current module, calls `module_render.py:render_x_module()`, which gets the `StudentModule` instance, and passes the `StudentModule` state and other system context to the module constructor the get an instance of the appropriate module class for this user.
+
+  - calls the module's `.get_html()` method.  If the module has nested submodules, render_x_module() will be called again for each.
+
+  - ajax calls go to `module_render.py:handle_xblock_callback()`, which passes it to one of the `XBlock`s handler functions
+
+- See `lms/urls.py` for the wirings of urls to views.
+
+- Tracking: there is support for basic tracking of client-side events in `lms/djangoapps/track`.
+
+### CMS
+
+The CMS is a django site, with root in `cms`. It can run in a number of different
+environments, defined in `cms/envs`.
+
+- Core rendering path: Still TBD
+
+### Static file processing
+
+- CSS -- we use a superset of CSS called SASS.  It supports nice things like includes and variables, and compiles to CSS.  The compiler is called `sass`.
+
+- javascript -- we use coffeescript, which compiles to js, and is much nicer to work with.  Look for `*.coffee` files.  We use _jasmine_ for testing js.
+
+- _mako_  -- we use this for templates, and have wrapper called edxmako that makes mako look like the django templating calls.
+
+We use a fork of django-pipeline to make sure that the js and css always reflect the latest `*.coffee` and `*.sass` files (We're hoping to get our changes merged in the official version soon).  This works differently in development and production.  Test uses the production settings.
+
+In production, the django `collectstatic` command recompiles everything and puts all the generated static files in a static/ dir.  A starting point in the code is `django-pipeline/pipeline/packager.py:pack`.
+
+In development, we don't use collectstatic, instead accessing the files in place.  The auto-compilation is run via `common/djangoapps/pipeline_mako/templates/static_content.html`.  Details: templates include `<%namespace name='static' file='static_content.html'/>`, then something like `<%static:css group='application'/>` to call the functions in `common/djangoapps/pipeline_mako/__init__.py`, which call the `django-pipeline` compilers.
+
+## Testing
+
+See `testing.md`.
+
+## TODO:
+
+- describe our production environment
+
+- describe the front-end architecture, tools, etc.  Starting point: `lms/static`
+
+---
+Note: this file uses markdown.  To convert to html, run:
+
+    markdown2 overview.md > overview.html
+
+Grades can be pushed to a remote gradebook, and course enrollment membership can be pulled from a remote gradebook.  This file documents how to setup such a remote gradebook, and what the API should be for writing new remote gradebook "xservers".
+
+1. Definitions
+
+An "xserver" is a web-based server that is part of the edX ecosystem.  There are a number of "xserver" programs, including one which does python code grading, an xqueue server, and graders for other coding languages.
+
+"Stellar" is the MIT on-campus gradebook system.
+
+2. Setup
+
+The remote gradebook xserver should be specified in the lms.envs configuration using
+
+    FEATURES[REMOTE_GRADEBOOK_URL]
+
+Each course, in addition, should define the name of the gradebook being used.  A class "section" may also be specified.  This goes in the policy.json file, eg:
+
+    "remote_gradebook": {
+       "name" : "STELLAR:/project/edxdemosite",
+       "section" : "r01"
+        },
+
+3. The API for the remote gradebook xserver is an almost RESTful service model, which only employs POSTs, to the xserver url, with form data for the fields:
+
+ - submit: get-assignments, get-membership, post-grades, or get-sections
+ - gradebook: name of gradebook
+ - user: username of staff person initiating the request (for logging)
+ - section: (optional) name of section
+
+The return body content should be a JSON string, of the format {'msg': message, 'data': data}.  The message is displayed in the instructor dashboard.
+
+The data is a list of dicts (associative arrays).  Each dict should be key:value.
+
+## For submit=post-grades:
+
+A file is also posted, with the field name "datafile".  This file is CSV format, with two columns, one being "External email" and the other being the name of the assignment (that column contains the grades for the assignment).
+
+## For submit=get-assignments
+
+data keys = "AssignmentName"
+
+## For submit=get-membership
+
+data keys = "email", "name", "section"
+
+## For submit=get-sections
+
+data keys = "SectionName"
+
+# Testing
+
+## Overview
+
+We maintain three kinds of tests: unit tests, integration tests,
+and acceptance tests.
+
+Overall, you want to write the tests that **maximize coverage**
+while **minimizing maintenance**.
+In practice, this usually means investing heavily
+in unit tests, which tend to be the most robust to changes in the code base.
+
+![Test Pyramid](test_pyramid.png)
+
+The pyramid above shows the relative number of unit tests, integration tests,
+and acceptance tests.  Most of our tests are unit tests or integration tests.
+
+### Unit Tests
+
+* Each test case should be concise: setup, execute, check, and teardown.
+If you find yourself writing tests with many steps, consider refactoring
+the unit under tests into smaller units, and then testing those individually.
+
+* As a rule of thumb, your unit tests should cover every code branch.
+
+* Mock or patch external dependencies.
+We use [voidspace mock](http://www.voidspace.org.uk/python/mock/).
+
+* We unit test Python code (using [unittest](http://docs.python.org/2/library/unittest.html)) and
+Javascript (using [Jasmine](http://pivotal.github.io/jasmine/))
+
+### Integration Tests
+* Test several units at the same time.
+Note that you can still mock or patch dependencies
+that are not under test!  For example, you might test that
+`LoncapaProblem`, `NumericalResponse`, and `CorrectMap` in the
+`capa` package work together, while still mocking out template rendering.
+
+* Use integration tests to ensure that units are hooked up correctly.
+You do not need to test every possible input--that's what unit
+tests are for.  Instead, focus on testing the "happy path"
+to verify that the components work together correctly.
+
+* Many of our tests use the [Django test client](https://docs.djangoproject.com/en/dev/topics/testing/overview/)
+to simulate HTTP requests to the server.
+
+### UI Acceptance Tests
+* Use these to test that major program features are working correctly.
+
+* We use [lettuce](http://lettuce.it/) to write BDD-style tests.  Most of
+these tests simulate user interactions through the browser using
+[splinter](http://splinter.cobrateam.info/).
+
+* We use [Bok Choy](http://bok-choy.readthedocs.org/en/latest/tutorial.html) to 
+write end-user acceptance tests directly in Python, using the framework to 
+maximize reliability and maintainability.
+
+## Test Locations
+
+* Python unit and integration tests: Located in
+subpackages called `tests`.
+For example, the tests for the `capa` package are located in
+`common/lib/capa/capa/tests`.
+
+* Javascript unit tests: Located in `spec` folders.  For example,
+`common/lib/xmodule/xmodule/js/spec` and `{cms,lms}/static/coffee/spec`
+For consistency, you should use the same directory structure for implementation
+and test.  For example, the test for `src/views/module.coffee`
+should be written in `spec/views/module_spec.coffee`.
+
+* UI acceptance tests:
+    - Set up and helper methods, and stubs for external services: `common/djangoapps/terrain`
+    - Lettuce Tests: located in `features` subpackage within a Django app.
+    For example: `lms/djangoapps/courseware/features`
+    - Bok Choy Tests: Artifacts are located under `common/test/acceptance`
+
+
+## Factories
+
+Many tests delegate set-up to a "factory" class.  For example,
+there are factories for creating courses, problems, and users.
+This encapsulates set-up logic from tests.
+
+Factories are often implemented using [FactoryBoy](https://readthedocs.org/projects/factoryboy/)
+
+In general, factories should be located close to the code they use.
+For example, the factory for creating problem XML definitions
+ is located in `common/lib/capa/capa/tests/response_xml_factory.py`
+because the `capa` package handles problem XML.
+
+
+# Running Tests
+
+You can run all of the unit-level tests using the command
+
+    rake test
+
+This includes python, javascript, and documentation tests. It does not, however,
+run any acceptance tests.
+
+## Running Python Unit tests
+
+We use [nose](https://nose.readthedocs.org/en/latest/) through
+the [django-nose plugin](https://pypi.python.org/pypi/django-nose)
+to run the test suite.
+
+You can run all the python tests using `rake` commands.  For example,
+
+    rake test:python
+
+runs all the tests.  It also runs `collectstatic`, which prepares the static files used by the site (for example, compiling Coffeescript to Javascript).
+
+You can re-run all failed python tests by running: (see note at end of section)
+
+    rake test:python[--failed]
+
+You can also run the tests without `collectstatic`, which tends to be faster:
+
+    rake fasttest_lms
+
+or
+
+    rake fasttest_cms
+
+xmodule can be tested independently, with this:
+
+    rake test_common/lib/xmodule
+
+other module level tests include
+
+* `rake test_common/lib/capa`
+* `rake test_common/lib/calc`
+
+To run a single django test class:
+
+    rake test_lms[lms/djangoapps/courseware/tests/tests.py:ActivateLoginTest]
+
+To run a single django test:
+
+    rake test_lms[lms/djangoapps/courseware/tests/tests.py:ActivateLoginTest.test_activate_login]
+
+To re-run all failing django tests from lms or cms: (see note at end of section)
+
+    rake test_lms[--failed]
+
+To run a single nose test file:
+
+    nosetests common/lib/xmodule/xmodule/tests/test_stringify.py
+
+To run a single nose test:
+
+    nosetests common/lib/xmodule/xmodule/tests/test_stringify.py:test_stringify
+
+To run a single test and get stdout, with proper env config:
+
+    python manage.py cms --settings test test contentstore.tests.test_import_nostatic -s
+
+To run a single test and get stdout and get coverage:
+
+    python -m coverage run --rcfile=./common/lib/xmodule/.coveragerc which ./manage.py cms --settings test test --traceback --logging-clear-handlers --liveserver=localhost:8000-9000 contentstore.tests.test_import_nostatic -s # cms example
+    python -m coverage run --rcfile=./lms/.coveragerc which ./manage.py lms --settings test test --traceback --logging-clear-handlers --liveserver=localhost:8000-9000  courseware.tests.test_module_render -s # lms example
+
+generate coverage report:
+
+    coverage report --rcfile=./common/lib/xmodule/.coveragerc
+
+or to get html report:
+
+    coverage html --rcfile=./common/lib/xmodule/.coveragerc
+
+then browse reports/common/lib/xmodule/cover/index.html
+
+To run tests for stub servers, for example for
+[YouTube stub server](https://github.com/edx/edx-platform/blob/master/common/djangoapps/terrain/stubs/tests/test_youtube_stub.py),
+you can do one of:
+
+    rake fasttest_cms[common/djangoapps/terrain/stubs/tests/test_youtube_stub.py]
+    python -m coverage run --rcfile=cms/.coveragerc `which ./manage.py` cms --settings test test --traceback common/djangoapps/terrain/stubs/tests/test_youtube_stub.py
+
+
+Very handy: if you uncomment the `pdb=1` line in `setup.cfg`, it will drop you into pdb on error.  This lets you go up and down the stack and see what the values of the variables are.  Check out [the pdb documentation](http://docs.python.org/library/pdb.html)
+
+
+Note: More on the `--failed` functionality
+* In order to use this, you must run the tests first. If you haven't already run the tests, or if no tests failed in the previous run, then using the `--failed` switch will result in **all** of the tests being run.  See more about this in the [nose documentation](http://nose.readthedocs.org/en/latest/plugins/testid.html#looping-over-failed-tests).
+* Note that `rake test:python` calls nosetests separately for cms and lms. This means that if tests failed only in lms on the previous run, then calling `rake test:python[--failed]` will run **all of the tests for cms** in addition to the previously failing lms tests. If you want it to run only the failing tests for lms or cms, use the `rake test_lms[--failed]` or `rake test_cms[--failed]` commands. 
+
+
+### Running Javascript Unit Tests
+
+We use Jasmine to run JavaScript unit tests.  To run all the JavaScript tests:
+
+    rake test:js
+
+To run a specific set of JavaScript tests and print the results to the console:
+
+    rake test:js:run[lms]
+    rake test:js:run[cms]
+    rake test:js:run[xmodule]
+    rake test:js:run[common]
+
+To run JavaScript tests in your default browser:
+
+    rake test:js:dev[lms]
+    rake test:js:dev[cms]
+    rake test:js:dev[xmodule]
+    rake test:js:dev[common]
+
+These rake commands call through to a custom test runner.  For more info, see [js-test-tool](https://github.com/edx/js-test-tool).
+
+
+### Running Bok Choy Acceptance Tests
+
+We use [Bok Choy](http://bok-choy.readthedocs.org/en/latest/tutorial.html) for acceptance testing.
+Bok Choy is a UI-level acceptance test framework for writing robust [Selenium](http://docs.seleniumhq.org/) tests in [Python](https://www.python.org/).
+Bok Choy makes your acceptance tests reliable and maintainable by utilizing the Page Object and Promise design patterns.
+
+**Prerequisites**: 
+* These prerequisites are all automatically installed and available in [Devstack](https://github.com/edx/configuration/wiki/edX-Developer-Stack), 
+the supported development enviornment for the edX Platform.
+* Chromedriver and Chrome (see Running Lettuce Acceptance Tests below for the latest tested versions)
+* Mongo
+* Memcache
+* mySQL
+
+
+To run all the bok choy acceptance tests:
+
+    rake test:bok_choy
+
+Once the database has been set up and the static files collected, you can use the 'fast' 
+option to skip those tasks. This option can also be used with any of the test specs below:
+
+    rake test:bok_choy:fast
+
+To run single test, specify the name of the test file. For example:
+
+    rake test:bok_choy[test_lms.py]
+
+To run single test faster by not repeating setup tasks:
+
+    rake test:bok_choy:fast[test_lms.py]
+
+To test only a certain feature, specify the file and the testcase class:
+
+    rake test:bok_choy:fast[test_lms.py:RegistrationTest]
+
+To execute only a certain test case, specify the file name, class, and 
+test case method:
+
+    rake test:bok_choy:fast[test_lms.py:RegistrationTest.test_register]
+
+During acceptance test execution, log files and also screenshots of failed tests
+are captured in test_root/log.
+
+To put a debugging breakpoint in a test use:
+
+    from nose.tools import set_trace; set_trace()
+
+
+### Running Lettuce Acceptance Tests
+
+We use [Lettuce](http://lettuce.it/) for acceptance testing.
+Most of our tests use [Splinter](http://splinter.cobrateam.info/)
+to simulate UI browser interactions.  Splinter, in turn,
+uses [Selenium](http://docs.seleniumhq.org/) to control the Chrome browser.
+
+**Prerequisite**: You must have [ChromeDriver](https://code.google.com/p/selenium/wiki/ChromeDriver)
+installed to run the tests in Chrome.  The tests are confirmed to run
+with Chrome (not Chromium) version 34.0.1847.116 with ChromeDriver version 2.6.232917.
+
+To run all the acceptance tests:
+    rake test:acceptance
+
+To run only for lms or cms:
+
+    rake test:acceptance:lms
+    rake test:acceptance:cms
+
+To test only a specific feature:
+
+    rake test:acceptance:lms["lms/djangoapps/courseware/features/problems.feature"]
+
+To test only a specific scenario
+
+    rake test:acceptance:lms["lms/djangoapps/courseware/features/problems.feature -s 3"]
+
+To start the debugger on failure, add the `--pdb` option:
+
+    rake test:acceptance:lms["lms/djangoapps/courseware/features/problems.feature --pdb"]
+
+To run tests faster by not collecting static files, you can use
+`rake test:acceptance:lms:fast` and `rake test:acceptance:cms:fast`.
+
+Acceptance tests will run on a randomized port and can be run in the background of rake cms and lms or unit tests.
+To specify the port, change the LETTUCE_SERVER_PORT constant in cms/envs/acceptance.py and lms/envs/acceptance.py
+as well as the port listed in cms/djangoapps/contentstore/feature/upload.py
+
+During acceptance test execution, Django log files are written to `test_root/log/lms_acceptance.log` and `test_root/log/cms_acceptance.log`.
+
+**Note**: The acceptance tests can *not* currently run in parallel.
+
+### Debugging Acceptance Tests on Vagrant
+
+If you are using a local Vagrant dev environment to run acceptance tests, then you will only get console text output. To actually see what is happening, you can turn on automatic screenshots. For each step two screenshots will be taken - before, and after. To do this, simply add the step:
+
+    Given I enable capturing of screenshots before and after each step
+
+to your scenario. This step can be added anywhere, and will enable automatic screenshots for all following steps for that scenario only. You can also use the step
+
+    Given I disable capturing of screenshots before and after each step
+
+to turn off auto screenshots for all steps following it.
+
+Screenshots will be placed in the folder `{TEST_ROOT}/log/auto_screenshots`. Each time you launch acceptance tests, this folder will be cleaned. Each screenshot will be named according to the template string `{scenario_number}__{step_number}__{step_function_name}__{"1_before"|"2_after"}`.
+
+If you don't want to have screenshots be captured for all steps, but rather want fine grained control, you can use the decorator
+
+    @capture_screenshot_before_after
+
+before any Python function in `feature_name.py` file. The decorator will capture two screenshots - one before the decorated function runs, and one after. Also, the function
+
+    from lettuce import world; world.capture_screenshot("image_name")
+
+is available, and can be inserted at any point in code to capture a screenshot specifically in that place. In both cases the captured screenshots will go to the same folder as when using the step method - `{TEST_ROOT}/log/auto_screenshot`.
+
+A totally different approach to visually seeing acceptance tests run in Vagrant is to redirect Vagrant X11 session to your local machine. Please see https://github.com/edx/edx-platform/wiki/Test-engineering-FAQ for instruction on how to achieve this.
+
+## Viewing Test Coverage
+
+We currently collect test coverage information for Python unit/integration tests.
+
+To view test coverage:
+
+1. Run the test suite:
+
+        rake test
+
+2. Generate reports:
+
+        rake coverage
+
+3. Reports are located in the `reports` folder.  The command
+generates HTML and XML (Cobertura format) reports.
+
+
+## Testing using queue servers
+
+When testing problems that use a queue server on AWS (e.g. sandbox-xqueue.edx.org), you'll need to run your server on your public IP, like so.
+
+`./manage.py lms runserver 0.0.0.0:8000`
+
+When you connect to the LMS, you need to use the public ip.  Use `ifconfig` to figure out the number, and connect e.g. to `http://18.3.4.5:8000/`
+
+
+## Acceptance Test Techniques
+
+1. Element existence on the page<br />
+    Do not use splinter's built-in browser methods directly for determining if elements exist.
+    Use the world.is_css_present and world.is_css_not_present wrapper functions instead.
+    Otherwise errors can arise if checks for the css are performed before the page finishes loading.
+    Also these wrapper functions are optimized for the amount of wait time spent in both cases of positive
+    and negative expectation.
+
+2. Dealing with alerts<br />
+    Chrome can hang on javascripts alerts.  If a javascript alert/prompt/confirmation is expected, use the step
+    'I will confirm all alerts', 'I will cancel all alerts' or 'I will anser all prompts with "(.*)"' before the step
+    that causes the alert in order to properly deal with it.
+
+3. Dealing with stale element reference exceptions<br />
+    These exceptions happen if any part of the page is refreshed in between finding an element and accessing the element.
+    When possible, use any of the css functions in common/djangoapps/terrain/ui_helpers.py as they will retry the action
+    in case of this exception.  If the functionality is not there, wrap the function with world.retry_on_exception.  This function takes in a function and will retry and return the result of the function if there was an exception
+
+4. Scenario Level Constants<br />
+    If you want an object to be available for the entire scenario, it can be stored in world.scenario_dict.  This object
+    is a dictionary that gets refreshed at the beginning on the scenario.  Currently, the current logged in user and the current created course are stored under 'COURSE' and 'USER'.  This will help prevent strings from being hard coded so the
+    acceptance tests can become more flexible.
+
+5. Internal edX Jenkins considerations<br />
+    Acceptance tests are run in Jenkins as part of the edX development workflow. They are broken into shards and split across
+    workers. Therefore if you add a new .feature file, you need to define what shard they should be run in or else they
+    will not get executed. See someone from TestEng to help you determine where they should go.
+
+    Also, the test results are rolled up in Jenkins for ease of understanding, with the acceptance tests under the top level
+    of "CMS" and "LMS" when they follow this convention: name your feature in the .feature file CMS or LMS with a single
+    period and then no other periods in the name. The name can contain spaces. E.g. "CMS.Sign Up"
+
+============================
+LinkedIn Integration for edX
+============================
+
+This package provides a Django application for use with the edX platform which 
+allows users to post their earned certificates on their LinkedIn profiles.  All
+functionality is currently provided via a command line interface intended to be 
+used by a system administrator and called from other scripts.
+
+Basic Flow
+----------
+
+The basic flow is as follows:
+
+o A system administrator uses the 'linkedin_login' script to log in to LinkedIn
+  as a user with email lookup access in the People API.  This provides an access
+  token that can be used by the 'linkedin_findusers' script to check for users
+  that have LinkedIn accounts.
+
+o A system administrator (or cron job, etc...) runs the 'linkedin_findusers'
+  script to query the LinkedIn People API, looking for users of edX which have
+  accounts on LinkedIn.
+
+o A system administrator (or cron job, etc...) runs the 'linkedin_mailusers'
+  script.  This scripts finds all users with LinkedIn accounts who also have
+  certificates they've earned which they haven't already been emailed about.  
+  Users are then emailed links to add their certificates to their LinkedIn 
+  accounts.
+
+Configuration
+-------------
+
+To use this application, first add it to your `INSTALLED_APPS` setting in your
+environment config::
+
+    INSTALLED_APPS += ('linkedin',)
+
+You will then also need to provide a new key in your settings, `LINKEDIN_API`,
+which is a dictionary::
+
+    LINKEDIN_API = {
+        # Needed for API calls
+        'CLIENT_ID': "FJkdfj93kf93",
+        'CLIENT_SECRET': "FJ93oldj939rkfj39",
+        'REDIRECT_URI': "http://my.org.foo",
+
+        # Needed to generate certificate links
+        'COMPANY_NAME': 'Foo',
+        'COMPANY_ID': "1234567",
+
+        # Needed for sending emails
+        'EMAIL_FROM': "The Team <someone@org.foo>",
+        'EMAIL_WHITELIST': set(['fred@bedrock.gov', 'barney@bedrock.gov'])
+    }
+
+`CLIENT_ID`, `CLIENT_SECRET`, and `REDIRECT_URI` all come from your registration
+with LinkedIn for API access.  `CLIENT_ID` and `CLIENT_SECRET` will be provied 
+to you by LinkedIn.  You will choose `REDIRECT_URI`, and it will be the URI 
+users are directed to after handling the authorization flow for logging into 
+LinkedIn and getting an access token.
+
+`COMPANY_NAME` is the name of the LinkedIn profile for the company issuing the
+certificate, e.g. 'edX'.  `COMPANY_ID` is the LinkedIn ID for the same profile.
+This can be found in the URL for the company profile.  For exampled, edX's 
+LinkedIn profile is found at the URL: http://www.linkedin.com/company/2746406
+and their `COMPANY_ID` is 2746406.
+
+`EMAIL_FROM` just sets the from address that is used for generated emails.  
+
+`EMAIL_WHITELIST` is optional and intended for use in testing.  If 
+`EMAIL_WHITELIST` is given, only users whose email is in the whitelest will get
+notification emails.  All others will be skipped.  Do not provide this in 
+production.
+
+If you are adding this application to an already running instance of edX, you
+will need to use the `syncdb` script to add the tables used by this application
+to the database.
+
+Logging into LinkedIn
+---------------------
+
+The management script, `linkedin_login`, interactively guides a user to log into
+LinkedIn and obtain an access token.  The script generates an authorization URL,
+asks the user go to that URL in their web browser and log in via LinkedIn's web
+UI.  When the user has done that, they will be redirected to the configured 
+location with an authorization token embedded in the query string of the URL.  
+This authorization token is good for only 30 seconds.  Within 30 seconds the 
+user should copy and paste the URL they were directed to back into the command
+line script, which will then obtain and store an access token.  
+
+Access tokens are good for 60 days.  There is currently no way to refresh an
+access token without rerunning the `linkedin_login` script again.
+
+Finding Users
+-------------
+
+Once you have logged in, the management script, `linkedin_findusers`, is used
+to find out which users have LinkedIn accounts using LinkedIn's People API.  By
+default only users which have never been checked are checked.  The `--recheck`
+option can be provided to recheck all users, in case some users have joined 
+LinkedIn since the last time they were checked.
+
+LinkedIn has provided guidance on what limits we should follow in accessing 
+their API based on time of the day and day of the week.  The script attempts to
+enforce that.  To override its enforcement, you can provide the `--force` flag.
+
+Send Emails
+-----------
+
+Once you have found users, you can email them links for their earned 
+certificates using the `linkedin_mailusers` script.  The script will only mail
+any particular user once for any particular certificate they have earned.  
+
+The emails come in two distinct flavors: triggered and grandfathered.  Triggered
+emails are the default.  These comprise one email per earned certificate and are
+intended for use when a user has recently earned a certificate, as will 
+generally be the case if this script is run regularly.
+
+The grandfathered from of the email can be sent by adding the `--grandfather`
+flag and is intended to bring users up to speed with all of their earned 
+certificates at once when this feature is first added to edX.  
+
+Notes Django App
+================
+
+This is a django application that stores and displays notes that students make while reading static HTML book(s) in their courseware.  Note taking functionality in the static HTML book(s) is handled by a wrapper script around [annotator.js](http://okfnlabs.org/annotator/), which interfaces with the API provided by this application to store and retrieve notes.
+
+Usage
+-----
+
+To use this application, course staff must opt-in by doing the following:
+
+* Login to [Studio](http://studio.edx.org/).
+* Go to *Course Settings* -> *Advanced Settings*
+* Find the ```advanced_modules``` policy key and in the policy value field, add ```"notes"``` to the list. 
+* Save the course settings.
+
+The result of following these steps is that you should see a new tab appear in the courseware named *My Notes*. This will display a journal of notes that the student has created in the static HTML book(s). Second, when you highlight text in the static HTML book(s), a dialog will appear. You can enter some notes and tags and save it. The note will appear highlighted in the text and will also be saved to the journal. 
+
+To disable the *My Notes* tab and notes in the static HTML book(s), simply reverse the above steps (i.e. remove ```"notes"``` from the ```advanced_modules``` policy setting).
+
+### Caveats and Limitations
+
+* Notes are private to each student. 
+* Sharing and replying to notes is not supported.
+* The student *My Notes* interface is very limited. 
+* There is no instructor interface to view student notes.
+
+Developer Overview
+------------------
+
+### Quickstart
+
+```
+$ ./manage.py lms syncdb --migrate
+```
+
+Then follow the steps above to enable the *My Notes* tab or manually add a tab to the policy tab configuration with ```{"type": "notes", "name": "My Notes"}```.
+
+### App Directory Structure:
+
+lms/djangoapps/notes:
+
+* api.py - API used by annotator.js on the frontend
+* models.py - Contains note model for storing notes
+* tests.py - Unit tests
+* views.py - View to display the journal of notes (i.e. *My Notes* tab)
+* urls.py - Maps the API and View routes.
+* utils.py - Contains method for checking if the course has this app enabled. Intended to be public to other modules.
+
+Also requires:
+
+*  lms/static/coffee/src/notes.coffee -- wrapper around annotator.js
+*  lms/templates/notes.html -- used by views.py to display the notes
+
+Interacts with:
+
+* lms/djangoapps/staticbook - the html static book checks to see if notes is enabled and has some logic to enable/disable accordingly
+
+Simple Smileys is a set of 49 clean, free as in freedom, Public Domain smileys.
+For more packages or older versions, visit http://simplesmileys.org
+
+CoffeeScript
+============
+
+This folder contains the CoffeeScript file that will be compiled to the static
+directory. By default, we're compile and merge all the files ending `.coffee`
+into `static/js/application.js`.
+
+Install the Compiler
+--------------------
+
+CoffeeScript compiler are written in JavaScript. You'll need to install Node and
+npm (Node Package Manager) to be able to install the CoffeeScript compiler.
+
+### Mac OS X
+
+Install Node via Homebrew, then use npm:
+
+    $ brew install node
+    $ curl http://npmjs.org/install.sh | sh
+    $ npm install -g git://github.com/jashkenas/coffee-script.git
+
+(Note that we're using the edge version of CoffeeScript for now, as there was
+some issue with directory watching in 1.3.1.)
+
+Try to run `coffee` and make sure you get a coffee prompt.
+
+### Debian/Ubuntu
+
+Conveniently, you can install Node via `apt-get`, then use npm:
+
+    $ sudo apt-get install nodejs npm &&
+    $ sudo npm install -g git://github.com/jashkenas/coffee-script.git
+
+Compiling
+---------
+
+CoffeeScript is compiled when you update assets using the command:
+
+    $ paver update_assets
+
+Testing
+-------
+
+We use Jasmine to unit-test the JavaScript files.  See `docs/internal/testing.md` for details.
+
+Sass Watch:
+
+sass --watch lms/static/sass:lms/static/sass -r ./lms/static/sass/bourbon/lib/bourbon.rb
+
+These are the indexes each mongo db should have in order to perform well.
+Each section states the collection name and then the indexes. To create an index,
+you'll typically either use the mongohq type web interface or a standard terminal console.
+If a terminal, this assumes you've logged in and gotten to the mongo prompt 
+```
+mongo mydatabasename
+```
+
+If using the terminal, to add an index to a collection, you'll need to prefix ```ensureIndex``` with
+```
+db.collection_name
+```
+as in ```db.location_map.ensureIndex({'course_id': 1}{background: true})```
+
+location_map:
+=============
+
+```
+ensureIndex({'org': 1, 'offering': 1})
+ensureIndex({'schema': 1})
+```
+
+fs.files:
+=========
+
+```
+ensureIndex({'displayname': 1})
+ensureIndex({'_id.tag': 1, '_id.org': 1, '_id.course': 1, '_id.category': 1, '_id.name': 1})
+```
+
+modulestore:
+============
+
+Mongo automatically indexes the ```_id``` field but as a whole. Thus, for queries against modulestore such
+as ```modulestore.find({'_id': {'tag': 'i4x', 'org': 'myu', 'course': 'mycourse', 'category': 'problem', 'name': '221abc', 'revision': null}})```
+where every field in the id is given in the same order as the field is stored in the record in the db
+and no field is omitted.
+
+Because we often query for some subset of the id, we define this index:
+
+```
+ensureIndex({'_id.tag': 1, '_id.org': 1, '_id.course': 1, '_id.category': 1, '_id.name': 1, '_id.revision': 1})
+```
+
+Because we often scan for all category='course' regardless of the value of the other fields:
+```
+ensureIndex({'_id.category': 1})
+```
+
+NOTE, that index will only aid queries which provide the keys in exactly that form and order. The query can
+omit later fields of the query but not earlier. Thus ```modulestore.find({'_id.org': 'myu'})``` will not use
+the index as it omits the tag. As soon as mongo comes across an index field omitted from the query, it stops
+considering the index. On the other hand, ```modulestore.find({'_id.tag': 'i4x', '_id.org': 'myu', '_id.category': 'problem'})```
+will use the index to get the records matching the tag and org and then will scan all of them
+for matches to the category.
+
+To find out if any records have the wrong id structure, run
+```
+db.modulestore.find({$where: function() { 
+    var keys = Object.keys(this['_id']); 
+    var ref = ['tag', 'org', 'course', 'category', 'name', 'revision']; 
+    for (var i=0; i < ref.length; i++) { 
+        if (keys[i] != ref[i]) return true; 
+    } 
+    return false; }}, 
+    {_id: 1})
+```
+
+modulestore.active_versions
+===========================
+
+```
+ensureIndex({'org': 1, 'offering': 1})
+```
+
+modulestore.structures
+======================
+
+```
+ensureIndex({'previous_version': 1})
+```
+
+modulestore.definitions
+=======================
+
+```
+ensureIndex({'category': 1})
+```
+This is the main edX platform which consists of LMS and Studio.
+
+See [code.edx.org](http://code.edx.org/) for other parts of the edX code base.
+
+Installation
+------------
+
+Please refer to the following wiki pages in our [configuration repo](https://github.com/edx/configuration) to install edX:
+
+* [edX Developer Stack](https://github.com/edx/configuration/wiki/edX-Developer-Stack)
+<br/>These instructions are for developers who want to contribute or make changes to the edX source code.
+* [edX Production Stack](https://github.com/edx/configuration/wiki/edX-Production-Stack)
+<br/>Using Vagrant/Virtualbox this will setup all edX services on a single server in a production like configuration.
+* [edX Ubuntu 12.04 installation](https://github.com/edx/configuration/wiki/edX-Ubuntu-12.04-Installation)
+<br/>This will install edX on an existing Ubuntu 12.04 server.
+
+
+License
+-------
+
+The code in this repository is licensed under version 3 of the AGPL unless
+otherwise noted. Please see the
+[`LICENSE`](https://github.com/edx/edx-platform/blob/master/LICENSE) file
+for details.
+
+Documentation
+------------
+
+Documentation for developers, researchers, and course staff is located in the
+`docs` subdirectory. Documentation is built using
+[Sphinx](http://sphinx-doc.org/): you can [view the built documentation on
+ReadTheDocs](http://docs.edx.org/).
+
+How to Contribute
+-----------------
+
+Contributions are very welcome, but for legal reasons, you must submit a signed
+[individual contributor's agreement](http://code.edx.org/individual-contributor-agreement.pdf)
+before we can accept your contribution. See our
+[CONTRIBUTING](https://github.com/edx/edx-platform/blob/master/CONTRIBUTING.rst)
+file for more information -- it also contains guidelines for how to maintain
+high code quality, which will make your contribution more likely to be accepted.
+
+Reporting Security Issues
+-------------------------
+
+Please do not report security issues in public. Please email security@edx.org
+
+Mailing List and IRC Channel
+----------------------------
+
+You can discuss this code on the [edx-code Google Group](https://groups.google.com/forum/#!forum/edx-code) or in the [`edx-code` IRC channel on Freenode](http://webchat.freenode.net/?channels=edx-code).
+

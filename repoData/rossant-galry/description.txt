@@ -1,0 +1,2596 @@
+
+2012-12-17 Update
+-----------------
+ 
+  * **High-level interface**: this new interface is a thin wrapper to the
+    low-level interface. It provides a matplotlib-like interface which allows
+    to easily add plots or any visuals on the scene, as well as defining
+    custom handlers for events, and defining new events associated to 
+    user actions.
+  * All **tutorials** and **examples** have been updated to use this new
+    high-level interface.
+  * The **interaction system** has been refined and is now more modular.
+    One can define standalone EventProcessors which register handlers
+    for different events. Processors are then added in the InteractionManager.
+    A given processor can be used separately in different managers and 
+    widgets.
+  * **New visuals**:
+      * **GridVisual** (with grid, axes, ticks) but does not support
+        automatic data normalization yet,
+      * **BarVisual** (barplots, histograms) has been promoted from an example
+        to a built-in, standalone visual,
+      * **GraphVisual**, to plot graphs with colored nodes and edges (with
+        reference buffer and indexed arrays for maximum memory efficiency),
+      * **MeshVisual** to display a 3D mesh (along with a Python function to
+        load a .OBJ ASCII object).
+  * New Help option (H keyboard shortcut) to automatically display all bindings
+    between user actions (mouse, keyboard, etc.) and events. It is quite
+    convenient because it is dynamically and automatically generated
+    as a function of the bindings in the current interaction mode.
+  * Removed obsolete examples and restructured completely the tutorials.
+    There will be three parts in the tutorials:
+      * high-level interface for plotting and custom visuals,
+      * high-level interface for custom interaction management,
+      * low-level interface.
+    Only the first half of the tutorials are done for now.
+  * New tutorials/examples: raster plot with spikes as sprites, photo gallery:
+    provide a folder with JPG images as argument and you can visualize all
+    your photos in fullscreen.
+  * Fixed segmentation fault on Linux with NVidia drivers which occurred
+    when non-textured visuals where rendered before a textured visual.
+  * Got rid of all enumerations, which added complexity and harmed readibility.
+    It was not such a good idea to use them in the first place.
+    Python ain't C#.
+
+
+2012-12-02 Update
+-----------------
+
+  * The rendering engine has been entirely rewritten in order to increase
+    the separation between the scene creation logic, and the actual GL 
+    rendering.
+  * This new architecture will make it easier to integrate Galry into the
+    **IPython notebook**. A highly experimental proof of concept has been
+    implemented and gives encouraging results (see the `experimental` folder).
+  * A **high-level interface**, much similar to the pylab interface of
+    matplotlib,
+    will be available later. Using Galry for high-performance interactive 
+    visualization with a given plotting script using matplotlib will just be
+    a matter of replacing `import pylab as plt` with
+    `import galry.plot as plt`.
+  * It will be possible to automatically convert a Python plotting
+    script using Galry to **WebGL/Javascript code** for integration within a
+    standalone webpage. No Python required for running the webpage, just
+    a WebGL-enabled browser.
+  * The interaction system will be improved soon and the interface will
+    probably change.
+  * New features:
+      * More efficient data updating system: before, the data could be changed
+        at the condition that the size of all attributes and textures were kept
+        unchanged. This limitation has fortunately disappeared.
+      * Support for **texture filtering** options (including mipmapping).
+      * Support for 1D and non-square textures.
+      * Support for reference buffers: the same memory buffer on the GPU
+        can now be used for several visuals in order to save memory
+        (useful for graph rendering, where edges and nodes share the same
+        memory buffer on the GPU).
+      * Support for indexed rendering (index buffers). Useful for graph
+        rendering where the edges are specified with indices targetting
+        node positions.
+      * New example: dynamic planar **graph rendering** with a simple CPU-based
+        physics engine.
+      * New example: **3D mesh** viewer (adapted from an example in Glumpy).
+      * New example: **Pong video game**.
+  * The 
+    [context of the development of Galry can be found on this blog post](http://cyrille.rossant.net/galrys-story-or-the-quest-of-multi-million-plots/).
+
+    
+    
+API notes
+=========
+
+The interface will be portable, i.e. not tied to Python. Using and
+object-oriented paradigm may help achieving this goal.
+
+The low-level interface is a thin wrapper on top of OpenGL, with less
+boilerplate code than pure OpenGL calls. It could be used in other
+visualization projects too. 
+
+The visual interface is an object-oriented interface specifying
+a particular visualization. It is written on top of the low-level interface.
+Moreover, the low-level interface should also be directly accessible
+from this layer.
+
+The interactivity interface should be independent from the other interfaces.
+It will implement a simple event system which is independent from any backend
+GUI toolkit.
+
+The high-level interface will come in two flavors: object-oriented, and
+script-oriented. The latter interface will just be a wrapper of the former.
+
+
+Low-level interface
+-------------------
+
+This interface closely follows the OpenGL 2.0 API, or at least a subset
+of it. Here are the features that it will support:
+
+  * Vertex shaders
+  * Fragment shaders
+  * Vertex buffer objects
+  * Index buffers
+  * Textures
+  * Uniform and uniform arrays
+  * Frame buffer objects
+
+These features should enable the vast majority of 2D and 3D visualization
+capabilities of OpenGL 2.0.
+
+There will be an option to toggle between ES and Desktop OpenGL versions.
+This low-level API will offer exactly the same methods for both versions.
+In particular, the user-provided GLSL code will be automatically adapted
+for OpenGL desktop or ES version (it will just contain the code of the main 
+and some external functions, not variable declarations).
+
+In the current version, this functionality is broadly speaking implemented
+in GLRenderer.
+
+
+Visual interface
+----------------
+
+This is maybe the most challenging interface among the three. It should be
+simple enough and flexible enough. In particular, it should allow direct access
+to the low-level interface if needed, and offer a simpler interface for the
+most common use cases.
+
+The central notion in this layer is that of *visual*. A visual is a visual 
+object defined by several OpenGL objects (defined in the low-level API):
+buffers, textures, shader codes, etc. It is also characterized by a `paint`
+method, which can be simple (default) or more complex.
+
+Globally, there will be methods to manipulate visuals in the scene. In
+particular, the final `paint` method can also be overriden.
+
+There will also be facilities to change dynamically the scene: change the
+visual attributes, show/hide visuals, delete or add new visuals dynamically.
+
+In the current version, this functionality is broadly speaking provided
+in the Visual module.
+
+
+Interactivity interface
+-----------------------
+
+This interface will implement a simple event system, used for interactivity,
+animation, etc. It will be possible to launch events in cascade (an event
+which raises another event). An integration of an asynchronous system (using
+different threads) may also be considered at this level.
+
+
+High-level interface
+--------------------
+
+The high-level interface allows to link the visualization layer with the
+interactivity layer.
+
+In the current version, this functionality concerns broadly speaking 
+the different managers, and the scripting interface.
+
+
+
+API examples
+============
+
+This document contains several examples of how the API could be used.
+The implementation should not start before the API has been designed in full
+detail. It should also be kept in mind that these interfaces should be
+adaptable in Javascript and C++.
+
+
+Low-level interface
+-------------------
+
+Here is a simplistic example showing how this interface can be defined
+to create OpenGL objects, customize the rendering process, and interface
+it with a GUI library offering an OpenGL context.
+
+    context = Context()
+    context.antialiasing = True # with default parameters, 
+                                # or = Antialiasing(prop1=val1, ...)
+
+    # create a vertex buffer containing vec3 values
+    mybuffer1 = VertexBuffer(ndims=3, dtype=FLOAT32, data=myarray)
+    # alternative notation? VertexBuffer(VEC3, data=myarray)
+
+    # create a 2D texture
+    mytexture1 = Texture(ndim=2, shape=mytex.shape)
+    # object-oriented interface, each object has some properties which can be 
+    # set in the constructor or as object attributes
+    mytexture1.data = mytex
+
+    # add the objects in the context (might be done transparently with Python)
+    # an exception is raised if there's a conflict with the names
+    context.add(mybuffer1, texname=mytexture1)  # if a name is not provided as
+                                                # a keyword argument, use the
+                                                # variable name
+
+    vs = VertexShader("""...""", myuniform1=Uniform(ndim=3, data=myvector))
+    vs.myvarying = Varying(VEC2)
+
+    # add a frame buffer
+    fbo = FrameBuffer()
+    context.add(fbo)
+
+    # add a painter, used to render primitives
+    painter = Painter(ptype=LINE_STRIP, size=myarray.shape[0])
+    
+    # customize the rendering process
+    @context.painter
+    def paint(self):
+        # get the buffer object from its name (equivalent to
+        # self.get('mybuffer1')) and bind it.
+        self.mybuffer1.bind()
+        # loop through all painter objects
+        for painter in self.get(Painter):
+            painter.paint()
+
+    # then, the following methods can be used in a GUI library:
+    # context.initialize(), context.paint(), context.resize(width, height)
+
+
+Visual interface
+----------------
+
+Visuals can be defined at compile time, and then can be easily added/removed
+and shown/hidden in the scene.
+
+    class TrianglesVisual(Visual):
+        def __init__(self, data=None, color=None):
+            # when several options are possible with the arguments (ie.
+            # single color, multiple colors, etc.), subclasses of visuals
+            # should be written instead of using lots of if statements
+            vb = VertexBuffer(VEC2, data=data)
+            vs = VertexShader("""...""")
+            painter = Painter(ptype=TRIANGLES, size=data.shape[0])
+            self.add(vb, vs, painter)
+
+        # by default, the painter binds all buffers, and call paint on 
+        # all painters
+
+Then, to use visuals:
+
+    # context from the low-level interface
+    context = Context()
+    
+    # The scene contains the visual and has access to the context (low-level
+    # API)
+    scene = Scene(context)  # other name for Scene: VisualContext?
+    
+    triangles = TrianglesVisual(data=myarray)
+    scene.add(triangles)
+    
+    # then, the following methods can be used in a GUI library:
+    # scene.initialize(), scene.paint(), scene.resize(width, height)
+    
+
+### More complex example: graphs
+
+This example shows how to display a graph (with nodes and edges) and
+text, and how memory usage can be optimized (i.e. using the same buffers
+for multiple visuals). It also shows how visuals can be combined.
+
+    class GraphVisual(Visual):
+        def __init__(self, nodes, edges, ...):
+            # buffers containing the nodes and the edges
+            vb = VertexBuffer(VEC2, data=nodes)
+            ib = IndexBuffer(edges)
+            
+            # painters for painting the nodes and edges
+            painter_nodes = Painter(POINTS, size=nodes.shape[0])
+            painter_edges = Painter(LINES, size=edges.shape[0])
+            
+            # shaders
+            vs_nodes = VertexShader("""...""")
+            fs_nodes = FragmentShader("""...""")
+            vs_edges = VertexShader("""...""")
+            fs_edges = FragmentShader("""...""")
+            
+            self.add(vb, ib, ...)
+
+        def paint(self):
+            # bind the buffer with the nodes positions
+            self.vb.bind()
+            
+            # enable the nodes shaders
+            self.vs_nodes.enable()
+            self.fs_nodes.enable()
+            
+            # paint the nodes
+            self.painter_nodes.paint()
+            
+            # bind the index buffer
+            self.ib.bind()
+            
+            # enable the edges shaders
+            self.vs_edges.enable()
+            self.fs_edges.enable()
+            
+            # paint the edges
+            self.painter_edges.paint()
+            
+
+    class GraphWithText(Visual):
+        def __init__(self, nodes, edges, text, ...):
+            # mixture visuals can be created, containing several visuals
+            # as building blocks
+            visual_graph = GraphVisual(nodes, edges, ...)
+            visual_text = TextVisual(text)
+            
+            self.add(visual_graph, visual_text)
+            
+        def paint(self):
+            self.visual_graph.paint()
+            # assuming the vertex buffer is still bound after
+            # visual_graph.paint(), it means that visual_text.paint() will use
+            # it for rendering the text at each node position
+            self.visual_text.paint()
+            # if buffers are unbound after paint(), we should think about
+            # an option to activate/deactivate unbinding of GL objects at the
+            # end of paint()
+            
+            
+High-level interface
+--------------------
+
+
+
+
+
+Low-level API
+=============
+
+This layer is an object-oriented wrapper around OpenGL 2. It implements
+the most common features. It is meant to be lightweight, simple and
+easy-to-use. Only the programmable pipeline is available.
+
+Context
+-------
+
+NOTE: this object may not be necessary at first.
+
+The Context is an object containing all OpenGL objects used to render the
+screen. It also implements the logic of the scene. OpenGL objects are added
+with the `add` method. Then, the Context object provides three methods that
+can be called from an OpenGL canvas (with Qt, wx, SDL, GLUT, etc.):
+`initialize`, `paint`, `resize`. These functions can also be overriden for
+customization. In Python, the Context provides decorator to simplify
+this process.
+
+Higher-level interfaces may not need to use the Context. All the functionality
+should be implemented in the child objects, the Context being just a handy 
+tool when using the low-level interface directly.
+
+### Public methods
+
+  * `Context.add(*args, **kwargs)`: add one or several objects to the context.
+    The objects can be unnamed (then the variable name or an automatically
+    generic numbered named is used) or named (keyword argument).
+    
+  * `Context.initialize()`: initialize the context. By default, initialize
+    all objects included in the context. 
+
+  * `Context.paint()`: paint all objects.
+
+  * `Context.resize(width, height)`: resize the context.
+    
+    
+Renderer
+--------
+
+This object allows to specify various rendering options: antialiasing, depth
+buffer, etc., to clear the screen, etc.
+
+### Public methods
+
+  * `Renderer.set_antialiasing(options)`
+  * `Renderer.set_depth(options)`
+  * `Renderer.set_blend(options)`
+  * `Renderer.enable(glname)`
+  * `Renderer.clear(buffers)`
+    
+    
+GLObject
+--------
+
+The GLObject is a base class for all objects that can be added to the context.
+
+
+Shaders
+-------
+
+The Shaders objects allows to specify the shaders codes, to compile them,
+activate/deactivate them.
+
+### Public methods
+
+  * `Shaders.set_vertex_shader(code)`
+  * `Shaders.set_fragment_shader(code)`
+  * `Shaders.add_uniform(name, dtype, size=None)`: `dtype` is [I]VEC[234]
+  * `Shaders.set_uniform(name, value)`: set a value for a uniform.
+  * `Shaders.add_attribute(name, vertex_buffer)`: link a shader attribute to
+    a VertexBuffer object.
+  * `Shaders.initialize()`
+  * `Shaders.activate()`
+  * `Shaders.deactivate()`
+  * `Shaders.cleanup()`
+
+
+VertexBuffer
+------------
+
+The VertexBuffer defines a vertex buffer which can be accessed as an attribute
+in the vertex shader.
+
+### Public methods
+
+  * `VertexBuffer.set_dtype(dtype)`
+  * `VertexBuffer.set_data(data)`
+  * `VertexBuffer.initialize()`
+  * `VertexBuffer.activate()`
+  * `VertexBuffer.deactivate()`
+  * `VertexBuffer.cleanup()`
+
+  
+IndexBuffer
+-----------
+
+The IndexBuffer defines an index buffer.
+
+### Public methods
+
+  * `IndexBuffer.set_data(data)`
+  * `IndexBuffer.initialize()`
+  * `IndexBuffer.activate()`
+  * `IndexBuffer.deactivate()`
+  * `IndexBuffer.cleanup()`
+  
+
+Texture
+-------
+
+The Texture defines a texture buffer which can be accessed as an sampler
+in the fragment shader.
+
+### Public methods
+
+  * `Texture.set_info(ndim, dtype, params, index)`: set the texture
+    information for the specified texture index (used for multi texturing)
+    ndim is the number of dimensions of the texture (between 1 and 3).
+    Generally dtype=UINT8. params is a TextureParams object with various information
+    about the texture: filtering options, mipmapping, clamp options, etc.
+  * `Texture.set_data(data, shape, index)`
+  * `Texture.initialize()`
+  * `Texture.activate(index)`: bind the texture.
+  * `Texture.deactivate()`: unbind the texture.
+  * `Texture.cleanup()`: release all resources.
+
+
+Painter
+-------
+
+The Painter allows to render a vertex buffer.
+
+### Public methods
+
+  * `Painter.set_info(ptype, offset, size)`
+  * `Painter.paint()`
+
+
+PainterMulti
+------------
+
+The PainterMulti allows to render multiple primitives from a single vertex
+buffer.
+
+### Public methods
+
+  * `PainterMulti.set_info(ptype, first, count, primcount)`
+  * `PainterMulti.paint()`
+
+
+PainterIndexed
+--------------
+
+The PainterIndexed allows to render from a vertex buffer and an index buffer.
+
+### Public methods
+
+  * `PainterIndexed.set_info(ptype, size)`
+  * `PainterIndexed.paint()`
+
+
+
+0.1 milestone: minor improvements, doc, tutorials
+0.2 milestone: major refactoring. Modular architecture:
+
+    Plotting library
+        plotting-oriented API
+    Visual layer
+        object-oriented description of the scene and the interactions
+    GL middleware
+        provide a simpler, data-focused API to OpenGL
+    OpenGL
+        
+
+GL middleware
+-------------
+
+Python interface that provides access to most of the OpenGL functionality
+but much simpler than pure OpenGL.
+
+Objects:
+  * Attribute
+  * Texture
+  * Uniform
+  * Index buffer
+  * Varying
+  * Frame buffer
+  * Shader
+  * SimplePainter
+  * IndexedPainter
+  * CLBuffer
+
+Controller objects:
+  * Initializer
+  * Resizer
+  * Painter
+
+They contain an ordered list of hooks, which are called during each phase.
+For example, the Painter can contain the following hooks:
+
+  * Clear
+  * Shader.bind
+  * Attribute.bind (all attributes, or specific attributes)
+  * Texture.bind
+  * Change frame buffer
+  * SimplerPainter
+  * Other attribute.bind
+  * IndexedPainter
+
+This way, one can precisely control the flow of the rendering process.
+This interface should also provides way to dynamically change things, such as
+variable data, or other parameters. For example, interactive navigation would
+be implemented by updating the scale and translation uniform values.
+
+Also, this interface should be defined independently from the language, so that
+it could also be implemented in Javascript/WebGL for instance. Actually it
+should be serializable.
+
+At this level, there should be no notion of visuals at all. Just simplified
+access to OpenGL, no abstraction besides pure OpenGL objects.
+
+Most objects have the following methods:
+  
+  * initialize: create the relevant OpenGL objects
+  * load: load the data associated to the objects
+  * bind: bind the objects in OpenGL
+  * update: update the objects or the data
+  * finalize: release all resources
+  
+The Painter objects have the following methods:
+
+  * initialize/update: define/change the options (primitive type, size, etc.)
+  * paint
+
+Every object has a unique identifier.
+  
+The interface should contain methods to:
+
+  * access objects from their identifiers,
+  * access all objects of a given class,
+  * access all objects of a given class except a list of identifiers
+
+Interface:
+
+  * define the list of all objects
+  * define a list of named parameters (rendering options, data, variable values)
+  * change some parameters values
+  * define the controller hooks
+  * change the hooks
+  
+Support for OpenCL should be built-in, with specific CL buffers and ways to
+do interop between CL/GL objects.
+
+Context
+    contains a list of objects
+    add_object
+    get
+
+Controllers
+    Initializer
+    Resizer
+    Painter
+        add_hook
+
+Manager
+    Context
+    Controllers
+    Updater
+
+Dynamic Update:
+    change an object's attribute
+    add new object
+    add Painter hook
+    remove Painter hook
+    
+Write a bunch of examples with this interface.
+This module should be completely independent, and could even be in a 
+standalone git repository.
+
+
+Visual layer
+------------
+
+This layer communicates only with the GL middleware (GLM).
+Visuals: objects that define several GLM objects (attribute, uniforms, shaders,
+etc.) and Painter objects. There's also a default hook (bind all attributes,
+paint all visuals, etc.). A visual can contain several painter objects.
+Objects can refer to other objects: visual_id.var_id.
+Interaction should also be defined here: adding/removing a visual, updating a
+visual's variable, changing the hooks, etc.
+
+
+Plotting library
+----------------
+
+Define plotting-oriented visuals and simple interaction methods.
+Line, points, grid, shapes, transformations.
+
+
+
+Examples
+--------
+
+Ensure that the following examples could work nicely with the new architecture
+(they encompass much of the final functionality)
+
+  * A 2D plot with lines and points, interactive navigation, grid.
+  * A planar graph with dynamic force-based layout algorithm and manipulation
+    of nodes, buffer sharing between nodes and edges, indexed painting, etc.
+  * Volume rendering example with 3D texture and special shaders
+
+
+Meta
+----
+
+Major refactoring: restart from scratch.
+Design the modules as standalone as possible.
+Python 3 ready, PEP8.
+Independent Unit tests for the different layers: the GLM should have specific
+unit tests with a mechanism for comparing the OpenGL output with images.
+The visual layer should be tested independently from the GLM layer, ie a mock
+testing GLM layer should be created that does not use OpenGL at all.
+The unit test structure and a few examples should be done BEFORE the 
+implementation.
+
+  * First step: define precisely the interface of all layers and
+    objects.
+  * Second step: write as many unit tests as possible, and some examples.
+  * Third step: implementation.
+  
+
+
+
+  
+
+
+
+Notes about the high-level API
+==============================
+
+This document contains some examples of how the future high-level API
+can be used for specific tasks. The objectives of this API are:
+
+  * simplicity
+  * flexibility
+  * object-oriented
+
+It is inspired from the current Galry API as well as pyglet.
+
+
+A yellow disc following the mouse
+---------------------------------
+
+    from galry import *
+
+    f = figure()
+    d = disc(color='y')
+
+    @f.event
+    def on_mouse_move(position, button, modifiers):
+        d.position = position
+
+    f.show()
+
+In this example, the on_mouse_move function is called as soon as the mouse
+moves. The position of the disc is then changed.
+
+The following event is automatically created:
+
+    @f.event
+    def on_draw():
+        f.clear()
+        d.draw()
+        
+By default, the on_draw event clears the figure, and draws all objects defined
+in the current namespace.
+
+
+A simple plot
+-------------
+
+    from galry import *
+    from numpy import *
+
+    x = linspace(-10, 10, 1000)
+    plot(x, sin(x))
+    show()
+
+Here, the plot function automatically activates the plotting interface,
+which is a particular kind of figure, with interactive navigation (pan/zoom),
+axes, grid, interactive tools (tooltip), etc.
+
+Also, a figure is automatically created.
+
+
+Mandelbrot fractal
+------------------
+
+    from galry import *
+    from numpy import *
+    
+    f = figure()
+    
+    # add the possibility to navigate interactively
+    f.features.navigation = True
+
+    # constrain the figure to the default viewport
+    f.viewport_max = f.viewport
+
+    # create an empty image filling the whole window
+    img = image(corners=f.viewport)
+    
+    # add a GLSL routine in the fragment shader which computes the color of 
+    # a pixel in the fractal
+    img.fragment_shader.routines += """
+    float mandelbrot(float z0) {
+        // ...
+        return r;
+    }
+    """
+    
+    # change the 'color_out' variable in the fragment shader
+    img.fragment_shader.color_out = """
+        // ... z as a function of coords
+        color_out = mandelbrot(z);
+    """
+    
+    show()
+    
+In this example, the Mandelbrot fractal is shown in the window, and one can
+navigate interactively within it.
+
+There are several figure types (child classes deriving from Figure).
+Figure2D, Figure3D (camera, etc.), Plot2D (with interactive navigation), 
+Plot3D, etc.
+
+f.features contains a list of boolean variables that allow to activate/deactive
+certain features in the window. This list is specified by the specific Figure
+class.
+Examples for Plot2D:
+
+  * navigation: pan/zoom
+  * depth
+  * antialiasing
+  * fps
+  * grid
+  * axes
+  * ratio
+
+f.viewport contains the (x0, y0, x1, y1) coordinates of the current view.
+By default: (-1, -1, 1, 1). f.viewport_max and f.viewport_min contain the
+max and min viewports.
+
+Each visual object has vertex_shader and fragment_shader attributes.
+They have several sub-attributes that are used to modify the shaders.
+
+    shader.main = """full main function"""
+    shader.NAME = VALUE # replace template NAME by VALUE
+    shader.routines = list of routines
+
+
+TODO
+----
+
+Coordinate system transformation?
+How to implement grid with this API?
+How to implement Dynamic undersampling with external thread and HDF5?
+Subplots?
+
+
+
+
+
+
+
+Features that should be easily supported
+========================================
+
+Here is a list of features that are or aren't currently supported in Galry
+and that should be supported in the future version. In particular, the decision
+to include most of these features was made late in the architecture design,
+so that their implementation required some tricks and hacks that prevent to 
+have a nice and well-thought global architecture.
+Taking these constraints into account in the early design of the future version
+will make things easier.
+
+  * aliasing
+  
+  * enable/disable depth
+  
+  * Option to constrain the ratio of the window. When resizing the window,
+    there are several possibilities: stretch the viewport to match the window,
+    or keep the viewport ratio fixed. In the latter case, there are several 
+    ways about how the new viewport can be changed. A possibility can be
+    to implement projection matrices that can work for 2D or 3D.
+    
+  * FPS
+  
+  * automatic save of the images during the rendering process
+  
+  * render loop with specified time step
+  
+  * auto destruction of the window after a certain period
+
+
+
+
+Modules
+=======
+
+The future version's scope will be slightly different from the original 
+project. Whereas the original goal of Galry was to provide a high 
+performance *plotting library*, the next version's goal will be to provide 
+a high performance *visualization library*, which is more general. It will 
+provide simple and flexible ways of designing fast interactive 
+visualizations based on OpenGL and capable of handling tens of millions of 
+points. The 2D plotting library will be an external module on its own 
+(natively included in Galry in a separated sub-package like 
+`galry.plotting` for instance).
+
+In the long run, built-in modules may include:
+
+  * 2D visualizations:
+      * 2D plotting
+      * huge signals viewers (with dynamic undersampling,
+        HDF5 support, etc. to support huge data sets), e.g. multi-channel time
+        dependent signals
+      * high-dimensional data visualizer supporting arbitrary custom 2D
+        projections
+  * graph visualizer with dynamic layout (and OpenCL support?),
+  * mesh visualizer,
+  * volume rendering engine,
+  * `z=f(x, y)` surfaces,
+  * etc.
+  
+The idea is that visualizations that are sufficiently different should be
+implemented in independent modules. 
+
+Of course, the user will also be able to write his own visualization
+application with Galry. The API will be the same than the one used to
+write the modules described above.
+
+Having Javascript and C++ implementation of Galry will allow to port all
+these modules and applications on these languages without too much pain (at
+least that's the long-term plan...).
+
+
+Here are a few notes about where Galry is headed in the months and years to 
+come.
+
+Long-term objectives
+--------------------
+
+The long-term goal is to provide a **high-level platform for OpenGL-based 
+interactive visualization** that is:
+
+  * fast,
+  * scalable,
+  * simple,
+  * flexible,
+  * portable.
+
+### Fast
+
+All today's devices are sufficiently powerful to provide fast interactive 
+visualization. The main reason is that GPUs are now integrated in virtually 
+any computing device: desktop computers, laptops, mini-PCs, tablets, mobile 
+phones, etc. The main usage of GPUs is to enable video games on these 
+devices. Galry aims at using efficiently this computing power to enable fast 
+interactive visualization.
+
+
+### Scalable
+
+In the *Big Data* era, datasets containing tens of millions of points are 
+now the rule rather than the exception. Galry is designed from the ground up 
+to handle such large datasets using efficient data structures and 
+algorithms. The objective is to keep the visualization fast no matter how 
+big the underlying data is. The hardware should be the only limitation 
+through the amount of available memory and computing power.
+
+
+### Simple
+
+Most existing visualization libraries are either powerful and difficult to 
+use, or limited and easy to use. Galry is meant to be *powerful enough and 
+simple enough*. Although complex 3D video games are beyond the scope of the 
+library, any reasonably complex visualization should be handled by Galry. 
+The object-oriented interface will offer a straightforward way of creating 
+and manipulating visual objects interactively.
+
+
+### Flexible
+
+A high-level interface will offer easy ways to access to the most common 
+features.
+Galry will also provide direct access to low-level OpenGL functions (through 
+a dedicated thin low-level interface on top of OpenGL) to let the developer 
+customize all aspects of the rendering process. The same foundations will 
+allow to write a fast plotting library (like Matplotlib or Matlab), a volume 
+rendering engine, or a simple video game.
+
+
+### Portable
+
+Galry is primarily meant to work on desktop PCs (Windows or Unix) but may 
+also be extended on mobile devices in the future. The open standard OpenGL 
+is widely available on most devices and is the best option for writing a 
+portable hardware-accelerated interactive visualization library.
+
+
+Languages
+---------
+
+Although Python is currently the primary language, we could imagine 
+implementations in at least two other languages: Javascript and C++. 
+Javascript would allow Galry to work in the *browser* though WebGL. C++ 
+would allow it to run on *mobile devices* (especially Android), since mobile 
+WebGL support is still lacking (but that may change in the future). Sharing 
+the maximum amount of code for one application between Python/desktop, 
+Javascript/Web and C++/mobile devices is a major long-term objective.
+
+This may be difficult to achieve as these are very different languages. 
+There are mainly two different issues: static interoperability and dynamic 
+interoperability. In the first case, the visualization is determined at 
+compile-time. Writing the same application in two different languages 
+requires to implement the same code twice, but that should not be that 
+painful if the API and the data structures are well thought. In the second 
+case, the specific visualization is dynamic and not determined at 
+compile-time, so that the API must provide functions to change the scene 
+dynamically. These features alsso need to be implemented in all supported 
+languages.
+
+This goal should influence the design of the library (architecture and 
+interfaces). The integration of Galry in the IPython notebook will be a 
+medium-term goal.
+
+
+Interfaces
+----------
+
+A low-level interface will give a simpler access to OpenGL than the OpenGL 
+standard, which is complex and verbose.
+
+A high-level interface will give object-oriented access to visual objects 
+and interactivity.
+
+A medium-level interface will link the two.
+
+The design of these interfaces will be done simultaneously.
+
+
+Plotting
+--------
+
+Curve plotting should be thought as an independent module on top of the 
+visualization interfaces.
+
+
+
+Roadmap
+=======
+
+  * Write many API examples (low-level, visual-level, high-level, etc.).
+  * Design the APIs entirely.
+  * Write unit tests.
+  * Implement the APIs.
+
+The low-level API should be the priority. Special attention should be given
+to the code quality, and it should be thoroughly tested on multiple systems 
+and graphics cards. In my experience, OpenGL drivers can be crappy and
+weird bugs may appear only on some specific combinations of OS/graphics card
+drivers.
+
+
+
+Implementation notes
+====================
+
+**WARNING: this document is outdated.**
+
+The base class GalryWidget contains plotting methods that can be 
+conveniently used by child classes to plot anything on the screen.
+
+Two internal methods are important: initializeGL() and paintGL().
+  * initializeGL() is called at initialization time. It is the right place to
+    initialize buffers, VBO, etc.
+
+  * paintGL() is called each time the window needs to be redrawn. It makes
+    calls to all plotting commands.
+
+Companion classes
+-----------------
+
+The GalryWidget uses several companion classes (modules) to render data and
+to handle user interaction. They can be overriden by derived classes of
+GalryWidget.
+
+  * PaintManager: this class handles rendering (data normalization, transfer
+    on GPU using OpenGL vertex buffer objects, rendering commands, etc.).
+  
+  * BindingManager: this class handles the different interaction modes, each
+    mode being defined by a set of bindings between user actions and interaction
+    events.
+    
+  * InteractionManager: this class processes events raised by user actions
+    (see below).
+    
+Data coordinates
+----------------
+
+galry can display static data only, meaning that the only dynamic part comes
+from interactive navigation of the same data.
+
+There are several coordinate systems available:
+
+  * The _data coordinate system_. It corresponds to the coordinates of the data.
+    It is unnormalized and depends directly on the data passed to the widget.
+
+  * The _normalized data coordinate system_. It is like the data coordinate
+    system, but normalized so that the data lies in [-1,1]^2. It is necessary
+    for correct OpenGL rendering. This coordinate system moves when the user
+    navigates into the data.
+    
+  * The _window coordinate system_. It is always fixed regardless of the
+    navigation transform. (0,0) is the screen center, the corners are
+    (+-1, +-1).
+
+
+Initialization
+--------------
+
+At initialization, the PaintManager.initialize() method is called. It loads 
+relevant data on the GPU.
+
+Rendering loop
+--------------
+
+The rendering system in galry is based on OpenGL. There is a rendering loop,
+each iteration is called when the window needs to be refreshed (i.e. every time,
+except when no user interaction nor window resizing happens - it is actually
+more a callback than a real loop, the loop being implemented in a lower-level
+language (C/C++) by PyOpenGL and PyQT).
+
+The callback is implemented in GLWidget.updateGL(). Each iteration involves the
+following steps:
+
+  * Clear the screen with an uniform background color (black by default).
+  
+  * Transform the displayed objects using the world transformation matrix.
+  
+  * Paint data.
+  
+  * Paint overlays.
+
+The transformation step depends on the user interactions (see next section)
+through the InteractionManager, which basically transforms user actions
+into OpenGL transformations.
+
+The display step involves calls to OpenGL commands used to render data. The data
+has been loaded during the initialization step, or can be reloaded during
+this display step in the rendering loop.
+
+The overlays require the transformation to be cancelled (the OpenGL state 
+machine keeps track of every transformation during the rendering loop) so that
+the overlays are always at the same position in the window (e.g. window 
+coordinates instead of data coordinates).
+
+Interaction system
+------------------
+
+A bit of terminology:
+  * User actions: mouse moving, left/right click, wheel, keyboard, etc.
+  * Keyboard modifiers: when pressing CRTL, SHIFT or ALT while doing another
+    action.
+  * Interaction events: navigation (panning or zooming), highlighting, selection
+
+The interaction system in galry tries to decouple completely user actions from
+interaction events, making links between the two through action-event
+*bindings*.
+  
+User actions (like mouse or keyboard actions) are monitored through QT callbacks
+defined in QWidgets (NOTE: QT is slowly moving away from QWidget and towards
+QML). User actions are bound to interaction events, which are defined in galry.
+
+Interaction system schematic:
+    Action -> Binding -> Event raised -> Event processed in the rendering loop.
+
+Properties of events:
+  * Events can be arbitrarly linked to any user actions. The specific binding
+    is customizable and may even be customized by the end-user.
+    
+  * When an event is triggered, it is processed immediately in the rendering
+    loop and then discarded at the end of the loop iteration.
+    
+  * There can be at most 1 event at any iteration in the rendering loop.
+  
+Interaction loop:
+As soon as the user makes something (with the mouse or the keyboard), the 
+QWidget callback methods, overriden in GalryWidget, are called. These methods
+do the following:
+
+  * Raise the corresponding UserAction
+  
+  * Call GalryWidget.process_interaction().
+  
+The GalryWidget.process_interaction() method is responsible for processing
+the event associated to the action. It does the following:
+
+  * Find the corresponding event using the current action-event binding.
+  
+  * Call the event processor:
+        interaction_manager.process_event(event, parameter).
+  
+  * Force an OpenGL update (i.e. call updateGL()).
+
+The event processor is responsible for processing all events raised by user 
+actions. The parameter is passed by GalryWidget.process_interaction() and is 
+specified by a lambda function defined in the action-event binding. This 
+lambda function takes a dict containing all variables related to all user 
+actions (position of the mouse, last press position, etc.) and returns the 
+parameter to be passed to the event processor. This lambda function hence 
+makes the link between variables related to the user action (e.g. mouse state 
+variables), and those related to the events (e.g. the amount of translation 
+in the view). This helps decoupling between user actions and interaction 
+events. 
+
+The event processor (implemented in "interaction_manager.process_event()")
+updates the InteractionManager internal state. The manager then has two 
+occasions to actually influence the rendering in the rendering loop
+(see the Rendering loop section):
+one for applying the world transformation matrix, and one for displaying 
+overlays (more occasions might be added in the future if needed).
+
+Interaction modes
+-----------------
+
+Several interaction modes can be defined (e.g. navigation mode, selection mode,
+etc.) in a totally customizable way. The idea is that at each interaction mode
+is associated a particular set of bindings between user actions and interaction
+events. For example, in the navigation mode, the dragging action could be
+associated to panning, whereas in the selection mode, it could be associated
+to drawing a selection box. The user can then switch between modes, and this
+just changes the current set of bindings. This is handled by the 
+BindingManager.
+  
+Some technical issues and their solutions (especially related to LongSignalPlot)
+--------------------------------------------------------------------------------
+
+In theory, Galry could simply work like this. There's an OpenGL 3D world, 
+with a fixed horizontal orthographic camera, at position (0, 0, -1) and looking 
+at (0, 0, 0). The data, loaded on the GPU vertex buffer upon initialization, 
+is drawn in the Z=0 X,Y-plane. When interacting with the data, the data is 
+transformed with a translation (paning) and scaling (zooming in and out). This 
+is pretty much how it's working, except that there are several technical 
+complications that make the implementation harder. The goal is however to try 
+hiding those details from the exposed programming interface.
+
+The technical issues are the following:
+  
+  * The data to visualize can be really big, so that it may not be possible to 
+    load it entirely on GPU memory or even system memory. Yet, one typically
+    wants to visualize the full data interactively.
+  
+  * When viewing a t -> f(t) function with t spanning a large time interval, 
+    there can be a loss of precision in the displayed data due to floating point 
+    issues. For example, when visualizing the [1e9,1e9+1] interval (with
+    sampling frequency, say, 10 kHz), the x values are translated back to [0,1] 
+    so that data is within the camera field of view. When zooming in, one can 
+    then observe a loss of precision that severly harms visualization.
+  
+  * A related problem is that there are display issues with OpenGL when using 
+    transformation matrices that contain large values.
+
+Chosen solutions to those issues are the following:
+  
+  * To allow the data to not be fully loaded on GPU memory: Implement a data 
+    paging system. A minimum zoom-in, corresponding to a maximum viewbox, is 
+    chosen. This sets the size of the GPU data buffer. When the requested 
+    transformation implies that the viewbox is not fully included within the
+    data buffer, a new data load is requested from system memory to GPU memory.
+  
+  * To allow the data to not be fully loaded on system memory: Use the HDF5 data 
+    file format, so that when requesting a new data load, the data is loaded 
+    transparently from the hard drive rather than the system memory.
+  
+  * Renormalize data to [-1,1]², so that the initial viewbox matches this
+    square.
+  
+  * Additionnaly, when loading data where x is in [x0, x1], rather generate 
+    values in [0, x1-x0] which are more precise, and modify the translation 
+    accordingly.
+
+0.1 milestone: minor improvements, doc, tutorials
+0.2 milestone: major refactoring. Modular architecture:
+
+    Plotting library
+        plotting-oriented API
+    Visual layer
+        object-oriented description of the scene and the interactions
+    GL middleware
+        provide a simpler, data-focused API to OpenGL
+    OpenGL
+        
+
+GL middleware
+-------------
+
+Python interface that provides access to most of the OpenGL functionality
+but much simpler than pure OpenGL.
+
+Objects:
+  * Attribute
+  * Texture
+  * Uniform
+  * Index buffer
+  * Varying
+  * Frame buffer
+  * Shader
+  * SimplePainter
+  * IndexedPainter
+  * CLBuffer
+
+Controller objects:
+  * Initializer
+  * Resizer
+  * Painter
+
+They contain an ordered list of hooks, which are called during each phase.
+For example, the Painter can contain the following hooks:
+
+  * Clear
+  * Shader.bind
+  * Attribute.bind (all attributes, or specific attributes)
+  * Texture.bind
+  * Change frame buffer
+  * SimplerPainter
+  * Other attribute.bind
+  * IndexedPainter
+
+This way, one can precisely control the flow of the rendering process.
+This interface should also provides way to dynamically change things, such as
+variable data, or other parameters. For example, interactive navigation would
+be implemented by updating the scale and translation uniform values.
+
+Also, this interface should be defined independently from the language, so that
+it could also be implemented in Javascript/WebGL for instance. Actually it
+should be serializable.
+
+At this level, there should be no notion of visuals at all. Just simplified
+access to OpenGL, no abstraction besides pure OpenGL objects.
+
+Most objects have the following methods:
+  
+  * initialize: create the relevant OpenGL objects
+  * load: load the data associated to the objects
+  * bind: bind the objects in OpenGL
+  * update: update the objects or the data
+  * finalize: release all resources
+  
+The Painter objects have the following methods:
+
+  * initialize/update: define/change the options (primitive type, size, etc.)
+  * paint
+
+Every object has a unique identifier.
+  
+The interface should contain methods to:
+
+  * access objects from their identifiers,
+  * access all objects of a given class,
+  * access all objects of a given class except a list of identifiers
+
+Interface:
+
+  * define the list of all objects
+  * define a list of named parameters (rendering options, data, variable values)
+  * change some parameters values
+  * define the controller hooks
+  * change the hooks
+  
+Support for OpenCL should be built-in, with specific CL buffers and ways to
+do interop between CL/GL objects.
+
+Context
+    contains a list of objects
+    add_object
+    get
+
+Controllers
+    Initializer
+    Resizer
+    Painter
+        add_hook
+
+Manager
+    Context
+    Controllers
+    Updater
+
+Dynamic Update:
+    change an object's attribute
+    add new object
+    add Painter hook
+    remove Painter hook
+    
+Write a bunch of examples with this interface.
+This module should be completely independent, and could even be in a 
+standalone git repository.
+
+
+Visual layer
+------------
+
+This layer communicates only with the GL middleware (GLM).
+Visuals: objects that define several GLM objects (attribute, uniforms, shaders,
+etc.) and Painter objects. There's also a default hook (bind all attributes,
+paint all visuals, etc.). A visual can contain several painter objects.
+Objects can refer to other objects: visual_id.var_id.
+Interaction should also be defined here: adding/removing a visual, updating a
+visual's variable, changing the hooks, etc.
+
+
+Plotting library
+----------------
+
+Define plotting-oriented visuals and simple interaction methods.
+Line, points, grid, shapes, transformations.
+
+
+
+Examples
+--------
+
+Ensure that the following examples could work nicely with the new architecture
+(they encompass much of the final functionality)
+
+  * A 2D plot with lines and points, interactive navigation, grid.
+  * A planar graph with dynamic force-based layout algorithm and manipulation
+    of nodes, buffer sharing between nodes and edges, indexed painting, etc.
+  * Volume rendering example with 3D texture and special shaders
+
+
+Meta
+----
+
+Major refactoring: restart from scratch.
+Design the modules as standalone as possible.
+Python 3 ready, PEP8.
+Independent Unit tests for the different layers: the GLM should have specific
+unit tests with a mechanism for comparing the OpenGL output with images.
+The visual layer should be tested independently from the GLM layer, ie a mock
+testing GLM layer should be created that does not use OpenGL at all.
+The unit test structure and a few examples should be done BEFORE the 
+implementation.
+
+  * First step: define precisely the interface of all layers and
+    objects.
+  * Second step: write as many unit tests as possible, and some examples.
+  * Third step: implementation.
+  
+
+
+
+  
+
+
+
+
+This document contains some examples of how the future high-level API
+can be used for specific tasks. The objectives of this API are:
+
+  * simplicity
+  * flexibility
+  * object-oriented
+
+It is inspired from the current Galry API as well as pyglet.
+
+
+A yellow disc following the mouse
+---------------------------------
+
+    from galry import *
+
+    f = figure()
+    d = disc(color='y')
+
+    @f.event
+    def on_mouse_move(position, button, modifiers):
+        d.position = position
+
+    f.show()
+
+In this example, the on_mouse_move function is called as soon as the mouse
+moves. The position of the disc is then changed.
+
+The following event is automatically created:
+
+    @f.event
+    def on_draw():
+        f.clear()
+        d.draw()
+        
+By default, the on_draw event clears the figure, and draws all objects defined
+in the current namespace.
+
+
+A simple plot
+-------------
+
+    from galry import *
+    from numpy import *
+
+    x = linspace(-10, 10, 1000)
+    plot(x, sin(x))
+    show()
+
+Here, the plot function automatically activates the plotting interface,
+which is a particular kind of figure, with interactive navigation (pan/zoom),
+axes, grid, interactive tools (tooltip), etc.
+
+Also, a figure is automatically created.
+
+
+Mandelbrot fractal
+------------------
+
+    from galry import *
+    from numpy import *
+    
+    f = figure()
+    
+    # add the possibility to navigate interactively
+    f.features.navigation = True
+
+    # constrain the figure to the default viewport
+    f.viewport_max = f.viewport
+
+    # create an empty image filling the whole window
+    img = image(corners=f.viewport)
+    
+    # add a GLSL routine in the fragment shader which computes the color of 
+    # a pixel in the fractal
+    img.fragment_shader.routines += """
+    float mandelbrot(float z0) {
+        // ...
+        return r;
+    }
+    """
+    
+    # change the 'color_out' variable in the fragment shader
+    img.fragment_shader.color_out = """
+        // ... z as a function of coords
+        color_out = mandelbrot(z);
+    """
+    
+    show()
+    
+In this example, the Mandelbrot fractal is shown in the window, and one can
+navigate interactively within it.
+
+There are several figure types (child classes deriving from Figure).
+Figure2D, Figure3D (camera, etc.), Plot2D (with interactive navigation), 
+Plot3D, etc.
+
+f.features contains a list of boolean variables that allow to activate/deactive
+certain features in the window. This list is specified by the specific Figure
+class.
+Examples for Plot2D:
+
+  * navigation: pan/zoom
+  * depth
+  * antialiasing
+  * fps
+  * grid
+  * axes
+  * ratio
+
+f.viewport contains the (x0, y0, x1, y1) coordinates of the current view.
+By default: (-1, -1, 1, 1). f.viewport_max and f.viewport_min contain the
+max and min viewports.
+
+Each visual object has vertex_shader and fragment_shader attributes.
+They have several sub-attributes that are used to modify the shaders.
+
+    shader.main = """full main function"""
+    shader.NAME = VALUE # replace template NAME by VALUE
+    shader.routines = list of routines
+
+
+TODO
+----
+
+Coordinate system transformation?
+How to implement grid with this API?
+How to implement Dynamic undersampling with external thread and HDF5?
+Subplots?
+
+
+
+
+
+
+
+
+
+Delete a branch
+---------------
+
+git push origin --delete <branchName>
+
+
+
+
+High level interface
+--------------------
+
+### Ideas
+
+from galry.plot import *
+
+# otherwise, a figure is internally created in the namespace
+fig = figure()
+
+# plotting
+fig.plot(x, y, '--r', name='myplot')
+fig.text(text, position)
+
+# events
+def lmm(fig, parameters):
+    # fig is an object used to update data in visuals and that contains
+    # all information related to the figure. parameters is a dict with
+    # all information related to the user actions
+    for v in fig.visuals():
+        fig.set_data(v, ...)
+        
+    fig.set_data('myplot', ...)
+    
+fig.left_mouse_move(lmm)
+fig.left_click("MyClickEvent")
+fig.event("MyClickEvent", callback)
+
+# create and show window
+fig.show()
+
+
+These commands allow to create internally a custom paint manager and 
+interaction manager, which will then be used in show when creating the
+window.
+For the plotting commands, fig.xxx(...) <==> pm.add_visual(Xxx, ...)
+
+
+
+
+
+-------
+
+
+Notes about the future high-level interface. It should be as close as possible
+from the matplotlib interface.
+
+### Example:
+        
+    import galry.plot as plt
+
+    plt.figure()
+    plt.subplot(121)  # LATER: subplot
+    plt.text("Hello world",
+            x=0, # centered
+            y=1, # top
+            size=18, # font size
+            color='g',  # color
+            alpha=1.,  # transparency channel
+            bgcolor='w',  # background color
+            bgalpha=.5,  # background transparency
+            )
+    # X and Y are NxM matrices
+    plt.plot(X, Y,  # N plots
+             '-',  # style .-+xo
+             colors=colors,  # colors is a list of colors, one color for one line
+             size=5, # size of points or markers only
+             )
+
+    plt.barplot(x, y, color='g')  # LATER
+    plt.axes(0., 0.)  # LATER: display H/V data axes, going through that point
+    plt.xlim(-1., 1.)  # LATER
+
+    plt.show()  # data normalization happens here
+
+LATER: Basic GUI? with Home (reset view), Save
+    
+    
+### Interactions
+  * navigation with mouse and keyboard
+  * CTRL + keyboard/wheel/mouse: zoom x or y
+  * SHIFT + wheel/mouse: pan x or y
+  * press I: info, with H/V lines following the mouse and cursor coordinates
+    then, CTRL + mouse move makes the line rotate, and display the slope 
+    (H/V lines still visible)
+    
+  * CTRL + S: save image
+
+### Colors
+
+Several possibilities to specify a color:
+
+  * 'r'  # among rgbcymkw
+  * 'r0.5'  # color and transparency
+  * '#ff0000'  # hexadecimal code
+  * '#ff0000a0'  # hexadecimal code + transparency
+  * (1., 0., 0.)  # RGB
+  * (1., 0., 0., .5)  # RGBA
+
+### LATER: Signal plot
+
+  * Longsignal plot: for viewing long analog continuous signals that 
+    cannot fit on screen or in system memory (hdf5). An horizontal scrollbar
+    allows to scroll along time, new data is loaded transparently
+
+    plt.signal(X,  # a N x M matrix, N signals, M samples per signal
+               freq=20000.,  # sampling frequency
+               cache=10.,  # cache duration, in seconds
+
+
+
+
+Galry: high-performance interactive visualization in Python
+===========================================================
+
+Examples
+    bezier curves
+    performant n body simulation
+
+    
+website
+    why need to display huge amounts of data?
+
+
+Refactoring
+-----------
+
+  * include ony shader snippets in the scene, and include shader creation
+    in the renderers
+  * better handling of coordinates in high level callback
+        window, view, data
+  * event(fig, *params)
+  * better design for widget options (constrain ratio, activate_grid, etc)
+  * rename visual= into name= in PM.set_data
+  * rename extend into initialize (and have initialize_default)
+  * rename "bindings" to "mode"
+  * in interaction manager, better way to transform into transformed coordinates
+    and data coordinates
+  * better way of switching pyside/pyqt
+  * remove compound variables, replace by methods in visual which take
+    arguments as inputs and call set_data. the variables are then recorded
+  * cascade of events (raise events in processors)
+  * activation as events
+
+
+Automation
+----------
+  
+  * automatic benchmark of cpu/gpu throughput and latency
+  * automatic benchmark test
+  * automatic screenshots of the examples to generate a gallery
+
+  
+Fixes
+-----
+
+  * make unit tests work in ipython with pylab activated
+  * fix bug in ipython notebook with empty arrays when loading a script
+    for the first time
+  * macosx/nvidia: galry 3D examples look funny?
+    
+  
+Tested
+------
+
+  * Windows 8 64 bits, AMD GPU
+  * Windows 7 64 bits, nvidia GPU
+  * Windows 7 64 bits, Intel HD 4000
+  * Ubuntu 12.04 in VM, AMD GPU
+  * Ubuntu 12.10 Nvidia Quadro GPU
+  * Ubuntu 12.10 64 bits Nvidia GPU
+  * MacOSX 64 bits with Nvidia
+
+
+Running Galry through SSH X
+---------------------------
+
+What I had to do to make it work with
+client=Windows 8 64 bits, XMing, PuTTy,
+server=Ubuntu 12.04 64 bits, Nvidia GPU
+
+  * in PuTTY, specify X display location = 'localhost:0'
+  
+  * (sudo apt-get install xbase-clients)
+  * direct rendering needs to be YES
+  * export DISPLAY='localhost:0.0' 
+  * edit /etc/ssh/ssh_config and do:
+      ForwardX11 yes
+      ForwardX11Trusted yes
+  * edit /etc/ssh/sshd_config and do:
+      X11Forwarding yes
+  
+  
+Later
+-----
+
+  * investigate the possibility of a MPL backend using galry: check out
+    MPLGL by Chris Beaumont
+  * adding new visuals dynamically
+  * HDF5 viewer for long signals: use stride to implement a dynamic 
+    multi-resolution undersampling method.
+    Refinement: thread to update data on the GPU only when no action is occurring,
+    for maximum perceived performance
+  * user preferences, with DEBUG option
+  * opencl buffers and opencl/gl interop buffers
+  * handle more complete data type (int 8/16/32 bits, floats, etc)  
+  * several plots (like subplot) with different widgets, linking possible
+  * support for wx?
+    QT dependencies:
+      * bindingmanager.py (convert from key string to 
+        QT enum)
+      * cursors.py (cursors from pixmap)
+      * icons.py
+      * galrywidget.py (QGLWidget)
+    TODO:
+      * abstract code related to icons/cursors
+      * abstract code related to keyboard enum values      
+      * abstract code related to the widget class
+  
+  * finer control of the gl workflow (custom render method of visuals, or 
+    custom gl calls within the paint function, etc.)
+  * acyclic graph for references and avoid the restriction of order in
+    the visuals definition
+  * eventually: more object-oriented design...
+  * complete separation between pure visualization and 2D plotting,
+    plotting should be like an external plugin to the visualization toolkit
+    (different folder)
+  * test volume rendering example in WebGL from
+    http://research.anatomicaltravel.com/2011/07/volume-rendering-with-webgl/
+  * better text rendering: single texture with the fragment shader which
+    does all the text processing
+  
+Doc
+---
+
+  * generate API reference
+
+  
+Code quality
+------------
+
+  * identifier strings with '' instead of ""
+  * PEP8
+  * test coverage
+  * lint
+  * prepare for Python 3
+
+  
+FAQ
+===
+
+Why Galry?
+----------
+
+Most visualization packages in Python are either meant to generate high-quality
+publication-ready figures (like matplotlib), or to offer 3D fast interactive 
+visualization (like mayavi).
+Existing 2D plotting packages do not generally offer an efficient way to 
+interactively visualize large datasets (1, 10, even 100 million points). 
+The main goal of Galry is to provide the most optimized way of visualizing
+large 2D/3D datasets, by using the full power of the graphics card.
+
+
+How fast is it?
+---------------
+
+Performance and speed are the major objectives of Galry. The Python overhead
+is minimized so that performance is only limited by the power of the
+graphics card. We can approximately assess the performance of Galry by
+measuring the number of frames per second (FPS) when navigating in a scene
+containing a large number of points.
+
+Here are some results with a basic benchmark consisting of an N points plot
+(`benchmarks/benchmark01_points.py`). 
+*More systematic and automatic benchmark methods will be considered in the 
+near future.*
+
+On a 2012 desktop computer with a high-end AMD Radeon HD 7870 graphics card:
+
+  * N = 10 million points: ~125 FPS
+  * N = 20 million points: ~80 FPS
+  * N = 50 million points: ~35 FPS
+  * N = 100 million points: ~15 FPS
+
+The [benchmark page](https://github.com/rossant/galry/wiki/Benchmarks) contains 
+more details. Users are invited to do their own benchmark.
+
+
+What can I do with Galry?
+-------------------------
+
+You can either:
+
+  * Visualize large 2D/3D datasets consisting of points, lines, textures,
+    meshes, and pan/zoom smoothly into your data.
+    
+  * Create your own customized GUI designed for highly efficient specialized
+    interactive visualization of large 2D/3D datasets.
+    
+Galry is fully customizable, and you can either write a specialized scientific
+visualization GUI, a particle system, a fractal viewer, or even a video
+game (Pong can be written in 150 lines of commented code) !
+All those examples are implemented in the `examples` folder.
+
+### Custom visualization
+
+The library gives you full control on the rendering pipeline process, through
+the use of **vertex and fragment shaders**. Shaders are small programs written
+in a simple C-like low-level language
+([GLSL](http://en.wikipedia.org/wiki/GLSL)) 
+that are dynamically compiled on the GPU.
+They transform the raw data stored in GPU memory to pixels on the screen.
+Learning and using GLSL lets you exploit the full power of the GPU for
+the most optimized possible way of rendering data.
+
+Helper functions are also included for common tasks such as displaying
+lines, points, polygons, textures, point sprite textures, 3D meshes, and text.
+
+### Custom interactivity
+
+The library gives you full control on the interaction system.
+*User actions* such as mouse clicks, mouse mouvements, keystrokes, etc., 
+can be linked to arbitrary *interaction events* such as panning, zooming, etc.
+You can define new interaction events and decide how exactly they interfere
+with rendering. Possible uses include selection of objects, layout
+modifications, etc.
+
+### Integration in Qt
+
+Galry provides a Qt widget written in Python displaying an OpenGL rendering
+viewport. This widget contains your data. It can also interact with other
+Qt widgets within a single application, in particular through the use of 
+Qt signals and slots. These are the normal way Qt widgets talk to each other,
+and they allow the development of a full visualization GUI with one or
+several Galry widgets. The Galry interaction system can be easily linked
+to the Qt interaction system based on signals and slots.
+
+Integration with other GUI systems like TKinter or wx, might be considered
+as some point. The only constraint is that this system provides an OpenGL
+context.
+
+
+How to get started?
+-------------------
+
+The [installation page](https://github.com/rossant/galry/wiki/Installation)
+contains details on how to install Galry. Basically you first need to
+install all dependencies (Python 2.7, Numpy, Matplotlib, PyOpenGL, PyQt4 or
+PySide), then do `python setup.py install` in Galry's directory.
+
+Documentation, examples and tutorials are available in Galry's package.
+
+  * The manual gives a high-level overview of the library.
+    
+  * The tutorials provide a good way to start learning Galry.
+
+  * The examples cover a wide range of Galry's possibilities.
+    
+    
+How did this project start?
+---------------------------
+
+Galry is developed in the context of the creation of
+a new electrophysiological data GUI that will handle very large datasets.
+This GUI is still in development and should be released in 2013.
+The development of Galry will be done in parallel.
+
+
+What are the related packages?
+------------------------------
+
+Glumpy also contains some ideas to use OpenGL for interactive plotting in
+Python. It might be integrated into Matplotlib at some point, as an OpenGL
+backend.
+
+
+
+
+Galry's Gallery
+===============
+
+Screenshots
+-----------
+
+![Multiple plots](https://raw.github.com/rossant/galry/master/images/thumbnails/img0.jpg)
+![Multiple bar plots](https://raw.github.com/rossant/galry/master/images/thumbnails/img1.jpg)
+![Raster plot](https://raw.github.com/rossant/galry/master/images/thumbnails/img2.jpg)
+![Dynamic graph layout](https://raw.github.com/rossant/galry/master/images/thumbnails/img3.jpg)
+![Sprite points](https://raw.github.com/rossant/galry/master/images/thumbnails/img4.jpg)
+![Dynamic fractal](https://raw.github.com/rossant/galry/master/images/thumbnails/img5.jpg)
+![Modern art](https://raw.github.com/rossant/galry/master/images/thumbnails/img6.jpg)
+![Graph](https://raw.github.com/rossant/galry/master/images/thumbnails/img7.jpg)
+![Image](https://raw.github.com/rossant/galry/master/images/thumbnails/img8.jpg)
+![GPU-based image filtering](https://raw.github.com/rossant/galry/master/images/thumbnails/img9.jpg)
+![Particle system](https://raw.github.com/rossant/galry/master/images/thumbnails/img10.jpg)
+![3D mesh](https://raw.github.com/rossant/galry/master/images/thumbnails/img11.jpg)
+![Cellular automata](https://raw.github.com/rossant/galry/master/images/thumbnails/img12.jpg)
+![2D surface](https://raw.github.com/rossant/galry/master/images/thumbnails/img13.jpg)
+
+
+Videos
+------
+
+[Click here to see demos on Youtube.](http://www.youtube.com/watch?v=Nv4aNR4Gi6w&list=PLyxVOal96D3zFYTYNco1DIVANAQ5122f1)
+
+
+User manual
+===========
+
+Galry is a **high-performance interactive visualization library in Python**.
+
+It offers a **high-level interface** for quickly visualizing large
+datasets.
+
+The **low-level interface** allows to create a fully customized GUI
+for interactive visualization. It integrates with Qt, through either PyQt4 or 
+PySide. Integration with other GUI systems may be considered at some point
+(wx, etc.).
+
+This manual gives a high-level introduction to both interfaces.
+**The user interested in the practical details can go through the tutorials.**
+
+Important note
+--------------
+
+Major changes to the library are to be expected in the coming months. The API
+will probably change, especially the low-level interface. Galry is not
+ready to be used in production yet, but can already be advantageously used as a
+fast and efficient visualization toolkit capable of handling large datasets,
+using the high-level interface.
+
+
+High-level interface
+--------------------
+
+This interface is similar to the one offered by matplotlib. Only a very small
+portion of matplotlib's features are currently implemented, because Galry
+is not meant to generate publication-ready figures (it can merely export
+the raw window as a PNG image).
+
+Here are the available rendering functions.
+
+  * `plot`: draw curves or scatter plot.
+  * `text`: draw one or multiple strings of text with custom positions and
+    colors.
+  * `rectangles`: draw one or multiple rectangles.
+  * `imshow`: draw an image.
+  * `graph`: draw a graph with nodes and edges and custom colors.
+  * `mesh`: draw a 3D mesh.
+  * `barplot`: draw one or multiple bar plots.
+  * `visual`: draw a custom visual.
+  
+Here are the available axes functions:
+  
+  * `axes`: specify the axes boundaries.
+  * `xlim`: specify the x limits.
+  * `ylim`: specify the y limits.
+  * `grid`: display the grid by default.
+  
+Here are the available interaction functions:
+
+  * `animate`: update the scene at regular intervals by calling a specified
+    callback function.
+  * `event`: bind an event to a callback method.
+  * `action`: bind an action to an event or directly a callback method.
+  * `figure`: create a new figure.
+  * `show`: show the figure.
+
+The details of these functions can be found in the tutorials/examples or
+directly in the doc strings (in `galry/pyplot.py`, the API reference is not
+done yet).
+
+
+Low-level interface
+-------------------
+
+The low-level interface contains two parts:
+a rendering module, and an interactivity module. The rendering module should
+be thought as a module on top of OpenGL, which hides low-level implementation
+details about OpenGL and exposes functions related to data and rendering.
+The basic principles of OpenGL should however be understood in order to
+customize all aspects of rendering.
+
+THe low-level interface is meant to be used in script mode rather than in
+interactive
+mode. It allows to plot simple figures (scatter plots, curves, etc.) in
+less than 10 lines of code. But it also gives you the opportunity to customize 
+plots as 
+much as you want. The integration of the plot within the GUI window can also
+be fully customized (thanks to Qt).
+
+Here, we give a **high-level overview of this interface** and, consequently, 
+of the internal architecture of Galry.
+
+
+### The `GalryWidget` class
+
+The **main class that Galry provides is `GalryWidget`**.
+It is a Qt widget deriving
+from `QGLWidget` which is defined in Qt (available in PyQt and Pyside).
+The `GalryWidget` displays an OpenGL context entirely controlled by
+Galry through OpenGL.
+
+First, some technical details about the internals of `GalryWidget`.
+This widget inherits three important OpenGL-related methods from `QGLWidget`:
+
+  * `initializeGL`: this method implements all OpenGL-related initialization,
+    including uploading data on graphics card memory, compiling shaders,
+    initializing OpenGL rendering engine.
+    
+  * `paintGL`: this method is called as soon as the widget view needs to be
+    updated. It renders everything on the screen, starting from a black 
+    background (the color can be customized). This means that everything is
+    rendered again every frame: this is the standard way of rendering things
+    with a graphics card. However, it is possible to upload data
+    only once in 
+    GPU memory at initialization, so that rendering is fast. If needed,
+    data stored in GPU memory can also be changed at any time, during the
+    lifetime of the widget.
+
+  * `resizeGL`: this method is called as soon as the widget is resized. It
+    automatically triggers a new rendering call. The OpenGL viewport size is
+    also updated.
+
+These methods are implemented in `GalryWidget` and should not be overriden.
+However, they call special Galry methods that are meant to be overriden if
+needed, and which are defined in companion classes, as we'll see later.
+
+From the user point of view, the most important method of `GalryWidget` among
+those that can be overriden is `initialize()`. This method is called in the 
+widget constructor. Widget initialization (in particular, specification of 
+the **companion classes**) happens there.
+
+
+### Companion classes
+
+By default, the `GalryWidget` class displays just a black empty rectangle.
+The whole logic of the widget is implemented in several companion classes
+that all handle a specific aspect of the widget. This allows to separate
+the code into separate modules.
+
+By default, there are three companion classes. These classes are meant to
+be derived in order to implement the logic of the widget. In addition,
+new companion classes implementing specific features can also be defined.
+For example, one could implement a `SelectionManager` to handle selection of 
+objects with the mouse. This custom companion class can then be reused in
+different widgets. It should make modularity easier.
+
+Any companion instance has access to all other companion
+instances. The set of all companion instances can then be seen as a complete
+graph, where each instance has access to all other instances.
+
+The three default companion classes are:
+
+  * `PaintManager`. This class handles everything related to rendering:
+    data processing, uploading data on the GPU, initializing OpenGL objects,
+    compiling shaders, etc.
+    
+  * `InteractionManager`. This class handles everything related to user
+    interactions, and how they interfere with rendering.
+    
+  * `BindingManager`. This class handles the links between physical user
+    actions with the mouse and keyboard, and interaction events. The
+    association can be changed statically or dynamically. In addition, several
+    interaction modes can be defined with different associations between
+    actions and events (e.g. a navigation mode and a selection mode).
+
+We'll go through the relevant methods of those classes later.
+
+The creation of a new, custom Galry widget then involves the following steps:
+
+  * Deriving one or several companion classes (e.g. `MyPaintManager`) by 
+    overriding key methods.
+    
+  * Deriving the `GalryWidget` and overriding `initialize` to specify the 
+    custom companion classes.
+    
+Also, helper functions are provided in order to directly show a window with
+an automatically-created custom widget by specifying the companion classes,
+without the need of explicitely creating a new class (see `show_basic_window`).
+
+
+### The `PaintManager` companion class
+
+The `PaintManager` class is the most important companion class. It specifies
+what to render in the widget.
+
+
+#### Visuals
+
+The main method to override is `initialize`. This is where **visuals** are
+created. A visual is a particular plot object, such as a set of points, of
+curves, of rectangles, one image, one text string, etc. The key point is that
+several *primitives* can be contained in a visual: several points in a 
+scatter plot, several line segments in a curve, etc. So, **a visual is a
+homogeneous set of primitives**. Primitives are defined in OpenGL and include
+pixels, line segments, and triangles.
+[The full list of primitives can be found for example 
+here](http://www.informit.com/articles/article.aspx?p=461848).
+Those primitives are described by a set of **vertices**.
+A **vertex** is a vector of length 2, 3 or 4.
+
+A visual is rendered *with a single call*
+to an OpenGL command, so that rendering is fast. This explains why there is
+the need for homogeneity within a visual. Also, let's note that within a 
+visual, objects can be drawn independently (for example, different curves
+that are not physically connected).
+
+**In conclusion, a visual is meant to be
+a big object in general**. It is not a good idea to define too many visuals
+since that can really hurt performance.
+
+*Very technical note: actually, it may happen that several OpenGL commands
+are issued for a single visual. It occurs when the number of vertices is 
+high, typically higher than 65,000. The reason is that the OpenGL buffers
+cannot always be bigger than that. The set of vertices is then automatically
+and transparently cut by Galry into multiple buffers, which are rendered
+in sequence at each frame.*
+
+
+#### Visual creation
+
+A visual can either be created from scratch, or by specializing an existing
+visual. Galry comes with a set of predefined visuals to plot curves, points,
+images, point sprite textures, text, 3D meshes, etc. The user interested in
+creating its own custom visual should look the code of the existing visuals.
+
+Technically, a visual is defined by:
+  * a set of *variables*, or *fields*, that have a name, a type, and various
+    characteristics,
+  * *vertex shader* and *fragment shader* source codes, that describe how
+    data contained in the different fields will be eventually transformed into
+    pixels.
+
+##### Shaders
+    
+A **vertex shader** is a small program in a C-like language called
+[**GLSL**](http://en.wikipedia.org/wiki/GLSL) that
+is **executed once per vertex**. Vertex shaders execute in 
+parallel across all vertices, using the high computational power of the 
+GPU. A vertex shader takes some Visual fields as inputs, and
+returns the final position of the current vertex. Execution of shaders can
+be extremely fast thanks to the highly parallel architecture of the graphics
+card.
+
+A **fragment shader** is also written in GLSL, but executes after the vertex
+shader, and **once per pixel**. It takes some variables as inputs, as well
+as (possibly) some outputs of the vertex shader. It returns the final color of
+the current pixel.
+
+
+##### Visual fields
+
+There are different types of visual fields:
+
+  * **attributes**: an *attribute* is an array variable of size `N`.
+    **All attributes in a given Visual share the same number `N`.**
+    This number `N` is essentially
+    the number of vertices. Also, there is one execution of the vertex 
+    shader per vertex (so `N` executions), at every rendering call (so
+    every frame). Examples of attributes: the position (coordinates of the
+    points to render), the color of the points (if each point needs to have
+    its own color), etc. Every variable that has one specific value per
+    vertex is an attribute.
+    
+    When using *indexed rendering*, it is possible to
+    use one vertex several times during rendering in order
+    to save memory, so that the number of rendered vertices can be different
+    from the number of vertices in the buffer (typically higher, since vertices
+    are used several times).
+    
+  * **uniforms**: an *uniform* is a global variable, shared by all vertices. It
+    may change at every frame, but it is global to the vertex and fragment
+    shaders.
+    
+  * **varyings**: during the rendering process, the vertex shader is executed
+    *once per vertex*. Then, the fragment shader is executed *once per pixel*
+    (pixel of the rendered primitives). Since the fragment shader always
+    executes after the vertex shader, the vertex shader can pass 
+    information to the fragment shader through *varying variables*. They
+    can be automatically interpolated when the pixels are between 2 or 3
+    vertices (hence their names).
+    
+  * **textures**: a *texture* variable holds a texture data as a 3D array (with
+    RGB(A) components) and can be accessed in the fragment shader in
+    order to display it.
+    
+  * **indices**: an *index* variables holds a buffer of integer values which
+    target vertices in all attributes. The number of rendered points is then
+    the length of the index buffer rather than the length of the vertex buffer.
+    
+  * **compounds**: a particular type of variable that has no counterpart in
+    the shaders. A *compound variable* allows to automatically change
+    several visual variables according to a high-level value. They exist
+    only for convenience for the user. For example, in the TextVisual,
+    where characters are individually positioned on the screen, the
+    text variable is a compound variable that affects the texture of the
+    characters (i.e. the points), their particular position, etc.
+    
+
+##### Predefined visuals
+
+Galry comes with a set of predefined visuals for convenient use. More
+visuals may be added as the development of the package goes along.
+Currently, available visuals are:
+
+  * `PlotVisual`: generic visual for basic or advanced plotting. Any
+    GL primitive is possible:
+    
+      * `LINES`: independent line segments,
+      * `LINE_STRIP`: continuous signal as successive line segments,
+      * `LINE_LOOP`: like `LineStrip` but as a closed polygon,
+      * `POINTS`: pixels with arbitrary size,
+      * `TRIANGLES`: independent triangles,
+      * `TRIANGLE_STRIP`: successive triangles, two consecutive triangles
+        sharing one side, useful for rendering any filled polygon,
+      * `TRIANGLE_FAN`: successive triangles, all sharing the very first vertex.
+        Useful for rendering discs.
+        
+    In addition, multiple independent primitives of the same type can be 
+    rendered in the same visual (example: multiple signals as multiple
+    `LineStrip`). Indexed rendering is also possible.
+    
+  * `RectanglesVisual`: multiple rectangles in a single visual.
+  
+  * `SpriteVisual`: one texture at multiple positions (e.g. scatter plot with
+    special markers).
+    
+  * `TextVisual`: a single line of text.
+  
+  * `TextureVisual`: a single textured rectangle. It can accept filtering
+    options and mipmapping. Non power-of-two and non-square textures are
+    supported if the graphics card support them.
+  
+  * `MeshVisual`: visual example for 3D rendering, implementing
+    3D/4D transformation matrices, basic lighting, etc. The developer
+    interested in 3D rendering should take this visual as an example and
+    customize it. This visual is well adapted for displaying a 3D mesh and
+    move it around in 3D.
+    
+  * `GraphVisual`: a planar graph.
+  
+  * `BarVisual`: a set of bar plots/histograms.
+
+    
+##### Vertex shader example: particle system
+    
+Let's give an example of a *particle system*, where there is a number of 
+independent particles, defined at any time by a position, a velocity, and 
+a color. To achieve the highest performance possible, we want to execute this
+system on the GPU. It means that vertex shaders are responsible for
+updating the position of the particles at any time. So the visual could 
+contain:
+
+  * an *attribute variable* with the *initial position* of each particle,
+  * an *attribute variable* with the *initial velocity* of each particle,
+  * an *attribute variable* with the creation time of that particle,
+  * an *uniform variable* with the current time,
+  * etc.
+
+For each particle, the vertex shader then gets the values of these variables
+as inputs, and computes the current position of the particle with a formula
+involving the initial position and velocity, and the current time.
+The execution of this system is fast since the expensive part executes
+entirely on the GPU. The graphics card is used optimally since the execution
+of shaders is an embarrassingly parallel problem, with no communication between
+threads.
+    
+This example is implemented in `examples/fountain.py`.
+
+
+##### Fragment shader example: fractal viewer
+    
+Let's give an example of a *fractal viewer*, where a blank texture is rendered,
+and the fragment shader computes the final color using an algorithm.
+In the example of the Mandelbrot fractal, every pixel corresponds to a point
+$z_0 \in E \subset \mathbb C$, and the color of that pixel depends on the
+asymptotic
+behavior of a discrete-time dynamical system defined by a recursive function:
+$z_{n+1} = f(z_n)$. The fragment shader retrieves the coordinates of the
+current pixel, then executes the dynamical system, and finally returns
+the adequate color depending on the outcome of the system.
+Once again, the execution of this example is optimal since it is an 
+embarrassingly parallel problem.
+
+This example is implemented in `examples/mandelbrot.py`.
+
+
+##### Conclusion
+
+Vertex and fragment shaders are widely used in real-time 3D video games,
+but not so much in scientific applications, particulary when it concerns
+2D rendering. Yet, they are extremely powerful for 2D rendering of huge
+visuals with millions of points. They considerably widen the plotting 
+possibilities of Galry.
+
+To learn the OpenGL shading language, GLSL, a great, freely available
+reference book is 
+[Learning Modern 3D Graphics Programming](http://www.arcsynthesis.org/gltut/).
+Also, 
+[here is an introduction to shaders](http://cyrille.rossant.net/shaders-opengl/).
+
+
+
+### The `InteractionManager` companion class
+
+The `InteractionManager` class implements the logic of the interaction events
+that are raised by user actions.
+
+Some definitions first. An **user action** is an action performed by the user
+through an input device such as a keyboard, a mouse, or through touch (the 
+latter is not implemented yet). An **interaction event** is any dynamic event
+that conveys some logic in the widget. An interaction event can interfere
+with the rendering process. For example, zooming into the displayed data 
+is an interaction event. The associated user action is, for example, 
+moving the mouse while pressing the right button.
+
+The implemented user actions are for now:
+
+ * `Move`
+ * `LeftClick`
+ * `MiddleClick`
+ * `RightClick`
+ * `LeftClickMove`
+ * `MiddleClickMove`
+ * `RightClickMove`
+ * `DoubleClick`
+ * `Wheel`
+ * `KeyPress`
+ 
+At any time, an user action comes with some associated parameters, like the
+relative displacement of the mouse for `Move`, or the pressed key
+for `KeyPress`. In addition, all those actions can be modified by
+a keyboard modifier such as Control, Shift or Alt.
+
+A **binding** is a link between one user action and one interaction event.
+More precisely, it links a pair (action, key modifier) to an interaction
+event (there's also the pressed key for `KeyPress`). In addition,
+a binding comes with a function that returns the action parameters (such as the
+displacement of the mouse or the position of the cursor) that are relevant to
+the associated interaction event. The result of this function is passed
+to the interaction processor (see below).
+
+An **interaction mode** is a set of bindings. For example, one could imagine
+a *navigation mode* where moving the mouse while pressing the left button
+corresponds to panning, whereas the same action corresponds to selection in
+the *selection mode*.
+
+The implemented interaction events are:
+
+  * `SwitchInteractionMode`
+  * `Pan`
+  * `Zoom`
+  * `ZoomBox`
+  * `Reset`
+  * `ResetZoom`
+
+New interaction events can be defined.
+  
+As soon as an user action happens during the lifetime of the widget,
+Galry finds the associated interaction event according to the
+current interaction mode. Then, that interaction event and the relevant
+action parameters (returned by the function specified in the binding)
+are passed to the `InteractionManager`. This manager contains one or several
+`EventProcessor`, which define handlers for different events. A handler
+for an event is a method of the processor, which takes a parameter as an input
+and perform some action in response to that event. Possible actions only
+include changing the parameters of visuals for now, which already captures
+most scenarios.
+
+Processors can be reused in an a modular fashion. Each processor has access
+to all other processors (every processor has a name, unique within a given
+InteractionManager).
+
+
+### The `BindingManager` companion class
+
+The `BindingManager` companion class defines one or several interaction modes,
+each mode being specified by a set of bindings between user actions and
+interaction events.
+
+This companion class does not need to be derived. Rather, a list of interaction
+modes can be directly passed to `GalryWidget`. An interaction mode is 
+implemented in a class deriving from `ActionEventBindingSet`. This class offers
+an `initialize` method that can be overriden in order to set all the bindings.
+A binding is set by the `set` method that accepts an `UserAction`, an
+`InteractionEvent`, optionally, a keyboard modifier and the pressed key for
+the `KeyPressAction`, and a function that returns the parameters related
+to the user action and that are to be passed to the interaction processor.
+
+
+
+
+Put the "ipynbgalry" folder in:
+C:\Users\<USERNAME>\.ipython\extensions
+Put the "ipynbgalry" folder in:
+C:\Users\<USERNAME>\.ipython\profile_default\static\jsplugins
+Galry is licensed under the terms of the new or revised BSD license, as follows:
+
+Copyright (c) 2012, Cyrille Rossant
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this list of
+conditions and the following disclaimer.
+
+Redistributions in binary form must reproduce the above copyright notice, this list
+of conditions and the following disclaimer in the documentation and/or other
+materials provided with the distribution.
+
+Neither the name of the owner nor the names of its contributors
+may be used to endorse or promote products derived from this software without
+specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT,
+INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT
+NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+Galry: high performance interactive visualization package in Python
+===================================================================
+
+
+**This experimental project will be superseded by [Vispy](https://github.com/vispy/vispy) probably some time in 2014. In the meantime, Galry will be minimally maintained.**
+
+
+Galry is a **high performance interactive visualization package in 
+Python** based on OpenGL.
+It allows to interactively visualize very large plots (tens of millions of
+points) in real time, by using the graphics card as much as possible.
+
+Galry's high-level interface is directly inspired by Matplotlib and Matlab.
+The low-level interface can be used to write complex interactive visualization
+GUIs with Qt that deal with large 2D/3D datasets.
+
+Visualization capabilities of Galry are not restricted to plotting, and 
+include textures, 3D meshes, graphs, shapes, etc. Custom shaders can also be
+written for advanced uses.
+
+[Click here to go to the FAQ](https://github.com/rossant/galry/blob/master/docs/faq.md).
+
+
+
+Gallery
+-------
+
+![Multiple plots](https://raw.github.com/rossant/galry/master/images/thumbnails/img0.jpg)
+![Multiple bar plots](https://raw.github.com/rossant/galry/master/images/thumbnails/img1.jpg)
+![Dynamic fractal](https://raw.github.com/rossant/galry/master/images/thumbnails/img5.jpg)
+
+[Click here to see all screenshots and videos](https://github.com/rossant/galry/blob/master/docs/gallery.md).
+
+
+Installation
+------------
+
+### Installation procedure
+
+  * Type in a terminal:
+        
+        $ pip install galry
+
+  * In Python, type:
+      
+        from galry import *
+        from numpy.random import randn
+        plot(randn(3, 10000))
+        show()
+        
+  * You should see three overlayed random signals. You can navigate with the
+    mouse and the keyboard. Press `H` to see all available actions.
+
+[More details](https://github.com/rossant/galry/wiki/Installation).
+
+### Requirements
+
+  * Galry should work on any platform (Window/Linux/MacOS).
+  * Mandatory dependencies include:
+  
+      * Python 2.7
+      * Numpy
+      * PyQt4 or PySide with the OpenGL bindings
+      * PyOpenGL
+      * matplotlib
+
+  * Your graphics card drivers must be up-to-date and support **OpenGL 2.1**.
+
+Galry is licensed under the BSD license.
+
+### Development version (expert users)
+
+  * Clone the repository:
+  
+        git clone https://github.com/rossant/galry.git
+  
+  * Install Galry with `pip` so that external packages are automatically
+    updated (like `qtools` which contains some Qt-related utility functions):
+  
+        pip install -r requirements.txt
+
+
+Quick links
+-----------
+
+  * [What's new?](https://github.com/rossant/galry/blob/master/CHANGES.md)
+  * [Installation page](https://github.com/rossant/galry/wiki/Installation)
+  * [User Manual](https://github.com/rossant/galry/blob/master/docs/manual.md)
+  * [Tutorials](https://github.com/rossant/galry/tree/master/tutorials)
+  * [Examples](https://github.com/rossant/galry/tree/master/examples)
+  * [Gallery](https://github.com/rossant/galry/blob/master/docs/gallery.md)
+  * [Benchmarks wiki](https://github.com/rossant/galry/wiki/Benchmarks)
+  * [FAQ](https://github.com/rossant/galry/blob/master/docs/faq.md)
+  * [Source code](https://github.com/rossant/galry)
+  * [Galry Users Google Group](https://groups.google.com/forum/?fromgroups#!forum/galry-users)
+  * [Contact](http://cyrille.rossant.net)
+  
+  
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/rossant/galry/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
+

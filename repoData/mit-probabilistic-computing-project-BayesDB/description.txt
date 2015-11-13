@@ -1,0 +1,116 @@
+To publish the new version of the docs:
+
+    $ make html
+    $ scp -r .../docs/_build/html/* jbaxter@login.csail.mit.edu:/afs/csail.mit.edu/proj/probcomp/www/data/bayesdb/docs/
+BayesDB
+==============
+
+BayesDB, a Bayesian database, lets users query the probable implications of their data as easily as a SQL database lets them query the data itself. Using the built-in Bayesian Query Language (BQL), users with no statistics training can solve basic data science problems, such as detecting predictive relationships between variables, inferring missing values, simulating probable observations, and identifying statistically similar database entries.
+
+BayesDB is suitable for analyzing complex, heterogeneous data tables with up to tens of thousands of rows and hundreds of variables. No preprocessing or parameter adjustment is required, though experts can override BayesDB's default assumptions when appropriate.
+
+BayesDB's inferences are based in part on CrossCat, a new, nonparametric Bayesian machine learning method, that automatically estimates the full joint distribution behind arbitrary data tables.
+
+# Installation
+
+### VM
+
+We provide a VirtualBox VM ([Get the VM and VM_README here](http://probcomp.csail.mit.edu/bayesdb/#Download)) for small scale testing of BayesDB.
+
+**Note**: The VM is only meant to provide an out-of-the-box usable system setup.  Its resources are limited and large jobs will fail due to memory errors.  To run larger jobs, increase the VM resources or install directly to your system.
+
+### Local
+BayesDB depends on CrossCat, so first install CrossCat by following its local installation instructions [here](https://github.com/mit-probabilistic-computing-project/crosscat/blob/master/README.md).
+
+BayesDB can be installed locally with:
+
+    git clone https://github.com/mit-probabilistic-computing-project/BayesDB.git
+    cd BayesDB
+    sudo python setup.py install
+
+If you have trouble with matplotlib, you should try switching to a different backend. Open a python prompt ($ python):
+
+    import matplotlib
+    matplotlib.matplotlib_fname()
+
+Then, edit the file at the path that was outputted, changing 'backend' to another one of the available values, until the matplotlib errors go away. Good ones to try are GTKAgg and Agg.
+
+# Documentation
+
+[Website](http://probcomp.csail.mit.edu/bayesdb)
+
+[Documentation](http://probcomp.csail.mit.edu/bayesdb/docs)
+
+# Example
+
+run\_dha\_example.py ([github](https://github.com/mit-probabilistic-computing-project/BayesDB/blob/master/examples/dha/run_dha_example.py)) is a basic example of analysis using BayesDB.  For a first test, run the following from inside the top level BayesDB dir
+
+    python examples/dha/run_dha_example.py
+
+# License
+
+[Apache License, Version 2.0](https://github.com/mit-probabilistic-computing-project/bayesdb/blob/master/LICENSE)
+
+
+
+
+
+
+
+BayesDB on StarCluster
+======================
+
+This package is configured to be installed as a StarCluster plugin.  Roughly, the following are prerequisites.
+
+* An [Amazon EC2](http://aws.amazon.com/ec2/) account
+    * [EC2 key pair](http://docs.aws.amazon.com/AWSEC2/latest/UserGuide/generating-a-keypair.html)
+* [StarCluster](http://star.mit.edu/cluster/) installed on your local machine
+    * ~/.starcluster/config file includes this repo's [starcluster.config](https://github.com/mit-probabilistic-computing-project/bayesdb/blob/master/starcluster.config) by including the following line in the [global] section
+
+     INCLUDE=/path/to/bayesdb/starcluster.config
+* You are able to start a 'smallcluster' cluster as defined in the default StarCluster config file
+    * Make sure to fill in your credentials **and** have a properly defined keypair
+
+     AWS_ACCESS_KEY_ID = #your_aws_access_key_id
+     
+     AWS_SECRET_ACCESS_KEY = #your_secret_access_key
+     
+     AWS_USER_ID= #your userid
+     
+     KEYNAME = mykey
+
+    * To generate the default StarCluster config file, run
+
+     starcluster -c [NONEXISTANT_FILE] help
+
+A starcluster_plugin.py file in included in this repo.  Assuming the above prerequisites are fulfilled,
+
+    local> starcluster start -s 1 -c bayesdb [CLUSTER_NAME]
+
+should start a single c1.medium StarCluster server on EC2, install the necessary software and compile the engine.
+
+Everything will be set up for a user named 'bayesdb'.  Required python packages will be installed to the system python.
+
+## [Creating an AMI](http://docs.aws.amazon.com/AWSEC2/latest/CommandLineReference/ApiReference-cmd-CreateImage.html) from booted instance
+
+* Determine the instance id of the instance you want to create an AMI from.
+   * You can list all instances with
+    
+    starcluster listinstances
+    
+* make sure you have your private key and X.509 certificate
+   * your private key file, PRIVATE_KEY_FILE below, usually looks like pk-\<NUMBERS\_AND\_LETTERS\>.pem
+   * your X.509 certificate file, CERT_FILE below, usually looks like cert-\<NUMBERS\_AND\_LETTERS\>.pem
+
+Note, this will temporarily shut down the instance
+
+    local> nohup ec2cim <instance-id> [--name <NAME>] [-d <DESCRIPTION>] -K ~/.ssh/<PRIVATE_KEY_FILE> -C ~/.ssh/<CERT_FILE> >out 2> err
+
+
+This will start the process of creating the AMI.  It will print 'IMAGE [AMI-NAME]' to the file 'out'.  Record AMI-NAME and modify ~/.starcluster/config to use that for the bayesdb cluster's NODE\_IMAGE\_ID.
+
+To publish the website:
+
+    cd .../website
+    middleman build
+    scp -r build/* jbaxter@login.csail.mit.edu:/afs/csail.mit.edu/proj/probcomp/www/data/bayesdb/

@@ -1,0 +1,66 @@
+NAME
+	Django Twitter Auth -- use Twitter for authentication in Django
+
+SYNOPSIS
+
+DESCRIPTION
+	Twitter now supports OAuth, so django-twitterauth has been rewritten
+	to support this better authentication flow.  It is well documented
+	elsewhere so I will not be going into detail here.
+
+	The app supplies views to handle the login flow, a user info page
+	and a *basic* User model.
+
+	Mad props to Henrik Lied for the initial Django implementation of
+	Twitter OAuth.  I used his utils.py file almost verbatim in creating
+	this app.
+
+INSTALLATION
+	Clone/download and place in the root of your Django project:
+
+		$ cd $YOUR_DJANGO_PROJECT
+		$ git clone git://github.com/rcrowley/django-twitterauth.git auth
+		$ echo auth >> .gitignore
+
+	You'll need to add this app to your settings.py file in the
+	INSTALLED_APPS section.  You'll also need these two extra lines:
+
+		TWITTERAUTH_KEY = 'OH HAI'
+		TWITTERAUTH_SECRET = 'OH NOES'
+
+	Setup the URLs for the auth app.  The names of the URLs are required.
+	For example:
+
+		url(r'^info/?$', 'auth.views.info', name='auth_info'),
+		url(r'^login/?$', 'auth.views.login', name='auth_login'),
+		url(r'^login/callback/?$', 'auth.views.callback', name='auth_callback'),
+		url(r'^logout/?$', 'auth.views.logout', name='auth_logout'),
+
+	Again, the names of the URLs are required.  I chose not to create
+	auth/urls.py because URLs like /auth/login et cetera seems awful.
+
+	Make sure to run `python manage.py syncdb` to create the User model.
+
+DEPENDENCIES
+	Python 2.5 <http://python.org/>
+	Django 1.0.2 <http://djangoproject.com/>
+	Simple JSON <http://pypi.python.org/pypi/simplejson>
+	Python OAuth <http://oauth.googlecode.com/svn/code/python/oauth/>
+
+VERSION
+	0.3
+
+DATE
+	2009-04-13
+
+AUTHOR
+	Richard Crowley <r@rcrowley.org>
+
+SEE ALSO
+	<http://github.com/henriklied/django-twitter-oauth>
+
+LICENSE
+	This work is licensed under a Creative Commons
+	Attribution-Share Alike 3.0 Unported License
+	<http://creativecommons.org/licenses/by-sa/3.0/>
+

@@ -1,0 +1,278 @@
+This example demonstrates how you can wrap a C APIthat has a callback interface, so that you canpass Python functions to it as callbacks.The files cheesefinder.h and cheesefinder.crepresent the C library to be wrapped.The file cheese.pyx is the Pyrex modulewhich wraps it.The file run_cheese.py demonstrates how tocall the wrapper.
+This example demonstrates how Cython-generated code
+can be called directly from a main program written in C.
+
+The Windows makefiles were contributed by
+Duncan Booth <Duncan.Booth@SuttonCourtenay.org.uk>.
+
+NAME
+====
+
+cython_freeze - create a C file for embedding Cython modules
+
+
+SYNOPSIS
+========
+
+cython_freeze [-o outfile] [-p] module [...]
+
+
+DESCRIPTION
+===========
+
+**cython_freeze** generates a C source file to embed a Python interpreter
+with one or more Cython modules built in.  This allows one to create a single
+executable from Cython code, without having to have separate shared objects
+for each Cython module.  A major advantage of this approach is that it allows
+debuging with gprof(1), which does not work with shared objects.
+
+Unless ``-p`` is given, the first module's ``__name__`` is set to
+``"__main__"`` and is imported on startup; if ``-p`` is given, a normal Python
+interpreter is built, with the given modules built into the binary.
+
+Note that this method differs from ``cython --embed``.  The ``--embed`` options
+modifies the resulting C source file to include a ``main()`` function, so it
+can only be used on a single Cython module.  The advantage ``--embed`` is
+simplicity.  This module, on the other hand, can be used with multiple
+modules, but it requires another C source file to be created.
+
+
+OPTIONS
+=======
+
+-o FILE, --outfile=FILE   write output to FILE instead of standard output
+-p, --pymain              do not automatically run the first module as __main__
+
+
+EXAMPLE
+=======
+
+In the Demos/freeze directory, there exist two Cython modules:
+
+lcmath.pyx
+    A module that interfaces with the -lm library.
+
+combinatorics.pyx
+    A module that implements n-choose-r using lcmath.
+
+Both modules have the Python idiom ``if __name__ == "__main__"``, which only
+execute if that module is the "main" module.  If run as main, lcmath prints the
+factorial of the argument, while combinatorics prints n-choose-r.
+
+The provided Makefile creates an executable, *nCr*, using combinatorics as the
+"main" module.  It basically performs the following (ignoring the compiler
+flags)::
+
+    $ cython_freeze combinatorics lcmath > nCr.c
+    $ cython combinatorics.pyx
+    $ cython lcmath.pyx
+    $ gcc -c nCr.c
+    $ gcc -c combinatorics.c
+    $ gcc -c lcmath.c
+    $ gcc nCr.o combinatorics.o lcmath.o -o nCr
+
+Because the combinatorics module was listed first, its ``__name__`` is set
+to ``"__main__"``, while lcmath's is set to ``"lcmath"``.  The executable now
+contains a Python interpreter and both Cython modules. ::
+
+    $ ./nCr
+    USAGE: ./nCr n r
+    Prints n-choose-r.
+    $ ./nCr 15812351235 12
+    5.10028093999e+113
+
+You may wish to build a normal Python interpreter, rather than having one
+module as "main".  This may happen if you want to use your module from an
+interactive shell or from another script, yet you still want it statically
+linked so you can profile it with gprof.  To do this, add the ``--pymain``
+flag to ``cython_freeze``.  In the Makefile, the *python* executable is built
+like this. ::
+
+    $ cython_freeze --pymain combinatorics lcmath -o python.c
+    $ gcc -c python.c
+    $ gcc python.o combinatorics.o lcmath.o -o python
+
+Now ``python`` is a normal Python interpreter, but the lcmath and combinatorics
+modules will be built into the executable. ::
+
+    $ ./python
+    Python 2.6.2 (release26-maint, Apr 19 2009, 01:58:18)
+    [GCC 4.3.3] on linux2
+    Type "help", "copyright", "credits" or "license" for more information.
+    >>> import lcmath
+    >>> lcmath.factorial(155)
+    4.7891429014634364e+273
+
+
+PREREQUISITES
+=============
+
+Cython 0.11.2 (or newer, assuming the API does not change)
+
+
+SEE ALSO
+========
+
+* `Python <http://www.python.org>`_
+* `Cython <http://www.cython.org>`_
+* `freeze.py <http://wiki.python.org/moin/Freeze>`_
+
+Cython's entire documentation suite is currently being overhauled.
+
+For the time being, I'll use this page to post notes.
+
+The previous Cython documentation files are hosted at
+http://hg.cython.org/cython-docs
+
+
+Notes
+=======
+
+1) Some css work should definitely be done.
+2) Use local 'top-of-page' contents rather than the sidebar, imo.
+3) Provide a link from each (sub)section to the TOC of the page.
+4) Fix cython highlighter for cdef blocks
+
+ == Pyximport == 
+
+Download: pyx-import-1.0.tar.gz
+<http://www.prescod.net/pyximport/pyximport-1.0.tar.gz>
+
+Pyrex is a compiler. Therefore it is natural that people tend to go
+through an edit/compile/test cycle with Pyrex modules. But my personal
+opinion is that one of the deep insights in Python's implementation is
+that a language can be compiled (Python modules are compiled to .pyc)
+files and hide that compilation process from the end-user so that they
+do not have to worry about it. Pyximport does this for Pyrex modules.
+For instance if you write a Pyrex module called "foo.pyx", with
+Pyximport you can import it in a regular Python module like this:
+
+
+import pyximport; pyximport.install()
+import foo
+
+Doing so will result in the compilation of foo.pyx (with appropriate
+exceptions if it has an error in it).
+
+If you would always like to import pyrex files without building them
+specially, you can also the first line above to your sitecustomize.py.
+That will install the hook every time you run Python. Then you can use
+Pyrex modules just with simple import statements. I like to test my
+Pyrex modules like this:
+
+
+python -c "import foo"
+
+See help(pyximport.install) to learn its options for controlling the
+default behavior of "import" and "reload".
+
+ == Dependency Handling == 
+
+In Pyximport 1.1 it is possible to declare that your module depends on
+multiple files, (likely ".h" and ".pxd" files). If your Pyrex module is
+named "foo" and thus has the filename "foo.pyx" then you should make
+another file in the same directory called "foo.pyxdep". The
+"modname.pyxdep" file can be a list of filenames or "globs" (like
+"*.pxd" or "include/*.h"). Each filename or glob must be on a separate
+line. Pyximport will check the file date for each of those files before
+deciding whether to rebuild the module. In order to keep track of the
+fact that the dependency has been handled, Pyximport updates the
+modification time of your ".pyx" source file. Future versions may do
+something more sophisticated like informing distutils of the
+dependencies directly.
+
+ == Limitations == 
+
+Pyximport does not give you any control over how your Pyrex file is
+compiled. Usually the defaults are fine. You might run into problems if
+you wanted to write your program in half-C, half-Pyrex and build them
+into a single library. Pyximport 1.2 will probably do this.
+
+Pyximport does not hide the Distutils/GCC warnings and errors generated
+by the import process. Arguably this will give you better feedback if
+something went wrong and why. And if nothing went wrong it will give you
+the warm fuzzy that pyximport really did rebuild your module as it was
+supposed to.
+
+ == For further thought and discussion == 
+
+"setup.py install" does not modify sitecustomize.py for you. Should it?
+Modifying Python's "standard interpreter" behaviour may be more than
+most people expect of a package they install..
+
+Pyximport puts your ".c" file beside your ".pyx" file (analogous to
+".pyc" beside ".py"). But it puts the platform-specific binary in a
+build directory as per normal for Distutils. If I could wave a magic
+wand and get Pyrex or distutils or whoever to put the build directory I
+might do it but not necessarily: having it at the top level is VERY
+HELPFUL for debugging Pyrex problems.
+
+Welcome to Cython!
+=================
+
+Cython (http://cython.org) is a language that makes writing C extensions for
+the Python language as easy as Python itself.  Cython is based on the
+well-known Pyrex, but supports more cutting edge functionality and
+optimizations.
+
+The Cython language is very close to the Python language, but Cython
+additionally supports calling C functions and declaring C types on variables
+and class attributes.  This allows the compiler to generate very efficient C
+code from Cython code.
+
+This makes Cython the ideal language for wrapping external C libraries, and
+for fast C modules that speed up the execution of Python code.
+
+LICENSE:
+
+The original Pyrex program was licensed "free of restrictions" (see
+below).  Cython itself is licensed under the permissive
+
+   Apache License
+
+See LICENSE.txt.
+
+
+--------------------------
+
+Note that Cython used to ship the full version control repository in its source
+distribution, but no longer does so due to space constraints.  To get the
+full source history, make sure you have git installed, then step into the
+base directory of the Cython source distribution and type
+
+    make repo
+
+Alternatively, check out the latest developer repository from
+
+    https://github.com/cython/cython
+
+
+
+The following is from Pyrex:
+------------------------------------------------------
+This is a development version of Pyrex, a language
+for writing Python extension modules.
+
+For more info, see:
+
+    Doc/About.html for a description of the language
+    INSTALL.txt    for installation instructions
+    USAGE.txt      for usage instructions
+    Demos          for usage examples
+
+Comments, suggestions, bug reports, etc. are
+welcome!
+
+Copyright stuff: Pyrex is free of restrictions. You
+may use, redistribute, modify and distribute modified
+versions.
+
+The latest version of Pyrex can be found here:
+
+http://www.cosc.canterbury.ac.nz/~greg/python/Pyrex/
+
+Greg Ewing, Computer Science Dept, +--------------------------------------+
+University of Canterbury,          | A citizen of NewZealandCorp, a       |
+Christchurch, New Zealand          | wholly-owned subsidiary of USA Inc.  |
+greg@cosc.canterbury.ac.nz         +--------------------------------------+
+

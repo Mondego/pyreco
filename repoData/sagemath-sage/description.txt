@@ -1,0 +1,995 @@
+This is a stub autotools project to generate the system-dependent
+libtool script. Nothing is compiled here. The Makefile.am unpacks the
+atlas static libraries and repacks them into shared libraries.
+
+bzip2 autoconfiscated
+=====================
+
+Temporarily at http://ftp.suse.com/pub/people/sbrabec/bzip2/ expecting
+that it will become a new upstream version to prevent per-distribution
+shared library patching done by nearly each Linux vendor separately.
+
+Autoconfiscation brings standard ./configure ; make ; make install
+installation, seamless support of DESTDIR, automatic check for supported
+CFLAGS, standard shared library support, automatic large files CFLAGS
+check and all things that are supported by automake.
+
+It makes obsolete Makefile-libbz2_so and README.COMPILATION.PROBLEMS.
+Now configure should automatically detect correct build flags.
+
+In case of any problem or question with autotools support feel free to
+contact me: Stanislav Brabec <sbrabec@suse.cz>
+
+Autoconfiscated version binaries are exactly equal to
+bzip2-1.0.5.tar.gz. There are only few changes. See below.
+
+
+New features:
+
+Trivial link man pages for bzcat and bunzip2 added.
+
+bzip2.pc file for pkg-config. Packages can use it for checks.
+
+
+Incompatible changes:
+
+soname change. Libtool has no support for two parts soname suffix (e. g.
+libbz2.so.1.0). It must be a single number (e. g. libbz2.so.1). That is
+why soname must change. But I see not a big problem with it. Several
+distributions already use the new number instead of the non-standard
+number from Makefile-libbz2_so.
+
+To be super-safe, I incremented minor number of the library file, so
+both instances of the shared library can live together.
+
+======================================================================
+Current patches to PARI in Sage:
+======================================================================
+
+Patches to configuration files:
+* get_ld.patch (Carl Witty): Disable -rpath.
+* get_tests.patch (John Cremona): Disable testing of ellglobalred in
+  "make test-all" in spkg-check, since it requires the elldata database
+  which we do not include since it is about 18MB.
+* get_config_options.patch (Leif Leonhardy): Catch invalid arguments to
+  "--graphic" (and treat such as an error) since otherwise strange
+  compilation errors might occur (cf. #9722, too).
+* get_fltk.patch (Leif Leonhardy): Explicitly link against libstdc++
+  when using FLTK (for plotting) to support Fedora 13, and do an extra
+  check for the FLTK include dir (cf. #9722).
+* get_X11.patch (Leif Leonhardy): Also search */lib64/* for X11
+  libraries (since on some systems this is really a separate directory,
+  i.e. neither a symbolic link to */lib/* nor the target of a symbolic
+  link */lib/*; cf. #9722, too).
+* get_dlcflags.patch (Jeroen Demeyer): Add -fno-common to DLCFLAGS on
+  Darwin. Submitted upstream, but upstream only applied it for PowerPC.
+  Since this doesn't break anything and only improves performance, add
+  the flag unconditionally.
+* install_doc_no_make.patch (Jeroen Demeyer): Do not *build* the
+  documentation when doing install-doc or install-docpdf.  We must not
+  build the documentation because that requires tex.  On the other hand,
+  to have ? and ?? work within gp, we must install the .tex files (but
+  not .dvi files).  So simply not doing install-doc doesn't work.
+* perl_path.patch (Jeroen Demeyer): change first line of all perl
+  scripts to "#!/usr/bin/env perl" (#10559).
+* cygwin_dll_a.patch (Jean-Pierre Flori): copy libpari.dll.a on Cygwin
+  (see #13333).
+* KERNELCFLAGS.patch (Jeroen Demeyer): when SAGE_DEBUG=yes, compile
+  kernel files with -O1 instead of -funroll-loops; -O0 gives a
+  segmentation fault on some OS X systems when doing
+  factor(10356613*10694706299664611221)
+  See #13921, also reported upstream:
+  - http://pari.math.u-bordeaux.fr/archives/pari-dev-1301/msg00000.html
+
+C files:
+* GCC_PR49330.patch (Jeroen Demeyer): in pari_init_functions(), reorder
+  code to work around a GCC bug concerning pointer arithmetic:
+  http://gcc.gnu.org/bugzilla/show_bug.cgi?id=49330
+  This bug manifests itself as a Bus Error on OS X 10.4 PPC with
+  gcc-4.6.3. Discussed with upstream:
+  - http://pari.math.u-bordeaux.fr/archives/pari-dev-1203/msg00001.html
+  - http://pari.math.u-bordeaux.fr/archives/pari-dev-1202/msg00006.html
+* trac_13902_determinant.patch (Jeroen Demeyer): patch backported from
+  upstream git repository based on commits
+  - 28ea998bc661f5bbde18b6d6b0f50111a10ae16c
+  - 249432f7088bfa114ed5cd3a5d64ef51ee968e35
+* polred.patch (Jeroen Demeyer): Fix polred(), add polredbest()
+  backported from upstream commits
+  - 2d00a24fbb1ffe8eba35b9a04763e36eef8a5f7b
+  - a3596c56f9439144a0dbed4c47bd6ff9485e3fc8
+  - 1a00ca416de4daebccaab2be1a4b8a061a9f2fde
+  - ad550d9bbfee8113087407c3262bffc27a020c98
+* q_eint1.patch (Jeroen Demeyer): Fix precision of eint1(), backported
+  from upstream commits
+  - b894e0171112493bb4945a6a0e4af039b54a1d1f
+  - 54eb37055167dbd8d4856b1bd698cf7018db561b
+  and completely backport new algorithm for mpveceint1(). The prefix
+  q_ in the patch filename is to ensure it comes after polred.patch.
+* det_garbage.patch (Jeroen Demeyer, #15654): When computing a
+  determinant(), only collect garbage once per outer loop iteration.
+  Better increase PARI stack size instead of collecting garbage too
+  often.
+
+How to create a SymPy spkg package:
+
+$ ./get-orig-sources
+
+Then rename the sympy-spkg directory to sympy-0.5.13 (choose the correct
+version) and execute from the parent directory:
+
+$ sage -pkg sympy-0.5.13
+
+    Sage: Open Source Mathematical Software
+
+       "Creating a Viable Open Source Alternative to
+          Magma, Maple, Mathematica, and MATLAB"
+
+    Copyright (C) 2005-2014 The Sage Development Team
+
+        http://www.sagemath.org
+
+The Sage Library is GPLv2+, included packages have compatible OSS
+licenses (see COPYING.txt). Over 400 people have contributed code to
+Sage. Please see the following web page for a list:
+
+    http://www.sagemath.org/development-map.html
+
+In many cases, documentation for modules and functions list the
+authors.
+
+
+GETTING STARTED
+---------------
+
+This README.txt contains build instructions for Sage. If you downloaded
+a binary, you do not need to do anything; just execute:
+
+    ./sage
+
+from the command line. If you downloaded the sources, please read below
+on how to build Sage and work around common issues.
+
+If you have questions or encounter problems, please do not hesitate
+to email the sage-support mailing list:
+
+    http://groups.google.com/group/sage-support
+
+
+SUPPORTED PLATFORMS
+-------------------
+
+Sage fully supports several Linux distributions, recent versions of
+Mac OS X, Windows (using virtualization), as well as a number of
+Solaris and OpenSolaris releases.
+
+There should be no serious bugs in an officially released version of
+Sage on any of the fully supported platforms, but any major issues with
+a particular release will be documented on an errata page:
+
+    http://wiki.sagemath.org/errata
+
+Ports are in progress to some other, less common platforms. The list of
+supported platforms and their current statuses are given at the
+following web page:
+
+    http://wiki.sagemath.org/SupportedPlatforms
+
+If you are interested in helping port Sage to a new platform, please let
+us know at the sage-devel mailing list:
+
+    http://groups.google.com/group/sage-devel
+
+
+QUICK INSTRUCTIONS TO BUILD FROM SOURCE
+---------------------------------------
+
+The following steps briefly outline the process of building Sage from
+source. More detailed instructions, including how to build faster on
+multicore machines are contained later in this README and in the
+Installation Guide:
+
+    http://www.sagemath.org/doc/installation
+
+1. Make sure you have the dependencies and 5 GB of free disk space.
+
+   All Linux versions: gcc, make, m4, perl, ranlib, and tar.
+   Debian or Ubuntu systems: the dpkg-dev package.
+   Fedora or RedHat systems: the perl-ExtUtils-MakeMaker package.
+   (install these using your package manager)
+
+   OS X: Xcode. Make sure you have installed the most recent version
+   of Xcode. With recent versions of OS X (OS X Lion or later), you
+   can install Xcode for free from the App Store. For pre-Lion
+   versions of OS X, you can download Xcode from
+   http://developer.apple.com/downloads/.
+
+   With OS X, you also need to install the "command line tools". When
+   using OS X Mavericks, after installing Xcode, run this command from
+   a terminal window:
+
+      xcode-select --install
+
+   Then click "Install" in the pop-up window.
+
+   When using OS X Mountain Lion or earlier, you need to install the
+   command line tools from Xcode: run Xcode; then from the File
+   menu, choose "Preferences", then the "Downloads" tab, and then
+   "Install" the Command Line Tools.
+
+   Other platforms: See detailed instructions below.
+
+2. Extract the tarball:
+
+       tar xvf sage-*.tar
+
+3. cd into the Sage directory and type make:
+
+       cd sage-*/
+       make
+
+   That's it! Everything is automatic and non-interactive. The build
+   should work fine on all fully supported platforms. If it does not, we
+   want to know!
+
+
+ENVIRONMENT VARIABLES
+---------------------
+
+There are a lot of environment variables which control the install
+process of Sage, see:
+
+    http://sagemath.org/doc/installation/source.html#environment-variables
+
+
+IMPLEMENTATION
+--------------
+
+Sage has significant components written in the following languages:
+C/C++, Python, Cython, Lisp, and Fortran. Lisp (ECL), Python, and Cython
+are built as part of Sage and a GNU Fortran (gfortran) binary is
+included (OS X only), so you do not need them in order to build Sage.
+
+
+MORE DETAILED INSTRUCTIONS TO BUILD FROM SOURCE
+-----------------------------------------------
+
+1. Make sure you have about 5 GB of free disk space.
+
+2. Install build dependencies.
+
+   Linux: See quick instructions above.
+
+   OS X: Make sure you have XCode version >= 2.4, i.e. "gcc -v" should
+   output build >= 5363. If you don't, go to:
+
+       http://developer.apple.com/
+
+   sign up, and download the free XCode package. Only OS X >= 10.4 is
+   supported.
+
+   Solaris and OpenSolaris: Building Sage on these platforms is more
+   tricky than on Linux or OS X. For details on how to build Sage on
+   these platforms, see:
+
+       http://wiki.sagemath.org/solaris
+
+   Windows: Download and install VirtualBox, and then download the
+   Sage virtual appliance. For details, see:
+
+       http://wiki.sagemath.org/SageAppliance
+
+   NOTE: On some operating systems, it might be necessary to install
+   gas/as, gld/ld, gnm/nm. On most platforms, these are automatically
+   installed when you install the programs listed above.
+
+3. Extract the Sage source tarball and cd into a directory with no
+   spaces in it. If you have a machine with 4 processors, say, type
+   the following to configure the build script to perform a parallel
+   compilation of Sage using 4 jobs:
+
+       export MAKE="make -j4"
+
+   (With 4 processors, you might also consider "-j5" or "-j6" --
+   building with more jobs than CPU cores can speed things up.)
+   You might in addition pass a "-l" flag to "make": this
+   sets a load limit, so for example if you execute
+
+       export MAKE="make -j4 -l5.5"
+
+   then "make" won't start more than one job at a time if the system
+   load average is above 5.5.  See
+   http://www.gnu.org/software/make/manual/make.html#Options-Summary
+   and http://www.gnu.org/software/make/manual/make.html#Parallel.
+
+   If you want to run the test suite for each individual spkg as it is
+   installed, type:
+
+       export SAGE_CHECK="yes"
+
+   before starting the Sage build. This will run each test suite and
+   will raise an error if any failures occur. Python's test suite has
+   been disabled by default, because it causes failures on most
+   systems. To renable the Python testsuite, set the environment
+   variable SAGE_CHECK_PACKAGES to "python".
+
+   To start the build, type:
+
+       make
+
+4. Wait about 20 minutes to 14 days, depending on your computer (it took
+   about 2 weeks to build Sage on the T-Mobile G1 Android cell phone).
+
+5. Type "./sage" to try it out.
+
+6. OPTIONAL: Type "make ptest" to test all examples in the documentation
+   (over 200,000 lines of input!) -- this takes from 10 minutes to
+   several hours. Don't get too disturbed if there are 2 to 3 failures,
+   but always feel free to email the section of logs/ptest.log that
+   contains errors to the sage-support mailing list. If there are
+   numerous failures, there was a serious problem with your build.
+
+7. The HTML version of the documentation is built
+   during the compilation process of Sage and resides in the directory:
+
+       $SAGE_ROOT/src/doc/output/html/
+
+   OPTIONAL: If you want to build the PDF version (requires LaTeX) of
+   the documentation, run:
+
+       make doc-pdf
+
+8. OPTIONAL: It is highly recommended that you install the optional GAP
+   database by typing:
+
+       ./sage --optional
+
+   then installing (with "./sage -i") the package whose name begins with
+   database_gap. This will download the package from
+   sage.math.washington.edu and install it. While you're at it, you
+   might install other databases of interest to you.
+
+9. OPTIONAL: It is recommended that you have both LaTeX and the
+   ImageMagick tools (e.g. the "convert" command) installed since some
+   plotting functionality benefits from it.
+
+10. OPTIONAL: Read this if you are intending to run a Sage notebook
+    server for multiple users. For security (i.e., to run
+    "notebook(secure=True)") you want to access the server using the
+    HTTPS protocol. First, install OpenSSL and the OpenSSL development
+    headers on your system if they are not already installed. Then
+    install pyOpenSSL by building Sage and then typing
+
+        ./sage -i pyopenssl
+
+    Note that this command requires internet access.  Alternatively,
+    "make ssl" builds Sage and installs pyOpenSSL.
+
+
+PROBLEMS
+--------
+
+If you have problems building Sage, check the Sage Installation Guide,
+and also note the following.  Each separate component of Sage is
+contained in an spkg; these are stored in spkg/standard/.  As each one
+is built, a build log is stored in logs/pkgs/, so you can browse these
+to find error messages.  If an spkg fails to build, the whole build
+process will stop soon after, so check the most recent log files
+first, or run
+
+   grep -li "^Error" logs/pkgs/*
+
+from the top-level Sage directory to find log files with error
+messages in them.  Send (a small part of) the relevant log file to the
+sage-devel mailing list, making sure to include at least some of the
+error messages; probably someone there will have some helpful
+suggestions.
+
+
+SUPPORTED COMPILERS
+-------------------
+
+Sage includes a GCC (GNU Compiler Collection) package. In order to
+build Sage, you need a C compiler which can build GCC and its
+prerequisites. gcc version 4.0.1 or later should probably work. On
+Solaris or OpenSolaris, building with the Sun compiler should also work.
+
+The GCC package in Sage is not always installed. It is determined
+automatically whether it needs to be installed. You can override this
+by setting the environment variable SAGE_INSTALL_GCC=yes (to force
+installation of GCC) or SAGE_INSTALL_GCC=no (to disable installation of
+GCC). If you don't want to install GCC, you need to have recent
+versions of gcc, g++ and gfortran; moreover, the versions must be equal.
+
+There are some known problems with old assemblers, in particular when
+building the ECM package. You should ensure that your assembler
+understands all instructions for your processor. On Linux, this means
+you need a recent version of binutils; on OS X you need a recent version
+of XCode.
+
+
+DIRECTORY LAYOUT
+----------------
+
+Simplified directory layout (only essential files/directories):
+
+SAGE_ROOT                 Root directory (sage-x.y.z in the Sage tarball)
++-- build
+|   +-- deps              Dependency information of packages
+|   +-- pkgs              Every package is a subdirectory here
+|       +-- atlas
+|       ...
+|       +-- zn_poly
++-- COPYING.txt           Copyright information
++-- local                 Compiled packages are installed here
+|   +-- bin               Executables
+|   +-- include           C/C++ headers
+|   +-- lib               Shared libraries
+|   +-- share             Databases, architecture-independent data
+|   +-- var
+|       +-- sage          List of installed packages
+|       +-- tmp           Temporary files when building Sage
++-- logs 
+|   +-- dochtml.log       Log of the documentation build
+|   +-- install.log       Full install log
+|   +-- pkgs              Build logs of individual packages
+|       +--- atlas-3.10.1.p7.log
+|       ...
+|       +--- zn_poly-0.9.p11.log
++-- Makefile              Running "make" uses this file
++-- README.txt            This file
++-- sage                  Script to start Sage
++-- src                   All of the Sage source (not third-party packages)
+|   +-- bin               Scripts that Sage uses internally
+|   +-- doc               Sage documentation
+|   +-- sage              The Sage library source code
++-- upstream              Source tarballs of packages
+|   +-- atlas-3.10.1.tar.bz2
+|   ...
+|   +-- zn_poly-0.9.tar.bz2
++-- VERSION.txt
+
+For more details, see:
+
+    http://sagemath.org/doc/developer/coding_basics.html#files-and-directory-structure
+
+
+RELOCATION
+----------
+
+You *should* be able to move the sage-x.y.z/ directory anywhere you
+want. If you copy the sage script or make a symbolic link to it, you
+should modify the script to reflect this (as instructed at the top of
+the script). It is best if the path to Sage does not have any spaces in
+it.
+
+For a system-wide installation, as root you can move the sage-x.y.z/
+directory to a system-wide directory. Afterwards, you need to start up
+Sage as root at least once prior to using the system-wide Sage as a
+normal user. See the Installation Guide for further information on
+performing a system-wide installation:
+
+    http://www.sagemath.org/doc/installation/source.html#installation-in-a-multiuser-environment
+
+If you find anything that doesn't work correctly after you moved the
+directory, please email the sage-support mailing list.
+
+
+REDISTRIBUTION
+--------------
+
+Your local Sage install is almost exactly the same as any "developer"
+install. You can make changes to documentation, source, etc., and very
+easily package the complete results up for redistribution just like we
+do.
+
+1. To make your own source tarball of Sage, type:
+
+       sage --sdist
+
+2. To make a binary distribution with your currently installed packages,
+   type:
+
+       sage --bdist
+
+3. To make a binary that will run on the widest range of target
+   machines, set the SAGE_FAT_BINARY environment variable to "yes"
+   before building Sage:
+
+       export SAGE_FAT_BINARY="yes"
+       make distclean && make
+       ./sage --bdist
+
+In all cases, the result is placed in the directory "$SAGE_ROOT/dist/".
+
+
+CHANGES TO INCLUDED SOFTWARE
+----------------------------
+
+All software included with Sage is copyrighted by the respective authors
+and released under an open source license that is "GPL version 3 or
+later" compatible. See the file COPYING.txt for more details.
+
+Sources are in unmodified (as far as possible) tarballs in the
+"$SAGE_ROOT/upstream" directory. The remaining description, version
+information, patches, and build scripts are in the accompanying
+"$SAGE_ROOT/build/pkgs/<packagename>" directory. This directory is
+part of the Sage git repository.
+
+This is Sage -- open source mathematical software.
+
+         http://www.sagemath.org
+
+**
+  These binaries are only for the OS X version that is indicated by the package .dmg name.
+  They generally will not work on any other OS X version (unless explicitly stated otherwise).
+**
+
+There are two ways in which Sage can be distributed.  One is as a
+"regular" OS X application named something like Sage-VERSION.  If you
+see such an application, skip to the section about Sage.app.  If
+instead you see a folder called "sage", proceed as follows.
+
+1) Download the dmg somewhere and double click on it.
+
+2) Drag the sage folder somewhere, e.g., /Applications
+
+ ** WARNING ** If you get an error copying the folder do the following:
+    Do not drag the the folder out of the dmg image. Use the
+    shell (via Terminal) and do a
+     "cp -R -P /Volumes/sage-2.9.2-OSX10.4-intel-i386-Darwin/sage ."
+    from the location where you want to install to. Adjust the name of the
+    Volume as needed.
+
+3) Use finder to visit the sage folder you just copied it and double click on the "sage" icon.
+
+4) Select to run it with "Terminal":
+     Choose Applications, then select "All Applications" in the
+     "Enable:" drop down.  Change the "Applications" drop down
+     to "Utilities".  On the left, scroll and select "Terminal".
+     Click "Open", then in the next dialog select "Update".
+
+5) Sage should pop up in a window.
+
+6) For the graphical notebook, type
+     notebook()
+   You might have to open Firefox or Safari (your choice)
+   to the URL
+       http://localhost:8000
+   to use Sage on your computer.
+
+7) Email
+      http://groups.google.com/group/sage-support
+   with any questions.
+
+
+========
+Sage.app
+========
+
+Sage.app is a fairly simple application which starts the Sage server
+when launched and stops it when quitting.  It also contains a
+primitive browser which can be used to view the Sage notebook if
+desired.  Sage.app can also be used to launch terminal sessions for
+many of your favorite Sage commands.  Note that holding the option key
+changes some of the commands that can be run, and holding the command
+key will allow you to edit the command before running them.
+
+Any feedback is welcome: http://groups.google.com/group/sage-devel
+
+------------
+Installation
+------------
+
+Simply copy the application to your hard drive as you would any other
+application.
+
+You may also wish to add the sage executable to your PATH for use in a
+normal terminal session.  This can be done from the Preferences window
+and the Add To PATH button.  It will ask whether to add to
+/usr/local/bin or ~/bin.  To remove this, simply delete the symlink in
+whichever location you chose or overwrite it with a new version.
+
+WARNING: When Sage.app is run, it may take a _long_ time for the
+server to start up.  Please don't give up.  If you think it has taken
+too long, use View Log under the Development menu to see if there are
+any errors.
+
+-----
+Setup
+-----
+
+If you have a copy of Sage.app which did not come bundled with a Sage
+distribution (say you built a new version of Sage.app yourself), then
+the first time it is run, it will prompt you for a Sage executable.
+Please choose the executable that is called sage and is what you would
+run from the command line.  You can change this later in the
+preferences.  You can also drag a sage folder (SAGE_ROOT) onto
+Sage.app to change what sage executable it will use.
+
+-----------
+Preferences
+-----------
+
+Sage.app can be run as a normal application, or as a menu extra (icon
+on the right side of the menu), or both.  This can be set in
+Preferences where you can set whether to use Sage.app as a browser,
+whether to always start the server, and whether you wish to always
+edit terminal session arguments before they are run.
+
+You may also set default parameters for terminal sessions.  For
+example to send -b to gap (to inhibit the initial banner), type gap as
+the session (lowercase as you see it in the menus--use "sage" (without
+quotes) for sage sessions), -b as the argument and hit Apply.
+Unfortunately, due to a bug in the Cocoa framework, choosing the
+session with the mouse does not correctly update the Default Arguments
+field.  Instead please select a previous session with the keyboard.
+The same applies to the Terminal Emulator selection.
+
+You may select a method of running terminal sessions.  If you do not
+see your favorite terminal emulator here, please let know what it is,
+so we can add it.  You can also create/edit the applescript directly
+for the ultimate in flexibility.  Place %@ where you wish the command
+to be inserted (but only do so once).
+
+------------
+SAGE_BROWSER
+------------
+
+WARNING: setting SAGE_BROWSER in .bashrc will overwrite the value
+which allows Sage.app to work.  Therefore please use something like
+
+SAGE_BROWSER=${SAGE_BROWSER-/path/to/script/to/open/your/browser}
+
+(or nothing at all) in your .bashrc if you wish to use Sage.app as the
+Sage notebook browser.
+
+-----------------
+OS X 10.4 (Tiger)
+-----------------
+
+On Tiger (10.4) the method of making Sage.app appear in the Dock does
+not work, hence the preference to show in the Dock is disabled.  If
+you wish the application to appear in the Dock, you may run the
+following in a shell (changing the path to Sage.app appropriately)
+
+defaults write /Applications/Sage.app/Contents/Info LSUIElement 0
+
+To go back to Dockless mode:
+
+defaults write /Applications/Sage.app/Contents/Info LSUIElement 1
+
+You will of course have to restart Sage.app
+
+--------
+Building
+--------
+
+If you wish to build a copy of Sage.app for yourself, you can run
+
+SAGE_APP_BUNDLE=yes sage -bdist VERSION
+
+which will create a version that is bundled with a binary
+distribution.  If you wish to make changes, or create a version which
+does not contain a distribution, then open
+src/mac-app/Sage.xcodeproj in Xcode.  If you are
+building on OS X 10.4, then you will need to change the SDK by opening
+Project Settings, and in Cross-Develop in General set it to 10.4
+(universal).
+
+Sage.app was created with the help of Platypus which is available from
+http://www.sveinbjorn.org/platypus under the GPLv2 license.  In
+particular the binary file Sage.app/Contents/MacOS/Sage is created by
+platypus, and handles all the UI.  Basically it runs the script at
+Contents/Resources/script (which starts up the sage notebook) and
+displays the output in a text window.
+
+This file (as well as many others) can be recreated using the
+following steps (assuming that the command line tools have been
+installed--available in the Preferences).
+
+cd /path/to/this/readme
+
+/usr/local/bin/platypus -R -a 'Sage' -o 'Text Window' \
+    -u 'The Sage Development Team' -p '/bin/sh' \
+    -V 'SAGE_VERSION' -I 'org.sagemath.sage' \
+    -g '#000000'  -b '#ffffff'  \
+    -c './Sage.app/Contents/Resources/script' \
+    -i './Sage.app/Contents/Resources/appIcon.icns' \
+    'Sage-new.app'
+
+This creates a new application bundle with everything updated.  The
+only problem is that the copyright will need to be changed, since
+platypus uses the current year.  I do not know of any way to change
+this short of editing Contents/Resources/AppSettings.plist.  Copying
+over the old Contents/Resources/AppSettings.plist should do the trick,
+though of course this will also cause any changed settings to not take
+effect.  It is simply an xml plist and can be edited it any text
+editor or with Apple's Property List Editor which comes with the
+Developer's tools.
+
+If you wish to create an application which runs in background
+(i.e. has no UI), then you can add a -B option to the above command,
+or replace Sage.app/Contents/MacOS/Sage with a script like
+
+#!/bin/bash
+
+"$0/../../Resources/script" &
+
+
+If you choose to do this, however, there will be no way to stop the
+notebook server short of issuing a kill statement manually.
+
+To have it run the notebook server in Terminal (or another terminal
+emulator) instead of a separate application, you can replace the file
+Sage.app/Contents/MacOS/Sage with a script such as:
+
+#!/bin/bash
+
+osascript \
+    -e 'tell application "Terminal"' \
+    -e     "activate" \
+    -e     "do script \"'$0/../../Resources/script'\"" \
+    -e "end tell"
+
+
+Other files in Sage.app/Contents:
+
+Info.plist -- a plist telling OS X with basic information about the application
+
+Resources/script -- The script which actually starts the notebook server
+                    (specified in AppSettings.plist)
+
+Resources/AppSettings.plist -- A plist containing platypus options
+                               (e.g. what script to run, what kind of GUI, colors, etc.)
+
+Resources/appIcon.icns -- The icon for the application
+
+Resources/English.lproj/ -- Information about the GUI (nib files etc.)
+
+Resources/sage/ -- A full sage tree -- this is only present in the finished application
+
+This program calculates rank-width and rank-decompositions. It is based on ideas from "Computing rank-width exactly" by Sang-il Oum, "Sopra una formula numerica" by Ernesto Pascal, "Generation of a Vector from the Lexicographical Index" by B.P. Buckles and M. Lybanon and "Fast additions on masked integers" by Michael D. Adams and David S. Wise.
+On today's computers it works quite well up to graph sizes of about 28 nodes.
+
+Assuming that libigraph is installed it can be compiled using e.g. "gcc -O2 --std=c99 -pedantic rw.c simplerw.c -ligraph".
+
+It supports a number of input graph formats; there is an example graph included, for which rank-width and rank-decomposition can be calculated using "./a.out --edgelist igrid".
+
+rw.h / rw.c provide a general mechanism for calculating rank-width and rank-decompositions. simplerw.c provides a simple command-line interface.
+
+
+In this folder is a small stub program that uses libGAP library for
+some simple computations for debugging purposes. It uses libGAP
+essentially in the same as the Sage libgap interface, but without the
+overhead.
+
+
+
+bernmm: an implementation of the algorithm described in "A multimodular
+        algorithm for computing Bernoulli numbers", by David Harvey, 2008.
+
+version 1.1
+
+Copyright (C) 2008, 2009, David Harvey
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+1. Redistributions of source code must retain the above copyright notice, this
+   list of conditions and the following disclaimer.
+
+2. Redistributions in binary form must reproduce the above copyright notice,
+   this list of conditions and the following disclaimer in the documentation
+   and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS ``AS IS''
+AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+===============================================================================
+
+To build bernmm, you need to edit the makefile to point to your GMP and NTL
+install directories, and then just do "make". This will create an executable
+"bernmm-test". Run it with no arguments to see the available options.
+
+In the makefile there is also a THREAD_STACK_SIZE option; the default is
+4096 KB. If this option is not set, the system default thread stack size will
+be used. This proved to be a problem on OS X, where GMP's mpz_invert routine
+smashed the default 512 KB stack. For more info see
+http://sagetrac.org/sage_trac/ticket/6304
+http://gmplib.org/list-archives/gmp-devel/2009-August/000929.html
+
+===============================================================================
+
+This directory contains the bernmm library, by David Harvey.
+
+bernmm is maintained as a separate project, see my website dharvey.net.
+
+If you make any changes/improvements, please tell me about it!
+I might want to merge those changes into the upstream version.
+
+#*****************************************************************************
+#       Copyright (C) 2008 David Roe <roed.math@gmail.com>
+#                          William Stein <wstein@gmail.com>
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#
+#                  http://www.gnu.org/licenses/
+#*****************************************************************************
+
+This document has the following goals:
+  -- to explain the file structure and class heirarchy for p-adics in Sage
+  -- to serve as a location to collect priorities for action items on p-adics
+  -- to serve as a collection point for tips about altering and adding to these files.
+
+The parent heirarchy uses multiple inheritance.  The numbers before each class name give the superclasses immediately above that class.
+
+LocalGeneric                                          [1] (local_generic.py)
+1  CappedAbsoluteGeneric                              [2] (capped_absolute_generic.py)
+1  CappedRelativeGeneric                              [3] (capped_relative_generic.py)
+3     CappedRelativeFieldGeneric                      [4] (capped_relative_field_generic.py)
+3     CappedRelativeRingGeneric                       [5] (capped_relative_ring_generic.py)
+1  FixedModGeneric                                    [6] (fixed_mod_generic.py)
+1  LazyGeneric                                        [7] (lazy_generic.py)
+7     LazyFieldGeneric                                [8] (lazy_field_generic.py)
+7     LazyRingGeneric                                 [9] (lazy_ring_generic.py)
+
+1  pAdicGeneric                                       [A] (padic_generic.py)
+A     pAdicRingGeneric                                [B] (padic_ring_generic.py)
+B, 5     pAdicCappedRelativeRingGeneric               [C] (padic_capped_relative_ring_generic.py)
+B, 2     pAdicCappedAbsoluteRingGeneric               [D] (padic_capped_absolute_ring_generic.py)
+B, 6     pAdicFixedModRingGeneric                     [E] (padic_fixed_mod_ring_generic.py)
+B, 9     pAdicLazyRingGeneric                         [F] (padic_lazy_ring_generic.py)
+A     pAdicFieldGeneric                               [G] (padic_field_generic.py)
+G, 4     pAdicCappedRelativeFieldGeneric              [H] (padic_capped_relative_field_generic.py)
+G, 8     pAdicLazyFieldGeneric                        [I] (padic_lazy_field_generic.py)
+
+A     pAdicBaseGeneric                                [J] (padic_base_generic.py)
+B, J     pAdicRingBaseGeneric                         [K] (padic_ring_base_generic.py)
+K, C        pAdicRingCappedRelative                   [L] (padic_ring_capped_relative.py)
+K, D        pAdicRingCappedAbsolute                   [M] (padic_ring_capped_absolute.py)
+K, E        pAdicRingFixedMod                         [N] (padic_ring_fixed_mod.py)
+K, F        pAdicRingLazy                             [O] (padic_ring_lazy.py)
+G, J     pAdicFieldBaseGeneric                        [P] (padic_field_base_generic.py)
+P, H        pAdicFieldCappedRelative                  [Q] (padic_field_capped_relative.py)
+P, I        pAdicFieldLazy                            [R] (padic_field_lazy.py)
+
+A     pAdicExtensionGeneric                           [S] (padic_extension_generic.py)
+S        EisensteinExtensionGeneric                   [T] (eisenstein_extension_generic.py)
+T, C        EisensteinExtensionRingCappedRelative     [U] (padic_extension_leaves.py)
+T, H        EisensteinExtensionFieldCappedRelative    [V] (padic_extension_leaves.py)
+T, D        EisensteinExtensionRingCappedAbsolute     [W] (padic_extension_leaves.py)
+T, E        EisensteinExtensionRingFixedMod           [X] (padic_extension_leaves.py)
+T, F        EisensteinExtensionRingLazy               [Y] (padic_extension_leaves.py, does not yet exist)
+T, I        EisensteinExtensionFieldLazy              [Z] (padic_extension_leaves.py, does not yet exist)
+S        UnramifiedExtensionGeneric                   [a] (unramified_extension_generic.py)
+a, C        UnramifiedExtensionRingCappedRelative     [b] (padic_extension_leaves.py)
+a, H        UnramifiedExtensionFieldCappedRelative    [c] (padic_extension_leaves.py)
+a, D        UnramifiedExtensionRingCappedAbsolute     [d] (padic_extension_leaves.py)
+a, E        UnramifiedExtensionRingFixedMod           [e] (padic_extension_leaves.py)
+a, F        UnramifiedExtensionRingLazy               [f] (padic_extension_leaves.py, does not yet exist)
+a, I        UnramifiedExtensionFieldLazy              [g] (padic_extension_leaves.py, does not yet exist)
+S        TwoStepExtensionGeneric                      [h] (two_step_extension_generic.py, does not yet exist)
+h, C        TwoStepExtensionRingCappedRelative        [i] (padic_extension_leaves.py, does not yet exist)
+h, H        TwoStepExtensionFieldCappedRelative       [j] (padic_extension_leaves.py, does not yet exist)
+h, D        TwoStepExtensionRingCappedAbsolute        [k] (padic_extension_leaves.py, does not yet exist)
+h, E        TwoStepExtensionRingFixedMod              [l] (padic_extension_leaves.py, does not yet exist)
+h, F        TwoStepExtensionRingLazy                  [m] (padic_extension_leaves.py, does not yet exist)
+h, I        TwoStepExtensionFieldLazy                 [n] (padic_extension_leaves.py, does not yet exist)
+S        pAdicRelativeExtensionGeneric                [h] (padic_relative_extension_generic.py, does not yet exist)
+h, C        pAdicRelativeExtensionRingCappedRelative  [i] (padic_extension_leaves.py, does not yet exist)
+h, H        pAdicRelativeExtensionFieldCappedRelative [j] (padic_extension_leaves.py, does not yet exist)
+h, D        pAdicRelativeExtensionRingCappedAbsolute  [k] (padic_extension_leaves.py, does not yet exist)
+h, E        pAdicRelativeExtensionRingFixedMod        [l] (padic_extension_leaves.py, does not yet exist)
+h, F        pAdicRelativeExtensionRingLazy            [m] (padic_extension_leaves.py, does not yet exist)
+h, I        pAdicRelativeExtensionFieldLazy           [n] (padic_extension_leaves.py, does not yet exist)
+
+
+The element heirarchy is simpler (it's a tree), because Cython does not allow multiple inheritance.
+Hopefully it will eventually include power series rings.
+
+LocalGenericElement (local_generic_element.pyx)                                   :
+  pAdicGenericElement (padic_generic_element.pyx)                                 :
+    pAdicBaseGenericElement (padic_base_generic_element.pyx)                      : the base elements are implemented using GMP mpz_t
+      pAdicCappedRelativeElement (padic_capped_relative_element.pyx)              :
+      pAdicCappedAbsoluteElement (padic_capped_absolute_element.pyx)              :
+      pAdicFixedModElement (padic_fixed_mod_element.pyx)                          :
+      pAdicLazyElement (padic_lazy_element.py, currently not suppored)            :
+    pAdicExtElement (padic_ext_element.pyx)                                       :
+      pAdicZZpXElement (padic_ZZ_pX_element.pyx)                                  : unramified and eisenstein extensions of Qp and Zp, using ntl ZZ_pX
+        pAdicZZpXCRElement (padic_ZZ_pX_CR_element.pyx)                           :
+        pAdicZZpXCAElement (padic_ZZ_pX_CA_element.pyx)                           :
+        pAdicZZpXFMElement (padic_ZZ_pX_FM_element.pyx)                           :
+        pAdicZZpXLElement (padic_ZZ_pX_L_element.pyx, does not yet exist)         :
+      pAdicZZpEXElement (padic_ZZ_pEX_element.pyx, does not yet exist)            : generic absolute extensions of Qp and Zp, using ntl ZZ_pEX
+        pAdicZZpEXCRElement (padic_ZZ_pEX_CR_element.pyx, does not yet exist)     :
+        pAdicZZpEXCAElement (padic_ZZ_pEX_CA_element.pyx, does not yet exist)     :
+        pAdicZZpEXFMElement (padic_ZZ_pEX_FM_element.pyx, does not yet exist)     :
+        pAdicZZpEXLElement (padic_ZZ_pEX_L_element.pyx, does not yet exist)       :
+      pAdicRelExtElement (padic_rel_ext_element.pyx, does not yet exist)          : relative extensions of base and extension rings and fields.
+        pAdicRelExtCRElement (padic_rel_ext_CR_element.pyx, does not yet exist)   :
+        pAdicRelExtCAElement (padic_rel_ext_CA_element.pyx, does not yet exist)   :
+        pAdicRelExtFMElement (padic_rel_ext_FM_element.pyx, does not yet exist)   :
+        pAdicRelExtLElement (padic_rel_ext_L_element.pyx, does not yet exist)     :
+
+To Do:
+  Residue Fields
+  log in high ramification
+  exp
+  residue systems
+  sqrt
+  hensel lifting
+  norms and traces
+  degree
+  Documentation (file, priority, assigned to):
+    padic_printing.pyx (10/10)
+    padic_capped_relative_element.pyx (8/10)
+    padic_capped_absolute_element.pyx (8/10)
+    padic_fixed_mod_element.pyx (8/10)
+    factory.py (7/10)
+    padic_generic_element.pyx (7/10)
+    padic_ZZ_pX_CR_element.pyx (5/10)
+    padic_ZZ_pX_CA_element.pyx (5/10)
+    padic_ZZ_pX_FM_element.pyx (5/10)
+    padic_ZZ_pX_element.pyx (5/10)
+    padic_ext_element.pyx (5/10)
+    padic_extension_generic.py (5/10)
+    local_generic.py (5/10)
+    padic_generic.py (5/10)
+    local_generic_element.pyx (4/10)
+    padic_extension_leaves.py (4/10)
+    pow_computer.pyx (4/10)
+    pow_computer_ext.pyx (4/10)
+    eisenstein_extension_generic.py (3/10)
+    unramified_extension_generic.py (3/10)
+    padic_field_generic.py (2/10)
+    padic_ring_generic.py (2/10)
+    padic_base_generic_element.pyx (2/10)
+    padic_base_generic.py (2/10)
+    padic_field_capped_relative.py (2/10)
+    padic_printing_defaults.py (2/10)
+    padic_ring_base_generic.py (1/10)
+    padic_ring_capped_absolute.py (1/10)
+    padic_ring_capped_relative.py (1/10)
+    padic_ring_fixed_mod.py (1/10)
+    capped_absolute_generic.py (1/10)
+    capped_relative_generic.py (1/10)
+    fixed_mod_generic.py (1/10)
+    padic_field_lazy.py (0/10)
+    lazy_generic.py (0/10)
+    padic_lazy_element.py (0/10)
+    padic_lazy_field_generic.py (0/10)
+    padic_lazy_generic.py (0/10)
+    padic_lazy_ring_generic.py (0/10)
+    padic_ring_lazy.py (0/10)
+    valuation.py (0/10)
+
+This directory contains the main source files for hypellfrob
+version 2.1.1, by David Harvey.
+
+hypellfrob is also maintained as a separate project, see
+http://cims.nyu.edu/~harvey/hypellfrob/
+
+At that web site you'll find a standalone demo program and
+a test suite.
+
+hypellfrob 2.1.1 is Copyright (C) 2007, 2008 David Harvey and is
+licensed under the GPL (version 2 or later).
+
+This directory contains all the example code from the french book
+about Sage by Alexandre Casamayou, Guillaume Connan, Thierry Dumont,
+Laurent Fousse, François Maltey, Matthias Meulien, Marc Mezzarobba,
+Clément Pernet, Nicolas Thiéry and Paul Zimmermann. Each file corresponds
+to a chapter of the book.
+
+The book is freely available from http://sagebook.gforge.inria.fr/
+

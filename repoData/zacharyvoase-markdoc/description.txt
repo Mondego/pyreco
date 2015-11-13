@@ -1,0 +1,2000 @@
+# About Markdoc
+
+Markdoc is a project which aims to provide a lightweight alternative to large
+database-powered wiki systems. I’ve listed the main goals of the project below;
+I believe that, in its current state, it meets all of these.
+
+
+## Goals & Philosophy
+
+### Wikis
+
+*   Wikis should be made up of plain-text files, without requiring a running
+    instance of MySQL or even an SQLite database.
+
+*   There should only be one simple-to-write plain-text configuration file.
+
+*   Wikis should be VCS-friendly, yet VCS-agnostic.
+
+*   It should be possible to compile a wiki to static HTML, and then to serve
+    this HTML with no wiki-specific software.
+
+
+### Markdown
+
+I chose Markdown as the format for this wiki system because of its simplicity,
+familiarity for many writers, and the extensibility of its Python
+implementation. For example, Pygments syntax highlighting is available through a
+single configuration option in the `markdoc.yaml` file. The ability to embed raw
+HTML in Markdown documents gives it power and flexibility.
+
+
+### Command-Line Interface
+
+*   The CLI should be intuitive and easy to use.
+
+*   There should only be a few different sub-commands, each of which does what
+    one would expect it to.
+
+*   There should be a full web server included, in the case that setting up a
+    large-scale HTTP server is impractical or impossible.
+
+*   The CLI should be pure-Python, for portability and extensibility.
+
+
+## License
+
+Markdoc is [public domain software](http://unlicense.org/).
+
+> This is free and unencumbered software released into the public domain.
+> 
+> Anyone is free to copy, modify, publish, use, compile, sell, or distribute
+> this software, either in source code form or as a compiled binary, for any
+> purpose, commercial or non-commercial, and by any means.
+> 
+> In jurisdictions that recognize copyright laws, the author or authors of this
+> software dedicate any and all copyright interest in the software to the public
+> domain. We make this dedication for the benefit of the public at large and to
+> the detriment of our heirs and successors. We intend this dedication to be an
+> overt act of relinquishment in perpetuity of all present and future rights to
+> this software under copyright law.
+> 
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+> AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+> ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+> WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+> 
+> For more information, please refer to <http://unlicense.org/>
+
+
+The bundled Pygments style (it’s the [Github][] syntax highlighting theme) was
+created by [Tom Preston-Werner][]; it was sourced from [his blog][] and is
+licensed under the MIT License:
+
+  [github]: http://github.com/
+  [tom preston-werner]: http://tom.preston-werner.com/
+  [his blog]: http://github.com/mojombo/tpw/
+
+> Copyright © 2010 Tom Preston-Werner
+> 
+> Permission is hereby granted, free of charge, to any person
+> obtaining a copy of this software and associated documentation
+> files (the "Software"), to deal in the Software without
+> restriction, including without limitation the rights to use,
+> copy, modify, merge, publish, distribute, sublicense, and/or sell
+> copies of the Software, and to permit persons to whom the
+> Software is furnished to do so, subject to the following
+> conditions:
+> 
+> The above copyright notice and this permission notice shall be
+> included in all copies or substantial portions of the Software.
+> 
+> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+> EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+> OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+> NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+> HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+> WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+> FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+> OTHER DEALINGS IN THE SOFTWARE.
+# Authoring
+
+A wiki would be nothing without pages. In Markdoc, pages are written in
+[Markdown][df-markdown], a plain-text formatting syntax designed by
+[John Gruber][df]. In his own words:
+
+  [df]: http://daringfireball.net/
+  [df-markdown]: http://daringfireball.net/projects/markdown/
+
+> Markdown allows you to write using an easy-to-read, easy-to-write plain text 
+> format, then convert it to structurally valid XHTML (or HTML).
+> 
+> [...]
+> 
+> The overriding design goal for Markdown’s formatting syntax is to
+> make it as readable as possible. The idea is that a Markdown-formatted
+> document should be publishable as-is, as plain text, without looking
+> like it’s been marked up with tags or formatting instructions.
+
+For a comprehensive guide to the Markdown syntax, consult the
+[markup reference documentation](/ref/markup). The rest of this document will
+cover the Markdoc-specific conventions and constraints related to writing wiki
+pages.
+
+
+## Linking
+
+Every page in your wiki will likely link to several other pages. Markdoc does
+not require any special syntax for internal links; the usual Markdown format
+will work. An example of a link from this very page follows:
+
+    :::text
+    For a comprehensive guide to the Markdown syntax,
+    consult the [markup reference documentation](/ref/markup).
+
+As you can see, the link href is an absolute path to the document, without any
+extension. Markdoc will process this and convert it into a relative path when
+rendering the corresponding HTML. This means that you can host Markdoc wikis
+under sub-directories on a web server, and the links will still work properly.
+
+If you split your wiki up into sub-directories (for example, in this wiki, there
+is an `internals/` directory), the pattern remains the same. A link to the
+[internals/rendering](/internals/rendering) document looks like this:
+
+    :::text
+    A link to the [internals/rendering](/internals/rendering) document.
+
+Note that links will only be made relative if they begin with a `/` character;
+for example, a link to `http://www.google.com/` will be left untouched.
+
+<!-- title: Index -->
+
+# Markdoc
+
+Markdoc is a lightweight Markdown-based wiki system. It’s been designed to allow
+you to create and manage wikis as quickly and easily as possible.
+
+
+## What is it good for?
+
+Potential use cases for Markdoc include, but aren’t limited to:
+
+Technical Documentation/Manuals
+:   Markdoc can be used to write and render hand-written guides and manuals for
+    software. Such documentation will normally be separate from
+    automatically-generated API documentation, and might give a higher-level
+    view than API docs alone. It might be used for client documentation for
+    web/desktop applications, or even developer documentation for frameworks.
+
+Internal Project Wikis
+:   Markdoc wikis consist of a single plain-text file per page. By combining a
+    wiki with a DVCS (such as [Mercurial][] or [Git][]), you can collaborate
+    with several other people. Use the DVCS to track, share and merge changes
+    with one another, and view the wiki’s history.
+    
+  [Mercurial]: http://mercurial.selenic.com/
+  [Git]: http://git-scm.com/
+
+Static Site Generation
+:   Markdoc converts wikis into raw HTML files and media. This allows you to
+    manage a blog, personal website or a collection of pages in a Markdoc wiki,
+    perhaps with custom CSS styles, and publish the rendered HTML to a website.
+    Markdoc need not be installed on the hosting site, since the resultant HTML
+    is completely independent.
+
+
+## Cool Features
+
+*   Set up [Google Analytics][] tracking in one line of configuration.
+
+*   [Barebones][] wikis that just look like directories with Markdown-formatted
+    text files in them.
+
+*   A built-in HTTP server and WSGI application to serve up a compiled wiki with
+    a single command.
+
+*   Continuous builds (via `rsync`) mean the server can keep running whilst
+    Markdoc re-compiles the wiki. Just refresh your browser to see the changes.
+
+*   Add [Pygments][]-powered syntax highlighting to your Markdoc wiki with a
+    single [configuration parameter][syntax-highlighting].
+
+*   Markdoc is [public domain software][licensing]. It will always be completely
+    free to use, and you can redistribute it (in part or in whole) under any
+    circumstances (open-source, proprietary or otherwise) with no attribution or
+    encumberances.
+
+[google analytics]: /ref/configuration#metadata
+[barebones]: /tips/barebones
+[pygments]: http://pygments.org/
+[syntax-highlighting]: /tips/syntax-highlighting
+[licensing]: /about#license
+
+
+## Where do I start?
+
+The [quickstart](/quickstart) document has all the information you need to put
+together a simple Markdoc wiki. The [authoring](/authoring) guide provides a
+quick introduction to writing Markdoc pages themselves, especially with regards
+to linking between pages.
+
+
+## Reference
+
+See the [configuration](/ref/configuration) reference for in-depth knowledge on
+writing your `markdoc.yaml` file. The [layout](/ref/layout) reference describes
+the basic filesystem layout for a Markdoc wiki, and the [tips](/tips/) directory
+contains several handy recipes.
+
+The Markdoc project’s goals and history are described in the [about](/about)
+page. If you’d like to know more about how Markdoc works at a deeper level, take
+a look at the [internals directory](/internals/). Developers interested in
+hacking the utility will likely want the [development](/internals/development)
+page.
+
+To see the complete list of pages in this wiki, you can browse the
+[directory listing](/_list).
+
+# Development
+
+Markdoc is actively developed via [GitHub][gh-markdoc].
+
+  [gh-markdoc]: http://github.com/zacharyvoase/markdoc
+
+## Working with the Repository
+
+You’ll need to install [Git][git] first; check your OS’s package manager for a
+`git` or `git-core` package.
+
+  [git]: http://git-scm.com/
+
+You can check out a copy of the repository by cloning it:
+
+    :::bash
+    $ git clone git://github.com/zacharyvoase/markdoc.git
+    $ cd markdoc/
+
+### Repo Structure
+
+There are several files and directories in the root of the repo:
+
+    :::text
+    markdoc/
+    |-- doc/
+    |-- src/
+    |-- test/
+    |-- UNLICENSE
+    |-- MANIFEST.in
+    |-- README
+    |-- REQUIREMENTS
+    |-- distribute_setup.py
+    |-- nose.cfg
+    `-- setup.py
+
+`doc/`
+:   A Markdoc wiki containing Markdoc’s own documentation. How very meta.
+
+`src/`
+:   The home of all of Markdoc’s Python code.
+
+`test/`, `nose.cfg`
+:   Markdoc’s tests (Python + Doctests) and nose configuration. [Nose][] is a 
+    Python utility to automate and simplify running complex test suites.
+
+`UNLICENSE`
+:   The text of the unlicense which designates Markdoc as public domain software.
+
+`MANIFEST.in`, `setup.py`, `distribute_setup.py`
+:   The necessary Python packaging machinery, so you can run
+    `easy_install Markdoc`.
+
+`README`
+:   Doesn’t need an explanation.
+
+`REQUIREMENTS`
+:   A text file listing all of Markdoc’s requirements, suitable for use with
+    `pip install -r REQUIREMENTS`. [pip][] is a next-generation `easy_install` 
+    replacement for Python.
+
+
+  [pip]: http://pip.openplans.org/
+  [nose]: http://somethingaboutorange.com/mrl/projects/nose/0.11.1/
+
+### Bug Reporting and Feature Requests
+
+All bugs and feature requests are handled on the [GitHub issues page](http://github.com/zacharyvoase/markdoc/issues).
+
+### Contributing
+
+If you’re interested in implementing a feature or extension for Markdoc, just fork the GitHub repository, work on the feature, commit your changes, then send me a pull request. If I like what you’ve done, I’ll pull your changes into the official Markdoc release and give you author credit.
+
+Remember that you must be willing to release your changes to the public domain. If you are submitting a non-trivial patch, take a look at [unlicense.org][unlicensing contributions] for detailed instructions; for now, you just need to agree to the following statement:
+
+  [unlicensing contributions]: http://unlicense.org/#unlicensing-contributions
+
+    :::text
+    I dedicate any and all copyright interest in this software to the
+    public domain. I make this dedication for the benefit of the public at
+    large and to the detriment of my heirs and successors. I intend this
+    dedication to be an overt act of relinquishment in perpetuity of all
+    present and future rights to this software under copyright law.
+
+# Rendering
+
+This page will describe the process which documents undergo on their way from Markdoc to XHTML.
+
+## Step 1: Markdown Rendering
+
+Each page is converted from Markdown to XHTML. This uses the Markdown library for Python, which comes with a number of extensions that you can enable in your [configuration](/configuration). For example, I like to use the `codehilite`, `def_list` and `headerid` Markdown extensions, but by default Markdoc wikis will not use any.
+
+The Markdown conversion results in XHTML data which is not tied to a page, so it’s not enough to display to a browser. That’s where the templating comes in.
+
+## Step 2: Template Rendering
+
+Markdoc uses [Jinja2][] to render this partial XHTML to full XHTML documents. Jinja2 is a fast and flexible templating system for Python; if you are interested in writing your own templates, it would be wise to first consult its official documentation.
+
+  [jinja2]: http://jinja2.pocoo.org
+
+Markdoc expects only two templates to be defined: `document.html` and `listing.html`. The way it finds these is as follows:
+
+* It first looks for them in the `.templates/` directory inside your wiki.
+* If the `use-default-templates` setting is `true` for your configuration (which it is by default), then search in the `default-templates` directory bundled with Markdoc.
+
+If `use-default-templates` is `false` and the templates are not defined in your wiki’s template directory, Markdoc will eventually raise an error.
+
+### Documents
+
+`document.html` is used to convert the partial XHTML for a Markdown document into full, browser-ready XHTML. It receives a context much like the following:
+
+    :::python
+    {
+      "content": "<h1>...", # The XHTML for the document.
+      "title": "Some Document", # The extracted title of the document.
+      "crumbs": [("index", "/"), ("some-document", None)] # Breadcrumbs
+    }
+
+The `config` variable is also (globally) set to the configuration dictionary for the current wiki.
+
+Take a look inside the `src/markdoc/static/default-templates/markdoc-default/` directory for examples of complete templates.
+
+### Listings
+
+`listing.html` is used to generate listings for directories. This will only be used if `generate-listing` is set to either `always` or `sometimes` in the configuration (by default it is `always`).
+
+Listings are a little more complex to do, so they are generated after the complete set of documents have been rendered and synced (along with static media) to the HTML root. This means you get complete listings for all of your directories, including those which came from static media.
+
+The `listing.html` template is passed a context like this:
+
+    :::python
+    {"directory": "somedir",
+     "crumbs": [("index", "/"),
+                ("somedir", "/somedir/"),
+                (jinja2.Markup('<span class="list-crumb">list</span>'), None)],
+     "files": [{"basename": "example.css",
+                "href": "/example.css",
+                "humansize": "27B",
+                "size": 27,
+                "slug": "example"}],
+     "pages": [{"basename": "hello.html",
+                "href": "/subdir/hello",
+                "humansize": "268B",
+                "size": 268,
+                "slug": "hello",
+                "title": u"Hello again."}],
+     "sub_directories": [{"basename": "subdir", "href": "/subdir/"}]}
+
+The distinction between *files* and *pages* is useful because you can display links to pages with their full titles; if you’re viewing this now in a browser, just head to [/_list](/_list) to see what I mean. The filename which the list is output to can be configured with the `listing-filename` setting; this defaults to `_list.html` (hence `/_list`). You can also try `/media/_list`, et cetera.
+
+The last crumb is special in that it displays the string `"list"` but with a class of `list-crumb`; in the default templates and media this is displayed in a light grey to indicate that it is a special page.
+
+The semantics of listing generation are determined by the `generate-listing` setting; `always` will always generate a listing (even if it clobbers an existing file called `_list.html`), `sometimes` will only generate a listing when there is no `index.html` file for a directory, and `never` will never generate listings.
+
+## Relative Links
+
+For portability, all URLs pointing to files and pages within the current Markdoc wiki should be relative. This allows built wiki HTML to be hosted under a sub-directory and still maintain link integrity.
+
+In practice, this is achieved in two parts:
+
+*   A Markdown extension which causes absolute path URLs in links (such as
+    `/path/to/somefile`) to be converted to relative ones (like `../somefile`).
+
+*   A callable passed to every template context which, when called with an
+    absolute path URL, will convert it to a relative one. This variable is
+    `make_relative()`, and an example of its use can be seen in this snippet
+    from the default base template:
+        
+        :::text
+        <head>
+          <!--...snip...-->
+          
+          {% import "macros/html" as html -%}
+          
+          {{ html.cssimport(make_relative("/media/css/reset.css")) }}
+          {{ html.cssimport(make_relative("/media/css/layout.css")) }}
+          {{ html.cssimport(make_relative("/media/css/typography.css")) }}
+          {{ html.cssimport(make_relative("/media/css/pygments.css")) }}
+        </head>
+    
+    If you override the default templates, make sure to use this callable to  
+    relativize the media URLs and breadcrumb links.
+
+# Quickstart
+
+The first step towards using Markdoc is to install it. Luckily, it uses
+setuptools, so you can install it with relative ease on any system with Python.
+Note that most modern UNIX distributions come with a sufficiently recent version
+of Python, including Mac OS X, Ubuntu (and derivatives) and Fedora.
+
+
+## Requirements
+
+The minimum requirements to run the Markdoc utility are:
+
+*   Python 2.4 or later (2.5+ highly recommended)
+*   A UNIX (or at least POSIX-compliant) operating system
+*   [rsync](http://www.samba.org/rsync/) — installed out of the box with most
+    modern OSes, including Mac OS X and Ubuntu. In the future Markdoc may
+    include a pure-Python implementation.
+
+
+## Installation
+
+You can use either `easy_install` or [pip][] to install Markdoc:
+
+  [pip]: http://pip.openplans.org/
+  
+    :::bash
+    $ easy_install Markdoc # OR
+    $ pip install Markdoc
+
+Note that you are likely to see a lot of scary-looking output from both
+commands; nevertheless, you can tell whether installation was successful by
+looking at the last line of the output. With `easy_install`, this should be:
+
+    :::text
+    Finished processing dependencies for Markdoc
+
+And with `pip install`:
+
+    :::text
+    Successfully installed ... Markdoc ...
+
+`pip` will list all of the packages it installed, and `Markdoc` should be
+amongst them.
+
+
+## Making a Wiki
+
+### Initializing the Wiki
+
+The `markdoc init` command creates a new wiki. It also accepts a `--vcs-ignore`
+option which will automatically create the appropriate ignore file for your VCS.
+
+    :::bash
+    $ markdoc init my-wiki --vcs-ignore hg
+    markdoc.vcs-ignore: INFO: Writing ignore file to .hgignore
+    markdoc.init: INFO: Wiki initialization complete
+    markdoc.init: INFO: Your new wiki is at: .../my-wiki
+
+If you’re using SVN, you have to take a few more steps to set the `svn:ignore`
+property on the directory:
+
+    :::bash
+    $ markdoc init my-wiki --vcs-ignore cvs
+    markdoc.vcs-ignore: INFO: Writing ignore file to .cvsignore
+    markdoc.init: INFO: Wiki initialization complete
+    markdoc.init: INFO: Your new wiki is at: .../my-wiki
+    $ cd my-wiki/
+    $ svn propset svn:ignore -F .cvsignore
+    $ rm .cvsignore
+
+
+### Editing Pages
+
+Documents in a Markdoc wiki are located under the `wiki/` subdirectory, and are
+plain Markdown files. Typically documents have a `.md` file extension, but in
+the [wiki configuration](/configuration#building) you can specify others.
+
+    :::bash
+    $ cd my-wiki/
+    $ vim wiki/somefile.md
+    # ... write some documents ...
+
+
+### Building
+
+Markdoc comes with a default set of templates and stylesheets, so you can build
+your wiki right away. Just run `markdoc build`, and all the HTML will be
+generated and output into the `.html/` sub-directory (known as the HTML root).
+
+    :::bash
+    $ markdoc build
+
+
+### Serving
+
+You can view all the HTML in a browser easily by running the built-in server.
+`markdoc serve` accepts a large number of options, but on its own will serve
+your documentation on port 8008.
+
+    :::bash
+    $ markdoc serve
+    markdoc.serve: INFO: Serving on http://127.0.0.1:8008
+
+Now just open <http://localhost:8008/> in your browser, and see your new
+Markdoc-powered wiki!
+
+# Configuration
+
+All Markdoc wikis are configured via a single `markdoc.yaml` file in the wiki
+root. This file is formatted with YAML (Yet Another Markup Language); you can
+find more information on that at [yaml.org](http://yaml.org/). When running the
+command-line interface, Markdoc will search for either a `markdoc.yaml` or a
+`.markdoc.yaml` file in the current directory. You can also explicitly specify a
+file to use with the `-c`/`--config` command-line option.
+
+## Example
+
+Here we’ll go through an example and show how the various settings affect
+Markdoc’s behavior:
+
+    #!yaml
+    # Metadata
+    wiki-name: "My Wiki"
+    google-analytics: UA-XXXXXX-X
+    
+    # Directories
+    hide-prefix: "."
+    wiki-dir: "wiki"
+    static-dir: "static"
+    html-dir: ".html"
+    template-dir: ".templates"
+    temp-dir: ".tmp"
+    cvs-exclude: true
+    
+    # Building
+    document-extensions: [.md, .mdown, .markdown, .wiki, .text]
+    generate-listing: always
+    listing-filename: "_list.html"
+    use-default-static: true
+    use-default-templates: true
+    
+    # Rendering
+    markdown:
+      safe-mode: false
+      output-format: xhtml1
+      extensions: [codehilite, def_list]
+      extension-configs:
+        codehilite:
+          force_linenos: true
+    
+    # Serving
+    server:
+      bind: '127.0.0.1'
+      port: 8010
+      num-threads: 10
+      name: 'server.example.com'
+      request-queue-size: 5
+      timeout: 10
+
+Remember that Markdoc uses sensible defaults for *all* of these options, so it’s
+perfectly OK to have an empty markdoc.yaml file. You still need one though.
+
+*   [Metadata](#metadata)
+*   [Directories](#directories)
+*   [Building](#building)
+*   [Rendering](#rendering)
+*   [Serving](#serving)
+
+### Metadata
+
+This is information about your wiki itself. It is currently only used when
+rendering the default set of templates, but custom templates may also use these
+parameters.
+
+`wiki-name` (no default)
+:   Specify the human-friendly name of your wiki. If defined, this will appear
+    in the title and footer in the default Markdoc templates.
+
+`google-analytics` (no default)
+:   Specify a [Google Analytics][] tracking key for your Markdoc site. If given,
+    the GA tracking code will be included in every HTML document. Note that this
+    should be the full key, in the format `UA-XXXXXX-X`.
+
+  [google analytics]: http://google.com/analytics/
+
+### Directories
+
+These settings affect where Markdoc looks for some pieces of data, and where it
+puts others. You can get more information on the roles of various directories in
+the [layout documentation](/layout). Note that all `*-dir` parameters are
+resolved relative to the wiki root, and that `'.'` (i.e. the wiki root itself)
+is an acceptable value.
+
+`hide-prefix` (default `.`)
+:   This determines how Markdoc finds and writes to hidden directories like
+    `.tmp`, `.templates` and `.html`. You may wish to set this to `'_'` if your
+    VCS or operating system doesn’t play nicely with period-prefixed filenames.
+    If you specify `html-dir`, `temp-dir` and `template-dir`, this setting won’t
+    have any effect.
+
+`wiki-dir` (default `"wiki"`)
+:   This tells Markdoc where to find pages that should be rendered with Markdown
+    and output as HTML. Only files in this directory will be rendered.
+
+`static-dir` (default `"static"`)
+:   Any files in the static directory are synced over to the HTML root as-is
+    when building. This tells Markdoc where to find all the static media for
+    your wiki.
+
+`html-dir` (default `hide-prefix + "html"`)
+:   This is where HTML and static media are eventually output during the
+    building process. It is also the document root for the Markdoc server. The
+    default value is auto-generated using the `hide-prefix` setting.
+
+`template-dir` (default `hide-prefix + "templates"`)
+:   Markdoc will look in this directory first when searching for the Jinja2
+    templates needed to produce HTML.
+
+`temp-dir` (default `hide-prefix + "tmp"`)
+:   This directory is used as a temporary destination when building HTML.
+
+`cvs-exclude` (default `true`)
+:   If this is `true`, Markdoc will pass the `--cvs-exclude` option to `rsync`
+    when syncing static media and rendered HTML files. This causes `rsync` to
+    skip some common backup/hidden files (e.g. `.git/`, `.svn/`, `*~` and `#*`).
+    The full semantics of this option are specified in the
+    [`rsync` documentation][rsync-docs].
+
+  [rsync-docs]: http://www.samba.org/ftp/rsync/rsync.html
+
+### Building
+
+These settings affect Markdoc’s behavior during the build process.
+
+`document-extensions` (default `[.md, .mdown, .markdown, .wiki, .text]`)
+:   Markdoc will only render files from the document root which have one of
+    these extensions. If one of the extensions is an empty string (`''`), then
+    all files (including those without an extension) will be considered pages.
+    Setting this parameter to the empty list (`[]`) will behave as if it is
+    actually `['']`.
+
+`generate-listing` (default `always`)
+:   This affects how listings are generated for directories in your Markdoc wiki
+    (including the top level). Set this to either `always`, `sometimes` or
+    `never`. The semantics are as follows:
+  
+    *   `never` never generates any listings.
+    *   `sometimes` only generates a listing when there is no `index` or
+        `index.html` file in a directory. This listing is saved as both
+        `index.html` and the value of the `listing-filename` setting.
+    *   `always` generates a listing for every directory, and saves it under the
+        value of the `listing-filename` setting, and as `index.html` if an index
+        file does not already exist.
+
+`listing-filename` (default `_list.html`)
+:   This specifies the filename that directory listings are saved under; see the
+    documentation for `generate-listing` just above for more information.
+
+`use-default-static` (default `true`)
+:   If true, Markdoc’s default set of static media will be synchronized to the
+    HTML root when building.
+
+`use-default-templates` (default `true`)
+:   If true, Jinja2 will look in Markdoc’s set of default templates when
+    rendering documents and listings.
+
+### Rendering
+
+These settings determine how Markdoc converts Markdown text into XHTML. They are
+all defined as sub-parameters inside the `markdown` dictionary. These parameters
+correspond to keyword arguments to the `markdown.Markdown` constructor, although
+hyphens (`-`) are all converted to underscores (`_`) in the key strings.
+
+`extensions` (default `[]`)
+:   A list of strings specifying extensions to be used by the Markdown renderer.
+    The [Markdown library for Python][markdown-python-lib] comes with the
+    following by default:
+  
+    * `abbr`
+    * `codehilite`
+    * `def_list`
+    * `extra`
+    * `fenced_code`
+    * `footnotes`
+    * `headerid`
+    * `html_tidy`
+    * `imagelinks`
+    * `meta`
+    * `rss`
+    * `tables`
+    * `toc`
+    * `wikilinks`
+
+  [markdown-python-lib]: http://www.freewisdom.org/projects/python-markdown
+
+`extension-configs` (default `{}`)
+:   These are configuration parameters for the extensions — you’ll need to
+    consult the official Markdown library documentation for more information.
+
+`safe-mode` (default `false`)
+:   Disallow raw HTML in Markdown documents. This can be either `false`,
+    `remove`, `replace` or `escape`.
+
+`output-format` (default `xhtml1`)
+:   Switch between rendering XHTML or HTML. Can be either `xhtml1`, `xhtml`,
+    `html4` or `html` (the general ones will always refer to the latest
+    version). It is strongly suggested that you use XHTML.
+
+### Serving
+
+All of the server configuration parameters exist in the `server` dictionary (as
+with `markdown` previously).
+
+`bind` (default `127.0.0.1`)
+:   Bind to the specified interface. With the default value the server will only
+    listen on the loopback interface (localhost).
+
+`port` (default `8008`)
+:   Listen on the specified port.
+
+`num-threads` (default `10`)
+:   Use this number of threads to handle requests.
+
+`name` (default is autodetected)
+:   Specify a server name. The default will be automatically detected from the
+    socket the server binds to.
+
+`request-queue-size` (default `5`)
+:   Sets the number of queued connections to the server before it will start
+    dropping TCP connections (the `backlog` argument to `socket.listen()`).
+
+`timeout` (default `10`)
+:   The socket timeout (in seconds) for accepted TCP connections.
+
+# Layout
+
+Markdoc wikis have the following layout:
+
+    :::text
+    WIKI_ROOT/
+    |-- .html/
+    |-- .templates/
+    |-- .tmp/
+    |-- static/
+    |-- wiki/
+    `-- markdoc.yaml
+
+The `.html/` and `.tmp/` directories should be excluded from any VCS, since they
+contain temporary files. Here is a list of the roles of the various files and
+sub-directories, in descending order of significance:
+
+`WIKI_ROOT/`
+:   The *wiki root*, containing all of the files required for the `markdoc`
+    utility to build and serve the wiki.
+
+`WIKI_ROOT/markdoc.yaml`
+:   The *wiki configuration*; the main configuration point for your wiki, in a
+    YAML-formatted file. Consult the [configuration docs](/configuration) for
+    more information on how to write this.
+
+`WIKI_ROOT/wiki/`
+:   The *document root*, which contains the actual *text* of your wiki in
+    Markdown-formatted text files. It is assumed they are UTF-8 encoded. Any
+    files without a valid extension will be ignored (see the option
+    `document-extensions` in [configuration](/configuration)).
+
+`WIKI_ROOT/static/`
+:   The *static directory*: static media files (such as CSS and JavaScript)
+    should be put here. They will be copied to `.html/` by rsync during the
+    build operation. This comes with some default CSS for styling.
+
+`WIKI_ROOT/.templates/`
+:   The *template directory*: it contains the Jinja2 templates for documents,
+    error pages and directory listings. It comes with some nice defaults, but
+    you can override these if you wish.
+
+`WIKI_ROOT/.html/`
+:   The *HTML root* (sometimes abbreviated as ‘htroot’). It holds the compiled
+    HTML and static files. It is directly served from by the Markdoc webserver.
+
+`WIKI_ROOT/.tmp/`
+:   The *temporary directory*: a temporary build destination for rendered
+    Markdown files. This directory is then rsync’d to the HTML root along with
+    the static directory; the incremental nature of this operation means the
+    Markdoc web server can keep running in one process whilst another runs
+    `markdoc build`.
+
+Note that all of the default locations for these directories can be overridden
+in the `markdoc.yaml` file. For example, you may wish to use `WIKI_ROOT/pages/`
+instead of `WIKI_ROOT/wiki/`, or `WIKI_ROOT/.build/` instead of
+`WIKI_ROOT/.html/`. Consult the [configuration documentation](/configuration)
+for more information.
+
+# Markdown Syntax Guide
+
+Adapted from <http://daringfireball.net/projects/markdown/syntax>.
+
+[TOC]
+
+* * *
+
+## Overview
+
+### Philosophy
+
+Markdown is intended to be as easy-to-read and easy-to-write as is feasible.
+
+Readability, however, is emphasized above all else. A Markdown-formatted
+document should be publishable as-is, as plain text, without looking like it's
+been marked up with tags or formatting instructions. While Markdown's syntax has
+been influenced by several existing text-to-HTML filters -- including
+[Setext] [1], [atx] [2], [Textile] [3], [reStructuredText] [4], [Grutatext] [5],
+and [EtText] [6] -- the single biggest source of inspiration for Markdown's
+syntax is the format of plain text email.
+
+  [1]: http://docutils.sourceforge.net/mirror/setext.html
+  [2]: http://www.aaronsw.com/2002/atx/
+  [3]: http://textism.com/tools/textile/
+  [4]: http://docutils.sourceforge.net/rst.html
+  [5]: http://www.triptico.com/software/grutatxt.html
+  [6]: http://ettext.taint.org/doc/
+
+To this end, Markdown's syntax is comprised entirely of punctuation characters,
+which punctuation characters have been carefully chosen so as to look like what
+they mean. E.g., asterisks around a word actually look like \*emphasis\*.
+Markdown lists look like, well, lists. Even blockquotes look like quoted
+passages of text, assuming you've ever used email.
+
+
+
+### Inline HTML
+
+Markdown's syntax is intended for one purpose: to be used as a format for
+*writing* for the web.
+
+Markdown is not a replacement for HTML, or even close to it. Its syntax is very
+small, corresponding only to a very small subset of HTML tags. The idea is *not*
+to create a syntax that makes it easier to insert HTML tags. In my opinion, HTML
+tags are already easy to insert. The idea for Markdown is to make it easy to
+read, write, and edit prose. HTML is a *publishing* format; Markdown is a
+*writing* format. Thus, Markdown's formatting syntax only addresses issues that
+can be conveyed in plain text.
+
+For any markup that is not covered by Markdown's syntax, you simply use HTML
+itself. There's no need to preface it or delimit it to indicate that you're
+switching from Markdown to HTML; you just use the tags.
+
+The only restrictions are that block-level HTML elements -- e.g. `<div>`,
+`<table>`, `<pre>`, `<p>`, etc. -- must be separated from surrounding content by
+blank lines, and the start and end tags of the block should not be indented with
+tabs or spaces. Markdown is smart enough not to add extra (unwanted) `<p>` tags
+around HTML block-level tags.
+
+For example, to add an HTML table to a Markdown article:
+
+    :::text
+    This is a regular paragraph.
+    
+    <table>
+        <tr>
+            <td>Foo</td>
+        </tr>
+    </table>
+    
+    This is another regular paragraph.
+
+Note that Markdown formatting syntax is not processed within block-level HTML
+tags. E.g., you can't use Markdown-style `*emphasis*` inside an HTML block.
+
+Span-level HTML tags -- e.g. `<span>`, `<cite>`, or `<del>` -- can be used
+anywhere in a Markdown paragraph, list item, or header. If you want, you can
+even use HTML tags instead of Markdown formatting; e.g. if you'd prefer to use
+HTML `<a>` or `<img>` tags instead of Markdown's link or image syntax, go right
+ahead.
+
+Unlike block-level HTML tags, Markdown syntax *is* processed within span-level
+tags.
+
+
+### Automatic Escaping for Special Characters
+
+In HTML, there are two characters that demand special treatment: `<` and `&`.
+Left angle brackets are used to start tags; ampersands are used to denote HTML
+entities. If you want to use them as literal characters, you must escape them as
+entities, e.g. `&lt;`, and `&amp;`.
+
+Ampersands in particular are bedeviling for web writers. If you want to write
+about 'AT&T', you need to write '`AT&amp;T`'. You even need to escape ampersands
+within URLs. Thus, if you want to link to:
+
+    :::text
+    http://images.google.com/images?num=30&q=larry+bird
+
+you need to encode the URL as:
+
+    :::text
+    http://images.google.com/images?num=30&amp;q=larry+bird
+
+in your anchor tag `href` attribute. Needless to say, this is easy to forget,
+and is probably the single most common source of HTML validation errors in
+otherwise well-marked-up web sites.
+
+Markdown allows you to use these characters naturally, taking care of all the
+necessary escaping for you. If you use an ampersand as part of an HTML entity,
+it remains unchanged; otherwise it will be translated into `&amp;`.
+
+So, if you want to include a copyright symbol in your article, you can write:
+
+    :::text
+    &copy;
+
+and Markdown will leave it alone. But if you write:
+
+    :::text
+    AT&T
+
+Markdown will translate it to:
+
+    :::text
+    AT&amp;T
+
+Similarly, because Markdown supports [inline HTML](#inline-html), if you use
+angle brackets as delimiters for HTML tags, Markdown will treat them as such.
+But if you write:
+
+    :::text
+    4 < 5
+
+Markdown will translate it to:
+
+    :::text
+    4 &lt; 5
+
+However, inside Markdown code spans and blocks, angle brackets and ampersands
+are *always* encoded automatically. This makes it easy to use Markdown to write
+about HTML code. (As opposed to raw HTML, which is a terrible format for writing
+about HTML syntax, because every single `<` and `&` in your example code needs
+to be escaped.)
+
+
+* * *
+
+
+## Block Elements
+
+
+### Paragraphs and Line Breaks
+
+A paragraph is simply one or more consecutive lines of text, separated by one or
+more blank lines. (A blank line is any line that looks like a blank line -- a
+line containing nothing but spaces or tabs is considered blank.) Normal
+paragraphs should not be indented with spaces or tabs.
+
+The implication of the "one or more consecutive lines of text" rule is that
+Markdown supports "hard-wrapped" text paragraphs. This differs significantly
+from most other text-to-HTML formatters (including Movable Type's "Convert Line
+Breaks" option) which translate every line break character in a paragraph into a
+`<br />` tag.
+
+When you *do* want to insert a `<br />` break tag using Markdown, you end a line
+with two or more spaces, then type return.
+
+Yes, this takes a tad more effort to create a `<br />`, but a simplistic "every
+line break is a `<br />`" rule wouldn't work for Markdown. Markdown's
+email-style [blockquoting][bq] and multi-paragraph [list items][l] work best --
+and look better -- when you format them with hard breaks.
+
+  [bq]: #blockquote
+  [l]:  #list
+
+
+
+### Headers
+
+Markdown supports two styles of headers, [Setext] [1] and [atx] [2].
+
+Setext-style headers are "underlined" using equal signs (for first-level
+headers) and dashes (for second-level headers). For example:
+
+    :::text
+    This is an H1
+    =============
+    
+    This is an H2
+    -------------
+
+Any number of underlining `=`'s or `-`'s will work.
+
+Atx-style headers use 1-6 hash characters at the start of the line,
+corresponding to header levels 1-6. For example:
+
+    :::text
+    # This is an H1
+    
+    ## This is an H2
+    
+    ###### This is an H6
+
+Optionally, you may "close" atx-style headers. This is purely cosmetic -- you
+can use this if you think it looks better. The closing hashes don't even need to
+match the number of hashes used to open the header. (The number of opening
+hashes determines the header level.) :
+
+    :::text
+    # This is an H1 #
+    
+    ## This is an H2 ##
+    
+    ### This is an H3 ######
+
+
+### Blockquotes
+
+Markdown uses email-style `>` characters for blockquoting. If you're familiar
+with quoting passages of text in an email message, then you know how to create a
+blockquote in Markdown. It looks best if you hard wrap the text and put a `>`
+before every line:
+
+    :::text
+    > This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+    > consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
+    > Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+    > 
+    > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
+    > id sem consectetuer libero luctus adipiscing.
+
+Markdown allows you to be lazy and only put the `>` before the first line of a
+hard-wrapped paragraph:
+
+    :::text
+    > This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet,
+    consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+    
+    > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
+    id sem consectetuer libero luctus adipiscing.
+
+Blockquotes can be nested (i.e. a blockquote-in-a-blockquote) by adding
+additional levels of `>`:
+
+    :::text
+    > This is the first level of quoting.
+    >
+    > > This is nested blockquote.
+    >
+    > Back to the first level.
+
+Blockquotes can contain other Markdown elements, including headers, lists, and
+code blocks:
+
+    :::text
+    > ## This is a header.
+    > 
+    > 1.   This is the first list item.
+    > 2.   This is the second list item.
+    > 
+    > Here's some example code:
+    > 
+    >     return shell_exec("echo $input | $markdown_script");
+
+Any decent text editor should make email-style quoting easy. For example, with
+BBEdit, you can make a selection and choose Increase Quote Level from the Text
+menu.
+
+
+### Lists
+
+Markdown supports ordered (numbered) and unordered (bulleted) lists.
+
+Unordered lists use asterisks, pluses, and hyphens -- interchangably -- as list
+markers:
+
+    :::text
+    *   Red
+    *   Green
+    *   Blue
+
+is equivalent to:
+
+    :::text
+    +   Red
+    +   Green
+    +   Blue
+
+and:
+
+    :::text
+    -   Red
+    -   Green
+    -   Blue
+
+Ordered lists use numbers followed by periods:
+
+    :::text
+    1.  Bird
+    2.  McHale
+    3.  Parish
+
+It's important to note that the actual numbers you use to mark the list have no
+effect on the HTML output Markdown produces. The HTML Markdown produces from the
+above list is:
+
+    :::text
+    <ol>
+    <li>Bird</li>
+    <li>McHale</li>
+    <li>Parish</li>
+    </ol>
+
+If you instead wrote the list in Markdown like this:
+
+    :::text
+    1.  Bird
+    1.  McHale
+    1.  Parish
+
+or even:
+
+    :::text
+    3. Bird
+    1. McHale
+    8. Parish
+
+you'd get the exact same HTML output. The point is, if you want to, you can use
+ordinal numbers in your ordered Markdown lists, so that the numbers in your
+source match the numbers in your published HTML. But if you want to be lazy, you
+don't have to.
+
+If you do use lazy list numbering, however, you should still start the list with
+the number 1. At some point in the future, Markdown may support starting ordered
+lists at an arbitrary number.
+
+List markers typically start at the left margin, but may be indented by up to
+three spaces. List markers must be followed by one or more spaces or a tab.
+
+To make lists look nice, you can wrap items with hanging indents:
+
+    :::text
+    *   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+        Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
+        viverra nec, fringilla in, laoreet vitae, risus.
+    *   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
+        Suspendisse id sem consectetuer libero luctus adipiscing.
+
+But if you want to be lazy, you don't have to:
+
+    :::text
+    *   Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+    Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi,
+    viverra nec, fringilla in, laoreet vitae, risus.
+    *   Donec sit amet nisl. Aliquam semper ipsum sit amet velit.
+    Suspendisse id sem consectetuer libero luctus adipiscing.
+
+If list items are separated by blank lines, Markdown will wrap the items in
+`<p>` tags in the HTML output. For example, this input:
+
+    :::text
+    *   Bird
+    *   Magic
+
+will turn into:
+
+    :::html
+    <ul>
+    <li>Bird</li>
+    <li>Magic</li>
+    </ul>
+
+But this:
+
+    :::text
+    *   Bird
+    
+    *   Magic
+
+will turn into:
+
+    :::html
+    <ul>
+    <li><p>Bird</p></li>
+    <li><p>Magic</p></li>
+    </ul>
+
+List items may consist of multiple paragraphs. Each subsequent paragraph in a
+list item must be indented by either 4 spaces or one tab:
+
+    :::text
+    1.  This is a list item with two paragraphs. Lorem ipsum dolor
+        sit amet, consectetuer adipiscing elit. Aliquam hendrerit
+        mi posuere lectus.
+        
+        Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+        vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
+        sit amet velit.
+        
+    2.  Suspendisse id sem consectetuer libero luctus adipiscing.
+
+It looks nice if you indent every line of the subsequent paragraphs, but here
+again, Markdown will allow you to be lazy:
+
+    :::text
+    *   This is a list item with two paragraphs.
+    
+        This is the second paragraph in the list item. You're
+    only required to indent the first line. Lorem ipsum dolor
+    sit amet, consectetuer adipiscing elit.
+    
+    *   Another item in the same list.
+
+To put a blockquote within a list item, the blockquote's `>` delimiters need to
+be indented:
+
+    :::text
+    *   A list item with a blockquote:
+    
+        > This is a blockquote
+        > inside a list item.
+
+To put a code block within a list item, the code block needs to be indented
+*twice* -- 8 spaces or two tabs:
+
+    :::text
+    *   A list item with a code block:
+    
+            <code goes here>
+
+
+It's worth noting that it's possible to trigger an ordered list by accident, by
+writing something like this:
+
+    :::text
+    1986. What a great season.
+
+In other words, a *number-period-space* sequence at the beginning of a line. To
+avoid this, you can backslash-escape the period:
+
+    :::text
+    1986\. What a great season.
+
+
+
+### Code Blocks
+
+Pre-formatted code blocks are used for writing about programming or markup
+source code. Rather than forming normal paragraphs, the lines of a code block
+are interpreted literally. Markdown wraps a code block in both `<pre>` and
+`<code>` tags.
+
+To produce a code block in Markdown, simply indent every line of the block by at
+least 4 spaces or 1 tab. For example, given this input:
+
+    :::text
+    This is a normal paragraph:
+    
+        This is a code block.
+
+Markdown will generate:
+
+    :::html
+    <p>This is a normal paragraph:</p>
+    
+    <pre><code>This is a code block.
+    </code></pre>
+
+One level of indentation -- 4 spaces or 1 tab -- is removed from each line of
+the code block. For example, this:
+
+    :::text
+    Here is an example of AppleScript:
+    
+        tell application "Foo"
+            beep
+        end tell
+
+will turn into:
+
+    :::html
+    <p>Here is an example of AppleScript:</p>
+    
+    <pre><code>tell application "Foo"
+        beep
+    end tell
+    </code></pre>
+
+A code block continues until it reaches a line that is not indented (or the end
+of the article).
+
+Within a code block, ampersands (`&`) and angle brackets (`<` and `>`) are
+automatically converted into HTML entities. This makes it very easy to include
+example HTML source code using Markdown -- just paste it and indent it, and
+Markdown will handle the hassle of encoding the ampersands and angle brackets.
+For example, this:
+
+    :::text
+        <div class="footer">
+            &copy; 2004 Foo Corporation
+        </div>
+
+will turn into:
+
+    :::html
+    <pre><code>&lt;div class="footer"&gt;
+        &amp;copy; 2004 Foo Corporation
+    &lt;/div&gt;
+    </code></pre>
+
+Regular Markdown syntax is not processed within code blocks. E.g., asterisks are
+just literal asterisks within a code block. This means it's also easy to use
+Markdown to write about Markdown's own syntax.
+
+
+
+### Horizontal Rules
+
+You can produce a horizontal rule tag (`<hr />`) by placing three or more
+hyphens, asterisks, or underscores on a line by themselves. If you wish, you may
+use spaces between the hyphens or asterisks. Each of the following lines will
+produce a horizontal rule:
+
+    :::text
+    * * *
+    
+    ***
+    
+    *****
+    
+    - - -
+    
+    ---------------------------------------
+
+
+* * *
+
+## Span Elements
+
+### Links
+
+Markdown supports two style of links: *inline* and *reference*.
+
+In both styles, the link text is delimited by [square brackets].
+
+To create an inline link, use a set of regular parentheses immediately after the
+link text's closing square bracket. Inside the parentheses, put the URL where
+you want the link to point, along with an *optional* title for the link,
+surrounded in quotes. For example:
+
+    :::text
+    This is [an example](http://example.com/ "Title") inline link.
+    
+    [This link](http://example.net/) has no title attribute.
+
+Will produce:
+
+    :::html
+    <p>This is <a href="http://example.com/" title="Title">
+    an example</a> inline link.</p>
+    
+    <p><a href="http://example.net/">This link</a> has no
+    title attribute.</p>
+
+If you're referring to a local resource on the same server, you can use relative
+paths:
+
+    :::text
+    See my [About](/about/) page for details.   
+
+Reference-style links use a second set of square brackets, inside which you
+place a label of your choosing to identify the link:
+
+    :::text
+    This is [an example][id] reference-style link.
+
+You can optionally use a space to separate the sets of brackets:
+
+    :::text
+    This is [an example] [id] reference-style link.
+
+Then, anywhere in the document, you define your link label like this, on a line
+by itself:
+
+    :::text
+    [id]: http://example.com/  "Optional Title Here"
+
+That is:
+
+*   Square brackets containing the link identifier (optionally indented from the
+    left margin using up to three spaces);
+*   followed by a colon;
+*   followed by one or more spaces (or tabs);
+*   followed by the URL for the link;
+*   optionally followed by a title attribute for the link, enclosed in double or
+    single quotes, or enclosed in parentheses.
+
+The following three link definitions are equivalent:
+
+    :::text
+    [foo]: http://example.com/  "Optional Title Here"
+    [foo]: http://example.com/  'Optional Title Here'
+    [foo]: http://example.com/  (Optional Title Here)
+
+The link URL may, optionally, be surrounded by angle brackets:
+
+    :::text
+    [id]: <http://example.com/>  "Optional Title Here"
+
+You can put the title attribute on the next line and use extra spaces or tabs
+for padding, which tends to look better with longer URLs:
+
+    :::text
+    [id]: http://example.com/longish/path/to/resource/here
+        "Optional Title Here"
+
+Link definitions are only used for creating links during Markdown processing,
+and are stripped from your document in the HTML output.
+
+Link definition names may consist of letters, numbers, spaces, and punctuation
+-- but they are *not* case sensitive. E.g. these two links:
+
+    :::text
+    [link text][a]
+    [link text][A]
+
+are equivalent.
+
+The *implicit link name* shortcut allows you to omit the name of the link, in
+which case the link text itself is used as the name. Just use an empty set of
+square brackets -- e.g., to link the word "Google" to the google.com web site,
+you could simply write:
+
+    :::text
+    [Google][]
+
+And then define the link:
+
+    :::text
+    [Google]: http://google.com/
+
+Because link names may contain spaces, this shortcut even works for multiple
+words in the link text:
+
+    :::text
+    Visit [Daring Fireball][] for more information.
+
+And then define the link:
+
+    :::text
+    [Daring Fireball]: http://daringfireball.net/
+
+Link definitions can be placed anywhere in your Markdown document. I tend to put
+them immediately after each paragraph in which they're used, but if you want,
+you can put them all at the end of your document, sort of like footnotes.
+
+Here's an example of reference links in action:
+
+    :::text
+    I get 10 times more traffic from [Google] [1] than from
+    [Yahoo] [2] or [MSN] [3].
+    
+      [1]: http://google.com/        "Google"
+      [2]: http://search.yahoo.com/  "Yahoo Search"
+      [3]: http://search.msn.com/    "MSN Search"
+
+Using the implicit link name shortcut, you could instead write:
+
+    :::text
+    I get 10 times more traffic from [Google][] than from
+    [Yahoo][] or [MSN][].
+    
+      [google]: http://google.com/        "Google"
+      [yahoo]:  http://search.yahoo.com/  "Yahoo Search"
+      [msn]:    http://search.msn.com/    "MSN Search"
+
+Both of the above examples will produce the following HTML output:
+
+    :::html
+    <p>I get 10 times more traffic from <a href="http://google.com/"
+    title="Google">Google</a> than from
+    <a href="http://search.yahoo.com/" title="Yahoo Search">Yahoo</a>
+    or <a href="http://search.msn.com/" title="MSN Search">MSN</a>.</p>
+
+For comparison, here is the same paragraph written using Markdown's inline link
+style:
+
+    :::text
+    I get 10 times more traffic from [Google](http://google.com/ "Google")
+    than from [Yahoo](http://search.yahoo.com/ "Yahoo Search") or
+    [MSN](http://search.msn.com/ "MSN Search").
+
+The point of reference-style links is not that they're easier to write. The
+point is that with reference-style links, your document source is vastly more
+readable. Compare the above examples: using reference-style links, the paragraph
+itself is only 81 characters long; with inline-style links, it's 176 characters;
+and as raw HTML, it's 234 characters. In the raw HTML, there's more markup than
+there is text.
+
+With Markdown's reference-style links, a source document much more closely
+resembles the final output, as rendered in a browser. By allowing you to move
+the markup-related metadata out of the paragraph, you can add links without
+interrupting the narrative flow of your prose.
+
+
+### Emphasis
+
+Markdown treats asterisks (`*`) and underscores (`_`) as indicators of emphasis.
+Text wrapped with one `*` or `_` will be wrapped with an HTML `<em>` tag; double
+`*`'s or `_`'s will be wrapped with an HTML `<strong>` tag. E.g., this input:
+
+    :::text
+    *single asterisks*
+    
+    _single underscores_
+    
+    **double asterisks**
+    
+    __double underscores__
+
+will produce:
+
+    :::html
+    <em>single asterisks</em>
+    
+    <em>single underscores</em>
+    
+    <strong>double asterisks</strong>
+    
+    <strong>double underscores</strong>
+
+You can use whichever style you prefer; the lone restriction is that the same
+character must be used to open and close an emphasis span.
+
+Emphasis can be used in the middle of a word:
+
+    :::text
+    un*frigging*believable
+
+But if you surround an `*` or `_` with spaces, it'll be treated as a literal
+asterisk or underscore.
+
+To produce a literal asterisk or underscore at a position where it would
+otherwise be used as an emphasis delimiter, you can backslash escape it:
+
+    :::text
+    \*this text is surrounded by literal asterisks\*
+
+
+
+### Code
+
+To indicate a span of code, wrap it with backtick quotes (`` ` ``). Unlike a
+pre-formatted code block, a code span indicates code within a normal paragraph.
+For example:
+
+    :::text
+    Use the `printf()` function.
+
+will produce:
+
+    :::html
+    <p>Use the <code>printf()</code> function.</p>
+
+To include a literal backtick character within a code span, you can use multiple
+backticks as the opening and closing delimiters:
+
+    :::text
+    ``There is a literal backtick (`) here.``
+
+which will produce this:
+
+    :::html
+    <p><code>There is a literal backtick (`) here.</code></p>
+
+The backtick delimiters surrounding a code span may include spaces -- one after
+the opening, one before the closing. This allows you to place literal backtick
+characters at the beginning or end of a code span:
+
+    :::text
+    A single backtick in a code span: `` ` ``
+    
+    A backtick-delimited string in a code span: `` `foo` ``
+
+will produce:
+
+    :::html
+    <p>A single backtick in a code span: <code>`</code></p>
+    
+    <p>A backtick-delimited string in a code span: <code>`foo`</code></p>
+
+With a code span, ampersands and angle brackets are encoded as HTML entities
+automatically, which makes it easy to include example HTML tags. Markdown will
+turn this:
+
+    :::text
+    Please don't use any `<blink>` tags.
+
+into:
+
+    :::html
+    <p>Please don't use any <code>&lt;blink&gt;</code> tags.</p>
+
+You can write this:
+
+    :::text
+    `&#8212;` is the decimal-encoded equivalent of `&mdash;`.
+
+to produce:
+
+    :::html
+    <p><code>&amp;#8212;</code> is the decimal-encoded
+    equivalent of <code>&amp;mdash;</code>.</p>
+
+
+
+### Images
+
+Admittedly, it's fairly difficult to devise a "natural" syntax for placing
+images into a plain text document format.
+
+Markdown uses an image syntax that is intended to resemble the syntax for links,
+allowing for two styles: *inline* and *reference*.
+
+Inline image syntax looks like this:
+
+    :::text
+    ![Alt text](/path/to/img.jpg)
+    
+    ![Alt text](/path/to/img.jpg "Optional title")
+
+That is:
+
+*   An exclamation mark: `!`;
+*   followed by a set of square brackets, containing the `alt` attribute text
+    for the image;
+*   followed by a set of parentheses, containing the URL or path to the image,
+    and an optional `title` attribute enclosed in double or single quotes.
+
+Reference-style image syntax looks like this:
+
+    :::text
+    ![Alt text][id]
+
+Where "id" is the name of a defined image reference. Image references are
+defined using syntax identical to link references:
+
+    :::text
+    [id]: url/to/image  "Optional title attribute"
+
+As of this writing, Markdown has no syntax for specifying the dimensions of an
+image; if this is important to you, you can simply use regular HTML `<img>`
+tags.
+
+
+* * *
+
+
+## Miscellaneous
+
+### Automatic Links
+
+Markdown supports a shortcut style for creating "automatic" links for URLs and
+email addresses: simply surround the URL or email address with angle brackets.
+What this means is that if you want to show the actual text of a URL or email
+address, and also have it be a clickable link, you can do this:
+
+    :::text
+    <http://example.com/>
+
+Markdown will turn this into:
+
+    :::html
+    <a href="http://example.com/">http://example.com/</a>
+
+Automatic links for email addresses work similarly, except that Markdown will
+also perform a bit of randomized decimal and hex entity-encoding to help obscure
+your address from address-harvesting spambots. For example, Markdown will turn
+this:
+
+    :::text
+    <address@example.com>
+
+into something like this:
+
+    :::html
+    <a href="&#x6D;&#x61;i&#x6C;&#x74;&#x6F;:&#x61;&#x64;&#x64;&#x72;&#x65;
+    &#115;&#115;&#64;&#101;&#120;&#x61;&#109;&#x70;&#x6C;e&#x2E;&#99;&#111;
+    &#109;">&#x61;&#x64;&#x64;&#x72;&#x65;&#115;&#115;&#64;&#101;&#120;&#x61;
+    &#109;&#x70;&#x6C;e&#x2E;&#99;&#111;&#109;</a>
+
+which will render in a browser as a clickable link to "address@example.com".
+
+(This sort of entity-encoding trick will indeed fool many, if not most,
+address-harvesting bots, but it definitely won't fool all of them. It's better
+than nothing, but an address published in this way will probably eventually
+start receiving spam.)
+
+
+
+### Backslash Escapes
+
+Markdown allows you to use backslash escapes to generate literal characters
+which would otherwise have special meaning in Markdown's formatting syntax. For
+example, if you wanted to surround a word with literal asterisks (instead of an
+HTML `<em>` tag), you can use backslashes before the asterisks, like this:
+
+    :::text
+    \*literal asterisks\*
+
+Markdown provides backslash escapes for the following characters:
+
+    :::text
+    \   backslash
+    `   backtick
+    *   asterisk
+    _   underscore
+    {}  curly braces
+    []  square brackets
+    ()  parentheses
+    #   hash mark
+    +   plus sign
+    -   minus sign (hyphen)
+    .   dot
+    !   exclamation mark
+
+# Serving Markdoc Builds With Apache
+
+By default, you should just serve your HTML root out of Apache; that will work very simply. You will need a few options to your `.htaccess` file get the same semantics as the built-in web server (the one which runs when you do `markdoc serve`):
+
+    #!text
+    Options +MultiViews
+    
+    <FilesMatch "\.html$">
+      ForceType 'application/xhtml+xml; charset=UTF-8'
+    </FilesMatch>
+
+The first directive will cause requests for `/directory/filename` to look for `directory/filename.html` in your HTML root, allowing for more natural references between pages in your wiki.
+
+The second part will cause `.html` files to be served as valid UTF-8-encoded XHTML, which Markdoc assumes they are.
+
+# Barebones Wikis
+
+Out of the box, Markdoc supports relatively complex wikis with custom templates and static files. However, for many cases, the default media and templates are adequate, so why should a vanilla wiki require nesting like the following:
+
+    :::text
+    some-wiki/
+    |-- .templates/
+    |-- static/
+    |-- wiki/
+    |   |-- files
+    |   |-- go
+    |   `-- here
+    `-- markdoc.yaml
+
+Fortunately, for very simple cases where you just want to be able to render and serve a collection of Markdown-formatted files, you can do so. Begin by just creating and entering an empty directory:
+
+    :::bash
+    $ mkdir mywiki/
+    $ cd mywiki/
+
+Now create a file called `.markdoc.yaml` containing the following YAML data:
+
+    :::yaml
+    wiki-name: My Wiki # Set this to whatever you want
+    
+    wiki-dir: "."
+    static-dir: ".static"
+
+You can add some more configuration parameters if you like, but these are the basic ones you’ll need. So now your directory structure will look like this:
+
+    :::text
+    mywiki/
+    `-- .markdoc.yaml
+
+And you can just start creating pages in the directory.
+
+    :::text
+    mywiki/
+    |-- .markdoc.yaml
+    |-- page1.md
+    |-- page2.md
+    `-- page3.md
+
+To run the build process, just do the usual:
+
+    :::bash
+    $ markdoc build && markdoc serve
+
+`markdoc` recognizes both `markdoc.yaml` *and* `.markdoc.yaml` implicitly. Because you’ve hidden everything except the actual wiki pages, to most file browsers (including `ls`) the wiki will just look like a directory with a number of text files.
+
+# Syntax Highlighting with Pygments
+
+[Markdown for Python][] supports syntax highlighting in your documents using [Pygments][]. Here’s how to set up and use it from Markdoc.
+
+  [markdown for python]: http://www.freewisdom.org/projects/python-markdown
+  [pygments]: http://pygments.org/
+
+First, install the extension in your `markdoc.yaml` file:
+
+    :::yaml
+    wiki-name: My Wiki
+    ## ...other settings...
+    markdown:
+      extensions:
+        - codehilite # the important bit
+
+Pygments should have been installed as a dependency when you installed Markdoc.
+
+Initially, syntax highlighting will be applied to every code block Markdown encounters. Pygments will guess which lexer to apply to each block. To specify the language of a block, add a `:::LANG` prefix to blocks of code. For example:
+
+    :::text
+    :::python
+    def hello():
+        print "Hello, World!"
+
+Will render to:
+
+    :::python
+    def hello():
+        print "Hello, World!"
+
+To switch syntax highlighting off for a block, use `:::text`.
+
+If you want a block to have line numbers, use `#!LANG` instead. For example:
+
+    :::text
+    #!ruby
+    class Foo
+      def bar
+        @baz
+      end
+    end
+
+Will render to:
+
+    #!ruby
+    class Foo
+      def bar
+        @baz
+      end
+    end
+
+If you add a shebang to a code block, like `#!/bin/bash` or `#!/usr/bin/env python`, the language will be guessed and the shebang included in the output. In the final text. So for example, the following:
+
+    :::text
+    #!/bin/bash
+    echo "Hello, World"
+
+Will render to:
+
+    #!/bin/bash
+    echo "Hello, World"
+
+# Markdoc
+
+Markdoc is a lightweight Markdown-based wiki system. It’s been designed to allow
+you to create and manage wikis as quickly and easily as possible.
+
+
+## What is it good for?
+
+Potential use cases for Markdoc include, but aren’t limited to:
+
+*   **Technical Documentation/Manuals**  
+    Markdoc can be used to write and render hand-written guides and manuals for
+    software. Such documentation will normally be separate from
+    automatically-generated API documentation, and might give a higher-level
+    view than API docs alone. It might be used for client documentation for
+    web/desktop applications, or even developer documentation for frameworks.
+
+*   **Internal Project Wikis**  
+    Markdoc wikis consist of a single plain-text file per page. By combining a
+    wiki with a DVCS (such as [Mercurial][] or [Git][]), you can collaborate
+    with several other people. Use the DVCS to track, share and merge changes
+    with one another, and view the wiki’s history.
+    
+  [Mercurial]: http://mercurial.selenic.com/
+  [Git]: http://git-scm.com/
+
+*   **Static Site Generation**  
+    Markdoc converts wikis into raw HTML files and media. This allows you to
+    manage a blog, personal website or a collection of pages in a Markdoc wiki,
+    perhaps with custom CSS styles, and publish the rendered HTML to a website.
+    Markdoc need not be installed on the hosting site, since the resultant HTML
+    is completely independent.
+
+
+## Cool Features
+
+*   Set up [Google Analytics][] tracking in one line of configuration.
+
+*   [Barebones][] wikis that just look like directories with Markdown-formatted
+    text files in them.
+
+*   A built-in HTTP server and WSGI application to serve up a compiled wiki with
+    a single command.
+
+*   Continuous builds (via `rsync`) mean the server can keep running whilst
+    Markdoc re-compiles the wiki. Just refresh your browser to see the changes.
+
+*   Add [Pygments][]-powered syntax highlighting to your Markdoc wiki with a
+    single [configuration parameter][syntax-highlighting].
+
+*   Markdoc is [public domain software][licensing]. It will always be completely
+    free to use, and you can redistribute it (in part or in whole) under any
+    circumstances (open-source, proprietary or otherwise) with no attribution or
+    encumberances.
+
+[google analytics]: http://markdoc.org/ref/configuration#metadata
+[barebones]: http://markdoc.org/tips/barebones
+[pygments]: http://pygments.org/
+[syntax-highlighting]: http://markdoc.org/tips/syntax-highlighting
+[licensing]: http://markdoc.org/about#license
+
+
+## Quickstart
+
+### Requirements
+
+The minimum requirements to run the Markdoc utility are:
+
+  * Python 2.4 or later (2.5+ highly recommended)
+  * A UNIX (or at least POSIX-compliant) operating system
+  * [rsync](http://www.samba.org/rsync/) -- installed out of the box with most
+    modern OSes, including Mac OS X and Ubuntu. In the future Markdoc may
+    include a pure-Python implementation.
+
+
+### Installation
+
+    $ easy_install Markdoc  # OR
+    $ pip install Markdoc
+
+
+### Making a Wiki
+
+    markdoc init my-wiki
+    cd my-wiki/
+    vim wiki/somefile.md
+    # ... write some documentation ...
+    markdoc build
+    markdoc serve
+    # .. open http://localhost:8008/ in a browser ...
+
+
+## (Un)license
+
+This is free and unencumbered software released into the public domain.
+
+Anyone is free to copy, modify, publish, use, compile, sell, or
+distribute this software, either in source code form or as a compiled
+binary, for any purpose, commercial or non-commercial, and by any
+means.
+
+In jurisdictions that recognize copyright laws, the author or authors
+of this software dedicate any and all copyright interest in the
+software to the public domain. We make this dedication for the benefit
+of the public at large and to the detriment of our heirs and
+successors. We intend this dedication to be an overt act of
+relinquishment in perpetuity of all present and future rights to this
+software under copyright law.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES OR
+OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
+ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+OTHER DEALINGS IN THE SOFTWARE.
+
+For more information, please refer to <http://unlicense.org/>
+
+
+# Hello
+
+# World
+
+# Foo
+
+# Hello again.
+

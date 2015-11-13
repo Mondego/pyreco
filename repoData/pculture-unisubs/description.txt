@@ -1,0 +1,305 @@
+The files in this directory handles setting up and running an amara
+development environment using docker.
+
+SETUP:
+
+We run a docker container for each of the services needed for amara (mysql,
+rabbitmq, etc).  Then run a docker container to handle things like management
+commands, testing, etc.
+
+STARTING SERVICES
+
+The first step to using the docker dev environment is always starting the
+services.  The first time this runs, we will need to build all the images
+which will take a while:
+
+./startup.py
+
+Notes:
+  - You will either need to run these scripts as root, or add your user to the
+    docker group.  (Read the Why Sudo? section in
+    http://docs.docker.io/en/latest/use/basics/ for more info)
+
+  - After restarting the host machine, you may need to restart the docker
+    network with:
+
+    sudo sh reset-docker-network.sh
+
+  - If you or someone else changes a Dockerfile, use ./startup --rebuild to
+    rebuild all images.
+
+RUNNING A TEST SERVER:
+
+In one terminal, start the celery worker:
+
+./worker.py
+
+In another terminar, start the webserver:
+
+./runserver.py
+
+RUNNING DJANGO MANAGEMENT
+
+./manage.py command [args]
+
+RUNNING TESTS:
+
+./test.py [args]
+
+STOPPING SERVICES:
+
+./shutdown.py
+
+NOTES ON SERVICES:
+
+We set up several docker images/containers to provide services for the dev
+envonment.  Here's some details about them:
+
+* amara-dev-mysql
+  port: 51000
+  user: "root"
+  password: ""
+
+* amara-dev-solr
+  port: 51001
+
+* amara-dev-rabbitmq:
+  port: 51002
+
+* amara-dev-memcached:
+  port: 51003
+
+// Amara, universalsubtitles.org
+//
+// Copyright (C) 2013 Participatory Culture Foundation
+//
+// This program is free software: you can redistribute it and/or modify
+// it under the terms of the GNU Affero General Public License as
+// published by the Free Software Foundation, either version 3 of the
+// License, or (at your option) any later version.
+//
+// This program is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU Affero General Public License for more details.
+//
+// You should have received a copy of the GNU Affero General Public License
+// along with this program.  If not, see
+// http://www.gnu.org/licenses/agpl-3.0.html.
+
+goog.provide('unisubs.translate.DescriptionTranslation');
+
+/**
+ * @constructor
+ * @param {string} video description
+ */
+unisubs.translate.DescriptionTranslationWidget = function(videoDescription, captionSet) {
+    goog.ui.Component.call(this);
+    this.originalVideoDescription_ = videoDescription || '';
+    this.captionSet_ = captionSet;
+};
+
+goog.inherits(unisubs.translate.DescriptionTranslationWidget, goog.ui.Component);
+
+unisubs.translate.DescriptionTranslationWidget.prototype.createDom = function() {
+    var $d = goog.bind(this.getDomHelper().createDom, this.getDomHelper());
+
+    this.setElementInternal(
+        $d('li', null,
+           $d('div', null,
+              $d('span', 'unisubs-description unisubs-description-notime',
+                  $d('span', 'meta', 'Description: '),
+                  this.originalVideoDescription_),
+              this.loadingIndicator_ = $d('span', 'unisubs-loading-indicator', 'loading...')
+           ),
+           this.translateInput_ = $d('textarea', {"class":'unisubs-translateField unisubs-descriptionField' + (this.captionSet_.languageIsRTL ? ' is-rtl' : ''), "rows":"10"})
+        )
+    );
+
+    this.getHandler().listen(
+        this.translateInput_, goog.events.EventType.BLUR,
+        this.inputLostFocus_);
+};
+unisubs.translate.DescriptionTranslationWidget.prototype.showLoadingIndicator = function(){
+    unisubs.style.showElement(this.loadingIndicator_, true);
+};
+unisubs.translate.DescriptionTranslationWidget.prototype.hideLoadingIndicator = function(){
+    unisubs.style.showElement(this.loadingIndicator_, false);
+};
+unisubs.translate.DescriptionTranslationWidget.prototype.getOriginalValue = function(){
+    return this.originalVideoDescription_;
+};
+unisubs.translate.DescriptionTranslationWidget.prototype.isEmpty = function(){
+    return ! goog.string.trim(this.translateInput_.value);
+};
+unisubs.translate.DescriptionTranslationWidget.prototype.setTranslation = function(value){
+    this.translateInput_.value = value;
+    this.inputLostFocus_();
+};
+
+unisubs.translate.DescriptionTranslationWidget.prototype.setTranslationContent = 
+    unisubs.translate.DescriptionTranslationWidget.prototype.setTranslation;
+
+unisubs.translate.DescriptionTranslationWidget.prototype.inputLostFocus_ = function(event) {
+    this.captionSet_.description = this.translateInput_.value;
+};
+
+This repository is the code for the [Amara][] project.
+
+The full documentation can be found at
+http://amara.readthedocs.org/en/latest/index.html
+
+[Amara]: http://universalsubtitles.org
+
+Quick Start
+-----------
+
+Amara uses [Vagrant][] to make it easy to get started.  If you've
+never used Vagrant before we highly recommend going through its [quick start
+guide][vagrant-guide] to learn how it works.
+
+[Vagrant]: http://vagrantup.com/
+[vagrant-guide]: http://docs.vagrantup.com/v1/docs/getting-started/index.html
+
+To run the development version:
+
+1. Git clone the repository:
+
+        git clone git://github.com/pculture/unisubs.git unisubs
+
+   Now the entire project will be in the unisubs directory.
+
+2. Install VirtualBox and vagrant if you don't have them yet. Then type:
+
+        vagrant up
+
+   This is going to create a vm and provision it. It should take 10-15 minutes.
+   Remember what mom said: a watched pot never boils.
+
+3. Switch over to your vagrant vm with:
+
+        vagrant ssh
+
+   By default our `~/.bashrc` file will automatically move you to the shared
+   folder and activate the virtualenv.
+
+   Now run following command:
+
+        bootstrap-vagrant.sh
+
+   It's safe to run `bootstrap-vagrant.sh` multiple times if something goes
+   wrong (like PyPi goes down).
+
+4. Add `unisubs.example.com` to your hosts file, pointing at `127.0.0.1`.  This
+   is necessary for Twitter and Facebook oauth to work correctly.
+
+5. In your vagrant vm (the one you switched to in step 3), run the site with:
+
+        dev-runserver.sh
+
+   You can access the site at <http://unisubs.example.com:8000>.
+
+Testing
+-------
+
+To run unit tests, use the `pmt` alias.  This will ensure that you're using the
+correct settings for testing.
+
+You can specify specific tests to run, just like if you were using `nosetests`.
+For example:
+
+    $ vagrant ssh
+
+    # Just the tests in apps/teams/tests/permissions.py
+    $ pmt apps.teams.tests.permissions
+
+    # Tests defined as a class in apps/teams/tests/permissions.py
+    $ pmt apps.teams.tests.permissions:TestRules
+
+    # One specific test
+    $ pmt apps.teams.tests.permissions:TestRules.test_can_add_video
+
+    # Everything:
+    $ pmt
+
+Note: you may need to rebuild the Solr schema after running tests.  To do so,
+run the following command on the server:
+
+    sudo ./deploy/update_solr_schema_vagrant.sh
+
+**TODO:** Fix this.
+
+Optional
+--------
+
+You can optionally set up a few other pieces of the development environment that
+we haven't automated yet.
+
+### RabbitMQ and Celery
+
+Add the following to `settings_local.py` to use RabbitMQ and Celery for async
+tasks:
+
+    CELERY_ALWAYS_EAGER = False
+    CELERY_RESULT_BACKEND = "amqp"
+    BROKER_BACKEND = 'amqplib'
+    BROKER_HOST = "localhost"
+    BROKER_PORT = 5672
+    BROKER_USER = "usrmquser"
+    BROKER_PASSWORD = "usrmqpassword"
+    BROKER_VHOST = "ushost"
+
+### Werkzeug Debugger
+
+If you want to use the awesome Werkzeug debugging runserver instead of the
+standard Django one, you just have to run (while the virtualenv is activated):
+
+    pip install werkzeug
+
+And then use `./dev-runserver.sh plus` to run it.
+
+### bpython shell
+
+If you want to use the awesome bpython shell instead of the normal one you just
+need to run (while the virtualenv is activated):
+
+    pip install bpython
+
+Now when you run `pm shell` it will use bpython automatically.
+
+### Metrics
+
+If you want to collect metrics when developing locally (just out of curiosity,
+or if you want to add some of your own and test them) you'll need to set up the
+amara-metrics Vagrant box:
+
+    git clone git://github.com/pculture/amara-metrics.git metrics
+    cd metrics
+    vagrant up
+
+Then add the following line to `/etc/hosts` on your local (host) machine:
+
+    10.10.10.44	graphite.example.com
+
+Finally, turn on metric reporting by changing the `ENABLE_METRICS` setting in
+`settings_local.py` to `True`.
+
+Now load a few pages to generate some stats, then point your browser at
+<http://graphite.example.com> to see the Graphite dashboard.  The stats should
+be under `unisubs` (which is the hostname of the Vagrant VM).
+
+
+
+Transifex.net Token Verification 
+=================================
+
+The list of tokens bellow guarantee the respective users to be able to enable 
+submission on components using the following repository url:
+
+git@github.com:8planes/unisubs.git
+
+Tokens:
+
+pf3sREAbxmpZcub4Zd7EENPvvyhWnbS7 / universalsubtitles
+
+

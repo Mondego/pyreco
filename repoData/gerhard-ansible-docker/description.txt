@@ -1,0 +1,106 @@
+# sshknownhosts
+
+
+## Installation
+
+Copy `sshknownhosts` to `$ANSIBLE_LIBRARY` on the management host.
+
+        install -m 444 sshknownhosts $ANSIBLE_LIBRARY/sshknownhosts
+
+
+## Usage
+
+        sshknownhosts
+                host= host1.domain.com
+                state= present|absent (default: present)
+                keyscan= /path/to/ssh-keyscan (default: use PATH)
+                dest= /path/to/ssh_known_hosts (default: /etc/ssh/ssh_known_hosts)
+                enctype= rsa|dsa (default: rsa)
+
+
+## Playbook
+
+        - name: Add localhost to ssh_known_hosts file
+          action: sshknownhosts host=localhost state=present
+
+        - name: Add several hosts to ssh_known_hosts file
+          action: sshknownhosts host=${item} state=present
+          with_items:
+            - host1.example.com
+            - host2.example.com
+            - host3.example.com
+
+
+
+## Security
+
+If an ssh_known_hosts file is constructed using ssh-keyscan without
+verifying the keys, users will be vulnerable to man in the middle
+attacks.  On the other hand, if the security model allows such a risk,
+ssh-keyscan can help in the detection of tampered keyfiles or man in
+the middle attacks which have begun after the ssh_known_hosts file was
+created.
+
+(taken from the ssh-keyscan man page)
+
+
+## Possible Future Enhancements
+
+- aliases: adding aliases for hosts.  They end up in the known hosts
+  file like this: host1,alias1,alias2 sshkey
+- as an alternative to supplying a host or list of hosts, get the list
+  of hosts from the existing ssh_known_hosts file and re-scan for
+  updates.
+- key: supplying the host key from a string or file instead of looking
+  it up with the ssh-keyscan program.
+- ssh information: use configuration items for ssh used by the
+  ssh-keyscan program such as port number, or IPv4/IPv6 addresses.
+- allow multiple key types (rsa and dsa together, for example)
+
+Feedback on these and other options would be appreciated.
+
+
+## Notes
+
+* A module I wrote for my own use that others might find useful, so I
+  added some docs and put it up on github.
+* This is my first python program, so I appreciate some feedback (and
+  my first public ansible module)
+* Tested on Debian flavours (Mint 14, Debian Sid and XUbuntu 12.10 and
+  13.04) and OpenBSD 5.2.
+* Contact me at https://www.bfmartin.ca/contact/
+
+Ansible code used for integrating with Docker.
+
+[January 2014 Docker Meetup Slides](https://speakerdeck.com/gerhardlazu/ansible-and-docker-the-path-to-continuous-delivery-part-1)
+
+[February 2014 LRUG 20x20 Slides](https://speakerdeck.com/gerhardlazu/ansible-and-docker-the-path-to-continuous-delivery-lrug-20x20)
+
+[Ansible & Docker - The Path to Continuous Integration I](http://gerhard.lazu.co.uk/ansible-docker-the-path-to-continuous-delivery-1)
+
+## Pre-requisites
+
+OS X Ansible setup:
+
+<pre>
+sudo easy_install pip
+sudo pip install setuptools
+sudo pip install ansible dopy
+</pre>
+
+## Links
+
+[Ansible Tutorial](http://docs.ansible.com/guide_rolling_upgrade.html)
+[Ansible playbooks and Dockerfiles to help you set up a personal
+server](https://github.com/Keybits/keybits-server)
+
+[Continuous Delivery and Rolling Upgrades](http://docs.ansible.com/guide_rolling_upgrade.html)
+[LAMP haproxy - Rolling Update](https://github.com/ansible/ansible-examples/blob/master/lamp_haproxy/rolling_update.yml)
+
+
+[calavera/active-proxy](https://github.com/calavera/active-proxy)
+
+Active-Proxy is a dynamic reverse proxy written in Go.
+
+It uses etcd to dynamically switch application upstreams without restarting.
+

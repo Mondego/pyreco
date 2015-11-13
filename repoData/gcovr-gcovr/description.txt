@@ -1,0 +1,240 @@
+----------------------------------------------------------------------
+              README file for the DocBook XSL Stylesheets
+----------------------------------------------------------------------
+
+These are XSL stylesheets for transforming DocBook XML document
+instances into .epub format.
+
+.epub is an open standard of the The International Digital Publishing Forum (IDPF), 
+a the trade and standards association for the digital publishing industry. 
+
+An alpha-quality reference implementation (dbtoepub) for a DocBook to .epub 
+converter (written in Ruby) is available under bin/. 
+
+From http://idpf.org
+  What is EPUB, .epub, OPS/OCF & OEB?
+
+  ".epub" is the file extension of an XML format for reflowable digital 
+  books and publications.  ".epub" is composed of three open standards, 
+  the Open Publication Structure (OPS), Open Packaging Format (OPF) and 
+  Open Container Format (OCF), produced by the IDPF. "EPUB" allows 
+  publishers to produce and send a single digital publication file 
+  through distribution and offers consumers interoperability between 
+  software/hardware for unencrypted reflowable digital books and other 
+  publications. The Open eBook Publication Structure or "OEB", 
+  originally produced in 1999, is the precursor to OPS. 
+
+----------------------------------------------------------------------
+.epub Constraints 
+----------------------------------------------------------------------
+
+.epub does not support all of the image formats that DocBook supports.
+When an image is available in an accepted format, it will be used. The
+accepted @formats are: 'GIF','GIF87a','GIF89a','JPEG','JPG','PNG','SVG'
+A mime-type for the image will be guessed from the file extension, 
+which may not work if your file extensions are non-standard.
+
+Non-supported elements:
+  * <mediaobjectco> 
+  * <inlinegraphic>, <graphic>, <textdata>, <imagedata> with text/XML 
+    @filerefs
+  * <olink>
+  * <cmdsynopsis> in lists (generic XHTML rendering inability)
+  * <footnote><para><programlisting> (just make your programlistings 
+    siblings, rather than descendents of paras)
+
+----------------------------------------------------------------------
+dbtoepub Reference Implementation
+----------------------------------------------------------------------
+
+An alpha-quality DocBook to .epub conversion program, dbtoepub, is provided
+in bin/dbtoepub. 
+
+This tool requires:
+ - 'xsltproc' in your PATH
+ - 'zip' in your PATH
+ - Ruby 1.8.4+
+
+Windows compatibility has not been extensively tested; bug reports encouraged.
+[See http://www.zlatkovic.com/libxml.en.html and http://unxutils.sourceforge.net/]
+
+$ dbtoepub --help
+  Usage: dbtoepub [OPTIONS] [DocBook Files]
+
+  dbtoepub converts DocBook <book> and <article>s into to .epub files.
+
+  .epub is defined by the IDPF at www.idpf.org and is made up of 3 standards:
+  - Open Publication Structure (OPS)
+  - Open Packaging Format (OPF) 
+  - Open Container Format (OCF)
+
+  Specific options:
+      -d, --debug                      Show debugging output.
+      -h, --help                       Display usage info
+      -v, --verbose                    Make output verbose
+
+
+----------------------------------------------------------------------
+Validation
+----------------------------------------------------------------------
+
+The epubcheck project provides limited validation for .epub documents. 
+See http://code.google.com/p/epubcheck/ for details.
+
+----------------------------------------------------------------------
+Copyright information
+----------------------------------------------------------------------
+See the accompanying file named COPYING.
+
+
+Replaced the plain DocBook XSL admonition icons with Jimmac's DocBook
+icons (http://jimmac.musichall.cz/ikony.php3). I dropped transparency
+from the Jimmac icons to get round MS IE and FOP PNG incompatibilies.
+
+Stuart Rackham
+
+This directory supports the creation of the Gcovr User Guide using
+asciidoc and a2x commands.
+
+HTML
+
+The command
+
+    make html
+
+creates the guide.html file.
+
+
+PDF
+
+The command
+
+    make pdf
+
+creates the guide.tex file, which generates the guide.pdf file using
+dblatex.
+
+
+
+EPUB
+
+The command
+
+    make epub
+
+creates the file make.epub.  Note that the `catalog.xml` file is
+used, which configures asciidoc to use the docbook XML data in the
+`epub` directory.  This is a bit of a hack.  It apparently works
+around a limitation of the MacPorts installation of asciidoc.
+
+
+
+NOTE: when updating the version of gcovr, the following files need to
+be manually updated:
+
+gcovr/doc/examples/example2.txt:
+
+    cd gcovr/doc/examples
+    lbin ./example2.sh > example2.txt
+
+gcovr/doc/examples/example1.png:
+    cd gcovr/doc/examples
+    lbin ./example4.sh
+    open example1.html
+    <Capture this HTML page and save in the example1.png file.>
+    convert example1.png -resize 700x700 example1.png
+
+examples/example2_example2_cpp.png:
+    cd gcovr/doc/examples
+    lbin ./example5.sh
+    cd example2
+    open example2.html
+    <Click example2.cpp link>
+    <Capture this HTML page and save in the example2_example2.cpp.png file.>
+    convert example2_example2_cpp.png -resize 700x900 example2_example2_cpp.png
+    
+
+
+
+This test case was inspired by ticket #3884:
+
+   https://software.sandia.gov/trac/fast/ticket/3884
+
+
+This test case was originally submitted for ticket #3867:
+
+   https://software.sandia.gov/trac/fast/ticket/3867
+
+
+This test case was inspired by ticket #3884:
+
+   https://software.sandia.gov/trac/fast/ticket/3884
+
+
+Test for --exclude-unreachable-branches option
+
+The test attempts to test both GCOV/LCOV exclusion markers
+and auto-detection of compiler-generated code.
+
+This test case was inspired by ticket #3942:
+
+   https://software.sandia.gov/trac/fast/ticket/3942
+
+
+This test case was inspired by ticket #3884:
+
+   https://software.sandia.gov/trac/fast/ticket/3884
+
+
+This test case was inspired by the logic in gcovr
+that traverses symbolic links:
+
+# UNIX resolves symbolic links by walking the
+# entire directory structure.  What that means is that relative links
+# are always relative to the actual directory inode, and not the
+# "virtual" path that the user might have traversed (over symlinks) on
+# the way to that directory.  Here's the canonical example:
+#
+#   a / b / c / testfile
+#   a / d / e --> ../../a/b
+#   m / n --> /a
+#   x / y / z --> /m/n/d
+#
+# If we start in "y", we will see the following directory structure:
+#   y
+#   |-- z
+#       |-- e
+#           |-- c
+#               |-- testfile
+
+
+This test case was inspired by ticket #3884:
+
+   https://software.sandia.gov/trac/fast/ticket/3884
+
+
+This test case was originally submitted for ticket #3860:
+
+   https://software.sandia.gov/trac/fast/ticket/3860
+
+and has been modified to be used as a standard test case.
+Overview
+--------
+
+Gcovr provides a utility for managing the use of the GNU gcov utility
+and generating summarized code coverage results. This command is
+inspired by the Python coverage.py package, which provides a similar
+utility in Python. The gcovr command produces either compact
+human-readable summary reports, machine readable XML reports (in
+Cobertura format) or simple HTML reports. Thus, gcovr can be viewed
+as a command-line alternative to the lcov utility, which runs gcov
+and generates an HTML-formatted report.
+
+Gcovr is available under the BSD License.
+
+A user guide can be downloaded from http://gcovr.com.
+
+Gcovr development moved to this repository in September, 2013 from
+Sandia National Laboratories.
+
+

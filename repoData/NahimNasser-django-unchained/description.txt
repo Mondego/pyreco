@@ -1,0 +1,304 @@
+Miscellaneous Python Tools, Tips, and Tricks
+============================================
+
+##Tutorials:
+
+Writing your first django app
+https://docs.djangoproject.com/en/dev/intro/tutorial01/
+
+Installing Python (We will be using Python 2.7)
+http://www.python.org/getit/
+
+##Tips:
+
+Importing modules
+http://effbot.org/zone/import-confusion.htm
+
+Django Tips
+http://coderwall.com/n/django
+
+For the showoff
+http://codeblog.dhananjaynene.com/2011/06/10-python-one-liners-to-impress-your-friends/
+
+Database Optimization
+https://docs.djangoproject.com/en/dev/topics/db/optimization/
+
+##My Tools:
+I use Sublime Text Editor 2 as my primary text editor
+* Sublime Text Editor 2 Plugins:
+    * Using sublime linter for pep8 with additional rule: {"pep8_ignore": ["E501"]}
+    * Git for sublime
+    * Djaneiro
+    * All Autocomplete
+    * Markdown Editing
+    * Package control
+
+I've also created tabtriggered sublime-snippets for things like ```import pdb; pdb.set_trace()```
+
+##Recommended Python/Django Packages:
+* IPython (Very powerful python shell)
+* Ipdb (PDB using IPython)
+* Django-nose (an extension of the unit testing framework)
+    * nose-progressive plugin
+    * pinocchio
+* Requests (much better than urrllib2 for making requests)
+* Django-Facebook
+
+Session 1: Intro to Python
+==============================================
+Description:
+------------
+This session will discuss pythonic syntax, structure, and principles. Useful built-in functions, and data structures critical for use with django will be covered. We will be using the python interactive interpreter for a portion of this lesson.
+
+Outline:
+--------
+* Intro to Python: Why Python?
+* Data Structures: Strings, Integers, Floats, Dictionaries, Lists, Tuples, Sets. Talk about differences and use cases.
+* Statements and Functions: if, while, for, lambda, filter, sorted, map, dir, help, pdb
+
+
+Setup:
+------
+1. Clone the git repo
+2. Make sure python is installed (type python in the command line, it should open up an interpreter)
+3. Navigate to the 1-Intro directory
+4. Run ```python -m unittest test_intro``` in your powershell(windows) or terminal(mac) to ensure everything is configured correctly
+5. open up test_intro.py and intro.py in your favourite editor, and begin the workshop
+
+Getting Started:
+----------------
+In your terminal, navigate to the 1-Intro directory, and type **python**
+
+Lets import some code, so you dont have to write it all in the interpreter:
+```python
+import intro as i
+```
+
+Note any calls to any functions in intro.py must be prefixed with **i.**
+
+If you make changes to your intro.py file, instead of closing and reopening the python interpreter, you can simply type
+
+```python
+reload(i)
+```
+
+Statements and Functions:
+----------------
+
+### Dissection of a python function
+
+```python
+def spam(name, firstword='hello', secondword='world', *args, **kwargs):
+    '''Prints a string with two words and a name
+
+    Args:
+        name: The name of the user
+        firstword: The first word in the sequence, defaulting to 'hello'
+        secondword: The second word in the sequence, defaulting to 'world'
+
+    Returns:
+        A string containing the name, firstword, and second word
+
+    Raises:
+        NameError: Only occurs when user named Vimol attempts to use this function
+    '''
+
+    if name == 'Vimol':
+        raise NameError('VI')
+
+    #String methods such as capitalize() can be found here: http://docs.python.org/library/stdtypes.html#string-methods
+    spam = "%s %s, %s" % (firstword.capitalize(), secondword, name)
+    return spam
+```
+
+Try the following calls to spam:
+
+```python
+i.spam('Alex')
+i.spam(name='Alex')
+i.spam('Alex', 'Hey', 'Globe')
+i.spam(firstword='Hey', name='Alex', secondword='Globe')
+i.spam('Alex', 'Hey', 'Globe', 'WTF?')
+i.spam(firstword='Hey', name='Alex', secondword='Globe', crazyvar='WTF?')
+```
+
+### Function Arguments
+
+The first thing you will notice about the arguments is that python is **dynamically typed**. Type checking is performed at run-time as opposed to compile time.
+
+Now lets look at each argument, and the special properties and syntax of each one:
+
+* *name* is a mandatory argument
+* *firstword* and *secondword* are both **default argument values**, this means that the argument is optional, and a default value is assumed when no value is specified
+* *args* is an **arbitrary argument list**, this means that our function can be called with an arbitrary number of arguments
+* *kwargs* is a dictionary containing all keyword arguments except our formal parameters specified.
+
+
+*NOTE: We're using out of the box caveman tools to give you an understanding of how things work, more advanced tools will be introduced later*
+
+
+####The Magic of Lambda Functions
+
+Here's a rather simple function 
+
+```python
+def magic(x):
+    return x*2
+
+print magic(2)
+```
+
+Lambda Functions (or Anonymous Functions) are functions that are not bound to a name--- and are frequently used with other built in functions such as map() and filter()
+
+Here's how we could accomplish the same thing with a lambda function
+
+```python
+magic = lambda x: x*2
+nameless = magic
+
+print magic(2)
+print nameless(2)
+```
+
+####Built-in python functions - Map
+
+Built-in python functions can be the difference between 10+ LOC vs 1. It is extremely useful to be aware of the various built-in function.
+
+For the full list, check out: 
+http://docs.python.org/library/functions.html
+
+Heres a regular function without using built in functions:
+(Yes i know, really terrible code)
+
+```python
+# Given a list, we want to multiply each integer in the list by two
+sample = [1, 2, 3, 4, 5]
+
+def multiply_list_by_2(sample_list):
+    # For each number in sample_list
+    newlist = []
+    for number in sample_list:
+        newlist.append(number * 2)
+    return newlist
+```
+
+Now that you've seen that, lets use a lambda function in conjunction with map().
+
+The map function is defined as follows: "Apply function to every item of iterable and return a list of the results."
+
+The one liner using map():
+```python
+newlist = map(lambda x: x * 2, sample)
+```
+
+The one liner using list comprehensions (faster in this case):
+http://docs.python.org/tutorial/datastructures.html#list-comprehensions
+```python
+newlist = [number * 2 for number in sample]
+```
+
+Now you're probably thinking, when should I use *Map()*, and when should I use a *List Comprehension*?
+
+You can find a good discussion here:
+http://stackoverflow.com/questions/1247486/python-list-comprehension-vs-map
+
+#### Unit testing in python:
+* Open up test_intro.py in your text editor
+* run ```python -m unittest test_intro```
+
+Lets create a breakpoint in our code, and walk through a debugging flow.
+
+Session 2: Django's Architecture
+==============================================
+Description:
+------------
+A high level overview of the various components in a django web application, and how they interoperate with each other. Django's MVC architecture will be broken down. Django's design philosophies will also be discussed.
+
+Outline:
+--------
+* [Django MVT Overview](https://github.com/NahimNasser/django-unchained/blob/master/2-Django/Session-2-Slides.pdf)
+* [Setting up a Django Application](https://docs.djangoproject.com/en/dev/intro/tutorial01/)
+
+
+Django Best Practices
+======================================
+By: Dimitri Gnidash
+
+Slides Available Here:
+
+http://portal.sliderocket.com/AWBBX/E532DDE7-96D8-4F0D-A21F-53FE7BEE5D1D
+Django Unchained: An Introduction to Python and Django
+======================================
+By: 
+
+
+Shah Warraich (Software Engineer - MarketIQ)
+
+
+Nahim Nasser (Software Engineer - BNOTIONS)
+
+
+#News and Announcements
+
+The course has ended --- A reboot of the series will be starting in the coming weeks. Stay tuned for updates
+
+
+#Course Outline
+
+* Location: BNOTIONS ( www.bnotions.com ) / The YMC ( www.theymc.com )
+* Date:   Thursdays
+* Time:   6:30pm - 8pm (1.5HR)
+* Cost:   Free
+
+##Description:
+
+Participants will leave this session with an understanding of pythonic principles, django's architecture, and good programming practices.
+
+##Outcomes:
+
+By the end of the series, participants will have created a fully functioning django web application, and should have a background on the capability and potential of the both python and django.
+
+##Prerequisites
+
+* Participants should be familiar with object-oriented programming.
+
+##Software Required
+
+* Code editor (I use Sublime Text 2, but feel free to use whatever you like)
+* Web browser
+* Python 2.7
+* Terminal (Mac) or Powershell (Windows)
+
+##Hardware Required
+
+A computer / laptop able to run a modern web browser (Chrome, Firefox, Opera, Safari, IE9+), and a code editor (ie. Sublime, Notepad++, Eclipse, Pycharm, etc).
+
+Topics
+========================
+
+##Session 1: Intro to Python
+This session will discuss pythonic syntax, structure, and principles. Useful built-in functions, and data structures critical for use with django will be covered. We will be using the python interactive interpreter for a portion of this lesson.
+
+Flow:
+
+* Intro to Python: Why Python?
+* Data Structures: Strings, Integers, Floats, Dictionaries, Lists, Tuples, Sets. Talk about differences and use cases.
+* Statements and Functions: if, while, for, lambda, filter, sorted, map, dir, help, pdb
+
+##Session 2: Django's architecture, design, and principles
+A high level overview of the various components in a django web application, and how they interoperate with each other. Django's MVC architecture will be broken down. Django's design philosophies will also be discussed.
+
+##Session 3: Building a django application Part One
+An interactive session where we will build a fully functioning django application. We will walk through the tutorial presented on https://docs.djangoproject.com/en/1.4/intro/tutorial01/. It is very well documented and will familiarize the student with the djangoproject website for future use. We will go over part 1 and part 2 in this session. This will cover core concepts on setting up a project, implementing models and utilizing the admin functionality.
+
+##Session 4: Building a django application Part Two
+Part 3 and 4 will be presented in this session. We will cover views and templates here. After this session the student should be equipped with all the basic skills to set up a website.
+
+##Session 5: Craftsmanship
+Core elements will be reviewed as students will attempt at building features for a website. They can choose from a pre-selected set of tasks or decide on something themselves. Students will present in front of the class and have their code ripped apart.
+
+##Session 6: Natural Language Processing with Python
+Fundamental concepts of natural language processing will be discussed. We will build a basic spam filter using Pythons NLTK library.
+
+##Session 7: Scalability with Django
+Database and server architectures that allow for scalability will be presented.

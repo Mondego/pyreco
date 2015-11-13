@@ -1,0 +1,655 @@
+
+Battle for Evennia
+------------------
+
+Evennia contrib - Griatch 2012 (WORK IN PROGRESS)
+
+This is the beginnings of what will be a tutorial for building a
+simple yet still reasonably playable and not-quite-bog-standard
+starting game in Evennia. The tutorial text itself will eventually be
+found from the Dev blog and from the wiki.
+
+
+Ideas & Initial Brainstorm
+---------------------------
+
+This is to be a hack&slash game. Characters fight mobiles and each
+other for random loot and better weapons. The highscore is based on
+most accumulated gold. They can sell loot to NPC merchants for gold,
+and also buy stuff others sold there (spending gold). Characters get
+better in the skills they use (no levels). They automatically collect
+loot when they kill things, and they cannot drop it (but they can give
+it away and, most importantly sell it). Death sends the player back to
+a starting position, but gives all but their weakest gear to their
+nemesis (they keep all their gold though).
+
+Inventory of code we need:
+- Loot/Equipment lists of Weapons, Armour, Potions and Spells - maybe partly randomly generated.
+- Way to spawn in-game objects based on the loot lists
+- Character creation module (choose skills, attributes, assigns starting gear)
+- 3 Attributes, about 10 skills (some magic?)
+- Experience -> skill increase code
+- Skill success code - same between PCs as between NPC and PC
+- Combat code (twitch-based? Turn-based? Turn based seems easier to balance. Same for NPC vs PC and PC vs PC)
+- Mobile code (same for NPCs and enemies)
+- 'Give' mechanism (should require consent by receiver)
+- No quests, for simplicity. Use gold as a highscore.
+- Death respawn mechanism
+
+
+Elaboration based on Brainstorm
+-------------------------------
+
+ * Loot/Equipment lists and spawn - These could be global-level
+   dictionaries in a module. Each dictionary gives info such as name,
+   description and typeclass. Attributes could be set or
+   randomized. The loot-spawner (probably a handler tied to a dead
+   mob, treasure chest etc) would use utils.variable_from_module to
+   extract a random item-template.
+
+ * Characters have 3 attributes: Wile, Strength and Agility. At
+   creation, they distribute points between them. Wile is used for
+   bartering with merchants, and using Magic. Strength determines
+   hand-weapon damage and how heavy armour can be worn. Agility
+   determines ability to dodge, initiative and using lighter weapons.
+   Health is based on an average of all three attributes (i.e. all
+   chars start with the same health).
+
+ * Skills are as follows (may change):
+     - Long blades (str) ability to hit with swords and also axes.
+     - Blunt (str) usage of blunt weapons like clubs. Good on armoured foes.
+     - Spears (agi) usage of spears and hillebards. Bonus on first attack, minus on initiative.
+     - Daggers (agi) usage of daggers and short blades. Bonus on initiative, bad on armour
+     - Unarmoured (agi) usage of your fists and feet. Very fast. Bad on armour.
+     - Dodge (agi) avoiding blows by swift footwork
+     - Feint (agi) faign attacks to keep the enemy guessing
+     - Shield (str) absorbing hits with a shielf
+     - Platemail (str) utilizing heavy armour
+     - Chainmail (max(str, agi)) utilizing medium armour
+     - Leather (agi) utilizing light armour
+     - Barter (wil) barter with merchants for a good price
+     - Magic (wil) use of single-use magical scrolls to achieve various effects
+     - Potions (wil) making the best of potions with various effects
+     - Heal (wil) fixing yourself (or a friend) up between combat. Also judge opponent's wounds.
+
+ * Experience simply rises upon kills and is distributed between the
+   skills used in the battle (so we need to log this). After N amount of
+   XP in a skill, that skill automatically goes up one
+   point. Increasing skills at least N points in 3+ different skills
+   of a certain type (str, agi, wil) will increase the most trained
+   Attribute by one point.
+
+ * Skill success is a comparison between the value of a random.gauss
+   centered around the attacker's skill value vs the result of a
+   random.gauss centered on the defender's skill. Certain
+   weapons/defense combinations might be especially effective against
+   one another (or not). The difference is the base damage, then
+   adjusted by weapon and armour. In the case of bartering, skill
+   challenge is between barter skill of both sides; difference
+   influences the discount/higher price offered for selling/buying.
+
+ * Attacking another player or NPC will start a combat queue.
+   Combat happens in turns. Each turn each player may enter two actions,
+   picking among the following:
+     - attack
+     - parry (with weapon)
+     - shield
+     - feint
+     - dodge
+     - flee <direction>
+     - block (anti-flee)
+     - switch <weapon>
+   Emoting is free in each round, but movement is forbidden unless one
+   tries to flee (agi challenge, or cancelled by block action).  All
+   combattants involved in a fight submits their actions, then combat
+   is resolved simultaneously by the code. Order of the two actions
+   matter, so for example if both attack, neither is trying to parry,
+   but may hit each other simultaneously. If both parry, shield or
+   dodge, it means both are dancing about each other. If one feints
+   and the other parries or dodges, they will have a disadvantage on
+   the next defensive movement. A successful parry will give the
+   parried attacker a disadvantage on their next attack. And so on.
+   Another player may "join the queue" at any time by attacking one of
+   the combatting PCs. They get to insert their actions together with
+   the rest on the next round.  A round should probably have a timeout
+   to avoid a Character clogging the queue.
+
+ * Mobiles will use "a global ticker system" where they
+   subscribe. They act the same way as PCs in combat, except with a
+   semi- random selection of actions they take (they will probably be
+   more predictable than PCs). Adding aggressive and passive mobiles
+   should be straightforward, as well as un-killable ones (merchants).
+
+ * The inventory of a defeated enemy is automatically transferred to
+   the winner's inventory. If there are many alternative pieces of
+   equipment, they get to keep the weakest one, otherwise it's all
+   transferred. There are no limits to carrying except the fear of
+   losing gear. This should hopefully prevent hoarding of good items.
+   One can give item(s) to another player - that player must then
+   conceed to receiving it (use Y/N module in contrib.menusystem).
+   There is no way of dropping items on the ground; one must either
+   give them away or sell them for gold to a merchant.
+
+ * Gold is used for buying items from merchants, but is also the
+   highscore. Whereas sell prices are fixed, buy prices are not fixed
+   but is based on a percentage of the gold carried, adjusted by the
+   barter skill (this should defeat inflation quite effectively). Items
+   sold to merchants are made available for other players to buy.
+
+ * Death means loosing inventory (except weakest item, as mentioned),
+   but no loss of gold. Otherwise death is cheap - one respawns at a
+   random starting position (probably needing special-aliased rooms to
+   use for this - maybe with one-way exits).
+
+
+Rough plan for order of implementation
+--------------------------------------
+
+1) Conflict resolution system - work out how basic challenges should work, what format ingoing Skills
+   should have and how generic bonuses from attributes and equipment affect things. Make a generic
+   API for it. Try to list all supported plus/minues equipment may offer.
+2) Using skills - create XP and automatic skill improvement code
+3) Define new Character typeclass that stores skills/attributes in a way that the conflict
+   system understands. Chars should also have the ability to "wear" things, so some
+   sort of slot system is needed. Gold needs to be stored in a separate variable.
+4) Create "sell/buy" command stump, for testing the Skill resolution code with fixed on-character values.
+5) Create Combat queue code for turn-taking combat. Reiterate so that it works with the generic form of
+   Skills and conflict resolution.
+6) Create all included skills and their associated commands.
+7) Test commands manually with two PC characters in the Combat queue and in other challenge situations.
+8) Create loot-creation mechanism based on equipment lists, for spawning semi-random items and gear.
+9) Create Death-respawn mechanism, including loss of equipment and transfer of same to the winner.
+10) Create NPC/mobile object runner Script. Use a copy of Character typeclass for mobiles, except some
+    automation hooks and AI states. Tie loot creation to the death of NPCs.
+11) Test PC vs NPC combat and other challenges.
+12) Create merchants as interactive, immortal NPCs with the "barter" skill.
+13) Create Character creation module, for assigning attributes/skills when first starting.
+    Add appropriate commands to ooccmdset.
+14) Add "give" command to command set. Remove unused commands like "drop" (or make it admin-only). Possibly
+    expand "look" command to allow to look across exits into the next room. Also add "highscore" command for
+    viewing game statistics.
+15) <starting building of game world>
+
+ProcPools
+---------
+
+This contrib defines a process pool subsystem for Evennia.
+
+A process pool handles a range of separately running processes that
+can accept information from the main Evennia process. The pool dynamically
+grows and shrinks depending on the need (and will queue requests if there
+are no free slots available).
+
+The main use of this is to launch long-running, possibly blocking code
+in a way that will not freeze up the rest of the server. So you could 
+execute time.sleep(10) on the process pool without anyone else on the 
+server noticing anything. 
+
+This folder has the following contents: 
+
+ampoule/ - this is a separate library managing the process pool. You 
+           should not need to touch this.
+
+Python Procpool
+---------------
+python_procpool.py - this implements a way to execute arbitrary python
+           code on the procpool. Import run_async() from this
+           module in order to use this functionality in-code
+           (this is a replacement to the in-process run_async
+           found in src.utils.utils).
+python_procpool_plugin.py - this is a plugin module for the python
+           procpool, to start and add it to the server. Adding it 
+           is a single line in your settings file - see the header
+           of the file for more info. 
+
+
+
+Adding other Procpools
+----------------------
+To add other types of procpools (such as for executing other remote languages
+           than Python), you can pretty much mimic the layout of python_procpool.py
+           and python_procpool_plugin.py.
+
+
+'Contrib' folder
+----------------
+
+This folder contains 'contributions': extra snippets of code that are
+potentially very useful for the game coder but which are considered
+too game-specific to be a part of the main Evennia game server.  These
+modules are not used unless you explicitly import them. See each file
+for more detailed instructions on how to install. 
+
+Modules in this folder is distributed under the same licence as 
+Evennia unless noted differently in the individual module. 
+
+If you want to edit, tweak or expand on this code you should copy the
+things you want from here into game/gamesrc and change them there.
+
+* Evennia MenuSystem (Griatch 2011) - A base set of classes and
+      cmdsets for creating in-game multiple-choice menus in
+      Evennia. The menu tree can be of any depth.  Menu options can be
+      numbered or given custom keys, and each option can execute
+      code. Also contains a yes/no question generator function. This
+      is intended to be used by commands and presents a y/n question
+      to the user for accepting an action. Includes a simple new
+      command 'menu' for testing and debugging.
+
+* Evennia Line editor (Griatch 2011) - A powerful line-by-line editor
+      for editing text in-game. Mimics the command names of the famous
+      VI text editor. Supports undo/redo, search/replace,
+      regex-searches, buffer formatting, indenting etc. It comes with
+      its own help system. (Makes minute use of the MenuSystem module
+      to show a y/n question if quitting without having
+      saved). Includes a basic command '@edit' for activating the
+      editor.
+
+* Talking_NPC (Griatch 2011) - An example of a simple NPC object with
+      which you can strike up a menu-driven converstaion. Uses the
+      MenuSystem to allow conversation options. The npc object defines
+      a command 'talk' for starting the (brief) conversation.
+
+* Evennia Menu Login (Griatch 2011) - A menu-driven login screen that 
+      replaces the default command-based one. Uses the MenuSystem 
+      contrib. Does not require players to give their email and
+      doesn't auto-create a Character object at first login like the 
+      default system does.
+
+* CharGen (Griatch 2011) - A simple Character creator and selector for
+      Evennia's ooc mode. Works well with the menu login contrib and 
+      is intended as a starting point for building a more full-featured 
+      character creation system. 
+
+* Evlang (Griatch 2012) - A heavily restricted version of Python for use
+      as a "softcode" language by Players in-game. Contains a complete 
+      system with examples of objects and commands for coding. 
+
+
+===============================================================
+ Evennia Tutorial World
+
+ Griatch 2011
+===============================================================
+
+This is a stand-alone tutorial area for an unmodified Evennia install.
+Think of it as a sort of single-player adventure rather than a
+full-fledged multi-player game world. The various rooms and objects
+herein are designed to show off features of the engine, not to be a
+very challenging (nor long) gaming experience. As such it's of course
+only skimming the surface of what is possible.
+
+================================================================
+ Install
+================================================================
+
+Log in as superuser (#1), then run
+
+ @batchcommand contrib.tutorial_world.build
+
+Wait a little while for building to complete. This should build the
+world and connect it to Limbo.
+
+Log is as a non-superuser to play the game as intended. The
+tutorial area's systems mostly ignores the presence of a 
+superuser (so use that to examine things "under the hood" later).
+
+================================================================
+ Comments
+================================================================
+
+The tutorial world is intended for you playing around with the
+engine. It will help you learn how to accomplish some more advanced
+effects and might give some good ideas along the way.
+
+It's suggested you play it through (as a normal user, NOT as
+Superuser!) and explore it a bit, then come back here and start
+looking into the (heavily documented) build/source code to find out
+how things tick - that's the "tutorial" in Tutorial world after all.
+
+Please report bugs in the tutorial to the Evennia issue tracker. 
+
+
+
+
+
+
+* Spoilers below - don't read on unless you already played the
+tutorial game. *
+
+
+
+
+
+===============================================================
+ Tutorial World Room map
+===============================================================
+
+     ?
+     |
+ +---+----+    +-------------------+    +--------+   +--------+
+ |        |    |                   |    |gate    |   |corner  |
+ | cliff  +----+      bridge       +----+        +---+        |
+ |        |    |                   |    |        |   |        |
+ +---+---\+    +---------------+---+    +---+----+   +---+----+
+     |    \                    |            |   castle   |
+     |     \  +--------+  +----+---+    +---+----+   +---+----+
+     |      \ |under-  |  |ledge   |    |along   |   |court-  |
+     |       \|ground  +--+        |    |wall    +---+yard    |
+     |        \        |  |        |    |        |   |        |
+     |        +------\-+  +--------+    +--------+   +---+----+
+     |                \                                  |
+    ++---------+       \  +--------+    +--------+   +---+----+
+    |intro     |        \ |cell    |    |trap    |   |temple  |
+ o--+          |         \|        +----+        |   |        |
+L   |          |          \        |   /|        |   |        |
+I   +----+-----+          +--------+  / ---+-+-+-+   +---+----+
+M        |                           /     | | |         |
+B   +----+-----+          +--------+/   +--+-+-+---------+----+
+O   |outro     |          |tomb    |    |antechamber          |
+ o--+          +----------+        |    |                     |
+    |          |          |        |    |                     |
+    +----------+          +--------+    +---------------------+
+
+Hints/Notes: 
+
+o-- connections to/from Limbo
+intro/outro areas are rooms that automatically sets/cleans the 
+            Character of any settings assigned to it during the
+            tutorial game. 
+The Cliff is a good place to get an overview of the surroundings.
+The Bridge may seem like a big room, but it is really only one
+           room with custom move commands to make it take longer
+           to cross. You can also fall off the bridge if you
+           are unlucky or take your time to take in the view too
+           long.  
+In the Castle areas an aggressive mob is patrolling. It implements
+           rudimentary AI but packs quite a punch unless you have 
+           found yourself a weapon that can harm it. Combat is only 
+           possible once you find a weapon.
+The Catacombs feature a puzzle for finding the correct Grave 
+              chamber. 
+The Cell  is your reward if you fail in various ways. Finding a 
+          way out of it is a small puzzle of its own. 
+The Tomb  is a nice place to find a weapon that can hurt the 
+          castle guardian. This is the goal of the tutorial.
+          Explore on, or take the exit to finish the tutorial. 
+?  - look into the code if you cannot find this bonus area!
+
+
+EVENNIA DOCUMENTATION
+=====================
+
+
+   - Evennia is extensively documented. Our manual is the
+     continuously updating online wiki, 
+
+       https://github.com/evennia/evennia/wiki
+
+   - Snapshots of the manual are also mirrored in reST 
+     form to ReadTheDocs:
+
+       http://evennia.readthedocs.org/en/latest/
+
+   - You can also ask for help from the evennia community, 
+
+       http://groups.google.com/group/evennia
+
+   - Or by visiting our irc channel, 
+
+       #evennia on the Freenode network
+
+-------------------
+* Doxygen auto-docs 
+-------------------
+
+   You can build the developer auto-docs 
+   (a fancy searchable index of the entire source tree).
+   This makes use of doxygen, a doc generator that parses
+   the source tree and creates docs on the fly. 
+ 
+   -  Install doxygen (v1.7+)
+  
+      Doxygen is available for most platforms from
+
+       http://www.stack.nl/~dimitri/doxygen/ 
+
+      or through your package manager in Linux.
+
+   -  Run   
+
+       doxygen config.dox
+ 
+      This will create the auto-docs in a folder 'html'. 
+
+   -  Start your web browser and point it to 
+      
+       <evenniadir>/docs/html/index.html 
+
+   -  If you prefer a pdf version for printing, use LaTeX by
+      activating the relevant section in config.dox. Run the 
+      doxygen command again as above and a new folder 'latex' 
+      will be created with the latex sources. You need the 
+      LaTeX processing system installed, then enter the new
+      latex/ folder and run
+      
+        make 
+     
+      This will create the pdf. Be warned however that the pdf 
+      docs are many hundreds of pages and the automatic formatting
+      of doxygen is not always succeeding.
+   
+   -  Doxyfile is allows for plenty of configuration to get the 
+      docs to look the way you want. You can also output to other 
+      formats suitable for various developer environments, Windows 
+      help files etc. 
+
+------------------------
+* Sphinx Manuals 
+------------------------
+
+   If you want to build the reST manuals yourself, you basically need to 
+   convert the wiki.  First place yourself in a location where you want 
+   to clone the wiki repo to, then clone it:
+     
+      git clone  https://github.com/evennia/evennia.wiki.git
+     
+  -   Enter this directory and check out the sphinx branch:
+     
+          git checkout sphinx
+     
+      This branch has, apart from all the wiki pages (*.md files), also has a 
+      an extra directory sphinx/ that will hold the converted data. 
+
+  -   You need Pandoc for the markdown-to-reST conversion:
+     
+          http://johnmacfarlane.net/pandoc/installing.html
+     
+      You need a rather recent version. The versions coming with some linux
+      repos are too old to support "github-flavoured markdown" conversion.
+      See that page for getting the Haskill build environment in that case.
+    
+  -   You also need sphinx,
+     
+          http://sphinx-doc.org/
+     
+      You can most likely get it with 'pip install sphinx' under Linux. 
+     
+  -   With all this in place, go to the pylib/ folder and run the
+      converter script: 
+     
+      python update_rest_docs.py
+     
+      If all goes well, you will see all the wiki pages getting converted.
+      The converted *.rst files will end up in the sphinx/ directory. 
+
+  -   Finally, go to sphinx/ and run
+     
+      make html 
+     
+      If sphinx is installed, this will create the html files in 
+      sphinx/.build. To look at them, point your browser to 
+     
+      <path-to-wiki-repo>/sphinx/.build/index.html
+     
+     
+
+This directory holds log files for the server.
+
+portal.log        - logs from Portal (if run in daemon mode)
+server.log        - logs from Server (if run in daemon mode)
+http_requests.log - http request info (if running webserver/client)
+
+All log files are rotated to their *.old version when the server is fully
+stopped, then restarted again (i.e. not on normal reloads).
+
+
+--------------------
+Evennia translations
+--------------------
+
+This folder contains data for translating Evennia's 
+core messages to different languages. Note that commands
+are not covered here at this time. 
+
+
+
+Changing server language
+------------------------
+
+To change the server to use a supported language,
+edit your settings file and add the following: 
+
+ USE_I18N = True 
+ LANGUAGE_CODE = 'en'
+
+Change 'en' to a translated language (see which are available
+in evennia/locale/). Restart Server and Portal. 
+
+
+
+Creating a new translation
+--------------------------
+
+evennia/locale/ contains translation strings for the core server.
+
+First look to see if there is already data files for 
+your language available to improve upon. If not, you can
+start translate for a new language by placing yourself in 
+Evennia's root directory and run 
+
+  django-admin makemessages -l <language code>
+
+where <language code> is the two-letter locale code for the language 
+you want, like "sv" for Swedish, "es" for Spanish and so on. A new
+folder with the language code will have appeared. 
+
+Note that the command django-admin may not be available in your path. 
+If so, the easiest way is to search for it (it sits in the django 
+source tree) and run it as "python <absolute-path>/django-admin.py".
+
+
+Doing a translation / improving an existing one
+-----------------------------------------------
+
+Go to locale/<language code>/LC_MESSAGES/and edit the *.po file 
+you find there by translating each given English string to the equivalent in 
+the other language. Editing the raw file manually is not necessary -- search 
+the web and you'll find many open-source graphical .po editors available.
+
+Once you have modified the .po file to add/correct the translation therein,
+you must compile it for efficiency. Back in Evennia's root directory, run
+
+  django-admin compilemessages
+
+This will create a binary .mo file which is what Evennia will use. 
+
+
+Let us know! 
+------------
+
+If you did a new translation or improved an old one, please consider sending
+us your updated .po file so we can include it with the main Evennia distribution!
+
+
+Evennia MUD/MU\* Creation System
+================================
+
+*Evennia* is an open-source Python-based MUD/MU\* server/codebase using modern technologies. Evennia allows creators to design and flesh out text-based massively-multiplayer online games with great freedom.
+
+http://www.evennia.com is the main hub tracking all things Evennia. The documentation wiki is found [here](https://github.com/evennia/evennia/wiki).
+
+Features and Philosophy
+-----------------------
+
+Evennia aims to supply a bare-bones MU\* codebase that allows vast flexibility for game designers while taking care of all the gritty networking and database-handling behind the scenes. Evennia offers an easy API for handling persistent objects, time-dependent scripting and all the other low-level features needed to create a MU\*. The idea is to allow the mud-coder to concentrate solely on designing the parts and systems of the mud that makes it uniquely fit their ideas.
+
+Coding in Evennia is primarily done by normal Python modules, making the codebase extremely flexible. The code is heavily documented and you use Python classes to represent your objects, scripts and players. The database layer is abstracted away.
+
+Evennia offers extensive connectivity options. A single server instance may offer connections over Telnet, SSH, SSL and HTTP. The latter is possible since Evennia is also its own web server: A default website as well as a browser-based comet-style mud client comes as part of the package ([screenshot](https://github.com/evennia/evennia/wiki/Screenshot)). Due to our Django and Twisted foundations, web integration is a snap since the same code that powers the game may also be used to run its web presence (you may use a third-party webserver too if you prefer though). Evennia in-game channels can also be interlinked with external IRC and IMC2 channels so players can chat with people "outside" the game.
+
+Whereas Evennia is intended to be customized to almost any level you like, we do offer some defaults you can build from. The code base comes with basic classes for objects, exits, rooms and characters. There is also a default command set for handling administration, building, chat channels, poses and so on. This is enough to run a 'Talker' or some other social-style game out of the box. Stock Evennia is however deliberately void of any game-world-specific systems. So you won't find any AI codes, mobs, skill systems, races or combat stats in the default distribution (we might expand our contributions folder with optional plugins in the future though).
+
+If this piqued your interest, there is also a [lengthier introduction](https://github.com/evennia/evennia/wiki/Evennia-Introduction) to Evennia to read.
+
+Current Status
+--------------
+
+The codebase is currently in **Beta**. While development continues, Evennia is already stable enough to be suitable for prototyping and development of your own games.
+
+More Information
+----------------
+
+To learn how to get your hands on the code base, the [Getting started](https://github.com/evennia/evennia/wiki/Getting-Started) page is the way to go. Otherwise you could browse the [Documentation wiki](https://github.com/evennia/evennia/wiki) or why not come join the [Evennia Community](http://www.evennia.com). Welcome! 
+
+
+Dummyrunner
+
+This is a test system for stress-testing the server. It will launch numbers
+of "dummy players" to connect to the server and do various sequences of actions.
+See header of dummyrunner.py for usage.
+
+This fork of django-idmapper fixes some bugs that prevented the idmapper from
+being used in many instances. In particular, the caching manager is now inherited
+by SharedMemoryManager subclasses, and it is used when Django uses an automatic
+manager (see http://docs.djangoproject.com/en/dev/topics/db/managers/#controlling-automatic-manager-types). This means access through foreign keys now uses
+identity mapping.
+
+Tested with Django version 1.2 alpha 1 SVN-12375.
+
+My modifications are usually accompanied by comments marked with "CL:".
+
+Django Identity Mapper
+======================
+
+A pluggable Django application which allows you to explicitally mark your models to use an identity mapping pattern. This will share instances of the same model in memory throughout your interpreter.
+
+Please note, that deserialization (such as from the cache) will *not* use the identity mapper.
+
+Usage
+-----
+To use the shared memory model you simply need to inherit from it (instead of models.Model). This enable all queries (and relational queries) to this model to use the shared memory instance cache, effectively creating a single instance for each unique row (based on primary key) in the queryset.
+
+For example, if you want to simply mark all of your models as a SharedMemoryModel, you might as well just import it as models.
+::
+
+	from idmapper import models
+
+	class MyModel(models.SharedMemoryModel):
+	    name = models.CharField(...)
+
+Because the system is isolated, you may mix and match SharedMemoryModels with regular Models. The module idmapper.models imports everything from django.db.models and only adds SharedMemoryModel, so you can simply replace your import of models from django.db.
+::
+
+	from idmapper import models
+
+	class MyModel(models.SharedMemoryModel):
+	    name = models.CharField(...)
+	    fkey = models.ForeignKey('Other')
+
+	class Other(models.Model):
+	    name = models.CharField(...)
+
+References
+----------
+
+Original code and concept: http://code.djangoproject.com/ticket/17

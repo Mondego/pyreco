@@ -1,0 +1,137 @@
+greplin-nagios-utils: checklib
+==============================
+
+Library that makes writing Nagios checks really easy.
+-----------------------------------------------------
+
+### Sample
+
+The sample assumes you're also using [checkserver](/Greplin/greplin-nagios-utils/tree/master/checkserver)
+
+	from greplin.nagios import parseArgs, parseJsonFile, statValue, ResponseBuilder
+
+	def check(argv):
+	  """Runs the check."""
+	  args = parseArgs('check_sample.py', ('HOST', str), ('TIMEOUT', int), argv=argv)
+	  data = parseJson(wgetWithTimeout(args['HOST'], 8081, '/metrics', args['TIMEOUT']))
+
+	  (ResponseBuilder()
+	      .addValue('SomeStatToTrack', statValue(data, 'myStat', default = 0))
+	      .addRule('OutOfMemoryErrors', Maximum(0, 5), statValue(data, 'com.your.server.Servlet', 'OutOfMemory', 'count', default=0))
+	      ).finish()
+	
+This tracks myStat for performance data, and tracks com.your.server.Servlet.OutOfMemory.count for both performance and status.  If
+the latter is > 0, the check will return WARN and if it is > 5 it will return CRIT.
+
+For standalone use (without checkserver) just add
+
+	import sys
+
+	if __name__ == '__main__':
+	  check(sys.argv)
+
+greplin-nagios-utils: checkserver
+=================================
+
+Simple server that runs checks without Python startup overhead
+--------------------------------------------------------------
+
+### Dependencies
+
+* [Eventlet](http://eventlet.net/)
+
+* [Flask](http://flask.pocoo.org/)
+
+### Usage
+
+checkserver loads checks located at
+
+    /usr/lib/nagios/plugins/check_<name>.py
+
+when you visit
+
+    http://localhost:8111/check/<name>
+
+Each check will be run in a thread pool. If you want to include arguments, you can do it
+like this:
+
+    http://localhost:8111/check/<name>?arg=hello&arg=world
+
+When the check changes, you can reload the changed code by visiting
+
+    http://localhost:8111/update/<name>
+
+That's it!  We also include check.sh which returns the proper exit code from a check. You
+can see stats for how many times each check has been called at
+
+    http://localhost:8111/
+
+Using checkserver is simple, run an instance of the server, and then add nagios checks like:
+
+    define command {
+        command_name    check_<name>
+        command_line    /usr/lib/nagios/plugins/check.sh <name> args like $HOSTNAME$
+    }
+
+    define service {
+        use                     your-service-type
+        service_description     Your Description Here
+        check_command           check_<name>
+        hostgroup_name          your-hostgroup
+    }
+
+Example checks for testing
+---------
+
+These checks are short, don't do much, and are here for testing out the check server. To run them, try this:
+
+    python server.py -d testchecks/
+
+And go to one of the following URLs:
+
+    http://localhost:8111/check/slow?arg=hello
+    http://localhost:8111/check/fast?arg=world
+
+The fast check is fast, the slow check takes five seconds.
+
+greplin-nagios-utils: genlib
+==============================
+
+Library that makes writing Nagios configuration easy and pythonic
+-----------------------------------------------------------------
+
+### Sample
+
+TODO
+
+greplin-nagios-utils
+====================
+
+Utilities for writing and running nagios checks.
+------------------------------------------------
+
+### Rationale
+
+Monitoring is of critical importance for any system - tool like Nagios have taken much of the pain away.  But we still found it
+frustrating to write and modify application checks.
+
+#### [checklib](/Greplin/greplin-nagios-utils/tree/master/checklib)
+
+Writing checks for Nagios involves learning a strange language full of semicolons and rules specified in regexes.  We
+wanted to make creating and modifying checks to be as easy as possible so first we wrote [checklib](/Greplin/greplin-nagios-utils/tree/master/checklib).
+
+#### [checkserver](/Greplin/greplin-nagios-utils/tree/master/checkserver)
+
+Next we discovered that when you run checks for 100+ machines with 10+ checks each, you start seeing a lot of system load
+used just to start and stop python processes.  To solve this problem we wrote [checkserver](/Greplin/greplin-nagios-utils/tree/master/checkserver).
+
+### Status:
+
+This is a very early stage project.  It works for our needs.  We haven't verified it works beyond that.  Issue reports
+and patches are very much appreciated!
+
+### Authors:
+
+[Greplin, Inc.](http://www.greplin.com)
+Jon Rowland
+

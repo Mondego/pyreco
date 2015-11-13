@@ -1,0 +1,3203 @@
+## 3.0.2 (Sep 12, 2012)
+
+Bugfixes:
+
+  - Added remote libvirt URI support.[#18]
+  - Fixed a check to ensure that the netmask pattern is valid in check_ipaddr().[#20]
+  - Ignore the image type of cdrom device when determining whether the domain supports for snapshot.
+  - Added __cmd__.py as a static file.[#19]
+  - Don't create a symbolic link to Karesansui's directory automatically.[#19]
+  - Access from multiple threads can be enabled via optional argument check_same_thread. [#17]
+  - Avoid AttributeError.[#18]
+  - Fixed SADeprecationWarning - Use session.add().[#15]
+  - Fixed ImportError: No module named ext in "from xml.dom.ext import PrettyPrint"[#12][#13]
+  - Fixed No translation file found for domain: 'messages'[#14]
+  - Changed attributes of network's qemu config xml file again after defining domain.
+  - Fixed undefined local variable 'source_attribute' error.[#9][#10]
+rest: If 'HTTP_AUTHORIZATION' environ variable not found, 'Authorization' is used instead of it.
+  - Added the directory for java applet to %files tag of RPM spec.
+  - Fixed some typos.
+
+
+## 3.0.1 (Jun 22, 2012)
+
+Features:
+
+  - Add libvirt's connection URI management.
+  - Add a gadget for initializing Karesansui database.
+
+Bugfixes:
+
+  - Use XMLDesc() with a flag VIR_DOMAIN_XML_INACTIVE instead of reading an existing XML file.
+
+Documentation:
+
+  - Add instructions to install on Debian GNU/Linux.
+  - Add a description regarding mod_fcgid configurations.
+  - Add ChangeLog.
+  - Fix several typo.
+
+
+karesansui for Debian
+---------------------
+
+At this moment, this package requires manual reconfiguration of machine's
+network interfaces. See detail instructions in /usr/share/doc/karesansui/
+
+ -- Alex 'AdUser' Z <ad_user@lavabit.com>  Sun, 09 Sep 2012 14:40:33 +1100
+
+Requirement
+-----------
+
+* python-docutils >= 0.9
+* python-sphinx >= 1.1.0
+* python-jinja2 >= 2.3
+* python-pygments >= 1.2
+* python-nose >= 0.11.1
+
+Setting Up
+----------
+
+To enable l10n, you need to execute the following command and generate the gettext's pot files.
+
+    # make gettext
+    # mkdir -p locale/[lang]/LC_MESSAGES   # japanese=>ja, brazil=>br
+
+Translating
+-----------
+
+If you want to translate the documents in your own language:
+
+######1. Generate po file.
+
+If you want to update existing po file, you can merge translations using following approach:
+
+    # msgmerge --update locale/[lang]/LC_MESSAGES/index.po _build/locale/index.pot
+
+Or, if you want to generate new po file:
+
+    # msginit --locale=[lang] --input=_build/locale/index.pot --output=locale/[lang]/LC_MESSAGES/index.po
+
+######2. Edit po file.
+
+Open po file, translate messages.
+
+    # vi locale/[lang]/LC_MESSAGES/index.po 
+
+######3. Generate mo file.
+
+    # msgfmt locale/[lang]/LC_MESSAGES/index.po -o locale/[lang]/LC_MESSAGES/index.mo
+
+Generating HTML Document
+------------------------
+
+If you want to change locale, _language_ parameter must be set as you like.
+
+    # vi conf.py
+
+Generate documents.
+
+    # make clean html
+
+
+Installing Karesansui
+=====================
+
+## About this document ##
+<a name='about_document'/>
+
+This document is written in the Markdown format and contains some inline HTML.
+This document is also available online at [https://github.com/karesansui/karesansui/blob/master/INSTALL-debian.md][install].
+
+This document is based on Debian Squeeze (6.x x86_64). However, following the similar steps described within the document allows you to install Karesansui on any other Linux distribution.
+
+  [install]: https://github.com/karesansui/karesansui/blob/master/INSTALL-debian.md
+
+
+## Installing operating system ##
+<a name='installing_operating_system'/>
+
+Karesansui only works on systems that have the virtualization system installed.
+So you need to enable KVM (Kernel-based Virtual Machine).
+
+Just do usual installation, but be careful of the points below:
+
+* (Required) On software setup, check "_Virtual Host_" and "_Customize Now_"
+* (Required) On software group setup, check "_Virtualization_" - "_Virtualization_","_Virtualization Client_","_Virtualization Platform_" ,"_Virtualization Tools_"
+
+If you want to enable KVM after installing OS, you need to execute the following commands:
+
+A hash (#) prompt indicates you are logged-in as the root user; a dollar ($) prompt indicates you are logged-in as the specific general account.
+
+###For `Debian 6`:
+
+    # aptitude install qemu qemu-kvm libvirt-bin python-libvirt vlan ifenslave bridge-utils
+    # invoke-rc.d libvirt-bin start
+    # /sbin/modprobe -b kvm-intel (or /sbin/modprobe -b kvm-amd)
+
+Please make sure that the kernel modules for KVM are loaded.
+
+    # /sbin/lsmod | grep kvm
+    kvm_intel              50380  0 
+    kvm                   305081  1 kvm_intel
+
+ *If you use an AMD processor, _kvm_amd_ must be loaded instead of _kvm_intel_.
+
+
+## Configuring the network ##
+<a name='configuring_the_network'/>
+
+After installing Linux, the first Ethernet interface is typically identified as _eth0_ and allows only outbound communication from the KVM guests.
+To share the interface with KVM guests and enable full network access, including communication to and from an external host, you need to set up a Linux bridge in Linux system.
+Although a bit out of scope of this do we asume you want redundancy for each link plus multiple networks available to each guest. So we combine both bonding multiple interfaces and bridging those to the guests and host. In this example we use 6 ethernet connections to establish 3 redundant links. On top of that we also add tagged vlans to one bond.
+
+### Setting up bonds, vlans and bridges ###
+we create the following bonds (this way we distribute the ethernet connections across different pci cards to be even safe from device and off course, cables are connected to defferent switches):
+  # bond0: eth0 and eth2 (connected to management lan, this is where the kvm server will have its own ip address.)
+  # bond1: eth1 and eth4 (connected to some internet feed)
+  # bond2: eth3 and eth5 (connected to vlan tagged lans which will have multiple bridges, one for each vlan in order to provide untagged vlans to the guests that have an interface in that bridge)
+
+Note: If you are accessing the server via SSH or Telnet instead of console, you MAY be disconnected when you restart the network service after modifying network settings. You should configure the settings via the local console. 
+
+###Procedure for `Debian 6`:
+
+####1. Install networkdrivers
+
+    # aptitude install vlan ifenslave bridge-utils
+
+####2. Create the network interfaces file
+
+The script file path is _/etc/network/interfaces_.
+
+    # The loopback network interface
+    auto lo
+    iface lo inet loopback
+
+    allow-hotplug eth0 eth1 eth2 eth3 eth4 eth5
+
+    auto bond0
+    iface bond0 inet manual
+      bond_mode active-backup
+      bond_miimon 100 
+      slaves eth0 eth2
+
+    auto br-lan
+    iface br-lan inet static
+      address 10.1.1.2
+      netmask 255.255.0.0
+      gateway 10.1.1.1
+      bridge_ports bond0
+      bridge_stp off 
+
+    auto bond1
+    iface bond1 inet manual
+      bond_mode active-backup
+      bond_miimon 100 
+      slaves eth1 eth4
+
+    auto br-inet
+    iface br-inet inet manual
+      bridge_ports bond1
+      bridge_stp off 
+
+    auto bond2
+    iface bond2 inet manual
+      bond_mode active-backup
+      bond_miimon 100 
+      slaves eth3 eth5
+
+    auto vlan10
+    iface vlan10 inet manual
+      vlan-raw-device bond2
+
+    auto br-vlan10
+    iface br-vlan10 inet manual
+      bridge_ports vlan10
+      bridge_stp off 
+
+    auto vlan11
+    iface vlan11 inet manual
+      vlan-raw-device bond2
+
+    auto br-vlan11
+    iface br-vlan11 inet manual
+      bridge_ports vlan11
+      bridge_stp off
+
+####3. Configure Bonding
+
+You need to config bonding a bit to be able to use multiple bonds. Therefor add this to a file _/etc/modprobe.d/bonding.conf_:
+
+    alias bond0 bonding
+    alias bond1 bonding
+    alias bond2 bonding
+    options bonding mode=1 miimon=100 max_bonds=3
+
+####4. Add the accepted bridge rule to your iptables firewall script
+
+I don't know where you save your script on Debian, but it should have something like:
+
+    # /sbin/iptables -A FORWARD -m physdev --physdev-is-bridged -j ACCEPT
+
+####5. Restart network services
+
+In order for all the network config modifications to take effect, you need to restart your network services.
+
+    # invoke-rc.d networking stop && invoke-rc.d networking start
+
+####5. Check the status of current interfaces
+
+    # /bin/ip a
+
+should output something like:
+
+    1: lo: <LOOPBACK,UP,LOWER_UP> mtu 16436 qdisc noqueue state UNKNOWN 
+        link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+        inet 127.0.0.1/8 scope host lo
+        inet6 ::1/128 scope host 
+           valid_lft forever preferred_lft forever
+    2: eth0: <BROADCAST,MULTICAST,SLAVE,UP,LOWER_UP> mtu 1500 qdisc mq master bond0 state UP qlen 1000
+        link/ether 3c:4a:92:6d:7e:a2 brd ff:ff:ff:ff:ff:ff
+    3: eth1: <NO-CARRIER,BROADCAST,MULTICAST,SLAVE,UP> mtu 1500 qdisc mq master bond1 state DOWN qlen 1000
+        link/ether 3c:4a:92:6d:7e:a4 brd ff:ff:ff:ff:ff:ff
+    4: eth2: <BROADCAST,MULTICAST,SLAVE,UP,LOWER_UP> mtu 1500 qdisc mq master bond0 state UP qlen 1000
+        link/ether 3c:4a:92:6d:7e:a2 brd ff:ff:ff:ff:ff:ff
+    5: eth3: <NO-CARRIER,BROADCAST,MULTICAST,SLAVE,UP> mtu 1500 qdisc mq master bond2 state DOWN qlen 1000
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+    6: eth4: <NO-CARRIER,BROADCAST,MULTICAST,SLAVE,UP> mtu 1500 qdisc mq master bond1 state DOWN qlen 1000
+        link/ether 3c:4a:92:6d:7e:a4 brd ff:ff:ff:ff:ff:ff
+    7: eth5: <NO-CARRIER,BROADCAST,MULTICAST,SLAVE,UP> mtu 1500 qdisc mq master bond2 state DOWN qlen 1000
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+    8: bond0: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP 
+        link/ether 3c:4a:92:6d:7e:a2 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea2/64 scope link 
+           valid_lft forever preferred_lft forever
+    9: bond1: <BROADCAST,MULTICAST,MASTER,UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a4 brd ff:ff:ff:ff:ff:ff
+    10: bond2: <BROADCAST,MULTICAST,PROMISC,MASTER,UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+    11: br-lan: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a2 brd ff:ff:ff:ff:ff:ff
+        inet 10.1.1.2/16 brd 10.120.255.255 scope global br-lan
+        inet6 fe80::3e4a:92ff:fe6d:7ea2/64 scope link 
+           valid_lft forever preferred_lft forever
+    12: br-inet: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a4 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea4/64 scope link 
+           valid_lft forever preferred_lft forever
+    13: vlan10@bond2: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP 
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea8/64 scope link 
+           valid_lft forever preferred_lft forever
+    14: br-vlan10: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea8/64 scope link 
+           valid_lft forever preferred_lft forever
+    15: vlan11@bond2: <BROADCAST,MULTICAST,MASTER,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP 
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea8/64 scope link 
+           valid_lft forever preferred_lft forever
+    16: br-vlan11: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN 
+        link/ether 3c:4a:92:6d:7e:a8 brd ff:ff:ff:ff:ff:ff
+        inet6 fe80::3e4a:92ff:fe6d:7ea8/64 scope link 
+           valid_lft forever preferred_lft forever
+
+###Alternate Procedure:
+This should work on a Debian box as well. I don't extend it to the docu above though
+
+####1. Activate promiscuous mode on eth0.
+
+    # /sbin/ifconfig eth0 0.0.0.0 promisc up
+
+####2. Create the bridge interface.
+
+    # /usr/sbin/brctl addbr br0
+
+####3. Add interfaces to the bridge. 
+
+    # /usr/sbin/brctl addif br0 eth0
+
+####4. Put up the bridge. 
+
+    # ifconfig br0 up
+
+####5. Configure the virtual bridge interface to take part in your network.
+
+    # ifconfig br0 172.23.233.1 netmask 255.255.255.0
+    # route add default gw 172.23.233.254
+
+
+## Installing dependent software/libs ##
+<a name='installing_dependent_software_libs'/>
+
+To install and set up Karesansui, you need to install it's dependent software/libs first.
+You can install most of them by using the software updater provided by each distribution, but some software need to be built on your machine.
+
+###For `Debian 6`:
+
+#####Fetching packages from Debian repository.
+
+    # aptitude install python-mako python-sqlalchemy python-simplejson rrdtool python-rrdtool python-flup collectd collectd-utils python-webpy tightvnc-java
+    # aptitude install git python-setuptools python-virtualenv python-pip
+    # aptitude install pbuilder cdbs python-dev
+
+#####Fetching packages from PyPI.
+
+    # easy_install PyXML
+
+## Installing pysilhouette ##
+<a name='installing_pysilhouette'/>
+
+### What is pysilhouette? ###
+
+Pysilhouette is a python-based background job manager, intended to co-work with various python-based web applications such as Karesansui.
+It makes it available to get job status to programmers, which was difficult in http-based stateless/interactive session before.
+It is also developed by Karesansui Project Team.
+
+####1. Fetching pysilhouette source code from github repository.
+
+    $ git clone git://github.com/karesansui/pysilhouette.git
+
+####2. Installing pysilhouette with Python's distutils.
+
+    $ cd pysilhouette
+    $ python setup.py build
+    # python setup.py install --root=/ --record=INSTALLED_FILES --prefix=/usr --install-layout=deb
+
+    #### Create pysilhouette account ####
+    # /usr/sbin/useradd -c "Pysilhouette" -d /var/lib/pysilhouette -s /bin/false -r pysilhouette
+
+    #### Create the application's system directories ####
+    # mkdir /etc/pysilhouette
+    # mkdir /var/log/pysilhouette
+    # mkdir /var/lib/pysilhouette
+    # chown -R pysilhouette:pysilhouette /var/log/pysilhouette
+    # chown -R pysilhouette:pysilhouette /var/lib/pysilhouette
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f pysilhouette/debian/silhouetted.init /etc/init.d/silhouetted 
+    # cp -f pysilhouette/debian/performerd.init /etc/init.d/performerd 
+    # cp -f pysilhouette/debian/schedulerd.init /etc/init.d/schedulerd 
+    # cp -f pysilhouette/debian/silhouetted.default /etc/default/silhouetted
+    # cp -f pysilhouette/sample/log.conf.example /etc/pysilhouette/log.conf
+    # cp -f pysilhouette/sample/silhouette.conf.example /etc/pysilhouette/silhouette.conf
+    # cp -f pysilhouette/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+    # ln -s `python -c "from distutils.sysconfig import get_python_lib; print get_python_lib(0,0)"`/pysilhouette/silhouette.py /usr/bin
+    # cp -f pysilhouette/tools/psil-cleandb /usr/sbin
+    # cp -f pysilhouette/tools/psil-set /usr/sbin
+    # chmod 0744 /usr/sbin/psil-*
+    # chmod +x /etc/init.d/silhouetted /etc/init.d/performerd /etc/init.d/schedulerd
+
+    #### Modify the following files if necessary. 
+    ## vi /etc/init.d/silhouetted
+    ## vi /etc/default/silhouetted
+
+## Installing karesansui ##
+<a name='installing_karesansui'/>
+
+####1. Fetching karesansui source code from github repository.
+
+    $ git clone git://github.com/karesansui/karesansui.git # No need if already downloaded.
+
+####2. Installing karesansui with Python's distutils.
+
+    $ cd karesansui
+    $ python setup.py build
+    # python setup.py install --record=INSTALLED_FILES --install-scripts=/usr/share/karesansui/bin --prefix=/usr --install-layout=deb
+
+    #### Create kss account ####
+    # /usr/sbin/useradd -c "Karesansui Project" -s /bin/false -r -m -d /var/lib/karesansui kss
+    # gpasswd -a libvirt-qemu kss
+
+    #### Create the application's system directories ####
+    # mkdir -p /etc/karesansui/virt
+    # mkdir -p /var/log/karesansui
+    # mkdir -p /var/lib/karesansui/tmp
+    # mkdir -p /var/lib/karesansui/cache
+
+    #### Change attributes of the application's directories/files ####
+    # chgrp -R kss   /etc/karesansui
+    # chmod g+rwx    /etc/karesansui/virt
+    # chmod o-rwx    /etc/karesansui/virt
+    # chmod -R g+rw  /etc/karesansui
+    # chmod -R o-rwx /etc/karesansui
+    # chgrp -R kss   /var/log/karesansui
+    # chmod -R 0770  /var/log/karesansui
+    # chgrp -R kss   /var/lib/karesansui
+    # chmod -R 0770  /var/lib/karesansui
+    # chgrp -R kss `python -c "from distutils.sysconfig import get_python_lib; print get_python_lib(0,0)"`/karesansui
+    # find `python -c "from distutils.sysconfig import get_python_lib; print get_python_lib(0,0)"`/karesansui -type d -exec chmod g+rwx \{\} \;
+    # find /usr/share/karesansui/ -type d -exec chgrp -R kss \{\} \;
+    # find /usr/share/karesansui/ -type d -exec chmod g+rwx \{\} \;
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f  karesansui/sample/application.conf.example /etc/karesansui/application.conf
+    # cp -f  karesansui/sample/log.conf.example /etc/karesansui/log.conf
+    # cp -f  karesansui/sample/service.xml.example /etc/karesansui/service.xml
+    # cp -f  karesansui/sample/logview.xml.example /etc/karesansui/logview.xml
+    # cp -f  karesansui/sample/cron_cleantmp.example /etc/cron.d/karesansui_cleantmp
+    # cp -f  karesansui/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+
+
+## Configuring pysilhouette ##
+<a name='configuring_pysilhouette'/>
+
+You may need to modify the following configuration files.
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>File name</th><th>Description</th></tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/silhouette.conf</td>
+  <td>Configuration file for the silhouetted daemon.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/log.conf</td>
+  <td>Configuration file for logging.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/whitelist.conf</td>
+  <td>Contains a whitelist of commands that can be executed by the pysilhouette as a background job.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/sysconfig/silhouetted</td>
+  <td>Used to set some other bootup parameters.</td>
+ </tr>
+</table>
+
+Add pysilhouette as a service and enable it for auto start at bootup.
+
+    # update-rc.d silhouetted defaults
+
+## Configuring karesansui ##
+<a name='configuring_karesansui'/>
+
+You may need to modify the following configuration files.
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>File name</th><th>Description</th></tr>
+ <tr>
+  <td nowrap>/etc/karesansui/application.conf</td>
+  <td>Configuration file for karesansui(<b>*You need to set 'application.uniqkey' parameter. Its value is supposed to be generated by the uuidgen program.</b>)</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/log.conf</td>
+  <td>Configuration file for logging.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>Used to define services related to karesansui.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>Used to define log files related to karesansui.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/cron.d/karesansui_cleantmp</td>
+  <td>Configuration file for the cron daemon. Clean/delete unnecessary temporary files at a specific interval.</td>
+ </tr>
+</table>
+
+
+## Creating database for karesansui ##
+<a name='creating_database_for_karesansui'/>
+
+With a script bundled with the source code, you can create a database for karesansui and insert information of the administrator into the database.
+
+    # python karesansui/tools/initialize_database.py -m <Administrator's E-mail Address> -p <Administrator's Password> -l en_US
+
+If you use a SQLite database, you must change the attributes of the database file.
+
+    # chgrp -R kss /var/lib/karesansui/
+    # chmod -R g+rw /var/lib/karesansui/
+    # chmod -R o-rwx /var/lib/karesansui/
+
+
+## Creating database for pysilhouette ##
+<a name='creating_database_for_pysilhouette'/>
+
+You can create a database for pysilhouette by executing the following command:
+
+    # python -c "import karesansui; from pysilhouette.prep import readconf; karesansui.sheconf = readconf('/etc/pysilhouette/silhouette.conf'); import karesansui.db._2pysilhouette; karesansui.db._2pysilhouette.get_metadata().create_all()"
+
+If you use a SQLite database, you must change the attributes of the database file.
+
+    # chgrp -R kss /var/lib/pysilhouette/
+    # chmod -R g+rw /var/lib/pysilhouette/
+    # chmod -R o-rwx /var/lib/pysilhouette/
+
+
+## Starting pysilhouette service ##
+<a name='starting_pysilhouette_service'/>
+
+    # invoke-rc.d silhouetted start
+
+
+## Configuring libvirt ##
+<a name='configuring_libvirt'/>
+
+####1. Edit libvirt configuration file
+
+You may need to modify the following configuration files.
+
+__/etc/libvirt/libvirtd.conf__
+
+ * listen_tcp = 1
+ * tcp_port = "16509"
+ * unix_sock_group = "kss"
+ * auth_tcp = "none"
+
+__/etc/libvirt/qemu.conf__
+
+ * user = "kss"
+ * group = "kss"
+
+__/etc/default/libvirt-bin__
+
+ * libvirtd_opts="-d --listen"
+
+####2. Create directories for libvirt
+
+    # mkdir -p /var/lib/libvirt/disk
+    # mkdir -p /var/lib/libvirt/domains
+    # mkdir -p /var/lib/libvirt/snapshot
+    # chgrp -R kss  /var/lib/libvirt
+    # chmod -R 0770 /var/lib/libvirt
+
+    # chgrp -R kss /etc/libvirt
+    # find /etc/libvirt -type d -exec chmod g+rwx \{\} \;
+
+####3. Create a TLS certificates for libvirt 
+
+First, set up a Certificate Authority (CA).
+
+    # aptitude install gnutls-bin
+    $ certtool --generate-privkey > cakey.pem
+    $ vi ca.info
+    cn = Name of your organization
+    ca
+    cert_signing_key
+    $ certtool --generate-self-signed --load-privkey cakey.pem --template ca.info --outfile cacert.pem
+
+Issue server certificates.
+
+    $ certtool --generate-privkey > serverkey.pem
+    $ vi server.info
+    organization = Name of your organization
+    cn = Your FQDN
+    tls_www_server
+    encryption_key
+    signing_key
+    $ certtool --generate-certificate --load-privkey serverkey.pem   --load-ca-certificate cacert.pem --load-ca-privkey cakey.pem   --template server.info --outfile servercert.pem
+
+Install the certificates.
+
+    # mkdir -p /etc/pki/libvirt/private/
+    # mkdir -p /etc/pki/CA/
+    # cp -i cacert.pem /etc/pki/CA/
+    # cp -i servercert.pem /etc/pki/libvirt/
+    # cp -i serverkey.pem /etc/pki/libvirt/private/
+
+####4. Enable libvirtd service
+
+Restart service and enable it for auto start at bootup.
+
+    # update-rc.d libvirt-bin defaults
+    # invoke-rc.d libvirt-bin restart
+
+####5. Check for connectivity to libvirtd
+
+Please make sure that virsh client can connect to the QEMU monitor with libvirt.
+
+    # virsh -c qemu+tcp://localhost:16509/system list
+
+If the connection attempt succeed, it will display message as below:
+
+    Id Name                 State
+    ----------------------------------
+
+####6. Create the default storage pool for libvirt
+
+    # KARESANSUI_CONF=/etc/karesansui/application.conf python -c "from karesansui.prep import built_in; built_in()"
+    # /usr/share/karesansui/bin/create_storage_pool.py --name=default --target_path=/var/lib/libvirt/domains --mode=0770 --owner=0 --group=`id -g kss` --type=dir
+    # virsh pool-refresh default
+    # rm -fr /var/log/karesansui/*
+
+
+## Checking for connectivity to Karesansui management console
+<a name='checking_for_connectivity_to_karesansui_management_console'/>
+
+You have now finished setting up Karesansui itself.
+
+Confirm that you can access the Karesansui URL from your browser through the app's python-webpy built-in web server.
+
+First, run the karesansui program using the built-in server.
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi"
+
+If the setting up is successful, it always seems to display the following:
+
+<pre>
+http://0.0.0.0:8080/
+</pre>
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+http://[your-server-name]:8080/karesansui/v3/
+</pre>
+
+If the console is displayed correctly, the installation appears to be completed successfully.
+
+
+Using other HTTP server
+=======================
+
+## With Lighttpd ##
+<a name='with_lighttpd'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+    # aptitude install lighttpd
+    # lighty-enable-mod fastcgi
+
+####2. Configuring group members.
+
+Add _lighttpd_ user to _kss_ group and _kss_ user to _lighttpd_ group.
+
+    # gpasswd -a lighttpd kss
+    # gpasswd -a kss lighttpd
+
+####3. Configuring lighttpd settings.
+
+Append the line below to _/etc/lighttpd/lighttpd.conf_.
+
+    include "conf.d/karesansui.conf"
+
+Edit _/etc/lighttpd/modules.conf_ to enable the following modules.
+
+    mod_alias
+    mod_rewrite
+    mod_fastcgi
+
+Copy the sample configuration file bundled with the source code to the location of lighttpd config directory, and edit it if necessary.
+
+    # cp karesansui/sample/lighttpd/karesansui.conf /etc/lighttpd/conf.d/
+
+
+####4. Setting up a simple SSL configuration with lighttpd
+
+    # mkdir -p /etc/lighttpd/ssl
+    # openssl req -new -x509 -keyout /etc/lighttpd/ssl/server.pem -out /etc/lighttpd/ssl/server.pem -days 3650 -nodes
+    # chmod 400 /etc/lighttpd/ssl/server.pem
+
+####5. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+Restart service and enable it for auto start at bootup.
+
+    # update-rc.d lighttpd defaults
+    # invoke-rc.d lighttpd restart
+
+If SELinux is set to "Enforcing", lighttpd may not work properly. Set it to "Permissive" mode and try to restart the service again.
+
+    # /usr/sbin/setenforce 0
+    # invoke-rc.d lighttpd restart
+
+Moreover, if you need to use "Permissive" mode at the next reboot, you have to modify /etc/selinux/config file as well.
+
+    SELINUX=permissive
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+https://[your-server-name]/karesansui/v3/
+</pre>
+
+
+## With Apache ##
+<a name='with_apache'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+Install several packages from [RepoForge](http://repoforge.org/) repository.
+
+    # wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm
+    # rpm -Uvh rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm 
+    # yum install httpd mod_fastcgi
+
+####2. Configuring group members.
+
+Add _apache_ user to _kss_ group and _kss_ user to _apache_ group.
+
+    # gpasswd -a apache kss
+    # gpasswd -a kss apache
+
+####3. Configuring apache settings.
+
+Copy the sample configuration file bundled with the source code to the location of httpd config directory, and edit it if necessary.
+
+    # cp karesansui/sample/apache/fastcgi.conf /etc/httpd/conf.d/
+
+####4. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+Restart service and enable it for auto start at bootup.
+
+    # update-rc.d apache2 defaults
+    # invoke-rc.d apache2 restart
+
+    # chmod 777 /tmp/dynamic
+    # chown apache:apache /tmp/dynamic
+    # invoke-rc.d apache2 restart
+
+If SELinux is set to "Enforcing", apache may not work properly. Set it to "Permissive" mode and try to restart the service again.
+
+    # /usr/sbin/setenforce 0
+    # invoke-rc.d apache2 restart
+
+Moreover, if you need to use "Permissive" mode at the next reboot, you have to modify /etc/selinux/config file as well.
+
+    SELINUX=permissive
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+https://[your-server-name]/karesansui/v3/
+</pre>
+
+
+## With Nginx ##
+<a name='with_nginx'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+    # aptitude install nginx spawn-fcgi
+
+####2. Configuring group members.
+
+Add _nginx_ user to _kss_ group and _kss_ user to _nginx_ group.
+
+    # gpasswd -a nginx kss
+    # gpasswd -a kss nginx
+
+####3. Configuring nginx settings.
+
+Copy the sample configuration file bundled with the source code to the location of nginx config directory, and edit it if necessary.
+
+    # cp karesansui/sample/nginx/karesansui.conf /etc/nginx/conf.d/
+
+####4. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+First, run the karesansui program using the built-in server.
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi 127.0.0.1:8080"
+
+Restart service and enable it for auto start at bootup.
+
+    # update-rc.d nginx defaults
+    # invoke-rc.d nginx restart
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+http://[your-server-name]/karesansui/v3/
+</pre>
+
+
+Other settings
+==============
+
+## Configuring collectd ##
+<a name='configuring_collectd'/>
+
+### What is collectd? ###
+
+[collectd](http://collectd.org/) is a daemon which collects system information periodically and provides means to store performance data.
+In Karesansui, It is used to display the statistics graphs.
+
+###Procedure for `CentOS 6`:
+
+You may need to change the settings for the collectd plugins.
+Please follow the steps described below.
+
+####1. Edit collectd configuration file. (/etc/collectd.conf)
+
+__Global settings__
+
+    Hostname    your.host.name
+    FQDNLookup   true
+    BaseDir     "/var/lib/collectd"
+    PIDFile     "/var/run/collectd.pid"
+    PluginDir   "/usr/lib64/collectd/"
+    TypesDB     "/usr/share/collectd/types.db"
+    Interval     10
+    Timeout      2
+    ReadThreads  5
+
+__LoadPlugin section__
+
+    LoadPlugin cpu
+    LoadPlugin df
+    LoadPlugin disk
+    LoadPlugin interface
+    LoadPlugin libvirt
+    LoadPlugin load
+    LoadPlugin memory
+    LoadPlugin network
+    LoadPlugin rrdtool
+    LoadPlugin uptime
+    LoadPlugin users
+
+__Plugin configuration__
+
+    <Plugin df>
+        ReportReserved     false
+        ReportByDevice     true
+        ReportInodes       false
+        IgnoreSelected     false
+    </Plugin>
+
+    <Plugin disk>
+        Disk "/^[hs]d[a-f][0-9]?$/"
+        IgnoreSelected false
+    </Plugin>
+
+    <Plugin interface>
+       IgnoreSelected false
+    </Plugin>
+
+    <Plugin libvirt>
+        HostnameFormat     name
+        Connection         "qemu+tcp://127.0.0.1:16509/system?no_verify=1"
+        IgnoreSelected     false
+        RefreshInterval    60
+    </Plugin>
+
+    <Plugin rrdtool>
+        DataDir "/var/lib/collectd"
+        CacheTimeout 120
+        CacheFlush   900
+    </Plugin>
+
+####2. Restart collectd service.
+
+In order for all the modifications to take effect, you need to restart collectd service.
+
+    # update-rc.d collectd defaults
+    # invoke-rc.d collectd restart
+
+
+Feedback & Suggestions
+======================
+Is there something wrong, outdated or unclear in this document? Please let us know so we can make it better. If you can contribute anything, we would greatly appreciate it!
+
+
+Karesansuiのインストール
+=======================
+
+## このドキュメントについて ##
+<a name='about_document'/>
+
+このドキュメントは、インラインHTMLを含むMarkdown形式で記載されています。
+最新の情報は、[https://github.com/karesansui/karesansui/blob/master/INSTALL.ja.md][install]から入手することができます。
+
+このドキュメントは、CentOS 6.x (x86_64) にインストールすることを前提に記載していますが、他のLinuxディストリビューションでも同等の作業をすることでインストールが可能です。
+
+  [install]:https://github.com/karesansui/karesansui/blob/master/INSTALL.ja.md
+
+### 作者 ###
+
+* Taizo Ito &lt;taizo at karesansui-project.info&gt;
+
+### 貢献者 ###
+
+貢献した人々の努力に感謝します。
+
+* Mihai Moldovan &lt;ionic at ionic.de&gt; - mod_fcgid configuration hints.
+
+
+## OSのインストール ##
+<a name='installing_operating_system'/>
+
+Karesansuiは、仮想化システムがインストールされた環境でのみ動作します。
+
+KVM (Kernel-based Virtual Machine)を有効にするために、あらかじめ、CentOS 6.x のインストール時の「インストール・ソフトウェアの選択」において「仮想化ホスト(Virtual Host)」を選択し、ソフトウェア選択のカスタマイズで「今すぐカスタマイズ」を選択し、「仮想化」を有効にしてください。
+
+OSインストール後にKVMを有効にする場合は、下記コマンドを実行してください。
+以降、ハッシュ(#)プロンプトはrootユーザーによる実行を示し、ドル($)プロンプトは特定の一般ユーザーによる実行を示します。
+
+###`CentOS 6` の場合:
+
+    # yum groupinstall "Virtualization" "Virtualization Client" "Virtualization Platform" "Virtualization Tools"
+    # /sbin/modprobe -b kvm-intel (or /sbin/modprobe -b kvm-amd)
+    # /sbin/modprobe -b vhost_net
+
+以下のコマンドで、KVM用カーネル・モジュールがロードされているか確認します。
+
+    # /sbin/lsmod | grep kvm
+    kvm_intel              50380  0 
+    kvm                   305081  1 kvm_intel
+
+ *AMDのCPUでは、"kvm_intel"のかわりに"kvm_amd"がロードされます。*
+
+
+## ネットワークの設定 ##
+<a name='configuring_the_network'/>
+
+Linuxをインストールすると、そのネットワークインターフェースは通常 _eth0_ として認識され、KVMゲストから外向けの通信のみ許可されます。
+このインターフェースをゲストと共有して使用できるように、ブリッジモードの仮想インターフェースを作成します。
+
+### ブリッジインターフェースを作成 ###
+
+注意: ローカルのコンソールではなく、SSHやTelnetを通してサーバーにアクセスしている場合、ネットワーク設定変更後のネットワーク再起動時に接続が切れる恐れがあります。ネットワーク設定は、できる限りローカルのコンソールで行ってください。
+
+###`CentOS 6` の場合:
+
+####1. ネットワークインターフェースに紐付けるブリッジを定義するためのネットワークスクリプトを作成します。
+
+スクリプトファイルのパスは、 _/etc/sysconfig/network-scripts/ifcfg-br0_ になります。この _br0_ は、ブリッジ名です。
+
+    # cp /etc/sysconfig/network-scripts/ifcfg-{eth0,br0}
+
+####2. _br0_ のスクリプトファイルを編集します。 (/etc/sysconfig/network-scripts/ifcfg-br0)
+
+ネットワークカードが固定IPアドレスに設定されている場合は、以下のようになっているはずです。
+
+    DEVICE=eth0
+    HWADDR=<このデバイスのMACアドレス>
+    ONBOOT=yes
+    IPADDR=<IPアドレス>
+    BOOTPROTO=static
+    NETMASK=<ネットマスク>
+    TYPE=Ethernet
+
+  スクリプトファイルを以下の例のように編集します。
+
+    DEVICE=br0    # <- 変更
+    #HWADDR=<このデバイスのMACアドレス>  # <- コメントまたは削除
+    ONBOOT=yes
+    IPADDR=<IPアドレス>
+    BOOTPROTO=static
+    NETMASK=<ネットマスク>
+    TYPE=Bridge   # <- 変更
+
+####3. _eth0_ のスクリプトファイルを編集します。 (/etc/sysconfig/network-scripts/ifcfg-eth0)
+
+次に、 _eth0_ のスクリプトファイルを編集し、下記のように _BRIDGE=br0_ を追記します。また、 _IPADDR_ や _NETMASK_ 等の行も削除します。
+
+    DEVICE=eth0
+    HWADDR=<このデバイスのMACアドレス>
+    ONBOOT=yes
+    #IPADDR=<IPアドレス>    # <- コメントまたは削除
+    #BOOTPROTO=none         # <- コメントまたは削除
+    #NETMASK=<ネットマスク> # <- コメントまたは削除
+    TYPE=Ethernet
+    BRIDGE=br0              # <- 追加
+
+####4. ネットワークを再起動します。
+
+ネットワークスクリプトの変更を有効にするため、ネットワークを再起動します。
+
+    # /etc/init.d/network restart
+
+####5. ネットワークインターフェースの状態を確認します。
+
+    # /sbin/ifconfig -a
+
+###別の手順:
+
+####1. _eth0_ を プロミスキャスモードにします。
+
+    # /sbin/ifconfig eth0 0.0.0.0 promisc up
+
+####2. ブリッジを作成します。
+
+    # /usr/sbin/brctl addbr br0
+
+####3. _eth0_ を _br0_ ブリッジのポートにします。
+
+    # /usr/sbin/brctl addif br0 eth0
+
+####4. ブリッジを起動します。
+
+    # ifconfig br0 up
+
+####5. ブリッジをネットワークに接続します。
+
+    # ifconfig br0 172.23.233.1 netmask 255.255.255.0
+    # route add default gw 172.23.233.254
+
+
+## 必要なソフトウェアのインストール ##
+<a name='installing_dependent_software_libs'/>
+
+Karesansuiをセットアップするには、依存するソフトウェアをインストールしておく必要があります。
+各ディストリビューションの提供するアップデートプログラム等を利用し、依存パッケージの大半はインストールできますが、一部のソフトウェアはビルドが必要です。
+
+###`CentOS 6` の場合:
+
+#####CentOSの基本リポジトリからインストール
+
+    # yum install PyXML python-mako python-sqlalchemy python-simplejson rrdtool rrdtool-python
+
+#####[EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL)リポジトリからインストール
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install python-flup python-sqlite2
+    # yum install collectd collectd-ping collectd-rrdtool collectd-virt
+
+#####ディストリビューションやEPEL等のサードパーティで提供していないソフトウェアは自ホストでビルドしインストール
+
+以下の手順で追加パッケージをビルド・作成することができます。
+
+######1. ビルド環境の構築
+
+RPMパッケージを作成する環境を構築します。パッケージ作成ユーザーとしてrpmbuildアカウントを作成します。
+
+    # yum install rpm-build
+    # useradd rpmbuild
+    # su - rpmbuild
+    $ mkdir -p ~/pkgs/{BUILD,RPMS/{i{3,4,5,6}86,x86_64,noarch},SOURCES,SPECS,SRPMS}
+    $ echo '%_topdir %(echo $HOME)/pkgs' > ~/.rpmmacros
+
+######2. Karesansuiのソースコードの取得
+
+    # yum install git python-setuptools
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/karesansui.git
+
+######3. python-webpyパッケージの作成
+
+    # su - rpmbuild
+    $ cd ~/pkgs/SOURCES/
+    $ wget http://webpy.org/static/web.py-0.37.tar.gz
+    $ rpmbuild -ba ~/karesansui/sample/specs/python-webpy/python-webpy.spec
+
+######4. tightvnc-javaパッケージの作成
+
+    # su - rpmbuild
+    $ cd ~/pkgs/SOURCES/
+    $ wget http://downloads.sourceforge.net/sourceforge/vnc-tight/tightvnc-1.3.10_javabin.tar.gz
+    $ wget http://downloads.sourceforge.net/sourceforge/vnc-tight/tightvnc-1.3.10_javasrc.tar.gz
+    $ rpmbuild -ba ~/karesansui/sample/specs/tightvnc-java/tightvnc-java.spec 
+
+######5. IPAexfontパッケージの作成
+
+    # su - rpmbuild
+    $ cd ~/pkgs/SOURCES/
+    $ wget http://iij.dl.sourceforge.jp/ipafonts/49986/IPAexfont00103.zip
+    $ cp ~rpmbuild/karesansui/sample/specs/IPAexfont/09-ipaexfont.conf .
+    $ rpmbuild -ba ~/karesansui/sample/specs/IPAexfont/IPAexfont.spec 
+
+######6. ビルドしたパッケージのインストール
+
+    $ cd ~/pkgs/RPMS/noarch
+    # rpm -Uvh python-webpy-*.el6.noarch.rpm IPAexfont-*.el6.noarch.rpm tightvnc-java-*.el6.noarch.rpm 
+
+
+## pysilhouetteのインストール ##
+<a name='installing_pysilhouette'/>
+
+### pysilhouette って何？ ###
+
+pysilhouetteは、pythonで記述されたバックグラウンドジョブマネージャーで、Karesansuiの管理画面でのゲスト作成など各タスクを実行するために利用されます。
+Karesansuiと同じく、Karesansui Project Teamによって開発されたソフトウェアです。
+
+###`CentOS 6` の場合:
+
+####1. pysilhouetteのソースコードの取得
+
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/pysilhouette.git
+
+####2a. (方法１) RPMパッケージを作成してインストール
+
+    $ cd ~/pysilhouette
+    $ python setup.py sdist
+    $ rpmbuild -ta dist/pysilhouette-*.tar.gz
+    # rpm -Uvh ~rpmbuild/pkgs/RPMS/noarch/pysilhouette-*.noarch.rpm
+
+####2b. (方法２) Pythonのdistutilsを使ってインストール
+
+    $ cd ~/pysilhouette
+    $ python setup.py build
+    # python setup.py install --root=/ --record=INSTALLED_FILES
+
+    #### Create pysilhouette account ####
+    # /usr/sbin/useradd -c "Pysilhouette" -s /bin/false -r pysilhouette
+
+    #### Create the application's system directories ####
+    # mkdir /etc/pysilhouette
+    # mkdir /var/log/pysilhouette
+    # mkdir /var/lib/pysilhouette
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f ~rpmbuild/pysilhouette/sample/rc.d/init.d/* /etc/rc.d/init.d/
+    # cp -f ~rpmbuild/pysilhouette/sample/sysconfig/silhouetted /etc/sysconfig/silhouetted
+    # cp -f ~rpmbuild/pysilhouette/sample/log.conf.example /etc/pysilhouette/log.conf
+    # cp -f ~rpmbuild/pysilhouette/sample/silhouette.conf.example /etc/pysilhouette/silhouette.conf
+    # cp -f ~rpmbuild/pysilhouette/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+    # ln -s `python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`/pysilhouette/silhouette.py /usr/bin
+    # cp -f ~rpmbuild/pysilhouette/tools/psil-cleandb /usr/sbin
+    # cp -f ~rpmbuild/pysilhouette/tools/psil-set /usr/sbin
+    # chmod 0744 /usr/sbin/psil-*
+
+
+## karesansuiのインストール ##
+<a name='installing_karesansui'/>
+
+###`CentOS 6` の場合:
+
+####1. karesansuiのソースコードの取得
+
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/karesansui.git # 既にダウンロード済みの場合は、必要ありません。
+
+####2a. (方法１) RPMパッケージを作成してインストール
+
+    $ cd ~/karesansui
+    $ python setup.py sdist
+    $ rpmbuild -ta dist/karesansui-*.tar.gz
+    # rpm -Uvh ~rpmbuild/pkgs/RPMS/noarch/karesansui-{,{bin,data,gadget,lib,plus}-}3.*.noarch.rpm
+
+####2b. (方法２) Pythonのdistutilsを使ってインストール
+
+    $ cd ~/karesansui
+    $ python setup.py build
+    # python setup.py install --record=INSTALLED_FILES --install-scripts=/usr/share/karesansui/bin
+
+    #### Create kss account ####
+    # /usr/sbin/useradd -c "Karesansui Project" -s /bin/false -r -m -d /var/lib/karesansui kss
+    # gpasswd -a qemu kss
+
+    #### Create the application's system directories ####
+    # mkdir /etc/karesansui/virt
+    # mkdir /var/log/karesansui
+    # mkdir -p /var/lib/karesansui/{tmp,cache}
+
+    #### Change attributes of the application's directories/files ####
+    # chgrp -R kss   /etc/karesansui
+    # chmod g+rwx    /etc/karesansui/virt
+    # chmod o-rwx    /etc/karesansui/virt
+    # chmod -R g+rw  /etc/karesansui
+    # chmod -R o-rwx /etc/karesansui
+    # chgrp -R kss   /var/log/karesansui
+    # chmod -R 0700  /var/log/karesansui
+    # chgrp -R kss   /var/lib/karesansui
+    # chmod -R 0770  /var/lib/karesansui
+    # find /usr/share/karesansui/ -type d -exec chgrp -R kss \{\} \;
+    # find /usr/share/karesansui/ -type d -exec chmod g+rwx \{\} \;
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f  ~rpmbuild/karesansui/sample/application.conf.example /etc/karesansui/application.conf
+    # cp -f  ~rpmbuild/karesansui/sample/log.conf.example /etc/karesansui/log.conf
+    # cp -f  ~rpmbuild/karesansui/sample/service.xml.example /etc/karesansui/service.xml
+    # cp -f  ~rpmbuild/karesansui/sample/logview.xml.example /etc/karesansui/logview.xml
+    # cp -f  ~rpmbuild/karesansui/sample/cron_cleantmp.example /etc/cron.d/karesansui_cleantmp
+    # cp -f  ~rpmbuild/karesansui/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+
+
+## pysilhouetteの設定 ##
+<a name='configuring_pysilhouette'/>
+
+必要に応じて下記ファイルの内容を変更してください。
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>ファイル</th><th>説明</th></tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/silhouette.conf</td>
+  <td>pysilhouetteの基本動作に関する設定ファイル</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/log.conf</td>
+  <td>pysilhouetteのログ出力に関する設定ファイル</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/whitelist.conf</td>
+  <td>pysilhouetteで実行可能なコマンドのホワイトリスト</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/sysconfig/silhouetted</td>
+  <td>pysilhouetteサービスの起動オプション</td>
+ </tr>
+</table>
+
+マシン起動時にpysilhouetteサービスが有効になるように設定します。
+
+    # /sbin/chkconfig --add silhouetted
+    # /sbin/chkconfig silhouetted on
+
+
+## karesansuiの設定 ##
+<a name='configuring_karesansui'/>
+
+必要に応じて下記ファイルの内容を変更してください。
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>ファイル</th><th>説明</th></tr>
+ <tr>
+  <td nowrap>/etc/karesansui/application.conf</td>
+  <td>karesansuiの基本動作に関する設定ファイル(<b>*application.uniqkeyの設定が必要。設定値は uuidgen コマンドで生成できます。</b>)</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/log.conf</td>
+  <td>karesansuiのログ出力に関する設定ファイル</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>karesansuiに関連するサービスの定義</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>karesansuiに関連するログファイルの定義</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/cron.d/karesansui_cleantmp</td>
+  <td>cronによる定期実行の設定</td>
+ </tr>
+</table>
+
+
+## karesansui用データベースの作成 ##
+<a name='creating_database_for_karesansui'/>
+
+karesansuiのソースコードに付属するスクリプトを利用してデータベース作成とKaresansuiの管理者情報のデータベースへの挿入を行います。
+
+    # python ~rpmbuild/karesansui/tools/initialize_database.py -m <管理者メールアドレス> -p <管理者パスワード> -l ja_JP
+
+データベースにSQLiteを利用している場合は、以下のコマンドでデータベースファイルの属性変更を行ってください。
+
+    # chgrp -R kss /var/lib/karesansui/
+    # chmod -R g+rw /var/lib/karesansui/
+    # chmod -R o-rwx /var/lib/karesansui/
+
+
+## pysilhouette用データベースの作成 ##
+<a name='creating_database_for_pysilhouette'/>
+
+以下のコマンドを実行してデータベースを作成します。
+
+    # python -c "import karesansui; from pysilhouette.prep import readconf; karesansui.sheconf = readconf('/etc/pysilhouette/silhouette.conf'); import karesansui.db._2pysilhouette; karesansui.db._2pysilhouette.get_metadata().create_all()"
+
+データベースにSQLiteを利用している場合は、以下のコマンドでデータベースファイルの属性変更を行ってください。
+
+    # chgrp -R kss /var/lib/pysilhouette/
+    # chmod -R g+rw /var/lib/pysilhouette/
+    # chmod -R o-rwx /var/lib/pysilhouette/
+
+
+## pysilhouette サービスの起動 ##
+<a name='starting_pysilhouette_service'/>
+
+    # /etc/init.d/silhouetted start
+
+
+## libvirtの設定 ##
+<a name='configuring_libvirt'/>
+
+####1. libvirtd 設定ファイルの編集
+
+以下の設定ファイルを編集します。
+
+__/etc/libvirt/libvirtd.conf__
+
+ * listen_tcp = 1
+ * tcp_port = "16509"
+ * unix_sock_group = "kss"
+ * auth_tcp = "none"
+
+__/etc/sysconfig/libvirtd__
+
+ * LIBVIRTD_ARGS="--listen"
+
+####2. libvirtが使用するディレクトリの作成
+
+    # mkdir -p /var/lib/libvirt/{disk,domains,snapshot}
+    # chgrp -R kss  /var/lib/libvirt
+    # chmod -R 0770 /var/lib/libvirt
+
+    # chgrp -R kss /etc/libvirt
+    # find /etc/libvirt -type d -exec chmod g+rwx \{\} \;
+
+####3. TLS証明書の作成
+
+まず、自己認証局(CA)を作成します。
+
+    $ certtool --generate-privkey > cakey.pem
+    $ vi ca.info
+    cn = Name of your organization
+    ca
+    cert_signing_key
+    $ certtool --generate-self-signed --load-privkey cakey.pem --template ca.info --outfile cacert.pem
+
+サーバー証明書を発行します。
+
+    $ certtool --generate-privkey > serverkey.pem
+    $ vi server.info
+    organization = Name of your organization
+    cn = Your FQDN
+    tls_www_server
+    encryption_key
+    signing_key
+    $ certtool --generate-certificate --load-privkey serverkey.pem   --load-ca-certificate cacert.pem --load-ca-privkey cakey.pem   --template server.info --outfile servercert.pem
+
+証明書および鍵をインストールします。
+
+    # mkdir -p /etc/pki/libvirt/private/
+    # cp -i cacert.pem /etc/pki/CA/
+    # cp -i servercert.pem /etc/pki/libvirt/
+    # cp -i serverkey.pem /etc/pki/libvirt/private/
+
+####4. libvirtサービスの有効化
+
+サービスを再起動し、マシン起動時に自動で有効になるように設定します。
+
+    # /sbin/chkconfig libvirtd on
+    # /etc/init.d/libvirtd restart
+
+####5. libvirtサービスとの接続チェック
+
+libvirtのqemuモニターと接続が可能かどうか確認してください。
+
+    # virsh -c qemu+tcp://localhost:16509/system list
+
+接続が成功した場合は、以下のように出力されます。
+
+    Id 名前               状態
+    ----------------------------------
+
+####6. libvirtストレージプールの作成
+
+    # KARESANSUI_CONF=/etc/karesansui/application.conf python -c "from karesansui.prep import built_in; built_in()"
+    # /usr/share/karesansui/bin/create_storage_pool.py --name=default --target_path=/var/lib/libvirt/domains --mode=0770 --owner=0 --group=`id -g kss` --type=dir
+    # virsh pool-refresh default
+    # rm -fr /var/log/karesansui/*
+
+
+## Karesansuiの管理コンソールへの接続確認
+<a name='checking_for_connectivity_to_karesansui_management_console'/>
+
+以上で、Karesansui自身の構築は完了です。
+
+python-webpyの内蔵Webサーバーを利用して、WebブラウザからKaresansuiにアクセスできるかどうかを確認します。
+
+まず、Karesansuiをwebpyの内蔵サーバーで立ち上げます。
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi"
+
+構築が正しく行われている場合は、以下のように出力されます。
+
+<pre>
+http://0.0.0.0:8080/
+</pre>
+
+正常に起動しましたら、Webブラウザから下記のURLにアクセスしてください。ベーシック認証のユーザー名とパスワードは、「karesansui用データベースの作成」で指定した値になります。
+
+<pre>
+http://[インストールしたサーバー]:8080/karesansui/v3/
+</pre>
+
+管理画面が正常に表示されれば、Karesansuiのインストールは成功です。
+
+
+他のHTTPサーバーを利用する
+========================
+
+## Lighttpdとの連携 ##
+<a name='with_lighttpd'/>
+
+###`CentOS 6` の場合:
+
+####1. パッケージのインストール
+
+[EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL)リポジトリから _lighttpd_ パッケージをインストールします。
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install lighttpd lighttpd-fastcgi spawn-fcgi
+
+####2. グループメンバーの調整
+
+_lighttpd_ ユーザーを _kss_ グループに、 _kss_ ユーザーを _lighttpd_ グループに追加します。
+
+    # gpasswd -a lighttpd kss
+    # gpasswd -a kss lighttpd
+
+####3. 設定ファイルの作成と編集
+
+_/etc/lighttpd/lighttpd.conf_ に以下の行を追記します。
+
+    include "conf.d/karesansui.conf"
+
+_/etc/lighttpd/modules.conf_ で以下のモジュールを有効にします。
+
+    mod_alias
+    mod_rewrite
+    mod_fastcgi
+
+ソースコードに付属する設定ファイルのサンプルをコピーし、必要であれば設定内容を変更します。
+
+    # cp ~rpmbuild/karesansui/sample/lighttpd/karesansui.conf /etc/lighttpd/conf.d/
+
+
+####4. lighttpdのSSLの設定
+
+    # mkdir -p /etc/lighttpd/ssl
+    # openssl req -new -x509 -keyout /etc/lighttpd/ssl/server.pem -out /etc/lighttpd/ssl/server.pem -days 3650 -nodes
+    # chmod 400 /etc/lighttpd/ssl/server.pem
+
+
+####5. Webサーバーの起動
+
+既に他のWebサーバーでKaresansuiを試している場合は、下記コマンドで既存ファイルのいくつかを削除する必要があります。
+
+    # rm -fr /var/log/karesansui/*log
+
+サービスを再起動し、マシン起動時に自動で有効になるように設定します。
+
+    # /sbin/chkconfig lighttpd on
+    # /etc/init.d/lighttpd restart
+
+SELinuxが有効な状態ですと、lighttpdが正常に起動しない場合があります。無効にしてから再度サービスを起動してみてください。
+
+    # /usr/sbin/setenforce 0
+    # /etc/init.d/lighttpd restart
+
+次回マシン起動時にSELinuxをPermissiveモードにする必要があるなら、/etc/selinux/configに以下のように設定してくだい。
+
+    SELINUX=permissive
+
+####6. Karesansuiの管理コンソールへの接続確認
+
+Webブラウザから下記のURLにアクセスしてください。ベーシック認証のユーザー名とパスワードは、「karesansui用データベースの作成」で指定した値になります。
+
+<pre>
+https://[インストールしたサーバー]/karesansui/v3/
+</pre>
+
+
+## Apacheとの連携 ##
+<a name='with_apache'/>
+
+###`CentOS 6` の場合:
+
+####1. パッケージのインストール
+
+#### For mod_fastcgi ####
+
+[RepoForge](http://repoforge.org/)リポジトリから _mod_fastcgi_ パッケージをインストールします。
+
+    # wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm
+    # rpm -Uvh rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm 
+    # yum install httpd mod_fastcgi
+
+#### For mod_fcgid ####
+
+サードパーティ・リポジトリにmod_fcgidがない場合は、自身でコンパイルする必要があります。
+
+
+####2. グループメンバーの調整
+
+_apache_ ユーザーを _kss_ グループに、 _kss_ ユーザーを _apache_ グループに追加します。
+
+    # gpasswd -a apache kss
+    # gpasswd -a kss apache
+
+####3. 設定ファイルの作成と編集
+
+ソースコードに付属する設定ファイルのサンプルをコピーし、必要であれば設定内容を変更します。
+
+#### For mod_fastcgi ####
+
+    # cp ~rpmbuild/karesansui/sample/apache/fastcgi.conf /etc/httpd/conf.d/
+
+#### For mod_fcgid ####
+
+    # cp ~rpmbuild/karesansui/sample/apache/fcgid.conf /etc/httpd/conf.d/
+
+####4. Webサーバーの起動
+
+既に他のWebサーバーでKaresansuiを試している場合は、下記コマンドで既存ファイルのいくつかを削除する必要があります。
+
+    # rm -fr /var/log/karesansui/*log
+
+サービスを再起動し、マシン起動時に自動で有効になるように設定します。
+
+    # /sbin/chkconfig httpd on
+    # /etc/init.d/httpd restart
+
+    # This section is needed for mod_fastcgi only.
+    # chmod 777 /tmp/dynamic
+    # chown apache:apache /tmp/dynamic
+    # /etc/init.d/httpd restart
+
+SELinuxが有効な状態ですと、apacheが正常に起動しない場合があります。無効にしてから再度サービスを起動してみてください。
+
+    # /usr/sbin/setenforce 0
+    # /etc/init.d/httpd restart
+
+次回マシン起動時にSELinuxをPermissiveモードにする必要があるなら、/etc/selinux/configに以下のように設定してくだい。
+
+    SELINUX=permissive
+
+####6. Karesansuiの管理コンソールへの接続確認
+
+Webブラウザから下記のURLにアクセスしてください。ベーシック認証のユーザー名とパスワードは、「karesansui用データベースの作成」で指定した値になります。
+
+<pre>
+https://[インストールしたサーバー]/karesansui/v3/
+</pre>
+
+
+## Nginxとの連携 ##
+<a name='with_nginx'/>
+
+###`CentOS 6` の場合:
+
+####1. パッケージのインストール
+
+[EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL)リポジトリから _nginx_ パッケージをインストールします。
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install nginx spawn-fcgi
+
+####2. グループメンバーの調整
+
+_nginx_ ユーザーを _kss_ グループに、 _kss_ ユーザーを _nginx_ グループに追加します。
+
+    # gpasswd -a nginx kss
+    # gpasswd -a kss nginx
+
+####3. 設定ファイルの作成と編集
+
+ソースコードに付属する設定ファイルのサンプルをコピーし、必要であれば設定内容を変更します。
+
+    # cp ~rpmbuild/karesansui/sample/nginx/karesansui.conf /etc/nginx/conf.d/
+
+####4. Webサーバーの起動
+
+既に他のWebサーバーでKaresansuiを試している場合は、下記コマンドで既存ファイルのいくつかを削除する必要があります。
+
+    # rm -fr /var/log/karesansui/*log
+
+Karesansuiをwebpyの内蔵サーバーで立ち上げます。
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi 127.0.0.1:8080"
+
+サービスを再起動し、マシン起動時に自動で有効になるように設定します。
+
+    # /sbin/chkconfig nginx on
+    # /etc/init.d/nginx restart
+
+####6. Karesansuiの管理コンソールへの接続確認
+
+Webブラウザから下記のURLにアクセスしてください。ベーシック認証のユーザー名とパスワードは、「karesansui用データベースの作成」で指定した値になります。
+
+<pre>
+http://[インストールしたサーバー]/karesansui/v3/
+</pre>
+
+
+その他の設定
+============
+
+## collectdの設定 ##
+<a name='configuring_collectd'/>
+
+### collectd って何？ ###
+
+[collectd](http://collectd.org/) は、システムの各種情報を定期的に収集し、それらのデータを蓄積する手段を提供するデーモンプログラムです。
+Karesansuiでは、統計グラフを表示するためにcollectdを利用しています。
+
+###`CentOS 6` の場合:
+
+まず、collectdの各種プラグインの設定を変更する必要があります。
+下記に示す手順に従ってください。
+
+####1. collectdの設定ファイルを編集します。 (/etc/collectd.conf)
+
+__Global settings__
+
+    Hostname    your.host.name
+    FQDNLookup   true
+    BaseDir     "/var/lib/collectd"
+    PIDFile     "/var/run/collectd.pid"
+    PluginDir   "/usr/lib64/collectd/"
+    TypesDB     "/usr/share/collectd/types.db"
+    Interval     10
+    Timeout      2
+    ReadThreads  5
+
+__LoadPlugin section__
+
+    LoadPlugin cpu
+    LoadPlugin df
+    LoadPlugin disk
+    LoadPlugin interface
+    LoadPlugin libvirt
+    LoadPlugin load
+    LoadPlugin memory
+    LoadPlugin network
+    LoadPlugin rrdtool
+    LoadPlugin uptime
+    LoadPlugin users
+
+__Plugin configuration__
+
+    <Plugin df>
+        ReportReserved     false
+        ReportByDevice     true
+        ReportInodes       false
+        IgnoreSelected     false
+    </Plugin>
+
+    <Plugin disk>
+        Disk "/^[hs]d[a-f][0-9]?$/"
+        IgnoreSelected false
+    </Plugin>
+
+    <Plugin interface>
+       IgnoreSelected false
+    </Plugin>
+
+    <Plugin libvirt>
+        HostnameFormat     name
+        Connection         "qemu+tcp://127.0.0.1:16509/system?no_verify=1"
+        IgnoreSelected     false
+        RefreshInterval    60
+    </Plugin>
+
+    <Plugin rrdtool>
+        DataDir "/var/lib/collectd"
+        CacheTimeout 120
+        CacheFlush   900
+    </Plugin>
+
+####2. collectdサービスを再起動します。
+
+全ての変更を有効にするため、collectdを再起動します。
+
+    # /sbin/chkconfig collectd on
+    # /etc/init.d/collectd restart
+
+
+フィードバック
+==============
+このドキュメントに誤りや不明瞭な点、情報が古いなどありましたら、改善いたしますので連絡願います。ご協力に感謝いたします。
+
+
+Installing Karesansui
+=====================
+
+## About this document ##
+<a name='about_document'/>
+
+This document is written in the Markdown format and contains some inline HTML.
+This document is also available online at [https://github.com/karesansui/karesansui/blob/master/INSTALL.md][install].
+
+This document is based on CentOS 6.x (x86_64). However, following the similar steps described within the document allows you to install Karesansui on any other Linux distribution.
+
+  [install]: https://github.com/karesansui/karesansui/blob/master/INSTALL.md
+
+### Authors ###
+
+* Taizo Ito &lt;taizo at karesansui-project.info&gt;
+
+### Contributors ###
+
+Thanks to the volunteer efforts of contributors.
+
+* Mihai Moldovan &lt;ionic at ionic.de&gt; - mod_fcgid configuration hints.
+
+
+## Installing operating system ##
+<a name='installing_operating_system'/>
+
+Karesansui only works on systems that have the virtualization system installed.
+So you need to enable KVM (Kernel-based Virtual Machine).
+
+Just do usual installation, but be careful of the points below:
+
+* (Required) On software setup, check "_Virtual Host_" and "_Customize Now_"
+* (Required) On software group setup, check "_Virtualization_" - "_Virtualization_","_Virtualization Client_","_Virtualization Platform_" ,"_Virtualization Tools_"
+
+If you want to enable KVM after installing OS, you need to execute the following commands:
+
+A hash (#) prompt indicates you are logged-in as the root user; a dollar ($) prompt indicates you are logged-in as the specific general account.
+
+###For `CentOS 6`:
+
+    # yum groupinstall "Virtualization" "Virtualization Client" "Virtualization Platform" "Virtualization Tools"
+    # /sbin/modprobe -b kvm-intel (or /sbin/modprobe -b kvm-amd)
+    # /sbin/modprobe -b vhost_net
+
+Please make sure that the kernel modules for KVM are loaded.
+
+    # /sbin/lsmod | grep kvm
+    kvm_intel              50380  0 
+    kvm                   305081  1 kvm_intel
+
+ *If you use an AMD processor, _kvm_amd_ must be loaded instead of _kvm_intel_.
+
+
+## Configuring the network ##
+<a name='configuring_the_network'/>
+
+After installing Linux, the first Ethernet interface is typically identified as _eth0_ and allows only outbound communication from the KVM guests.
+To share the interface with KVM guests and enable full network access, including communication to and from an external host, you need to set up a Linux bridge in Linux system.
+
+### Setting up a network bridge ###
+
+Note: If you are accessing the server via SSH or Telnet instead of console, you MAY be disconnected when you restart the network service after modifying network settings. You should configure the settings via the local console. 
+
+###Procedure for `CentOS 6`:
+
+####1. Create the network script defining a Linux bridge associated with the network card.
+
+The script file path is _/etc/sysconfig/network-scripts/ifcfg-br0_, where _br0_ is the name of the bridge.
+
+    # cp /etc/sysconfig/network-scripts/ifcfg-{eth0,br0}
+
+####2. Edit the script file for br0 (/etc/sysconfig/network-scripts/ifcfg-br0)
+
+If your network card is configured with a static IP address, your original network script file should look similar to the following example:
+
+    DEVICE=eth0
+    HWADDR=<the ethernet hardware address for this device>
+    ONBOOT=yes
+    IPADDR=<the IP address>
+    BOOTPROTO=static
+    NETMASK=<the netmask>
+    TYPE=Ethernet
+
+  You need to edit _ifcfg-br0_ as shown in the following example.
+
+    DEVICE=br0                # <- Changed
+    #HWADDR=<the ethernet hardware address for this device>  # <- Commented out
+    ONBOOT=yes
+    IPADDR=<the IP address>
+    BOOTPROTO=static
+    NETMASK=<the netmask>
+    TYPE=Bridge               # <- Changed
+
+####3. Edit the script file for eth0 (/etc/sysconfig/network-scripts/ifcfg-eth0)
+
+Now you need to configure your network script for eth0. You will already have a script for _eth0_, but you’ll need to modify it by adding one line as _BRIDGE=br0_ so that it looks similar to the following script.
+
+    DEVICE=eth0
+    HWADDR=<the ethernet hardware address for this device>
+    ONBOOT=yes
+    #IPADDR=<the IP address>  # <- Commented out
+    #BOOTPROTO=none           # <- Commented out
+    #NETMASK=<the netmask>    # <- Commented out
+    TYPE=Ethernet
+    BRIDGE=br0                # <- Added
+
+####4. Restart network services
+
+In order for all the network script modifications to take effect, you need to restart your network services.
+
+    # /etc/init.d/network restart
+
+####5. Check the status of current interfaces
+
+    # /sbin/ifconfig -a
+
+###Alternate Procedure:
+
+####1. Activate promiscuous mode on eth0.
+
+    # /sbin/ifconfig eth0 0.0.0.0 promisc up
+
+####2. Create the bridge interface.
+
+    # /usr/sbin/brctl addbr br0
+
+####3. Add interfaces to the bridge. 
+
+    # /usr/sbin/brctl addif br0 eth0
+
+####4. Put up the bridge. 
+
+    # ifconfig br0 up
+
+####5. Configure the virtual bridge interface to take part in your network.
+
+    # ifconfig br0 172.23.233.1 netmask 255.255.255.0
+    # route add default gw 172.23.233.254
+
+
+## Installing dependent software/libs ##
+<a name='installing_dependent_software_libs'/>
+
+To install and set up Karesansui, you need to install it's dependent software/libs first.
+You can install most of them by using the software updater provided by each distribution, but some software need to be built on your machine.
+
+###For `CentOS 6`:
+
+#####Fetching packages from CentOS-Base repository.
+
+    # yum install PyXML python-mako python-sqlalchemy python-simplejson rrdtool rrdtool-python
+
+#####Fetching packages from [EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL) repository.
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install python-flup python-sqlite2
+    # yum install collectd collectd-ping collectd-rrdtool collectd-virt
+
+#####Building packages that are not provided by the official or third party repositories.
+
+######Step 1. Setting up RPM build environment.
+
+Create a separate account for building RPMs and set up the environment for it:
+
+    # yum install rpm-build
+    # useradd rpmbuild
+    # su - rpmbuild
+    $ mkdir -p ~/pkgs/{BUILD,RPMS/{i{3,4,5,6}86,x86_64,noarch},SOURCES,SPECS,SRPMS}
+    $ echo '%_topdir %(echo $HOME)/pkgs' > ~/.rpmmacros
+
+######Step 2. Fetching Karesansui source code from github repository.
+
+    # yum install git python-setuptools
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/karesansui.git
+
+Now you have karesansui source code under ~rpmbuild/karesansui with our sample spec files to build RPM packages.
+
+######Step 3. Building python-webpy package.
+
+    # su - rpmbuild
+    $ cd ~/pkgs/SOURCES/
+    $ wget http://webpy.org/static/web.py-0.37.tar.gz
+    $ rpmbuild -ba ~/karesansui/sample/specs/python-webpy/python-webpy.spec
+
+######Step 4. Building tightvnc-java package.
+
+    # su - rpmbuild
+    $ cd ~/pkgs/SOURCES/
+    $ wget http://downloads.sourceforge.net/sourceforge/vnc-tight/tightvnc-1.3.10_javabin.tar.gz
+    $ wget http://downloads.sourceforge.net/sourceforge/vnc-tight/tightvnc-1.3.10_javasrc.tar.gz
+    $ rpmbuild -ba ~/karesansui/sample/specs/tightvnc-java/tightvnc-java.spec 
+
+######Step 5. Installing the newly built packages.
+
+Now you can install the newly built packages.
+
+    $ cd ~/pkgs/RPMS/noarch
+    # rpm -Uvh python-webpy-*.el6.noarch.rpm tightvnc-java-*.el6.noarch.rpm 
+
+
+## Installing pysilhouette ##
+<a name='installing_pysilhouette'/>
+
+### What is pysilhouette? ###
+
+Pysilhouette is a python-based background job manager, intended to co-work with various python-based web applications such as Karesansui.
+It makes it available to get job status to programmers, which was difficult in http-based stateless/interactive session before.
+It is also developed by Karesansui Project Team.
+
+###Procedure for `CentOS 6`:
+
+####1. Fetching pysilhouette source code from github repository.
+
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/pysilhouette.git
+
+####2a. (Method 1) Building pysilhouette package and installing it.
+
+    $ cd ~/pysilhouette
+    $ python setup.py sdist
+    $ rpmbuild -ta dist/pysilhouette-*.tar.gz
+    # rpm -Uvh ~rpmbuild/pkgs/RPMS/noarch/pysilhouette-*.noarch.rpm
+
+####2b. (Method 2) Installing pysilhouette with Python's distutils.
+
+    $ cd ~/pysilhouette
+    $ python setup.py build
+    # python setup.py install --root=/ --record=INSTALLED_FILES
+
+    #### Create pysilhouette account ####
+    # /usr/sbin/useradd -c "Pysilhouette" -s /bin/false -r pysilhouette
+
+    #### Create the application's system directories ####
+    # mkdir /etc/pysilhouette
+    # mkdir /var/log/pysilhouette
+    # mkdir /var/lib/pysilhouette
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f ~rpmbuild/pysilhouette/sample/rc.d/init.d/* /etc/rc.d/init.d/
+    # cp -f ~rpmbuild/pysilhouette/sample/sysconfig/silhouetted /etc/sysconfig/silhouetted
+    # cp -f ~rpmbuild/pysilhouette/sample/log.conf.example /etc/pysilhouette/log.conf
+    # cp -f ~rpmbuild/pysilhouette/sample/silhouette.conf.example /etc/pysilhouette/silhouette.conf
+    # cp -f ~rpmbuild/pysilhouette/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+    # ln -s `python -c "from distutils.sysconfig import get_python_lib; print get_python_lib()"`/pysilhouette/silhouette.py /usr/bin
+    # cp -f ~rpmbuild/pysilhouette/tools/psil-cleandb /usr/sbin
+    # cp -f ~rpmbuild/pysilhouette/tools/psil-set /usr/sbin
+    # chmod 0744 /usr/sbin/psil-*
+
+    #### Modify the following files if necessary. 
+    ## vi /etc/rc.d/init.d/silhouetted
+    ## vi /etc/sysconfig/silhouetted
+
+
+## Installing karesansui ##
+<a name='installing_karesansui'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Fetching karesansui source code from github repository.
+
+    # su - rpmbuild
+    $ git clone git://github.com/karesansui/karesansui.git # No need if already downloaded.
+
+####2a. (Method 1) Building karesansui package and installing it.
+
+    $ cd ~/karesansui
+    $ python setup.py sdist
+    $ rpmbuild -ta dist/karesansui-*.tar.gz
+    # rpm -Uvh ~rpmbuild/pkgs/RPMS/noarch/karesansui-{,{bin,data,gadget,lib,plus}-}3.*.noarch.rpm
+
+####2b. (Method 2) Installing karesansui with Python's distutils.
+
+    $ cd ~/karesansui
+    $ python setup.py build
+    # python setup.py install --record=INSTALLED_FILES --install-scripts=/usr/share/karesansui/bin
+
+    #### Create kss account ####
+    # /usr/sbin/useradd -c "Karesansui Project" -s /bin/false -r -m -d /var/lib/karesansui kss
+    # gpasswd -a qemu kss
+
+    #### Create the application's system directories ####
+    # mkdir /etc/karesansui/virt
+    # mkdir /var/log/karesansui
+    # mkdir -p /var/lib/karesansui/{tmp,cache}
+
+    #### Change attributes of the application's directories/files ####
+    # chgrp -R kss   /etc/karesansui
+    # chmod g+rwx    /etc/karesansui/virt
+    # chmod o-rwx    /etc/karesansui/virt
+    # chmod -R g+rw  /etc/karesansui
+    # chmod -R o-rwx /etc/karesansui
+    # chgrp -R kss   /var/log/karesansui
+    # chmod -R 0700  /var/log/karesansui
+    # chgrp -R kss   /var/lib/karesansui
+    # chmod -R 0770  /var/lib/karesansui
+    # find /usr/share/karesansui/ -type d -exec chgrp -R kss \{\} \;
+    # find /usr/share/karesansui/ -type d -exec chmod g+rwx \{\} \;
+
+    #### Copy several programs, configuration files and SysV init script ####
+    # cp -f  ~rpmbuild/karesansui/sample/application.conf.example /etc/karesansui/application.conf
+    # cp -f  ~rpmbuild/karesansui/sample/log.conf.example /etc/karesansui/log.conf
+    # cp -f  ~rpmbuild/karesansui/sample/service.xml.example /etc/karesansui/service.xml
+    # cp -f  ~rpmbuild/karesansui/sample/logview.xml.example /etc/karesansui/logview.xml
+    # cp -f  ~rpmbuild/karesansui/sample/cron_cleantmp.example /etc/cron.d/karesansui_cleantmp
+    # cp -f  ~rpmbuild/karesansui/sample/whitelist.conf.example /etc/pysilhouette/whitelist.conf
+
+
+## Configuring pysilhouette ##
+<a name='configuring_pysilhouette'/>
+
+You may need to modify the following configuration files.
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>File name</th><th>Description</th></tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/silhouette.conf</td>
+  <td>Configuration file for the silhouetted daemon.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/log.conf</td>
+  <td>Configuration file for logging.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/pysilhouette/whitelist.conf</td>
+  <td>Contains a whitelist of commands that can be executed by the pysilhouette as a background job.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/sysconfig/silhouetted</td>
+  <td>Used to set some other bootup parameters.</td>
+ </tr>
+</table>
+
+Add pysilhouette as a service and enable it for auto start at bootup.
+
+    # /sbin/chkconfig --add silhouetted
+    # /sbin/chkconfig silhouetted on
+
+
+## Configuring karesansui ##
+<a name='configuring_karesansui'/>
+
+You may need to modify the following configuration files.
+
+<table style='border: solid 1px #000000; border-collapse: collapse;'>
+ <tr><th>File name</th><th>Description</th></tr>
+ <tr>
+  <td nowrap>/etc/karesansui/application.conf</td>
+  <td>Configuration file for karesansui(<b>*You need to set 'application.uniqkey' parameter. Its value is supposed to be generated by the uuidgen program.</b>)</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/log.conf</td>
+  <td>Configuration file for logging.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>Used to define services related to karesansui.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/karesansui/service.xml</td>
+  <td>Used to define log files related to karesansui.</td>
+ </tr>
+ <tr>
+  <td nowrap>/etc/cron.d/karesansui_cleantmp</td>
+  <td>Configuration file for the cron daemon. Clean/delete unnecessary temporary files at a specific interval.</td>
+ </tr>
+</table>
+
+
+## Creating database for karesansui ##
+<a name='creating_database_for_karesansui'/>
+
+With a script bundled with the source code, you can create a database for karesansui and insert information of the administrator into the database.
+
+    # python ~rpmbuild/karesansui/tools/initialize_database.py -m <Administrator's E-mail Address> -p <Administrator's Password> -l en_US
+
+If you use a SQLite database, you must change the attributes of the database file.
+
+    # chgrp -R kss /var/lib/karesansui/
+    # chmod -R g+rw /var/lib/karesansui/
+    # chmod -R o-rwx /var/lib/karesansui/
+
+
+## Creating database for pysilhouette ##
+<a name='creating_database_for_pysilhouette'/>
+
+You can create a database for pysilhouette by executing the following command:
+
+    # python -c "import karesansui; from pysilhouette.prep import readconf; karesansui.sheconf = readconf('/etc/pysilhouette/silhouette.conf'); import karesansui.db._2pysilhouette; karesansui.db._2pysilhouette.get_metadata().create_all()"
+
+If you use a SQLite database, you must change the attributes of the database file.
+
+    # chgrp -R kss /var/lib/pysilhouette/
+    # chmod -R g+rw /var/lib/pysilhouette/
+    # chmod -R o-rwx /var/lib/pysilhouette/
+
+
+## Starting pysilhouette service ##
+<a name='starting_pysilhouette_service'/>
+
+    # /etc/init.d/silhouetted start
+
+
+## Configuring libvirt ##
+<a name='configuring_libvirt'/>
+
+####1. Edit libvirt configuration file
+
+You may need to modify the following configuration files.
+
+__/etc/libvirt/libvirtd.conf__
+
+ * listen_tcp = 1
+ * tcp_port = "16509"
+ * unix_sock_group = "kss"
+ * auth_tcp = "none"
+
+__/etc/sysconfig/libvirtd__
+
+ * LIBVIRTD_ARGS="--listen"
+
+####2. Create directories for libvirt
+
+    # mkdir -p /var/lib/libvirt/{disk,domains,snapshot}
+    # chgrp -R kss  /var/lib/libvirt
+    # chmod -R 0770 /var/lib/libvirt
+
+    # chgrp -R kss /etc/libvirt
+    # find /etc/libvirt -type d -exec chmod g+rwx \{\} \;
+
+####3. Create a TLS certificates for libvirt 
+
+First, set up a Certificate Authority (CA).
+
+    $ certtool --generate-privkey > cakey.pem
+    $ vi ca.info
+    cn = Name of your organization
+    ca
+    cert_signing_key
+    $ certtool --generate-self-signed --load-privkey cakey.pem --template ca.info --outfile cacert.pem
+
+Issue server certificates.
+
+    $ certtool --generate-privkey > serverkey.pem
+    $ vi server.info
+    organization = Name of your organization
+    cn = Your FQDN
+    tls_www_server
+    encryption_key
+    signing_key
+    $ certtool --generate-certificate --load-privkey serverkey.pem   --load-ca-certificate cacert.pem --load-ca-privkey cakey.pem   --template server.info --outfile servercert.pem
+
+Install the certificates.
+
+    # mkdir -p /etc/pki/libvirt/private/
+    # cp -i cacert.pem /etc/pki/CA/
+    # cp -i servercert.pem /etc/pki/libvirt/
+    # cp -i serverkey.pem /etc/pki/libvirt/private/
+
+####4. Enable libvirtd service
+
+Restart service and enable it for auto start at bootup.
+
+    # /sbin/chkconfig libvirtd on
+    # /etc/init.d/libvirtd restart
+
+####5. Check for connectivity to libvirtd
+
+Please make sure that virsh client can connect to the QEMU monitor with libvirt.
+
+    # virsh -c qemu+tcp://localhost:16509/system list
+
+If the connection attempt succeed, it will display message as below:
+
+    Id Name                 State
+    ----------------------------------
+
+####6. Create the default storage pool for libvirt
+
+    # KARESANSUI_CONF=/etc/karesansui/application.conf python -c "from karesansui.prep import built_in; built_in()"
+    # /usr/share/karesansui/bin/create_storage_pool.py --name=default --target_path=/var/lib/libvirt/domains --mode=0770 --owner=0 --group=`id -g kss` --type=dir
+    # virsh pool-refresh default
+    # rm -fr /var/log/karesansui/*
+
+
+## Checking for connectivity to Karesansui management console
+<a name='checking_for_connectivity_to_karesansui_management_console'/>
+
+You have now finished setting up Karesansui itself.
+
+Confirm that you can access the Karesansui URL from your browser through the app's python-webpy built-in web server.
+
+First, run the karesansui program using the built-in server.
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi"
+
+If the setting up is successful, it always seems to display the following:
+
+<pre>
+http://0.0.0.0:8080/
+</pre>
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+http://[your-server-name]:8080/karesansui/v3/
+</pre>
+
+If the console is displayed correctly, the installation appears to be completed successfully.
+
+
+Using other HTTP server
+=======================
+
+## With Lighttpd ##
+<a name='with_lighttpd'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+Install several packages from [EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL) repository.
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install lighttpd lighttpd-fastcgi spawn-fcgi
+
+####2. Configuring group members.
+
+Add _lighttpd_ user to _kss_ group and _kss_ user to _lighttpd_ group.
+
+    # gpasswd -a lighttpd kss
+    # gpasswd -a kss lighttpd
+
+####3. Configuring lighttpd settings.
+
+Append the line below to _/etc/lighttpd/lighttpd.conf_.
+
+    include "conf.d/karesansui.conf"
+
+Edit _/etc/lighttpd/modules.conf_ to enable the following modules.
+
+    mod_alias
+    mod_rewrite
+    mod_fastcgi
+
+Copy the sample configuration file bundled with the source code to the location of lighttpd config directory, and edit it if necessary.
+
+    # cp ~rpmbuild/karesansui/sample/lighttpd/karesansui.conf /etc/lighttpd/conf.d/
+
+
+####4. Setting up a simple SSL configuration with lighttpd
+
+    # mkdir -p /etc/lighttpd/ssl
+    # openssl req -new -x509 -keyout /etc/lighttpd/ssl/server.pem -out /etc/lighttpd/ssl/server.pem -days 3650 -nodes
+    # chmod 400 /etc/lighttpd/ssl/server.pem
+
+####5. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+Restart service and enable it for auto start at bootup.
+
+    # /sbin/chkconfig lighttpd on
+    # /etc/init.d/lighttpd restart
+
+If SELinux is set to "Enforcing", lighttpd may not work properly. Set it to "Permissive" mode and try to restart the service again.
+
+    # /usr/sbin/setenforce 0
+    # /etc/init.d/lighttpd restart
+
+Moreover, if you need to use "Permissive" mode at the next reboot, you have to modify /etc/selinux/config file as well.
+
+    SELINUX=permissive
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+https://[your-server-name]/karesansui/v3/
+</pre>
+
+
+## With Apache ##
+<a name='with_apache'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+#### For mod_fastcgi ####
+
+Install several packages from [RepoForge](http://repoforge.org/) repository.
+
+    # wget http://pkgs.repoforge.org/rpmforge-release/rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm
+    # rpm -Uvh rpmforge-release-0.5.2-2.el6.rf.x86_64.rpm 
+    # yum install httpd mod_fastcgi
+
+#### For mod_fcgid ####
+
+If mod_fcgid cannot be found in the third-party repository, so you would have to compile it on your own.
+
+
+####2. Configuring group members.
+
+Add _apache_ user to _kss_ group and _kss_ user to _apache_ group.
+
+    # gpasswd -a apache kss
+    # gpasswd -a kss apache
+
+####3. Configuring apache settings.
+
+Copy the sample configuration file bundled with the source code to the location of httpd config directory, and edit it if necessary.
+
+#### For mod_fastcgi ####
+
+    # cp ~rpmbuild/karesansui/sample/apache/fastcgi.conf /etc/httpd/conf.d/
+
+#### For mod_fcgid ####
+
+    # cp ~rpmbuild/karesansui/sample/apache/fcgid.conf /etc/httpd/conf.d/
+
+####4. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+Restart service and enable it for auto start at bootup.
+
+    # /sbin/chkconfig httpd on
+    # /etc/init.d/httpd restart
+
+    # This section is needed for mod_fastcgi only.
+    # chmod 777 /tmp/dynamic
+    # chown apache:apache /tmp/dynamic
+    # /etc/init.d/httpd restart
+
+If SELinux is set to "Enforcing", apache may not work properly. Set it to "Permissive" mode and try to restart the service again.
+
+    # /usr/sbin/setenforce 0
+    # /etc/init.d/httpd restart
+
+Moreover, if you need to use "Permissive" mode at the next reboot, you have to modify /etc/selinux/config file as well.
+
+    SELINUX=permissive
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+https://[your-server-name]/karesansui/v3/
+</pre>
+
+
+## With Nginx ##
+<a name='with_nginx'/>
+
+###Procedure for `CentOS 6`:
+
+####1. Installing packages.
+
+Install several packages from [EPEL(Extra Packages for Enterprise Linux)](http://fedoraproject.org/wiki/EPEL) repository.
+
+    # wget ftp://ftp.iij.ad.jp/pub/linux/fedora/epel/6/x86_64/epel-release-6-7.noarch.rpm
+    # rpm -Uvh epel-release-6-7.noarch.rpm 
+    # yum install nginx spawn-fcgi
+
+####2. Configuring group members.
+
+Add _nginx_ user to _kss_ group and _kss_ user to _nginx_ group.
+
+    # gpasswd -a nginx kss
+    # gpasswd -a kss nginx
+
+####3. Configuring nginx settings.
+
+Copy the sample configuration file bundled with the source code to the location of nginx config directory, and edit it if necessary.
+
+    # cp ~rpmbuild/karesansui/sample/nginx/karesansui.conf /etc/nginx/conf.d/
+
+####4. Start web service
+
+If you have already tried to run Karesansui with other web server, you need to remove existing files with the following command:
+
+    # rm -fr /var/log/karesansui/*log
+
+First, run the karesansui program using the built-in server.
+
+    # su -s /bin/bash kss -c "KARESANSUI_CONF=/etc/karesansui/application.conf SEARCH_PATH= /usr/share/karesansui/bin/karesansui.fcgi 127.0.0.1:8080"
+
+Restart service and enable it for auto start at bootup.
+
+    # /sbin/chkconfig nginx on
+    # /etc/init.d/nginx restart
+
+####6. Checking for connectivity to Karesansui management console
+
+Please access the following URL from your browser after starting the server. 
+The username and password values for HTTP basic authentication must match the ones specified during database creation 'Creating database for karesansui'.
+
+<pre>
+http://[your-server-name]/karesansui/v3/
+</pre>
+
+
+Other settings
+==============
+
+## Configuring collectd ##
+<a name='configuring_collectd'/>
+
+### What is collectd? ###
+
+[collectd](http://collectd.org/) is a daemon which collects system information periodically and provides means to store performance data.
+In Karesansui, It is used to display the statistics graphs.
+
+###Procedure for `CentOS 6`:
+
+You may need to change the settings for the collectd plugins.
+Please follow the steps described below.
+
+####1. Edit collectd configuration file. (/etc/collectd.conf)
+
+__Global settings__
+
+    Hostname    your.host.name
+    FQDNLookup   true
+    BaseDir     "/var/lib/collectd"
+    PIDFile     "/var/run/collectd.pid"
+    PluginDir   "/usr/lib64/collectd/"
+    TypesDB     "/usr/share/collectd/types.db"
+    Interval     10
+    Timeout      2
+    ReadThreads  5
+
+__LoadPlugin section__
+
+    LoadPlugin cpu
+    LoadPlugin df
+    LoadPlugin disk
+    LoadPlugin interface
+    LoadPlugin libvirt
+    LoadPlugin load
+    LoadPlugin memory
+    LoadPlugin network
+    LoadPlugin rrdtool
+    LoadPlugin uptime
+    LoadPlugin users
+
+__Plugin configuration__
+
+    <Plugin df>
+        ReportReserved     false
+        ReportByDevice     true
+        ReportInodes       false
+        IgnoreSelected     false
+    </Plugin>
+
+    <Plugin disk>
+        Disk "/^[hs]d[a-f][0-9]?$/"
+        IgnoreSelected false
+    </Plugin>
+
+    <Plugin interface>
+       IgnoreSelected false
+    </Plugin>
+
+    <Plugin libvirt>
+        HostnameFormat     name
+        Connection         "qemu+tcp://127.0.0.1:16509/system?no_verify=1"
+        IgnoreSelected     false
+        RefreshInterval    60
+    </Plugin>
+
+    <Plugin rrdtool>
+        DataDir "/var/lib/collectd"
+        CacheTimeout 120
+        CacheFlush   900
+    </Plugin>
+
+####2. Restart collectd service.
+
+In order for all the modifications to take effect, you need to restart collectd service.
+
+    # /sbin/chkconfig collectd on
+    # /etc/init.d/collectd restart
+
+
+Feedback & Suggestions
+======================
+Is there something wrong, outdated or unclear in this document? Please let us know so we can make it better. If you can contribute anything, we would greatly appreciate it!
+
+
+
+Karesansui
+==========
+
+Karesansuiは、日本発のオープンソースの仮想化管理アプリケーションです。
+
+ * 複雑な部分を抽象化した、シンプルで直観的なWebインターフェース。
+ * MITライセンスで提供されるフリーソフトウェアであり、個人ユース、商用を問わず無料で利用することができます。
+ * Kernel-based Virtual Machine(KVM)に対応しています。今後、他の仮想化技術／ハイパーバイザーにも対応する予定です。
+ * 多言語対応しています。現在は日本語と英語をサポートしています。
+
+必要なもの
+----------
+
+Karesansuiは、他のソフトウェアを必要とします。
+
+インストールするために以下が必要です。
+
+* [Python](http://www.python.org/) 2.6 (2.4 might work?)
+* [libvirt](http://libvirt.org/) 0.9.4 (or better)
+* [RRDtool](http://oss.oetiker.ch/rrdtool/) 1.3 (or better)
+* [Mako](http://www.makotemplates.org/) 0.3.2 (or better)
+* [SQLAlchemy](http://www.sqlalchemy.org/) 0.5 (or better)
+* [PyXML](http://sourceforge.net/projects/pyxml/) 0.8 (or better)
+* [PySqlite](http://trac.edgewall.org/wiki/PySqlite) 2.3.5 (or better)
+* [flup](http://trac.saddi.com/flup) 1.0.2 (or better)
+* [collectd](http://collectd.org/) 4.10.3 (or better)
+* [TightVNC Java Viewer](http://www.tightvnc.com/) 1.3.10 (or better)
+* [IPAexfont](http://ossipedia.ipa.go.jp/ipafont/) 1.03 (or better)
+* [web.py](http://webpy.org/) 0.35 (or better)
+
+上記の依存ソフトウェアのインストール方法を含めた一連のインストール方法は、[INSTALL](http://github.com/karesansui/karesansui/blob/master/INSTALL.ja.md)にも記載されています。
+
+ソースコードをハックしたい場合は以下が必要です。
+
+* [Git](http://git-scm.com/)
+* [setuptools](http://pypi.python.org/pypi/setuptools)
+
+インストール方法
+----------------
+[INSTALL](http://github.com/karesansui/karesansui/blob/master/INSTALL.ja.md) をご参照ください。
+
+ライセンスについて
+------------------
+KaresansuiはMITライセンスです。ソースコードは利用制約の少ないMITライセンスを採用していますので、再利用時のライセンスによる問題を軽減します。すべてのソースコードにライセンスが明記されていますので、迷うことなく利用することができるはずです。
+ただし、例外として画像等のいくつかのファイルには技術的な問題でライセンス表記をしていません。
+私たちは私たちが配布しているファイルについてのみ言及することができますので、それ以外のファイルについては著作者に問い合わせてください。
+Karesansuiのロゴと商標に関しては、ソースツリーに含まれるTRADEMARKS.TXTをご参照ください。
+
+このソースツリーはKaresansui以外のオープンソースプロジェクトの成果物を含んでいます。それらはKaresansuiとは異なるライセンスポリシーで配布されていることがあるので、それぞれのライセンス表記をご確認ください。
+
+### karesansui/static/js/lib以下のJavaScriptライブラリ ###
+
+* [jquery](http://jquery.com/) - License MIT or GPL
+* [jquery.form.js](http://malsup.com/jquery/form/) - License MIT or GPL
+* [jquery-tablesort](http://tablesorter.com/docs/) - License  MIT or GPL
+* [jquery-plugin-autocomplete](http://bassistance.de/jquery-plugins/jquery-plugin-autocomplete/) - License  MIT or GPL
+* [jCarousel](http://sorgalla.com/jcarousel/) - License  MIT or GPL
+* [ajax-upload](http://valums.com/ajax-upload/) - License  MIT
+
+謝辞
+----
+これらのプロジェクトに猛烈に感謝いたします。: Python, libvirt, webpy, flup, psycopg2, tightvncviewer, jquery, jquery.form.js, jquery-tablesort, jquery-plugin-autocomplete, jCarousel, ajax-upload.
+
+
+連絡先
+------
+http://karesansui-project.info
+
+
+Karesansui
+==========
+
+Karesansui is an open-source virtualization management application made in Japan.
+
+* Simple, easy web-based interface.
+* Free for all. Distributed with the MIT license.
+* Supports Kernel-based Virtual Machine(KVM) hypervisor. Other hypervisors/virtualization support on future plan.
+
+Requirements
+------------
+
+Karesansui requires (or is dependent on) other software.
+
+To install Karesansui, you will need:
+
+* [Python](http://www.python.org/) 2.6 (2.4 might work?)
+* [libvirt](http://libvirt.org/) 0.9.4 (or better)
+* [RRDtool](http://oss.oetiker.ch/rrdtool/) 1.3 (or better)
+* [Mako](http://www.makotemplates.org/) 0.3.2 (or better)
+* [SQLAlchemy](http://www.sqlalchemy.org/) 0.5 (or better)
+* [PyXML](http://sourceforge.net/projects/pyxml/) 0.8 (or better)
+* [PySqlite](http://trac.edgewall.org/wiki/PySqlite) 2.3.5 (or better)
+* [flup](http://trac.saddi.com/flup) 1.0.2 (or better)
+* [collectd](http://collectd.org/) 4.10.3 (or better)
+* [TightVNC Java Viewer](http://www.tightvnc.com/) 1.3.10 (or better)
+* [web.py](http://webpy.org/) 0.35 (or better)
+
+The [INSTALL](http://github.com/karesansui/karesansui/blob/master/INSTALL.md) document also describes a whole series of additional installation steps, including an easier way to install the required software listed above.
+
+If you want to hack the source, you will also probably need:
+
+* [Git](http://git-scm.com/)
+* [setuptools](http://pypi.python.org/pypi/setuptools)
+
+Installation
+------------
+See [INSTALL](http://github.com/karesansui/karesansui/blob/master/INSTALL.md).
+
+License
+-------
+Karesansui is released under the MIT license to reduce problems for re-using. All source code has license notice, so you should clearly know what license to follow.
+
+For exception, some Karesansui files don't have license notice for technical problems.
+We can only mention about files we distribute, so consult the original author for such files.
+Please see TRADEMARKS.TXT included with this distribution for information about Karesansui's trademark and logo usage policy.
+
+This Karesansui source tree includes other open source projects work, which may come with its own distribution rule. Please consult each license notice for these projects.
+
+
+### Javascript libraries under karesansui/static/js/lib ###
+
+* [jquery](http://jquery.com/) - License MIT or GPL
+* [jquery.form.js](http://malsup.com/jquery/form/) - License MIT or GPL
+* [jquery-tablesort](http://tablesorter.com/docs/) - License  MIT or GPL
+* [jquery-plugin-autocomplete](http://bassistance.de/jquery-plugins/jquery-plugin-autocomplete/) - License  MIT or GPL
+* [jCarousel](http://sorgalla.com/jcarousel/) - License  MIT or GPL
+* [ajax-upload](http://valums.com/ajax-upload/) - License  MIT
+
+Acknowledgements
+----------------
+We want to thank so much the contributors of these projects: Python, libvirt, webpy, flup, psycopg2, tightvncviewer, jquery, jquery.form.js, jquery-tablesort, jquery-plugin-autocomplete, jCarousel, ajax-upload.
+
+Contact Info
+------------
+http://karesansui-project.info
+
+
+For CentOS 5 or Red Hat Enterprise Linux 5
+==========================================
+
+   # yum install -y gcc
+   # yum install -y xen-devel libxml2-devel xhtml1-dtds readline-devel ncurses-devel gnutls-devel hal-devel libpcap-devel libnl-devel avahi-devel libselinux-devel radvd ebtables cyrus-sasl-devel qemu parted-devel device-mapper-devel numactl-devel libssh2-devel curl-devel audit-libs-devel
+   # yum install -y lzop
+
+   $ cp libvirt.spec ~rpmbuild/pkgs/SPECS/
+   $ pushd ~rpmbuild/pkgs/SPECS/
+   $ rpmbuild -ba --define 'rhel 5' --define '_without_storage_fs 1' libvirt.spec
+
+Setting up RPM build environment
+================================
+
+Create a separate account for building RPMs and set up the environment for it:
+
+    # yum install rpm-build
+    # useradd rpmbuild
+    # su - rpmbuild
+    $ mkdir -p ~/pkgs/{BUILD,RPMS/{i{3,4,5,6}86,x86_64,noarch},SOURCES,SPECS,SRPMS}
+    $ echo '%_topdir %(echo $HOME)/pkgs' > ~/.rpmmacros
+
+
+How to build package
+--------------------
+
+jarsigner and keytool programs are required to generate signatures for Java ARchive (JAR) files.
+
+1. Download Java SE Development Kit(JDK).
+
+  Go to http://java.sun.com/javase/downloads/index.jsp and get jdk-6uXX-linux-x64-rpm.bin.
+
+2. Install the JDK.
+
+  # sh ./jdk-6uXX-linux-x64-rpm.bin
+
+3. Build tightvnc-java package.
+
+  $ rpmbuild -ba --define "signer 1" tightvnc-java.spec
+
+
+# チュートリアル
+
+このドキュメントは下記のユーザー向けに記述されています。
+
+* ゲストOSを作成したいユーザー
+* 基本的な操作を知りたいユーザー
+
+## ゲストOSのインストール
+
+#### インストール準備
+
+ここでは、ゲストにCentOS 6(x86_64)をインストールする場合を例に、３通りのインストール方法を説明します。
+
+######ケース1: 既にインターネットに接続できる環境の場合 (ネットワークインストール)
+
+ホストOSが既にインターネットに繋がっている場合は、外部サーバーにあるカーネルイメージとOSイメージを使用してゲストOSをインストールすることができます。
+プロキシサーバー経由でのインストールはできませんので、その場合はFTPサーバーを利用してください。
+ホストOSから CentOS 6 のOSイメージのURLに接続できるか確認してください。
+
+URLの例
+
+* http://[Web-site-name]/centos/6/os/x86_64/
+* ftp://[FTP-site-name]/Linux/centos/6/os/x86_64/
+
+
+######ケース2: インターネットに接続できない環境の場合 (ローカルインストール - ISOイメージ)
+
+KVMハイパーバイザーなど完全仮想化環境では、ISO-9660 CD-ROM イメージファイルを使ってインストールすることができます。
+イメージファイルがなくDVD-ROMのみお持ちの場合は、 _dd_ コマンドを使ってイメージファイルを生成できます。
+
+    # dd if=/dev/cdrom of=/iso/centos6-x86_64.iso
+    dd: reading `/dev/cdrom': Input/output error
+    269860+0 records in
+    269860+0 records out
+
+######ケース3: インターネットに接続できない環境の場合 (ローカルインストール - DVD-ROM)
+
+CentOS 6(x86_64)のDVDを利用してインストールすることができます。
+この場合、一時的にホストOS上にFTPサーバーを稼働させる必要がありますので、vsftpd等のFTPサーバーソフトウェアをあらかじめインストールしておきます。
+CentOS 6(x86_64)のDVDをドライブに挿入し、下記の方法でOSイメージをホストOSのAnonymousFTPの領域へマウントします。
+
+    # rpm -q vsftpd 2>/dev/null || yum -y install vsftpd
+    # /etc/init.d/vsftpd restart
+    # mount /dev/cdrom /var/ftp/pub
+
+localhostにAnonymousFTPでログインが可能か確認します。
+
+    # ftp localhost
+    Connected to localhost (127.0.0.1).
+    220 (vsFTPd 2.2.2)
+    Name (localhost:root): ftp
+    331 Please specify the password.
+    Password:
+    230 Login successful.
+    Remote system type is UNIX.
+    Using binary mode to transfer files.
+    ftp> quit
+
+ログインができない場合は、SELinuxが有効になっている可能性がありますので、下記の方法で一時的に無効にしてください。
+
+    # /usr/sbin/setenforce 0
+
+
+#### ゲストOSのインストール
+
+まず、Karesansuiのトップ画面のホストアイコンをクリックします。
+その後、表示される「ゲスト一覧」タブ内の「作成」ボタンをクリックすると「ゲスト作成」画面が表示されます。
+
+入力方法を、前述のインストールのケースごとに示します。
+
+######ケース1: 既にインターネットに接続できる環境の場合 (ネットワークインストール)
+
+下記に示した項目を入力します。
+ 
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>カーネルイメージ</td>
+  <td nowrap>カーネルイメージのURL</td>
+  <td nowrap>ftp://ftp.iij.ad.jp/pub/linux/centos/6/os/x86_64/isolinux/vmlinuz</td>
+ </tr>
+ <tr>
+  <td nowrap>Initrdイメージ</td>
+  <td nowrap>InitrdイメージのURL</td>
+  <td nowrap>ftp://ftp.iij.ad.jp/pub/linux/centos/6/os/x86_64/isolinux/initrd.img</td>
+ </tr>
+</table>
+
+その他、各項目の入力方法に関しては、項目名の右に表示される「？」をクリックして確認してください。
+
+######ケース2: インターネットに接続できない環境の場合 (ローカルインストール - ISOイメージ)
+
+下記に示した項目を入力します。
+
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>ISOイメージ</td>
+  <td nowrap>ISOイメージの絶対パス</td>
+  <td nowrap>/iso/centos6-x86_64.img</td>
+ </tr>
+</table>
+
+その他、各項目の入力方法に関しては、項目名の右に表示される「？」をクリックして確認してください。
+
+######ケース3: インターネットに接続できない環境の場合 (ローカルインストール - DVD-ROM)
+
+下記に示した項目を入力します。
+
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>カーネルイメージ</td>
+  <td nowrap>カーネルイメージの絶対パス</td>
+  <td nowrap>/var/ftp/pub/isolinux/vmlinuz</td>
+ </tr>
+ <tr>
+  <td nowrap>Initrdイメージ</td>
+  <td nowrap>Initrdイメージの絶対パス</td>
+  <td nowrap>/var/ftp/pub/isolinux/initrd.img</td>
+ </tr>
+</table>
+
+その他、各項目の入力方法に関しては、項目名の右に表示される「？」をクリックして確認してください。
+
+-----
+
+全ての入力が完了したら、「ゲスト作成」画面の最下部にある「作成」ボタンをクリックしてください。
+クリック後、ゲスト作成のジョブを受理した旨のメッセージが表示されますので、「閉じる」ボタンで「ゲスト作成」画面を閉じます。
+
+その後表示されるゲスト一覧画面に、今作成したゲストのアイコンが追加されます。
+
+作成されたゲストのアイコンをクリックし、その後表示されるゲスト画面の「コンソール」タブをクリックします。
+ゲストのコンソール画面が表示され、コンソール画面において通常の CentOS 6 のOSインストールと同じようにゲスト上にOSをインストールすることができます。
+
+######ケース1: 既にインターネットに接続できる環境の場合 (ネットワークインストール)
+
+ゲストOS(CentOS 6)のインストールにおいて
+
+######1. 「Installation Method」の選択
+
+前述のカーネルイメージで指定したプロトコル（「HTTP」または「FTP」）を選択し、「HTTP」の場合は「HTTP Setup」、「FTP」の場合は「FTP Setup」で接続先を設定してください。
+
+######2 - 1. HTTP経由でのインストール
+
+下記に示した項目を入力します。
+
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>Web site name</td>
+  <td nowrap>OSイメージを提供するWebサイトのFQDN</td>
+  <td nowrap>mirror.centos.org</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>Webサイト上の各CentOSディレクトリ</td>
+  <td nowrap>/centos/6/os/x86_64/</td>
+ </tr>
+</table>
+
+######2 - 2. FTP経由でのインストール
+
+下記に示した項目を入力します。
+
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>FTP site name</td>
+  <td nowrap>OSイメージを提供するFTPサイトのFQDN</td>
+  <td nowrap>ftp.iij.ad.jp</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>FTPサイト上の各CentOSディレクトリ</td>
+  <td nowrap>/pub/linux/centos/6/os/x86_64/</td>
+ </tr>
+</table>
+
+######ケース2: インターネットに接続できない環境の場合 (ローカルインストール - ISOイメージ)
+
+通常のインストールディスクからのインストールと同様にインストールできます。
+
+######ケース3: インターネットに接続できない環境の場合 (ローカルインストール - DVD-ROM)
+
+ゲストOS(CentOS 6)のインストールにおいて
+
+######1. 「Installation Method」の選択
+
+OSインストール時の「Installation Method」の選択では「FTP」を選択します。
+
+######2. FTP経由でのインストール
+
+「FTP Setup」で下記に示した項目を入力します。
+
+<table class='item_table'>
+ <tr>
+  <th>項目名</th>
+  <th>説明</th>
+  <th>例</th>
+ </tr>
+ <tr>
+  <td nowrap>FTP site name</td>
+  <td nowrap>OSイメージを提供するFTPサイトのFQDN</td>
+  <td nowrap>ホスト自身のIPアドレス(ループバックアドレスはだめ)</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>FTPサイト上の各CentOSディレクトリ</td>
+  <td nowrap>/pub/</td>
+ </tr>
+</table>
+
+
+## 最後に
+
+以上で、チュートリアルは終了です。これで仮想化の基本操作はできるようになるでしょう。
+
+## ヒント
+
+Karesansuiからゲストのシャットダウンを行う場合、あらかじめゲストのOSにおいて電源管理サービス（ACPI イベントデーモン）を有効にしておく必要があります。
+CentOS や Red Hat Enterprise Linux の場合は、_acpid_ パッケージをインストールし、ゲスト起動時に _acpid_ が自動起動されるように設定してください。
+
+    # rpm -q acpid 2>/dev/null || yum -y install acpid
+    # /sbin/service haldaemon stop
+    # /sbin/service acpid restart
+    # /sbin/chkconfig acpid on
+    # /sbin/service haldaemon start
+
+
+
+# Tutorial
+
+For those who want to:
+
+* Create a guest OS
+* Learn other basic operations
+
+This tutorial will help you get started and install guest OS.
+
+## Installing Guest OS
+
+#### Preparing for Guest OS Installation
+
+Here is an example of installing CentOS 6(x86_64) as guest.
+We describe three ways to do that.
+
+######CASE 1: Able to connect to the Internet. (Network Install)
+
+Using kernel image and OS image on an external server, you can install guest OS.
+You cannot retrieve the images via proxy server at installation, so you should use an external FTP server.
+Be sure that the host is able to connect to the URL of CentOS 6's OS image.
+
+Examples of URL
+
+* http://[Web-site-name]/centos/6/os/x86_64/
+* ftp://[FTP-site-name]/Linux/centos/6/os/x86_64/
+
+
+######CASE 2: NOT able to connect to the Internet. (Local Install/ISO image)
+
+With the KVM hypervisor, you can install from ISO-9660 CD-ROM image.
+If you doesn't have an ISO-9660 CD-ROM image but DVD-ROM, it may be created by using _dd_ command.
+
+    # dd if=/dev/cdrom of=/iso/centos6-x86_64.iso
+    dd: reading `/dev/cdrom': Input/output error
+    269860+0 records in
+    269860+0 records out
+
+######CASE 3: NOT able to connect to the Internet. (Local Install/CD-ROM)
+
+Using CentOS 6(x86_64) DVD, you can install guest OS.
+You may need to install FTP server software such as vsftpd before setting up your own FTP server temporarily.
+Please insert CentOS 6(x86_64) DVD to drive, and mount OS image on AnonymousFTP area.
+
+    # rpm -q vsftpd 2>/dev/null || yum -y install vsftpd
+    # /etc/init.d/vsftpd restart
+    # mount /dev/cdrom /var/ftp/pub
+
+Check to be sure that you can login to localhost as AnonymousFTP user.
+
+    # ftp localhost
+    Connected to localhost (127.0.0.1).
+    220 (vsFTPd 2.2.2)
+    Name (localhost:root): ftp
+    331 Please specify the password.
+    Password:
+    230 Login successful.
+    Remote system type is UNIX.
+    Using binary mode to transfer files.
+    ftp> quit
+
+If you fail to login, SELinux may work.
+Please set SELinux disabled temporarily by executing the following command.
+
+    # /usr/sbin/setenforce 0
+
+
+#### Installing Guest OS
+
+First, please click the host icon image on top window of Karesansui web console.
+And click the '_Create_' in '_Guests_' tab, then '_Create guest_' window will be displayed.
+
+Here we describe the ways to specify values for each case mentioned previously.
+
+######CASE 1: Able to connect to the Internet. (Network Install)
+
+Fill out the items listed below.
+ 
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>Kernel image</td>
+  <td nowrap>the URL of Linux kernel image</td>
+  <td nowrap>ftp://ftp.iij.ad.jp/pub/linux/centos/6/os/x86_64/isolinux/vmlinuz</td>
+ </tr>
+ <tr>
+  <td nowrap>Initrd image</td>
+  <td nowrap>the URL of Linux initrd image</td>
+  <td nowrap>ftp://ftp.iij.ad.jp/pub/linux/centos/6/os/x86_64/isolinux/initrd.img</td>
+ </tr>
+</table>
+
+As for other items, you can see the details clicking "?" displayed at the right of each item.
+
+######CASE 2: NOT able to connect to the Internet. (Local Install/ISO image)
+
+Fill out the items listed below.
+
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>ISO image</td>
+  <td nowrap>the absolute path of ISO image</td>
+  <td nowrap>/iso/centos6-x86_64.img</td>
+ </tr>
+</table>
+
+As for other items, you can see the details clicking "?" displayed at the right of each item.
+
+######CASE 3: NOT able to connect to the Internet. (Local Install/CD-ROM)
+
+Fill out the items listed below.
+
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>Kernel image</td>
+  <td nowrap>the absolute path of Linux kernel image</td>
+  <td nowrap>/var/ftp/pub/isolinux/vmlinuz</td>
+ </tr>
+ <tr>
+  <td nowrap>Initrd image</td>
+  <td nowrap>the absolute path of Linux initrd image</td>
+  <td nowrap>/var/ftp/pub/isolinux/initrd.img</td>
+ </tr>
+</table>
+
+As for other items, you can see the details clicking "?" displayed at the right of each item.
+
+-----
+Fill up all items, please click the "_Create_" button at the bottom of "_Create guest_" window.
+Then, the message that the creation job is accepted will be displayed.
+
+So the icon image that stands for new guest will appear in "_Guests_" window.
+
+Please click the new guest icon, and then click the "_Console_" tab.
+The console window of guest will be displayed. In this window, you can install CentOS 6 into guest as into real machine.
+
+
+######CASE 1: Able to connect to the Internet. (Network Install)
+
+In the guest installation,
+
+######1. Selecting an Installation Method
+
+You need to select the "HTTP" or "FTP".
+
+######2 - 1. Installing via HTTP
+
+Fill out the items listed below.
+
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>Web site name</td>
+  <td nowrap>Web site name that provides OS image</td>
+  <td nowrap>mirror.centos.org</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>CentOS directory path on web site</td>
+  <td nowrap>/centos/6/os/x86_64/</td>
+ </tr>
+</table>
+
+######2 - 2. Installing via FTP
+
+Fill out the items listed below.
+
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>FTP site name</td>
+  <td nowrap>FTP site name that provides OS image</td>
+  <td nowrap>ftp.iij.ad.jp</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>CentOS directory path on FTP site</td>
+  <td nowrap>/pub/linux/centos/6/os/x86_64/</td>
+ </tr>
+</table>
+
+######CASE 2: NOT able to connect to the Internet. (Local Install/ISO image)
+
+You can install a guest OS in the same way as using the installation disc.
+
+######CASE 3: NOT able to connect to the Internet. (Local Install/CD-ROM)
+
+In the guest installation,
+
+######1. Selecting an Installation Method
+
+You need to select the "FTP".
+
+######2. Installing via FTP
+
+Fill out the items listed below.
+
+<table class='item_table'>
+ <tr>
+  <th>Item name</th>
+  <th>Description</th>
+  <th>Example</th>
+ </tr>
+ <tr>
+  <td nowrap>FTP site name</td>
+  <td nowrap>FTP site name that provides OS image</td>
+  <td nowrap>IP address of your host (NOT loopback address)</td>
+ </tr>
+ <tr>
+  <td nowrap>CentOS directory</td>
+  <td nowrap>CentOS directory path on FTP site</td>
+  <td nowrap>/pub/</td>
+ </tr>
+</table>
+
+## That's It!
+
+This is the end of the tutorial. You can now do basic operation about virtualization.
+
+## Hints
+
+To allow a user to shut down a guest properly by Karesansui management console, ACPI event daemon must be installed and running in each guest.
+Under CentOS, Red Hat Enterprise Linux or Fedora Linux, _acpid_ package should be installed, and the ACPI event daemon must start automatically at each system boot.
+
+    # rpm -q acpid 2>/dev/null || yum -y install acpid
+    # /sbin/service haldaemon stop
+    # /sbin/service acpid restart
+    # /sbin/chkconfig acpid on
+    # /sbin/service haldaemon start
+
+
+

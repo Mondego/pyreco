@@ -1,0 +1,187 @@
+===============================
+LZF filter for HDF5, revision 3
+===============================
+
+The LZF filter provides high-speed compression with acceptable compression
+performance, resulting in much faster performance than DEFLATE, at the
+cost of a slightly lower compression ratio. It's appropriate for large
+datasets of low to moderate complexity, for which some compression is
+much better than none, but for which the speed of DEFLATE is unacceptable.
+
+This filter has been tested against HDF5 versions 1.6.5 through 1.8.3.  It
+is released under the BSD license (see LICENSE.txt for details).
+
+
+Using the filter from HDF5
+--------------------------
+
+There is exactly one new public function declared in lzf_filter.h, with
+the following signature:
+
+    int register_lzf(void)
+
+Calling this will register the filter with the HDF5 library.  A non-negative
+return value indicates success.  If the registration fails, an error is pushed
+onto the current error stack and a negative value is returned.
+
+It's strongly recommended to use the SHUFFLE filter with LZF, as it's
+cheap, supported by all current versions of HDF5, and can significantly
+improve the compression ratio.  An example C program ("example.c") is included
+which demonstrates the proper use of the filter.
+
+
+Compiling
+---------
+
+The filter consists of a single .c file and header, along with an embedded
+version of the LZF compression library.  Since the filter is stateless, it's
+recommended to statically link the entire thing into your program; for
+example:
+
+    $ gcc -O2 -lhdf5 lzf/*.c lzf_filter.c myprog.c -o myprog
+
+It can also be built as a shared library, although you will have to install
+the resulting library somewhere the runtime linker can find it:
+
+    $ gcc -O2 -lhdf5 -fPIC -shared lzf/*.c lzf_filter.c -o liblzf_filter.so
+
+A similar procedure should be used for building C++ code.  As in these
+examples, using option -O1 or higher is strongly recommended for increased
+performance.
+
+
+Contact
+-------
+
+This filter is maintained as part of the HDF5 for Python (h5py) project.  The
+goal of h5py is to provide access to the majority of the HDF5 C API and feature
+set from Python.  The most recent version of h5py (1.1) includes the LZF
+filter by default.
+
+* Downloads and bug tracker:        http://h5py.googlecode.com
+
+* Main web site and documentation:  http://h5py.alfven.org
+
+* Contact email:  h5py at alfven dot org
+
+
+History of changes
+------------------
+
+Revision 3 (6/25/09)
+    Fix issue with changed filter struct definition under HDF5 1.8.3.
+
+Revision 2
+    Minor speed enhancement.
+
+Revision 1
+    Initial release.
+
+
+
+
+
+
+
+.. image:: https://travis-ci.org/h5py/h5py.png
+   :target: https://travis-ci.org/h5py/h5py
+
+HDF5 for Python
+===============
+
+Websites
+--------
+
+* Main website: http://www.h5py.org
+* Source code: http://github.com/h5py/h5py
+* Mailing list: h5py at googlegroups
+
+Prerequisites
+-------------
+
+You need, at a minimum:
+
+* HDF5 1.8.3 or later on Linux (On Windows, h5py ships with HDF5)
+* Python 2.6, 2.7, 3.2 or 3.3
+* Any modern version of NumPy
+
+Optionally:
+
+* Cython 0.13 or later, to build from a git checkout
+* If using Python 2.6, unittest2 is needed to run the tests
+
+Installing from release tarball
+-------------------------------
+
+Run the following commands::
+
+   python setup.py build [--hdf5=/path/to/hdf5]
+   python setup.py test   # optional
+   [sudo] python setup.py install
+
+Installing via easy_install
+---------------------------
+
+Run the following commands::
+ 
+   export HDF5_DIR=/path/to/hdf5   # optional
+   [sudo] easy_install h5py
+
+Building from a Git checkout (UNIX)
+-----------------------------------------
+
+We have switched development to GitHub.  Here's how to build
+h5py from source:
+
+1. Clone the project::
+   
+      git clone https://github.com/h5py/h5py.git
+
+2. Build the project (this step also auto-compiles the .c files)::
+  
+      python setup.py build [--hdf5=/path/to/hdf5]
+
+3. Run the unit tests (optional)::
+  
+      python setup.py test
+
+If you add new functions to api_functions.txt, remember to run the script
+api_gen.py to update the Cython interface.  See the developer guide at
+http://www.h5py.org for more information.
+
+Reporting bugs
+--------------
+
+* Bug reports are always welcome at the GitHub tracker.  Please don't be
+  offended if it takes a while to respond to your report... we value user
+  input and take all bugs seriously.
+
+* If you're not sure you have a bug, or want to ask any question at all
+  about h5py or HDF5, post to the mailing list (h5py at Google Groups).
+  This list is read by the main developers of h5py, as well as the user
+  community.  As a bonus, posting to the list means that other people with
+  similar problems can find your question and the responses.
+
+* You're always free to email the author directly at [andrew dot collette
+  at gmail dot com].
+
+Build instructions for h5py on Windows:
+
+Build h5py in the normal fashion, except you are required to provide
+both the --hdf5 and --hdf5-version arguments to setup.py.
+
+Build HDF5 for distribution with a single command, using the pavement
+file in this directory.  You will need to install paver first.
+
+To build HDF5 with Visual Studio 2008 (required for Python 2.6, 2.7 and 3.2):
+
+  paver build_2008
+  
+To build with Visual Studio 2010 (required for Python 3.3):
+
+  paver build_2010
+  
+These commands will each produce a zip file containing the appropriate
+build of HDF5.  Unpack them and supply the appropriate directory to --hdf5.
+
+Check pavement.py for the current HDF5 version to pass to --hdf5-version.

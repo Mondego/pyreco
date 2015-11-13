@@ -1,0 +1,318 @@
+############################
+StarCluster Shell Completion
+############################
+
+Enabling shell completion allows you to automatically complete all StarCluster
+commands and options simply by pressing the ``Tab`` key after typing
+``starcluster`` in your shell.
+
+You must configure your shell properly to use StarCluster's shell completion.
+You will need to follow one of the `Bash Setup` or `ZSH Setup` sections below
+depending on which shell you're using. If you're unsure which shell you're
+using then more than likely it's Bash. You can check which shell you're
+currently using by running the following command in terminal::
+
+    $ echo $SHELL
+    /bin/bash
+
+Shells other than Bash and ZSH are not supported at this time.
+
+**********
+Bash Setup
+**********
+To enable StarCluster completion support for every Bash shell you open, add the
+following line to your ``$HOME/.bashrc`` file::
+
+    source /path/to/starcluster/completion/starcluster-completion.sh
+
+*********
+ZSH Setup
+*********
+To enable StarCluster completion support for every ZSH shell you open, add the
+following to the top of your ``$HOME/.zshrc`` file::
+
+    autoload -U compinit && compinit
+    autoload -U bashcompinit && bashcompinit
+    source /path/to/starcluster/completion/starcluster-completion.sh
+
+*******************
+Example Completions
+*******************
+Once you've configured completion in your shell you can, for example, type
+``starcluster --`` and press the **Tab** key to show a list of StarCluster's
+global options::
+
+    user@localhost % starcluster --
+    --config   --debug    --help     --version
+
+This also works for each *action* in starcluster::
+
+    user@localhost % starcluster start --
+    --availability-zone     --help                  --master-instance-type
+    --cluster-shell         --key-location          --no-create
+    --cluster-size          --keyname               --node-image-id
+    --cluster-user          --login-master          --node-instance-type
+    --description           --master-image-id       --validate-only
+
+The ``start`` action is not the only action supporting tab completion.
+Pressing **Tab** on the ``sshmaster``, ``sshnode``, and ``sshinstance`` actions
+will also complete based on active cluster names, instance ids, and dns names::
+
+    user@localhost % starcluster sshmaster
+    -h           --help       mycluster  -u           --user
+
+In the above example, `mycluster` is a currently running StarCluster. Typing a
+space character and an **m** character and pressing **Tab** in the above
+example would autocomplete the command to ``starcluster sshmaster mycluster``::
+
+    user@localhost % starcluster sshnode
+    % starcluster sshnode
+    0            3            6            9            mycluster
+    1            4            7            -h           -u
+    2            5            8            --help       --user
+
+Similarly, the ``sshinstance`` command will tab complete instance ids::
+
+    user@localhost % starcluster sshinstance i-
+    i-91zz1bea  i-91zz1be8  i-91zz1bee  i-91zz1be6  i-91zz1be4
+    i-91zz1bf8  i-91zz1bfe  i-91zz1bfc  i-91zz2eca  i-91zz1bde
+
+These examples show only a small subset of the actions that can be tab
+completed. Try tab-completing other actions in starcluster to see their
+available options and suggestions for their arguments.
+
+See the official tab completion docs for more examples:
+
+http://star.mit.edu/cluster/docs/latest/manual/shell_completion.html
+
+###########################
+Using StarCluster Git Hooks
+###########################
+To enable StarCluster's git hooks that perform PEP8 formatting and pyflakes
+validation prior to committing::
+
+1. Check out the StarCluster repo::
+
+    $ git clone https://github.com/jtriley/StarCluster.git
+
+2. Next change the current working directory to the root of the repo::
+
+    $ cd StarCluster
+
+3. Make symbolic links to the hooks in your ``<repo>/.git/hooks`` directory::
+
+    $ ln -s $PWD/git-hooks/pre-commit $PWD/.git/hooks/pre-commit
+
+4. Install both ``pep8`` and ``pyflakes`` packages from PYPI::
+
+    $ easy_install pep8 pyflakes
+
+Now whenever you run ``git commit`` both PEP8 and PyFlakes will check the files
+to be committed for errors, e.g.::
+
+    $ git commit
+    >>> Running pyflakes...
+    starcluster/awsutils.py:333: undefined name 'blah'
+    ERROR: pyflakes failed on some source files
+    ERROR: please fix the errors and re-run this script
+
+===================
+StarCluster v0.95.5
+===================
+:StarCluster: Cluster Computing Toolkit for the Cloud
+:Version: 0.95.5
+:Author: Justin Riley <justin.t.riley@gmail.com>
+:Team: Software Tools for Academics and Researchers (http://star.mit.edu)
+:Homepage: http://star.mit.edu/cluster
+:License: LGPL
+.. image:: https://secure.travis-ci.org/jtriley/StarCluster.png?branch=develop
+  :target: https://secure.travis-ci.org/jtriley/StarCluster
+.. image:: https://pypip.in/d/StarCluster/badge.png
+  :target: https://crate.io/packages/StarCluster
+
+Description:
+============
+StarCluster is a utility for creating and managing computing clusters hosted on
+Amazon's Elastic Compute Cloud (EC2). StarCluster utilizes Amazon's EC2 web
+service to create and destroy clusters of Linux virtual machines on demand.
+
+All that's needed to create your own cluster(s) on Amazon EC2 is an AWS account
+and StarCluster. StarCluster features:
+
+* **Simple configuration** - with examples ready to go out-of-the-box
+* **Create/Manage Clusters** - simple **start** command to automatically launch
+  and configure one or more clusters on EC2
+* **Automated Cluster Setup** - includes NFS-sharing, Open Grid Scheduler
+  queuing system, Condor, password-less ssh between machines, and more
+* **Scientific Computing AMI** - comes with Ubuntu 11.10-based EBS-backed AMI
+  that contains Hadoop, OpenMPI, ATLAS, LAPACK, NumPy, SciPy, IPython, and
+  other useful libraries
+* **EBS Volume Sharing** - easily NFS-share Amazon Elastic Block Storage (EBS)
+  volumes across a cluster for persistent storage
+* **EBS-Backed Clusters** - start and stop EBS-backed clusters on EC2
+* **Cluster Compute Instances** - support for "cluster compute" instance types
+* **Expand/Shrink Clusters** - scale a cluster by adding or removing nodes
+* **Elastic Load Balancing** - automatically shrink or expand a cluster based
+  on Open Grid Scheduler queue statistics
+* **Plugin Support** - allows users to run additional setup routines on the
+  cluster after StarCluster's defaults. Comes with plugins for IPython
+  parallel+notebook, Condor, Hadoop, MPICH2, MySQL cluster, installing Ubuntu
+  packages, and more.
+
+Interested? See the `getting started`_ section for more details.
+
+.. _getting started:
+
+Getting Started:
+================
+Install StarCluster using `easy_install`::
+
+    $ easy_install StarCluster
+
+or using `pip`::
+
+    $ pip install StarCluster
+
+or manually::
+
+    $ (Download StarCluster from http://star.mit.edu/cluster/downloads.html)
+    $ tar xvzf starcluster-X.X.X.tar.gz  (where x.x.x is a version number)
+    $ cd starcluster-X.X.X
+    $ sudo python setup.py install
+
+After the software has been installed, the next step is to setup the
+configuration file::
+
+    $ starcluster help
+    StarCluster - (http://star.mit.edu/cluster)
+    Software Tools for Academics and Researchers (STAR)
+    Please submit bug reports to starcluster@mit.edu
+
+    !!! ERROR - config file /home/user/.starcluster/config does not exist
+
+    Options:
+    --------
+    [1] Show the StarCluster config template
+    [2] Write config template to /home/user/.starcluster/config
+    [q] Quit
+
+    Please enter your selection:
+
+Select the second option by typing *2* and pressing enter. This will give you a
+template to use to create a configuration file containing your AWS credentials,
+cluster settings, etc.  The next step is to customize this file using your
+favorite text-editor::
+
+    $ vi ~/.starcluster/config
+
+This file is commented with example "cluster templates". A cluster template
+defines a set of configuration settings used to start a new cluster. The
+example config provides a *smallcluster* template that is ready to go
+out-of-the-box. However, first, you must fill in your AWS credentials and
+keypair info::
+
+    [aws info]
+    aws_access_key_id = #your aws access key id here
+    aws_secret_access_key = #your secret aws access key here
+    aws_user_id = #your 12-digit aws user id here
+
+The next step is to fill in your keypair information. If you don't already have
+a keypair you can create one from StarCluster using::
+
+    $ starcluster createkey mykey -o ~/.ssh/mykey.rsa
+
+This will create a keypair called *mykey* on Amazon EC2 and save the private
+key to ~/.ssh/mykey.rsa.  Once you have a key the next step is to fill-in your
+keypair info in the StarCluster config file::
+
+    [key key-name-here]
+    key_location = /path/to/your/keypair.rsa
+
+For example, the section for the keypair created above using the **createkey**
+command would look like::
+
+    [key mykey]
+    key_location = ~/.ssh/mykey.rsa
+
+After defining your keypair in the config, the next step is to update the
+default cluster template *smallcluster* with the name of your keypair on EC2::
+
+    [cluster smallcluster]
+    keyname = key-name-here
+
+For example, the *smallcluster* template would be updated to look like::
+
+    [cluster smallcluster]
+    keyname = mykey
+
+Now that the config file has been set up we're ready to start using
+StarCluster. Next we start a cluster named "mycluster" using the default
+cluster template *smallcluster* in the example config::
+
+    $ starcluster start mycluster
+
+The *default_template* setting in the **[global]** section of the config
+specifies the default cluster template and is automatically set to
+*smallcluster* in the example config.
+
+After the **start** command completes you should now have a working cluster.
+You can login to the master node as root by running::
+
+    $ starcluster sshmaster mycluster
+
+You can also copy files to/from the cluster using the **put** and **get**
+commands.  To copy a file or entire directory from your local computer to the
+cluster::
+
+    $ starcluster put mycluster /path/to/local/file/or/dir /remote/path/
+
+To copy a file or an entire directory from the cluster to your local computer::
+
+    $ starcluster get mycluster /path/to/remote/file/or/dir /local/path/
+
+Once you've finished using the cluster and wish to stop paying for it::
+
+    $ starcluster terminate mycluster
+
+Have a look at the rest of StarCluster's available commands::
+
+    $ starcluster --help
+
+Dependencies:
+=============
+* Amazon AWS Account
+* Python 2.6+
+* Boto 2.23.0+
+* Paramiko 1.12.1+
+* WorkerPool 0.9.2
+* Jinja2 2.7
+* decorator 3.4.0+
+* iptools 0.6.1+
+* optcomplete 1.2-devel+
+* PyCrypto 2.5+
+* scp 0.7.1+
+* iso8601 0.1.8+
+
+Learn more...
+=============
+Watch an ~8 minute screencast @ http://star.mit.edu/cluster
+
+To learn more have a look at the documentation:
+http://star.mit.edu/cluster/docs/latest
+
+Community
+=========
+StarCluster has a mailing list for users and developers:
+
+http://star.mit.edu/cluster/mailinglist.html
+
+Join our IRC channel #starcluster on freenode. If you do not have an IRC client
+you can join the #starcluster channel using your web browser:
+
+http://webchat.freenode.net/?channels=starcluster
+
+Licensing
+=========
+StarCluster is licensed under the LGPLv3
+See COPYING.LESSER (LGPL) and COPYING (GPL) for LICENSE details
+

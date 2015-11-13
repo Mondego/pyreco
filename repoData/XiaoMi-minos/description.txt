@@ -1,0 +1,602 @@
+
+# Install puppet-master and puppet-client <http://puppetlabs.com/misc/download-options>
+
+# Pack the `supervisor` directory and put it under your puppet-master's module directory:
+
+    ${puppet-master-root}/modules/supervisor/supervisor.tar.gz
+
+# Create the `packages_root`, `app_root`, `log_root` and `data_dirs` directories on the puppet-client machine according to the configuration items in `templates/supervisord.conf.erb`
+
+
+# Opentsdb metrics collector
+[Opentsdb](http://opentsdb.net) is used to store and display metrics of clusters.
+
+# Installation
+Setup opentsdb
+<http://opentsdb.net/getting-started.html>
+
+Configure for metrics collector
+
+Modify file in config/opentsdb/metrics_collector_config.py
+
+    # metrics's output url in owl
+    metrics_url = 'http://127.0.0.1:8000/monitor/metrics'
+    # opentsdb's binary path
+    opentsdb_bin_path = 'tsdb'
+    # perfiod of collecting data in second
+    collect_period = 10
+
+# Run
+
+    nohup ./collector.sh &
+
+## File
+Library for zookeeper c client
+    libzookeeper_mt.so.2 
+Library for zkpython
+    zookeeper.so
+
+##Build method(on CentOS 6)
+
+1. sudo yum install cppunit-devel
+2. cd zookeeper
+3. mvn clean package
+4. cd zookeeper/src/c
+5. autoreconf -if
+6. ./configure
+7. make
+8. sudo make install
+9. cd zookeeper/src/contrib/zkpython
+10. ant build
+
+version:
+
+bootstrap: v2.2.1                                                                                                                                            
+           http://twitter.github.com/bootstrap/
+Highcharts: v2.3.3
+            http://www.highcharts.com/
+
+jquery-v1.8.3.js 
+jquery-ui-1.9.2
+
+transplant from https://github.com/phunt/zookeeper_dashboard
+
+<img src="minos.png" width="200" height="80"></img>
+
+# What is Minos
+
+Minos is a distributed deployment and monitoring system.  It was initially developed and used at [Xiaomi](http://www.xiaomi.com) to deploy and manage the Hadoop, HBase and ZooKeeper clusters used in the company.  Minos can be easily extended to support other systems, among which HDFS, YARN and Impala have been supported in the current release.
+
+# Components
+
+The Minos system contains the following four components:
+
+* [Client](#client)
+* [Owl](#owl)
+* [Supervisor](#supervisor)
+* [Tank](#tank)
+
+<img src="minos_structure.png" width="800" height="490"></img>
+
+## Client
+
+This is the command line client tool used to deploy and manage processes of various systems. You can use this client to perform various deployment tasks, e.g. installing, (re)starting, stopping a service.  Currently, this client supports ZooKeeper, HDFS, HBase, YARN and Impala.  It can be extended to support other systems. You can refer to the following [Using Client](#using-client) to learn how to use it.
+
+## Owl
+
+This is the dashboard system to display the status of all processes, where users can take a overview of the whole clusters managed by Minos. It collects data from servers through JMX interface. And it organizes pages in cluster, job and task corresponding to the definition in cluster configuration. It also provides some utils like health alerter, HDFS quota updater and quota reportor. You can refer to [Installing Owl](#installing-owl) to learn how to install and use it.
+
+## Supervisor
+
+This is the process management and monitoring system. [Supervisor](http://supervisord.org/) is an open source project, a client/server system that allows its users to monitor and control a number of processes on a UNIX-like operating system.
+
+Based on the version of supervisor-3.0b1, we extended Supervisor to support Minos. We implemented an RPC interface under the `deployment` directory, so that our deploy client can invoke the services supplied by supervisord.
+
+When deploying a Hadoop cluster for the first time, you need to set up `supervisord` on every production machine. This only needs to be done once. You can refer to [Installing Supervisor](#installing-supervisor) to learn how to install and use it.
+
+## Tank
+
+This is a simple package management Django app server for our deployment tool. When setting up a cluster for the first time, you should set up a tank server first. This also needs to be done only once. You can refer to [Installing Tank](#installing-tank) to learn how to install and use it.
+
+# Setting Up Minos on Centos/Ubuntu
+
+## Prerequisites
+
+### Install Python
+
+Make sure install Python 2.7 or later from <http://www.python.org>.
+
+### Install JDK
+
+Make sure that the Oracle Java Development Kit 6 is installed (not OpenJDK) from <http://www.oracle.com/technetwork/java/javase/downloads/index.html>, and that `JAVA_HOME` is set in your environment.
+
+## Building Minos
+
+### Clone the Minos repository
+
+To Using Minos, just check out the code on your production machine:
+
+    git clone https://github.com/XiaoMi/minos.git
+
+### Build the virtual environment
+
+All the Components of Minos run with its own virtual environment. So, before using Minos, building the virtual environment firstly.
+
+    cd minos
+    ./build.sh build
+
+> **Note:** If you only use the Client component on your current machine, this operation is enough, then you can refer to [Using Client](#using-client) to learn how to deploy and manage a cluster. If you want to use the current machine as a Tank server, you can refer to [Installing Tank](#installing-tank) to learn how to do that. Similarly, if you want to use the current machine as a Owl server or a Supervisor server, you can refer to [Installing Owl](#installing-owl) and [Installing Supervisor](#installing-supervisor) respectively.
+
+## Installing Tank
+
+### Start Tank
+
+    cd minos
+    ./build.sh start tank --tank_ip ${your_local_ip} --tank_port ${port_tank_will_listen}
+
+> **Note:** If you do not specify the `tank_ip` and `tank_port`, it will start tank server using `0.0.0.0` on `8000` port.
+
+### Stop Tank
+
+    ./build.sh stop tank
+
+## Installing Supervisor
+
+### Prerequisites
+
+Make sure you have intstalled [Tank](#tank) on one of the production machines.
+
+### Start Supervisor
+
+    cd minos
+    ./build.sh start supervisor --tank_ip ${tank_server_ip} --tank_port ${tank_server_port}
+
+When starting supervisor for the first time, the `tank_ip` and `tank_port` must be specified.
+
+After starting supervisor on the destination machine, you can access the web interface of the supervisord.  For example, if supervisord listens on port 9001, and the serving machine's IP address is 192.168.1.11, you can access the following URL to view the processes managed by supervisord:
+
+    http://192.168.1.11:9001/
+
+### Stop Supervisor
+
+    ./build.sh stop supervisor
+
+### Monitor Processes
+
+We use Superlance to monitor processes. [Superlance](https://pypi.python.org/pypi/superlance) is a package of plug-in utilities for monitoring and controlling processes that run under supervisor.
+
+We integrate `superlance-0.7` to our supervisor system, and use the crashmail tool to monitor all processes.  When a process exits unexpectedly, crashmail will send an alert email to a mailing list that is configurable.
+
+We configure crashmail as an auto-started process.  It will start working automatically when the supervisor is started.  Following is a config example, taken from `minos/build/template/supervisord.conf.tmpl`, that shows how to configure crashmail:
+
+    [eventlistener:crashmailbatch-monitor]
+    command=python superlance/crashmailbatch.py \
+            --toEmail="alert@example.com" \
+            --fromEmail="robot@example.com" \
+            --password="123456" \
+            --smtpHost="mail.example.com" \
+            --tickEvent=TICK_5 \
+            --interval=0.5
+    events=PROCESS_STATE,TICK_5
+    buffer_size=100
+    stdout_logfile=crashmailbatch.stdout
+    stderr_logfile=crashmailbatch.stderr
+    autostart=true
+
+> **Note:** The related configuration information such as the server `port` or `username` is set in `minos/build/template/supervisord.conf.tmpl`, if you don't want to use the default value, change it.
+
+
+## Using Client
+
+### Prerequisites
+
+Make sure you have intstalled [Tank](#tank) and [Supervisor](#supervisor) on your production machines.
+
+### A Simple Tutorial
+
+Here we would like to show you how to use the client in a simple tutorial.  In this tutorial we will use Minos to deploy an HDFS service, which itself requires the deployment of a ZooKeeper service.
+
+The following are some conventions we will use in this tutorial:
+
+* **Cluster type**: we define three types of clusters: `tst` for testing, `prc` for offline processing, and `srv` for online serving.
+* **ZooKeeper cluster name**: we define the ZooKeeper cluster name using the IDC short name and the cluster type.  For example, `dptst` is used to name a testing cluster at IDC `dp`.
+* **Other service cluster names**: we define other service cluster names using the corresponding ZooKeeper cluster name and the name of the business for which the service is intended to serve.  For example, the `dptst-example` is the name of a testing cluster used to do example tests.
+* **Configuration file names**: all the services will have a corresponding configuration file, which will be named as `${service}-${cluster}.cfg`.  For example, the `dptst` ZooKeeper service's configuration file is named as `zookeeper-dptst.cfg`, and the `dptst` example HDFS service's configuration file is named as `hdfs-dptst-example.cfg`.
+
+#### Configuring `deploy.cfg`
+
+There is a configuration file named `deploy.cfg` under the root directory of minos.  You should first edit this file to set up the deployment environment.  Make sure that all service packages are prepared and configured in `deploy.cfg`.
+
+#### Configuring ZooKeeper
+
+As mentioned in the cluster naming conventions, we will set up a testing ZooKeeper cluster at the `dp` IDC, and the corresponding configuration file for the cluster will be named as `zookeeper-dptst.cfg`.
+
+You can edit `zookeeper-dptst.cfg` under the `config/conf/zookeeper` directory to configure the cluster.  The `zookeeper-dptst.cfg` is well commented and self explained, so we will not explain more here.
+
+#### Setting up a ZooKeeper Cluster
+To set up a ZooKeeper cluster, just do the following two steps:
+
+* Install a ZooKeeper package to the tank server:
+
+        cd minos/client
+        ./deploy install zookeeper dptst
+
+* Bootstrap the cluster, this is only needed once when the cluster is setup for the first time:
+
+        ./deploy bootstrap zookeeper dptst
+
+Here are some handy ways to manage the cluster:
+
+* Show the status of the ZooKeeper service:
+
+        ./deploy show zookeeper dptst
+
+* Start/Stop/Restart the ZooKeeper cluster:
+
+        ./deploy stop zookeeper dptst
+        ./deploy start zookeeper dptst
+        ./deploy restart zookeeper dptst
+
+* Clean up the ZooKeeper cluster:
+
+        ./deploy cleanup zookeeper dptst
+
+* Rolling update the ZooKeeper cluster:
+
+        ./deploy rolling_update zookeeper dptst
+
+#### Configuring HDFS
+
+Now it is time to configure the HDFS system.  Here we set up a testing HDFS cluster named `dptst-example`, whose configuration file will be named as `hdfs-dptst-example.cfg`, as explained in the naming conventions.
+
+You can edit `hdfs-dptst-example.cfg` under the `config/conf/hdfs` directory to configure the cluster.  The `hdfs-dptst-example.cfg` is well commented and self explained, so we will net explain more here.
+
+#### Setting Up HDFS Cluster
+
+Setting up and managing an HDFS cluster is similar to setting up and managing a ZooKeeper cluster.  The only difference is the cluster name, `dptst-example`, which implies that the corresponding ZooKeeper cluster is `dptst`:
+
+    ./deploy install hdfs dptst-example
+    ./deploy bootstrap hdfs dptst-example
+    ./deploy show hdfs dptst-example
+    ./deploy stop hdfs dptst-example
+    ./deploy start hdfs dptst-example
+    ./deploy restart hdfs dptst-example
+    ./deploy rolling_update hdfs dptst-example --job=datanode
+    ./deploy cleanup hdfs dptst-example
+
+#### Shell
+
+The client tool also supports a very handy command named `shell`.  You can use this command to manage the files on HDFS, tables on HBase, jobs on YARN, etc.  Here are some examples about how to use the `shell` command to perform several different HDFS operations:
+
+    ./deploy shell hdfs dptst-example dfs -ls /
+    ./deploy shell hdfs dptst-example dfs -mkdir /test
+    ./deploy shell hdfs dptst-example dfs -rm -R /test
+You can run `./deploy --help` to see the detailed help messages.
+
+
+## Installing Owl
+
+Owl must be installed on the machine that you also use the [Client](#client) component, they both use the same set of cluster configuration files.
+
+### Prerequisites
+
+#### Install Gnuplot
+
+Gnuplot is required for opentsdb, you can install it with the following command.
+
+    Centos: sudo yum install gnuplot
+    Ubuntu: sudo apt-get install gnuplot
+
+#### Install Mysql
+
+    Ubuntu:
+    sudo apt-get install mysql-server
+    sudo apt-get install mysql-client
+
+    Centos:
+    yum install mysql-server mysql mysql-devel
+
+
+### Configuration
+
+Configure the clusters you want to monitor with owl in `minos/config/owl/collector.cfg`. Following is an example that shows how to modify the configuration.
+
+    [collector]
+    # service name(space seperated)
+    service = hdfs hbase
+
+    [hdfs]
+    # cluster name(space seperated)
+    clusters=dptst-example
+    # job name(space seperated)
+    jobs=journalnode namenode datanode
+    # url for collecotr, usually JMX url
+    metric_url=/jmx?qry=Hadoop:*
+
+> **Note:** Some other configurations such as and `opentsdb port` is set in `minos/build/minos_config.py`. You can change the default port for avoiding port conflicts.
+
+### Start Owl
+
+    cd minos
+    ./build.sh start owl --owl_ip ${your_local_ip} --owl_port ${port_owl_monitor_will_listen}
+
+After starting Owl, you can access the web interface of the Owl.  For example, if Owl listens on port 8088, and the machine's IP address is 192.168.1.11, you can access the following URL to view the Owl web interface:
+
+    http://192.168.1.11:8088/
+
+### Stop Owl
+
+    ./build.sh stop owl
+
+# FAQ
+
+1. When installing Mysql-python, you may get an error of `_mysql.c:44:23: error: my_config.h: No such file or directory (centos)` or `EnvironmentError: mysql_config not found (ubuntu)`. As mysql_config is part of mysql-devel, installing mysql-devel allows the installation of Mysql-python. So you may need to install it.
+
+        ubuntu: sudo apt-get install libmysqlclient-dev
+        centos: sudo yum install mysql-devel
+
+2. When installing twisted, you may get an error of `CompressionError: bz2 module is not available` and compile appears:
+
+        Python build finished, but the necessary bits to build these modules were not found:
+        _sqlite3           _tkinter           bsddb185
+        bz2                dbm                dl
+
+  Then, you may need to install bz2 and sqlite3 such as
+
+      sudo apt-get install libbz2-dev
+      sudo apt-get install libsqlite3-dev
+
+3. When setting up the stand-alone hbase on Ubuntu, you may fail to start it because of the `/etc/hosts` file. You can refer to <http://hbase.apache.org/book/quickstart.html#ftn.d2907e114> to fix the problem.
+
+4. When using the Minos client to install a service package, if you get an error of `socket.error: [Errno 101] Network is unreachable`, please check your tank server configuration in `deploy.cfg` file, you might miss it.
+
+> **Note:** See [Minos Wiki](https://github.com/XiaoMi/minos/wiki) for more advanced features.
+
+<html>
+<body>
+
+<h1> What is Medusa? </h1>
+<hr>
+
+<p>
+Medusa is an architecture for very-high-performance TCP/IP servers
+(like HTTP, FTP, and NNTP).  Medusa is different from most other
+servers because it runs as a single process, multiplexing I/O with its
+various client and server connections within a single process/thread.
+
+<p>
+It is capable of smoother and higher performance than most other
+servers, while placing a dramatically reduced load on the server
+machine.  The single-process, single-thread model simplifies design
+and enables some new persistence capabilities that are otherwise
+difficult or impossible to implement.
+
+<p>
+Medusa is supported on any platform that can run Python and includes a
+functional implementation of the &lt;socket&gt; and &lt;select&gt;
+modules.  This includes the majority of Unix implementations.
+
+<p>
+During development, it is constantly tested on Linux and Win32
+[Win95/WinNT], but the core asynchronous capability has been shown to
+work on several other platforms, including the Macintosh.  It might
+even work on VMS.
+
+
+<h2>The Power of Python</h2>
+
+<p>
+A distinguishing feature of Medusa is that it is written entirely in
+Python.  Python (<a href="http://www.python.org/">http://www.python.org/</a>) is a
+'very-high-level' object-oriented language developed by Guido van
+Rossum (currently at CNRI).  It is easy to learn, and includes many
+modern programming features such as storage management, dynamic
+typing, and an extremely flexible object system.  It also provides
+convenient interfaces to C and C++.
+
+<p>
+The rapid prototyping and delivery capabilities are hard to exaggerate;
+for example
+<ul>
+
+  <li>It took me longer to read the documentation for persistent HTTP
+  connections (the 'Keep-Alive' connection token) than to add the
+  feature to Medusa.
+
+  <li>A simple IRC-like chat server system was written in about 90 minutes.
+
+</ul>
+
+<p> I've heard similar stories from alpha test sites, and other users of
+the core async library.
+
+<h2>Server Notes</h2>
+
+<p>Both the FTP and HTTP servers use an abstracted 'filesystem object' to
+gain access to a given directory tree.  One possible server extension
+technique would be to build behavior into this filesystem object,
+rather than directly into the server: Then the extension could be
+shared with both the FTP and HTTP servers.
+
+<h3>HTTP</h3>
+
+<p>The core HTTP server itself is quite simple - all functionality is
+provided through 'extensions'.  Extensions can be plugged in
+dynamically. [i.e., you could log in to the server via the monitor
+service and add or remove an extension on the fly].  The basic
+file-delivery service is provided by a 'default' extension, which
+matches all URI's.  You can build more complex behavior by replacing
+or extending this class.
+
+
+<p>The default extension includes support for the 'Connection: Keep-Alive'
+token, and will re-use a client channel when requested by the client.
+
+<h3>FTP</h3>
+
+<p>On Unix, the ftp server includes support for 'real' users, so that it
+may be used as a drop-in replacement for the normal ftp server.  Since
+most ftp servers on Unix use the 'forking' model, each child process
+changes its user/group persona after a successful login.  This is a
+appears to be a secure design.
+
+
+<p>Medusa takes a different approach - whenever Medusa performs an
+operation for a particular user [listing a directory, opening a file],
+it temporarily switches to that user's persona _only_ for the duration
+of the operation.  [and each such operation is protected by a
+try/finally exception handler].
+
+
+<p>To do this  Medusa MUST run  with super-user privileges.  This is a
+HIGHLY experimental   approach, and although   it has  been thoroughly
+tested    on Linux, security problems  may    still exist.  If you are
+concerned  about the security of your   server machine, AND YOU SHOULD
+BE,  I suggest running  Medusa's ftp  server  in anonymous-only  mode,
+under an account with limited privileges ('nobody' is usually used for
+this purpose).
+
+
+<p>I am   very  interested  in any feedback    on  this feature,  most
+especially   information  on how     the server behaves  on  different
+implementations of Unix, and of course  any security problems that are
+found.
+
+<hr>
+
+<h3>Monitor</h3>
+
+<p>The monitor server gives you remote, 'back-door' access to your server
+while it is running.  It implements a remote python interpreter.  Once
+connected to the monitor, you can do just about anything you can do from
+the normal python interpreter.  You can examine data structures, servers,
+connection objects.  You can enable or disable extensions, restart the server,
+reload modules, etc...
+
+<p>The monitor server   is protected with an MD5-based  authentication
+similar to that proposed in RFC1725 for the POP3 protocol.  The server
+sends the  client a  timestamp,  which  is then  appended to  a secret
+password.  The resulting md5 digest is  sent back to the server, which
+then compares this to the  expected result.  Failed login attempts are
+logged and immediately disconnected.  The  password itself is not sent
+over the network (unless you  have  foolishly transmitted it  yourself
+through an insecure telnet or X11 session. 8^)
+
+<p>For this  reason telnet  cannot be used  to connect  to the monitor
+server when it is in a secure mode (the default).  A client program is
+provided for this  purpose.  You will  be prompted for a password when
+starting up the server, and by the monitor client.
+
+<p>For  extra added   security  on   Unix,  the monitor   server  will
+eventually be able to use a Unix-domain socket, which can be protected
+behind a 'firewall' directory (similar to the InterNet News server).
+
+<hr>
+<h2>Performance Notes</h2>
+
+<h3>The <code>select()</code> function</h3>
+
+<p>At  the  heart of  Medusa  is  a single <code>select()</code> loop.
+This loop   handles all  open  socket connections,  both   servers and
+clients.  It  is  in effect  constantly  asking the  system: 'which of
+these sockets has activity?'.   Performance  of this system  call  can
+vary widely between operating systems.
+
+<p>There  are also often builtin limitations  to the number of sockets
+('file descriptors')  that a single  process,  or a whole system,  can
+manipulate at the same time.  Early versions of Linux placed draconian
+limits (256) that  have since been raised.  Windows  95 has a limit of
+64, while OSF/1 seems to allow up to 4096.
+
+<p>These limits don't affect only Medusa, you will find them described
+in the documentation for other web and ftp servers, too.
+
+<p>The documentation for the Apache web server has some excellent
+notes on tweaking performance for various Unix implementations.  See
+<a href="http://www.apache.org/docs/misc/perf.html">
+http://www.apache.org/docs/misc/perf.html</a>
+for more information.
+
+<h3>Buffer sizes</h3>
+
+<p>
+The default buffer sizes  used by Medusa  are  set with a  bias toward
+Internet-based servers: They are  relatively small, so that the buffer
+overhead for each connection is  low.   The assumption is that  Medusa
+will be talking to a large number of low-bandwidth connections, rather
+than a smaller number of high bandwidth.
+
+<p>This choice  trades run-time memory use for   efficiency - the down
+side of this is that high-speed local connections  (i.e., over a local
+ethernet) will transfer data at a slower rate than necessary.
+
+<p>This parameter can easily be tweaked by  the site designer, and can
+in fact  be adjusted on  a per-server  or  even per-client basis.  For
+example, you could  have the  FTP server  use larger  buffer sizes for
+connections from certain domains.
+
+<p>If there's enough interest, I have some rough ideas for how to make
+these  buffer sizes automatically adjust  to an optimal setting.  Send
+email if you'd like to see this feature.
+
+<hr>
+
+<p>See <a href="medusa.html">./medusa.html</a> for a brief overview of
+some of the ideas behind Medusa's design, and for a description of
+current and upcoming features.
+
+<p><h3>Enjoy!</h3>
+
+<hr>
+<br>-Sam Rushing
+<br><a href="mailto:rushing@nightmare.com">rushing@nightmare.com</a>
+
+<!--
+  Local Variables:
+  indent-use-tabs: nil
+  end:
+-->
+
+</body>
+</html>
+
+Medusa is a 'server platform' -- it provides a framework for
+implementing asynchronous socket-based servers (TCP/IP and on Unix,
+Unix domain, sockets).
+
+An asynchronous socket server is a server that can communicate with many
+other clients simultaneously by multiplexing I/O within a single
+process/thread.  In the context of an HTTP server, this means a single
+process can serve hundreds or even thousands of clients, depending only on
+the operating system's configuration and limitations.
+
+There are several advantages to this approach:
+     
+  o  performance - no fork() or thread() start-up costs per hit.
+
+  o  scalability - the overhead per client can be kept rather small,
+     on the order of several kilobytes of memory.
+
+  o  persistence - a single-process server can easily coordinate the
+     actions of several different connections.  This makes things like
+     proxy servers and gateways easy to implement.  It also makes it
+     possible to share resources like database handles.
+
+Medusa includes HTTP, FTP, and 'monitor' (remote python interpreter)
+servers.  Medusa can simultaneously support several instances of
+either the same or different server types - for example you could
+start up two HTTP servers, an FTP server, and a monitor server.  Then
+you could connect to the monitor server to control and manipulate
+medusa while it is running.
+
+Other servers and clients have been written (SMTP, POP3, NNTP), and
+several are in the planning stages.  
+
+Medusa was originally written by Sam Rushing <rushing@nightmare.com>,
+and its original Web page is at <http://www.nightmare.com/medusa/>. After
+Sam moved on to other things, A.M. Kuchling <akuchlin@mems-exchange.org> 
+took over maintenance of the Medusa package.
+
+--amk
+
+

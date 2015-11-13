@@ -1,0 +1,146 @@
+GovTrack website frontend
+=========================
+
+This repo contains the source code of the front-end for www.GovTrack.us.
+The data-gathering scripts are elsewhere.
+
+Installation
+------------
+
+GovTrack.us runs on Ubuntu 12.10.
+
+* Install dependencies via OS package manager:
+
+  ```
+  apt-get install git python-virtualenv python-lxml python-openid python-oauth2 \
+      python-iso8601 python-numpy python-scipy
+  ```
+
+* Clone the source code. Besides this project, you'll also need [@unitedstates/congress-legislators](https://github.com/unitedstates/congress-legislators) which is where legislator and committee information come from.
+
+  ```
+  git clone https://github.com/unitedstates/congress-legislators   
+  git clone --recursive https://github.com/govtrack/govtrack.us-web.git
+  ```
+
+* Change directory to the source code root:
+
+  ```
+  cd ./govtrack.us-web/
+  ```
+
+* Run the build script to install additional dependencies into a virtual environment:
+
+  ```
+  ./build/buildenv.sh
+  ```
+
+* Create a local settings file based on the example file:
+
+  ```
+  cp settings_local.example.py settings_local.py
+  ```
+
+* Edit `settings_local.py` to set up your database. The default configuration uses SQLite as the database and no database configuration is required. Fill in SECRET_KEY though. Here's how you can generate a SECRET_KEY:
+
+  ```
+  ./manage.py generate_secret_key
+  ```
+
+* To enable search (for which complete instructions haven't been provided, so really skip this):
+
+  * Install Solr:
+
+    ```
+    apt-get install openjdk-7-jre jetty
+    ```
+
+  * Follow the instructions at:
+
+    http://django-haystack.readthedocs.org/en/latest/installing_search_engines.html#solr
+
+  * Symlink `./bill/solr_schema.xml` to `./solr/conf/schema.xml`.
+
+* Initialize the database and minify some files:
+
+  ```
+  ./manage.py syncdb
+  ./minify
+  ```
+* Load some data:
+
+  ```
+  wget http://www.govtrack.us/data/db/django-fixture-{people,usc_sections,billterms}.json
+  ./manage.py loaddata django-fixture-people.json
+  ./manage.py loaddata django-fixture-usc_sections.json
+  ./manage.py loaddata django-fixture-billterms.json
+
+  ./parse.py committee # fails b/c meeting data not available
+
+  ./build/rsync.sh
+  ./parse.py bill --congress=113 --disable-index --disable-events
+  ./parse.py vote --congress=113 --disable-index --disable-events
+  ```
+  
+If you configured Solr, you can remove --disable-index. For the sake of speed, --disable-events will skip the creation of the events table for bills, which is the basis for feeds and tracking, so that will be nonfunctional.
+
+* Check the site works by running the development server and visiting the URL specified by the runserver process.
+
+  ```
+  ./manage.py runserver
+  ```
+
+* To update the data in the future, first git-pull the congress-legislators repo to get the latest legislator information. Then:
+
+  ```
+  build/rsync.sh
+  ./parse.py person
+  ./parse.py committee --congress=113
+  ./parse.py bill --congress=113
+  ./parse.py vote --congress=113
+  ```
+
+* TODO: We haven't set up any search indexing, so all of the search pages will come up empty.
+
+{% load events_utils %}
+{% if format == "text" %}
+id: 1
+subject: Lawmakers Who Aren't Making Law (GovTrack Video)
+----------
+{% endif %}
+
+GovTrack Special Report
+=======================
+
+We’ve just posted a [special video report]({{"http://www.govtrack.us/videos/2013-07-22_few-bills"|append_qsarg:utm}}).
+{% if format == "html" %}
+[![Video Thumbnail](http://img.youtube.com/vi/wKGY-Z5_mHc/mqdefault.jpg "Title")](http://www.govtrack.us/videos/2013-07-22_few-bills?{{utm}}){% endif %}
+
+Lawmakers Who Aren’t Making Law
+--------------------------------
+
+The press’ quarterly report cards on Congress are out and the picture isn’t pretty. The current Congress has enacted fewer bills than any other Congress in modern history at this point in the legislative session.
+
+Just 21 bills have been passed by both the House and Senate and signed into law since the 113th Congress convened in January. What’s more, the number of bills introduced in this Congress – 4,753 – is also significantly less than past Congresses.
+{% if format == "text" %}
+Watch the video or read the whole story at 
+{{"http://www.govtrack.us/videos/2013-07-22_few-bills"|append_qsarg:utm}}.
+{% else %}
+** Watch the video or read the whole story at [http://www.govtrack.us/videos/2013-07-22_few-bills]({{"http://www.govtrack.us/videos/2013-07-22_few-bills"|append_qsarg:utm}}).**
+{% endif %}
+
+---------------------------------------
+
+To unsubscribe from GovTrack periodic announcements, go to [your profile page]({{"http://www.govtrack.us/accounts/profile"|append_qsarg:utm}}).
+
+This email was sent by Civic Impulse, LLC <http://www.civicimpulse.com>. You may contact us at operations@govtrack.us. The email address this message was sent from is not monitored for replies.
+
+
+{% if format == "text" %}
+active: false
+subject: "We Asked Congress for More Data, Again"
+----------
+{% endif %}
+
+In [a new letter](https://www.govtrack.us/blog/2014/03/08/the-congressional-data-coalition-writes-to-house-appropriators/) to the House this month, we joined 18 other organizations and individuals in calling for access to the legislative data on bill status that Congress has but won’t share.
+

@@ -1,0 +1,2260 @@
+# JSHint Gutter for Sublime Text 2 and 3 via node.js
+#### [Sublime Text 3](http://www.sublimetext.com/3)
+#### [JSHint](https://github.com/jshint/jshint)
+#### [Node.js download](http://nodejs.org/#download)
+
+## About
+This is a Sublime Text 2 and 3 plugin allowing you to check your JavaScript code for nasty errors, coding conventions and other goodies. It relies on JSHint, a fork of JSLint (developed by Douglas Crockford). The linter is itself written in JavaScript, so you'll need something (node.js) to interpret JavaScript code outside the browser.
+
+![Screenshot](https://dl.dropboxusercontent.com/u/2388316/screenshots/sublime-jshint.png)
+
+## Installation
+First of all, be sure you have [node.js](http://nodejs.org/#download) installed in order to run JSHint (a derivative work of JSLint, used to detect errors and potential problems in JS).
+Each OS has a different `Packages` folder required by Sublime Text. Open it via Preferences -> Browse Packages, and copy this repository contents to a new `Sublime-JSHint` folder there.
+
+The shorter way of doing this is:
+### Through [Sublime Package Manager](http://wbond.net/sublime_packages/package_control)
+
+* `Ctrl+Shift+P` or `Cmd+Shift+P` in Linux/Windows/OS X
+* type `install`, select `Package Control: Install Package`
+* type `js gutter`, select `JSHint Gutter`
+
+### Manually
+Make sure you use the right Sublime Text folder. For example, on OS X, packages for version 2 are in `~/Library/Application\ Support/Sublime\ Text\ 2`, while version 3 is labeled `~/Library/Application\ Support/Sublime\ Text\ 3`.
+
+These are for Sublime Text 3:
+
+#### Mac
+`git clone https://github.com/victorporof/Sublime-JSHint.git ~/Library/Application\ Support/Sublime\ Text\ 3/Packages/Sublime-JSHint`
+
+#### Linux
+`git clone https://github.com/victorporof/Sublime-JSHint.git ~/.config/sublime-text-3/Packages/Sublime-JSHint`
+
+#### Windows
+`git clone https://github.com/victorporof/Sublime-JSHint.git %APPDATA%/Sublime\ Text\ 3/Packages/Sublime-JSHint`
+
+## Usage
+Tools -> Command Palette (`Ctrl+Shift+P` or `Cmd+Shift+P`) and type `jshint`.
+
+-- or --
+
+`Ctrl+Shift+J` (or `Cmd+Shift+J` if you're on a Mac).
+
+-- or --
+
+Right click in the current buffer and select `JSHint` -> `Lint Code`.
+
+-- or --
+
+Open a JavaScript file, pop out the console in Sublime Text from View -> Show Console, and type `view.run_command("jshint")`.
+
+Writing commands in the console is ugly. Set up your own key combo for this, by going to Preferences -> Key Bindings - User, and adding a command in that array: `{ "keys": ["super+shift+j"], "command": "jshint" }`. You can use any other command you want, thought most of them are already taken.
+
+## Oh noez, command not found!
+If you get an error `sh: node: command not found` or similar, you don't have `node` in the right path. Try setting the absolute path to node in `JSHint.sublime-settings`.
+
+* `Ctrl+Shift+P` or `Cmd+Shift+P` in Linux/Windows/OS X
+* type `jshint`, select `Set node Path`
+
+This means from:
+`"node_path": "/usr/local/bin/node"`
+change to
+`"node_path": "/your/absolute/path/to/node"`
+
+Simply using `node` without specifying a path sometimes doesn't work :(
+
+For example, on Linux the path could be in `/home/<user>/.nvm/<node version>/bin/node`.
+
+On Windows, the absolute path to node.exe *must* use forward slashes.
+
+### Be very careful on Linux!
+Depending on your distribution and default package sources, `apt-get install node` (for example) *will not* install node.js, contrary to all human common sense and popular belief. You want `nodejs` instead. Best thing is to make it yourself from http://nodejs.org/#download.
+
+## Automatically linting on edit, load or save
+This plugin can be set to automatically lint when a file is loaded, saved, or the current buffer is modified.
+
+* `Ctrl+Shift+P` or `Cmd+Shift+P` in Linux/Windows/OS X
+* type `jshint`, select `Set Plugin Options`
+
+Note that live linting while *editing* is only available in Sublime Text 3.
+
+## Using your own .jshintrc options
+The plugin looks for a `.jshintrc` file in the same directory as the source file you're linting and, or one located recursively up one directory, all the way until the filesystem root. As well, it uses those options along the default ones. [Here](https://github.com/jshint/jshint/blob/master/examples/.jshintrc)'s an example of how it can look like.
+
+These are the default options used by this plugin:
+```javascript
+{
+  // Details: https://github.com/victorporof/Sublime-JSHint#using-your-own-jshintrc-options
+  // Example: https://github.com/jshint/jshint/blob/master/examples/.jshintrc
+  // Documentation: http://www.jshint.com/docs/
+  "browser": true,
+  "esnext": true,
+  "globals": {},
+  "globalstrict": true,
+  "quotmark": true,
+  "smarttabs": true,
+  "trailing": true,
+  "undef": true,
+  "unused": true
+}
+```
+
+And here's how a `.jshintrc` file in your home folder could look like:
+```javascript
+{
+  "esnext": false,
+  "moz": true,
+  "boss": true,
+  "node": true,
+  "validthis": true,
+  "globals": {
+    "EventEmitter": true,
+    "Promise": true
+  }
+}
+```
+
+See the documentation at [jshint.com](http://www.jshint.com/docs/) and a few examples [here](https://github.com/jshint/jshint/blob/master/examples/.jshintrc).
+
+## Alternative for NPM packages
+Alternatively for an NPM package, you can omit the `.jshintrc` file and instead place your jshint options in your `package.json` file as the property `jshintConfig`<sup>[1](http://jshint.com/blog/2013-08-02/npm/)</sup>.
+Check an example [here](https://github.com/jshint/jshint/blob/master/package.json#L51).
+
+A few persistent options are always applied from a `.jshintrc` file located in the same directory as the plugin, if not overwritten by your own `.jshintrc` file. Those are defined [here](https://github.com/victorporof/Sublime-JSHint/blob/master/.jshintrc). You can safely add stuff to that json file if you want:
+
+* `Ctrl+Shift+P` or `Cmd+Shift+P` in Linux/Windows/OS X
+* type `jshint`, select `Set Linting Preferences`
+
+Thank you!
+
+Browser-friendly inheritance fully compatible with standard node.js
+[inherits](http://nodejs.org/api/util.html#util_util_inherits_constructor_superconstructor).
+
+This package exports standard `inherits` from node.js `util` module in
+node environment, but also provides alternative browser-friendly
+implementation through [browser
+field](https://gist.github.com/shtylman/4339901). Alternative
+implementation is a literal copy of standard one located in standalone
+module to avoid requiring of `util`. It also has a shim for old
+browsers with no `Object.create` support.
+
+While keeping you sure you are using standard `inherits`
+implementation in node.js environment, it allows bundlers such as
+[browserify](https://github.com/substack/node-browserify) to not
+include full `util` package to your client code if all you need is
+just `inherits` function. It worth, because browser shim for `util`
+package is large and `inherits` is often the single function you need
+from it.
+
+It's recommended to use this package instead of
+`require('util').inherits` for any code that has chances to be used
+not only in node.js but in browser too.
+
+## usage
+
+```js
+var inherits = require('inherits');
+// then use exactly as the standard one
+```
+
+## note on version ~1.0
+
+Version ~1.0 had completely different motivation and is not compatible
+neither with 2.0 nor with standard node.js `inherits`.
+
+If you are using version ~1.0 and planning to switch to ~2.0, be
+careful:
+
+* new version uses `super_` instead of `super` for referencing
+  superclass
+* new version overwrites current prototype while old one preserves any
+  existing fields on it
+
+# Glob
+
+Match files using the patterns the shell uses, like stars and stuff.
+
+This is a glob implementation in JavaScript.  It uses the `minimatch`
+library to do its matching.
+
+## Attention: node-glob users!
+
+The API has changed dramatically between 2.x and 3.x. This library is
+now 100% JavaScript, and the integer flags have been replaced with an
+options object.
+
+Also, there's an event emitter class, proper tests, and all the other
+things you've come to expect from node modules.
+
+And best of all, no compilation!
+
+## Usage
+
+```javascript
+var glob = require("glob")
+
+// options is optional
+glob("**/*.js", options, function (er, files) {
+  // files is an array of filenames.
+  // If the `nonull` option is set, and nothing
+  // was found, then files is ["**/*.js"]
+  // er is an error object or null.
+})
+```
+
+## Features
+
+Please see the [minimatch
+documentation](https://github.com/isaacs/minimatch) for more details.
+
+Supports these glob features:
+
+* Brace Expansion
+* Extended glob matching
+* "Globstar" `**` matching
+
+See:
+
+* `man sh`
+* `man bash`
+* `man 3 fnmatch`
+* `man 5 gitignore`
+* [minimatch documentation](https://github.com/isaacs/minimatch)
+
+## glob(pattern, [options], cb)
+
+* `pattern` {String} Pattern to be matched
+* `options` {Object}
+* `cb` {Function}
+  * `err` {Error | null}
+  * `matches` {Array<String>} filenames found matching the pattern
+
+Perform an asynchronous glob search.
+
+## glob.sync(pattern, [options])
+
+* `pattern` {String} Pattern to be matched
+* `options` {Object}
+* return: {Array<String>} filenames found matching the pattern
+
+Perform a synchronous glob search.
+
+## Class: glob.Glob
+
+Create a Glob object by instanting the `glob.Glob` class.
+
+```javascript
+var Glob = require("glob").Glob
+var mg = new Glob(pattern, options, cb)
+```
+
+It's an EventEmitter, and starts walking the filesystem to find matches
+immediately.
+
+### new glob.Glob(pattern, [options], [cb])
+
+* `pattern` {String} pattern to search for
+* `options` {Object}
+* `cb` {Function} Called when an error occurs, or matches are found
+  * `err` {Error | null}
+  * `matches` {Array<String>} filenames found matching the pattern
+
+Note that if the `sync` flag is set in the options, then matches will
+be immediately available on the `g.found` member.
+
+### Properties
+
+* `minimatch` The minimatch object that the glob uses.
+* `options` The options object passed in.
+* `error` The error encountered.  When an error is encountered, the
+  glob object is in an undefined state, and should be discarded.
+* `aborted` Boolean which is set to true when calling `abort()`.  There
+  is no way at this time to continue a glob search after aborting, but
+  you can re-use the statCache to avoid having to duplicate syscalls.
+* `statCache` Collection of all the stat results the glob search
+  performed.
+* `cache` Convenience object.  Each field has the following possible
+  values:
+  * `false` - Path does not exist
+  * `true` - Path exists
+  * `1` - Path exists, and is not a directory
+  * `2` - Path exists, and is a directory
+  * `[file, entries, ...]` - Path exists, is a directory, and the
+    array value is the results of `fs.readdir`
+
+### Events
+
+* `end` When the matching is finished, this is emitted with all the
+  matches found.  If the `nonull` option is set, and no match was found,
+  then the `matches` list contains the original pattern.  The matches
+  are sorted, unless the `nosort` flag is set.
+* `match` Every time a match is found, this is emitted with the matched.
+* `error` Emitted when an unexpected error is encountered, or whenever
+  any fs error occurs if `options.strict` is set.
+* `abort` When `abort()` is called, this event is raised.
+
+### Methods
+
+* `abort` Stop the search.
+
+### Options
+
+All the options that can be passed to Minimatch can also be passed to
+Glob to change pattern matching behavior.  Also, some have been added,
+or have glob-specific ramifications.
+
+All options are false by default, unless otherwise noted.
+
+All options are added to the glob object, as well.
+
+* `cwd` The current working directory in which to search.  Defaults
+  to `process.cwd()`.
+* `root` The place where patterns starting with `/` will be mounted
+  onto.  Defaults to `path.resolve(options.cwd, "/")` (`/` on Unix
+  systems, and `C:\` or some such on Windows.)
+* `dot` Include `.dot` files in normal matches and `globstar` matches.
+  Note that an explicit dot in a portion of the pattern will always
+  match dot files.
+* `nomount` By default, a pattern starting with a forward-slash will be
+  "mounted" onto the root setting, so that a valid filesystem path is
+  returned.  Set this flag to disable that behavior.
+* `mark` Add a `/` character to directory matches.  Note that this
+  requires additional stat calls.
+* `nosort` Don't sort the results.
+* `stat` Set to true to stat *all* results.  This reduces performance
+  somewhat, and is completely unnecessary, unless `readdir` is presumed
+  to be an untrustworthy indicator of file existence.  It will cause
+  ELOOP to be triggered one level sooner in the case of cyclical
+  symbolic links.
+* `silent` When an unusual error is encountered
+  when attempting to read a directory, a warning will be printed to
+  stderr.  Set the `silent` option to true to suppress these warnings.
+* `strict` When an unusual error is encountered
+  when attempting to read a directory, the process will just continue on
+  in search of other matches.  Set the `strict` option to raise an error
+  in these cases.
+* `cache` See `cache` property above.  Pass in a previously generated
+  cache object to save some fs calls.
+* `statCache` A cache of results of filesystem information, to prevent
+  unnecessary stat calls.  While it should not normally be necessary to
+  set this, you may pass the statCache from one glob() call to the
+  options object of another, if you know that the filesystem will not
+  change between calls.  (See "Race Conditions" below.)
+* `sync` Perform a synchronous glob search.
+* `nounique` In some cases, brace-expanded patterns can result in the
+  same file showing up multiple times in the result set.  By default,
+  this implementation prevents duplicates in the result set.
+  Set this flag to disable that behavior.
+* `nonull` Set to never return an empty set, instead returning a set
+  containing the pattern itself.  This is the default in glob(3).
+* `nocase` Perform a case-insensitive match.  Note that case-insensitive
+  filesystems will sometimes result in glob returning results that are
+  case-insensitively matched anyway, since readdir and stat will not
+  raise an error.
+* `debug` Set to enable debug logging in minimatch and glob.
+* `globDebug` Set to enable debug logging in glob, but not minimatch.
+
+## Comparisons to other fnmatch/glob implementations
+
+While strict compliance with the existing standards is a worthwhile
+goal, some discrepancies exist between node-glob and other
+implementations, and are intentional.
+
+If the pattern starts with a `!` character, then it is negated.  Set the
+`nonegate` flag to suppress this behavior, and treat leading `!`
+characters normally.  This is perhaps relevant if you wish to start the
+pattern with a negative extglob pattern like `!(a|B)`.  Multiple `!`
+characters at the start of a pattern will negate the pattern multiple
+times.
+
+If a pattern starts with `#`, then it is treated as a comment, and
+will not match anything.  Use `\#` to match a literal `#` at the
+start of a line, or set the `nocomment` flag to suppress this behavior.
+
+The double-star character `**` is supported by default, unless the
+`noglobstar` flag is set.  This is supported in the manner of bsdglob
+and bash 4.1, where `**` only has special significance if it is the only
+thing in a path part.  That is, `a/**/b` will match `a/x/y/b`, but
+`a/**b` will not.
+
+If an escaped pattern has no matches, and the `nonull` flag is set,
+then glob returns the pattern as-provided, rather than
+interpreting the character escapes.  For example,
+`glob.match([], "\\*a\\?")` will return `"\\*a\\?"` rather than
+`"*a?"`.  This is akin to setting the `nullglob` option in bash, except
+that it does not resolve escaped pattern characters.
+
+If brace expansion is not disabled, then it is performed before any
+other interpretation of the glob pattern.  Thus, a pattern like
+`+(a|{b),c)}`, which would not be valid in bash or zsh, is expanded
+**first** into the set of `+(a|b)` and `+(a|c)`, and those patterns are
+checked for validity.  Since those two are valid, matching proceeds.
+
+## Windows
+
+**Please only use forward-slashes in glob expressions.**
+
+Though windows uses either `/` or `\` as its path separator, only `/`
+characters are used by this glob implementation.  You must use
+forward-slashes **only** in glob expressions.  Back-slashes will always
+be interpreted as escape characters, not path separators.
+
+Results from absolute patterns such as `/foo/*` are mounted onto the
+root setting using `path.join`.  On windows, this will by default result
+in `/foo/*` matching `C:\foo\bar.txt`.
+
+## Race Conditions
+
+Glob searching, by its very nature, is susceptible to race conditions,
+since it relies on directory walking and such.
+
+As a result, it is possible that a file that exists when glob looks for
+it may have been deleted or modified by the time it returns the result.
+
+As part of its internal implementation, this program caches all stat
+and readdir calls that it makes, in order to cut down on system
+overhead.  However, this also makes it even more susceptible to races,
+especially if the cache or statCache objects are reused between glob
+calls.
+
+Users are thus advised not to use a glob result as a guarantee of
+filesystem state in the face of rapid changes.  For the vast majority
+of operations, this is never a problem.
+
+var test = require("tap").test
+var glob = require("../")
+
+var mkdirp = require("mkdirp")
+var fs = require("fs")
+var rimraf = require("rimraf")
+var dir = __dirname + "/package"
+
+test("setup", function (t) {
+  mkdirp.sync(dir)
+  fs.writeFileSync(dir + "/package.json", "{}", "ascii")
+  fs.writeFileSync(dir + "/README", "x", "ascii")
+  t.pass("setup done")
+  t.end()
+})
+
+test("glob", function (t) {
+  var opt = {
+    cwd: dir,
+    nocase: true,
+    mark: true
+  }
+
+  glob("README?(.*)", opt, function (er, files) {
+    if (er)
+      throw er
+    t.same(files, ["README"])
+    t.end()
+  })
+})
+
+test("cleanup", function (t) {
+  rimraf.sync(dir)
+  t.pass("clean")
+  t.end()
+})
+
+**cli is a toolkit for rapidly building command line apps - it includes:**
+
+- Full featured opts/args parser
+- Plugin support for adding common options and switches
+- Helper methods for working with input/output and spawning child processes
+- Output colored/styled messages, [progress bars](https://github.com/chriso/cli/blob/master/examples/progress.js) or [spinners](https://github.com/chriso/cli/blob/master/examples/spinner.js)
+- Command [auto-completion](https://github.com/chriso/cli/blob/master/examples/command.js) and [glob support](https://github.com/chriso/cli/blob/master/examples/glob.js)
+
+Install using `npm install cli` or just bundle [cli.js](https://github.com/chriso/cli/raw/master/cli-min.js) with your app.
+
+## Example apps
+
+### sort.js
+
+```javascript
+#!/usr/bin/env node
+require('cli').withStdinLines(function(lines, newline) {
+    this.output(lines.sort().join(newline));
+});
+```
+
+Try it out
+
+```bash
+$ ./sort.js < input.txt
+```
+
+Let's add support for an `-n` switch to use a numeric sort, and a `-r` switch to reverse output - only 5 extra lines of code (!)
+
+```javascript
+var cli = require('cli'), options = cli.parse();
+
+cli.withStdinLines(function(lines, newline) {
+    lines.sort(!options.n ? null : function(a, b) {
+        return parseInt(a) > parseInt(b);
+    });
+    if (options.r) lines.reverse();
+    this.output(lines.join(newline));
+});
+```
+
+### static.js
+
+Let's create a static file server with daemon support to see the opts parser + plugins in use - note: this requires `npm install creationix daemon`
+
+```javascript
+var cli = require('cli').enable('daemon', 'status'); //Enable 2 plugins
+
+cli.parse({
+    log:   ['l', 'Enable logging'],
+    port:  ['p', 'Listen on this port', 'number', 8080],
+    serve: [false, 'Serve static files from PATH', 'path', './public']
+});
+
+cli.main(function(args, options) {
+    var server, middleware = [];
+
+    if (options.log) {
+        this.debug('Enabling logging');
+        middleware.push(require('creationix/log')());
+    }
+
+    this.debug('Serving files from ' + options.serve);
+    middleware.push(require('creationix/static')('/', options.serve, 'index.html'));
+
+    server = this.createServer(middleware).listen(options.port);
+
+    this.ok('Listening on port ' + options.port);
+});
+```
+
+To output usage information
+
+```bash
+$ ./static.js --help
+```
+
+To create a daemon that serves files from */tmp*, run
+
+```bash
+$ ./static.js -ld --serve=/tmp
+```
+
+For more examples, see [./examples](https://github.com/chriso/cli/tree/master/examples)
+
+## Helper methods
+
+cli has methods that collect stdin (newline is autodetected as \n or \r\n)
+
+```javascript
+cli.withStdin(callback);        //callback receives stdin as a string
+cli.withStdinLines(callback);   //callback receives stdin split into an array of lines (lines, newline)
+```
+
+cli also has a lower level method for working with input line by line (see [./examples/cat.js](https://github.com/chriso/cli/blob/master/examples/cat.js) for an example). 
+
+```javascript
+cli.withInput(file, function (line, newline, eof) {
+    if (!eof) {
+        this.output(line + newline);
+    }
+});
+```
+
+*Note: `file` can be omitted if you want to work with stdin*
+
+To output a progress bar, call
+
+```javascript
+cli.progress(progress); //Where 0 <= progress <= 1
+```
+
+To spawn a child process, use
+
+```javascript
+cli.exec(cmd, callback); //callback receives the output of the process (split into lines)
+```
+
+cli also comes bundled with kof's [node-natives](https://github.com/kof/node-natives) (access with cli.native) and creationix' [stack](https://github.com/creationix/stack) (access with cli.createServer)
+
+## Plugins
+
+Plugins are a way of adding common opts and can be enabled using 
+
+```javascript
+cli.enable(plugin1, [plugin2, ...]);  //To disable, use the equivalent disable() method
+```
+
+**help** - *enabled by default*
+
+Adds `-h,--help` to output auto-generated usage information
+
+**version**
+
+Adds `-v,--version` to output version information for the app. cli will attempt to locate and parse a nearby *package.json*
+
+To set your own app name and version, use `cli.setApp(app_name, version)`
+
+**status**
+
+Adds options to show/hide the stylized status messages that are output to the console when using one of these methods
+
+```javascript
+cli.debug(msg);  //Only shown when using --debug
+cli.error(msg);
+cli.fatal(msg);  //Exits the process after outputting msg
+cli.info(msg);
+cli.ok(msg);
+```
+
+`-k,--no-color` will omit ANSI color escapes from the output
+
+**glob**  - *requires* `npm install glob`
+
+Enables glob matching of arguments
+
+**daemon**  - *requires* `npm install daemon`
+
+Adds `-d,--daemon ARG` for daemonizing the process and controlling the resulting daemon
+
+`ARG` can be either start (default), stop, restart, pid (outputs the daemon's pid if it's running), or log (output the daemon's stdout+stderr)
+
+**timeout**
+
+Adds `-t,--timeout N` to exit the process after N seconds with an error
+
+**catchall**
+
+Adds `-c,--catch` to catch and output uncaughtExceptions and resume execution
+
+*Note: Plugins are automatically disabled if an option or switch of the same name is already defined*
+
+## LICENSE
+
+(MIT license)
+
+Copyright (c) 2010 Chris O'Hara <cohara87@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# console-browserify
+
+[![build status][1]][2]
+
+[![browser support][3]][4]
+
+Emulate console for all the browsers
+
+## Example
+
+```js
+var console = require("console-browserify")
+
+console.log("hello world!")
+```
+
+## Installation
+
+`npm install console-browserify`
+
+## Contributors
+
+ - Raynos
+
+## MIT Licenced
+
+
+
+  [1]: https://secure.travis-ci.org/Raynos/console-browserify.png
+  [2]: http://travis-ci.org/Raynos/console-browserify
+  [3]: http://ci.testling.com/Raynos/console-browserify.png
+  [4]: http://ci.testling.com/Raynos/console-browserify
+
+# exit [![Build Status](https://secure.travis-ci.org/cowboy/node-exit.png?branch=master)](http://travis-ci.org/cowboy/node-exit)
+
+A replacement for process.exit that ensures stdio are fully drained before exiting.
+
+To make a long story short, if `process.exit` is called on Windows, script output is often truncated when pipe-redirecting `stdout` or `stderr`. This module attempts to work around this issue by waiting until those streams have been completely drained before actually calling `process.exit`.
+
+See [Node.js issue #3584](https://github.com/joyent/node/issues/3584) for further reference.
+
+Tested in OS X 10.8, Windows 7 on Node.js 0.8.25 and 0.10.18.
+
+Based on some code by [@vladikoff](https://github.com/vladikoff).
+
+## Getting Started
+Install the module with: `npm install exit`
+
+```javascript
+var exit = require('exit');
+
+// These lines should appear in the output, EVEN ON WINDOWS.
+console.log("omg");
+console.error("yay");
+
+// process.exit(5);
+exit(5);
+
+// These lines shouldn't appear in the output.
+console.log("wtf");
+console.error("bro");
+```
+
+## Don't believe me? Try it for yourself.
+
+In Windows, clone the repo and cd to the `test\fixtures` directory. The only difference between [log.js](test/fixtures/log.js) and [log-broken.js](test/fixtures/log-broken.js) is that the former uses `exit` while the latter calls `process.exit` directly.
+
+This test was done using cmd.exe, but you can see the same results using `| grep "std"` in either PowerShell or git-bash.
+
+```
+C:\node-exit\test\fixtures>node log.js 0 10 stdout stderr 2>&1 | find "std"
+stdout 0
+stderr 0
+stdout 1
+stderr 1
+stdout 2
+stderr 2
+stdout 3
+stderr 3
+stdout 4
+stderr 4
+stdout 5
+stderr 5
+stdout 6
+stderr 6
+stdout 7
+stderr 7
+stdout 8
+stderr 8
+stdout 9
+stderr 9
+
+C:\node-exit\test\fixtures>node log-broken.js 0 10 stdout stderr 2>&1 | find "std"
+
+C:\node-exit\test\fixtures>
+```
+
+## Contributing
+In lieu of a formal styleguide, take care to maintain the existing coding style. Add unit tests for any new or changed functionality. Lint and test your code using [Grunt](http://gruntjs.com/).
+
+## Release History
+2013-11-26 - v0.1.2 - Fixed a bug with hanging processes.  
+2013-09-26 - v0.1.1 - Fixed some bugs. It seems to actually work now!  
+2013-09-20 - v0.1.0 - Initial release.
+
+## License
+Copyright (c) 2013 "Cowboy" Ben Alman  
+Licensed under the MIT license.
+
+all the types of nodes in htmlparser2's dom
+
+#DOMHandler [![Build Status](https://secure.travis-ci.org/fb55/DomHandler.png)](http://travis-ci.org/fb55/DomHandler)
+
+The DOM handler (formally known as DefaultHandler) creates a tree containing all nodes of a page. The tree may be manipulated using the DOMUtils library.
+
+##Usage
+```javascript
+var handler = new DomHandler([ <func> callback(err, dom), ] [ <obj> options ]);
+// var parser = new Parser(handler[, options]);
+```
+
+##Example
+```javascript
+var htmlparser = require("htmlparser2");
+var rawHtml = "Xyz <script language= javascript>var foo = '<<bar>>';< /  script><!--<!-- Waah! -- -->";
+var handler = new htmlparser.DomHandler(function (error, dom) {
+    if (error)
+    	[...do something for errors...]
+    else
+    	[...parsing done, do something...]
+        console.log(dom);
+});
+var parser = new htmlparser.Parser(handler);
+parser.write(rawHtml);
+parser.done();
+```
+
+Output:
+
+```javascript
+[{
+    data: 'Xyz ',
+    type: 'text'
+}, {
+    type: 'script',
+    name: 'script',
+    attribs: {
+    	language: 'javascript'
+    },
+    children: [{
+    	data: 'var foo = \'<bar>\';<',
+    	type: 'text'
+    }]
+}, {
+    data: '<!-- Waah! -- ',
+    type: 'comment'
+}]
+```
+
+##Option: ignoreWhitespace
+Indicates whether the DOM should exclude text nodes that consists solely of whitespace. The default value is "false". 
+
+The following HTML will be used:
+
+```html
+<font>
+	<br>this is the text
+<font>
+```
+
+###Example: true
+
+```javascript
+[{
+    type: 'tag',
+    name: 'font',
+    children: [{
+    	type: 'tag',
+    	name: 'br'
+    }, {
+    	data: 'this is the text\n',
+    	type: 'text'
+    }, {
+    	type: 'tag',
+    	name: 'font'
+    }]
+}]
+```
+
+###Example: false
+
+```javascript
+[{
+	type: 'tag',
+    name: 'font',
+    children: [{
+    	data: '\n\t',
+    	type: 'text'
+    }, {
+    	type: 'tag',
+    	name: 'br'
+    }, {
+    	data: 'this is the text\n',
+    	type: 'text'
+    }, {
+    	type: 'tag',
+    	name: 'font'
+    }]
+}]
+```
+utilities for working with htmlparser2's dom
+
+# core-util-is
+
+The `util.is*` functions introduced in Node v0.12.
+
+Browser-friendly inheritance fully compatible with standard node.js
+[inherits](http://nodejs.org/api/util.html#util_util_inherits_constructor_superconstructor).
+
+This package exports standard `inherits` from node.js `util` module in
+node environment, but also provides alternative browser-friendly
+implementation through [browser
+field](https://gist.github.com/shtylman/4339901). Alternative
+implementation is a literal copy of standard one located in standalone
+module to avoid requiring of `util`. It also has a shim for old
+browsers with no `Object.create` support.
+
+While keeping you sure you are using standard `inherits`
+implementation in node.js environment, it allows bundlers such as
+[browserify](https://github.com/substack/node-browserify) to not
+include full `util` package to your client code if all you need is
+just `inherits` function. It worth, because browser shim for `util`
+package is large and `inherits` is often the single function you need
+from it.
+
+It's recommended to use this package instead of
+`require('util').inherits` for any code that has chances to be used
+not only in node.js but in browser too.
+
+## usage
+
+```js
+var inherits = require('inherits');
+// then use exactly as the standard one
+```
+
+## note on version ~1.0
+
+Version ~1.0 had completely different motivation and is not compatible
+neither with 2.0 nor with standard node.js `inherits`.
+
+If you are using version ~1.0 and planning to switch to ~2.0, be
+careful:
+
+* new version uses `super_` instead of `super` for referencing
+  superclass
+* new version overwrites current prototype while old one preserves any
+  existing fields on it
+
+
+# isarray
+
+`Array#isArray` for older browsers.
+
+## Usage
+
+```js
+var isArray = require('isarray');
+
+console.log(isArray([])); // => true
+console.log(isArray({})); // => false
+```
+
+## Installation
+
+With [npm](http://npmjs.org) do
+
+```bash
+$ npm install isarray
+```
+
+Then bundle for the browser with
+[browserify](https://github.com/substack/browserify).
+
+With [component](http://component.io) do
+
+```bash
+$ component install juliangruber/isarray
+```
+
+## License
+
+(MIT)
+
+Copyright (c) 2013 Julian Gruber &lt;julian@juliangruber.com&gt;
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of
+this software and associated documentation files (the "Software"), to deal in
+the Software without restriction, including without limitation the rights to
+use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies
+of the Software, and to permit persons to whom the Software is furnished to do
+so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+**string_decoder.js** (`require('string_decoder')`) from Node.js core
+
+Copyright Joyent, Inc. and other Node contributors. See LICENCE file for details.
+
+Version numbers match the versions found in Node core, e.g. 0.10.24 matches Node 0.10.24, likewise 0.11.10 matches Node 0.11.10. **Prefer the stable version over the unstable.**
+
+The *build/* directory contains a build script that will scrape the source from the [joyent/node](https://github.com/joyent/node) repo given a specific Node version.
+# readable-stream
+
+***Node-core streams for userland***
+
+[![NPM](https://nodei.co/npm/readable-stream.png?downloads=true)](https://nodei.co/npm/readable-stream/)
+[![NPM](https://nodei.co/npm-dl/readable-stream.png)](https://nodei.co/npm/readable-stream/)
+
+This package is a mirror of the Streams2 and Streams3 implementations in Node-core.
+
+If you want to guarantee a stable streams base, regardless of what version of Node you, or the users of your libraries are using, use **readable-stream** *only* and avoid the *"stream"* module in Node-core.
+
+**readable-stream** comes in two major versions, v1.0.x and v1.1.x. The former tracks the Streams2 implementation in Node 0.10, including bug-fixes and minor improvements as they are added. The latter tracks Streams3 as it develops in Node 0.11; we will likely see a v1.2.x branch for Node 0.12.
+
+**readable-stream** uses proper patch-level versioning so if you pin to `"~1.0.0"` you’ll get the latest Node 0.10 Streams2 implementation, including any fixes and minor non-breaking improvements. The patch-level versions of 1.0.x and 1.1.x should mirror the patch-level versions of Node-core releases. You should prefer the **1.0.x** releases for now and when you’re ready to start using Streams3, pin to `"~1.1.0"`
+
+
+#htmlparser2 [![NPM version](https://badge.fury.io/js/htmlparser2.png)](https://npmjs.org/package/htmlparser2) [![Build Status](https://secure.travis-ci.org/fb55/htmlparser2.png)](http://travis-ci.org/fb55/htmlparser2) [![Dependency Status](https://david-dm.org/fb55/htmlparser2.png)](https://david-dm.org/fb55/htmlparser2)
+
+A forgiving HTML/XML/RSS parser written in JS for NodeJS. The parser can handle streams (chunked data) and supports custom handlers for writing custom DOMs/output.
+
+##Installing
+	npm install htmlparser2
+	
+A live demo of htmlparser2 is available at http://demos.forbeslindesay.co.uk/htmlparser2/
+
+##Usage
+
+```javascript
+var htmlparser = require("htmlparser2");
+var parser = new htmlparser.Parser({
+	onopentag: function(name, attribs){
+		if(name === "script" && attribs.type === "text/javascript"){
+			console.log("JS! Hooray!");
+		}
+	},
+	ontext: function(text){
+		console.log("-->", text);
+	},
+	onclosetag: function(tagname){
+		if(tagname === "script"){
+			console.log("That's it?!");
+		}
+	}
+});
+parser.write("Xyz <script type='text/javascript'>var foo = '<<bar>>';</ script>");
+parser.end();
+```
+
+Output (simplified):
+
+```javascript
+--> Xyz 
+JS! Hooray!
+--> var foo = '<<bar>>';
+That's it?!
+```
+
+Read more about the parser in the [wiki](https://github.com/fb55/htmlparser2/wiki/Parser-options).
+
+##Get a DOM
+The `DomHandler` (known as `DefaultHandler` in the original `htmlparser` module) produces a DOM (document object model) that can be manipulated using the [`DomUtils`](https://github.com/fb55/DomUtils) helper.
+
+The `DomHandler`, while still bundled with this module, was moved to its [own module](https://github.com/fb55/domhandler). Have a look at it for further information.
+
+##Parsing RSS/RDF/Atom Feeds
+
+```javascript
+new htmlparser.FeedHandler(function(<error> error, <object> feed){
+    ...
+});
+```
+
+##Performance
+
+After having some artificial benchmarks for some time, __@AndreasMadsen__ published his [`htmlparser-benchmark`](https://github.com/AndreasMadsen/htmlparser-benchmark), which benchmarks HTML parses based on real-world websites.
+
+At the time of writing, the latest versions of all supported parsers show the following performance characteristics on [Travis CI](https://travis-ci.org/AndreasMadsen/htmlparser-benchmark/builds/10805007) (please note that Travis doesn't guarantee equal conditions for all tests):
+
+```
+gumbo-parser   : 34.9208 ms/file ± 21.4238
+html-parser    : 24.8224 ms/file ± 15.8703
+html5          : 419.597 ms/file ± 264.265
+htmlparser     : 60.0722 ms/file ± 384.844
+htmlparser2-dom: 12.0749 ms/file ± 6.49474
+htmlparser2    : 7.49130 ms/file ± 5.74368
+hubbub         : 30.4980 ms/file ± 16.4682
+libxmljs       : 14.1338 ms/file ± 18.6541
+parse5         : 22.0439 ms/file ± 15.3743
+sax            : 49.6513 ms/file ± 26.6032
+```
+
+##How is this different from [node-htmlparser](https://github.com/tautologistics/node-htmlparser)?
+This is a fork of the `htmlparser` module. The main difference is that this is intended to be used only with node (it runs on other platforms using [browserify](https://github.com/substack/node-browserify)). `htmlparser2` was rewritten multiple times and, while it maintains an API that's compatible with `htmlparser` in most cases, the projects don't share any code anymore.
+
+The parser now provides a callback interface close to [sax.js](https://github.com/isaacs/sax-js) (originally targeted at [readabilitySAX](https://github.com/fb55/readabilitysax)). As a result, old handlers won't work anymore.
+
+The `DefaultHandler` and the `RssHandler` were renamed to clarify their purpose (to `DomHandler` and `FeedHandler`). The old names are still available when requiring `htmlparser2`, so your code should work as expected.
+
+# lru cache
+
+A cache object that deletes the least-recently-used items.
+
+## Usage:
+
+```javascript
+var LRU = require("lru-cache")
+  , options = { max: 500
+              , length: function (n) { return n * 2 }
+              , dispose: function (key, n) { n.close() }
+              , maxAge: 1000 * 60 * 60 }
+  , cache = LRU(options)
+  , otherCache = LRU(50) // sets just the max size
+
+cache.set("key", "value")
+cache.get("key") // "value"
+
+cache.reset()    // empty the cache
+```
+
+If you put more stuff in it, then items will fall out.
+
+If you try to put an oversized thing in it, then it'll fall out right
+away.
+
+## Options
+
+* `max` The maximum size of the cache, checked by applying the length
+  function to all values in the cache.  Not setting this is kind of
+  silly, since that's the whole purpose of this lib, but it defaults
+  to `Infinity`.
+* `maxAge` Maximum age in ms.  Items are not pro-actively pruned out
+  as they age, but if you try to get an item that is too old, it'll
+  drop it and return undefined instead of giving it to you.
+* `length` Function that is used to calculate the length of stored
+  items.  If you're storing strings or buffers, then you probably want
+  to do something like `function(n){return n.length}`.  The default is
+  `function(n){return 1}`, which is fine if you want to store `n`
+  like-sized things.
+* `dispose` Function that is called on items when they are dropped
+  from the cache.  This can be handy if you want to close file
+  descriptors or do other cleanup tasks when items are no longer
+  accessible.  Called with `key, value`.  It's called *before*
+  actually removing the item from the internal cache, so if you want
+  to immediately put it back in, you'll have to do that in a
+  `nextTick` or `setTimeout` callback or it won't do anything.
+* `stale` By default, if you set a `maxAge`, it'll only actually pull
+  stale items out of the cache when you `get(key)`.  (That is, it's
+  not pre-emptively doing a `setTimeout` or anything.)  If you set
+  `stale:true`, it'll return the stale value before deleting it.  If
+  you don't set this, then it'll return `undefined` when you try to
+  get a stale entry, as if it had already been deleted.
+
+## API
+
+* `set(key, value)`
+* `get(key) => value`
+
+    Both of these will update the "recently used"-ness of the key.
+    They do what you think.
+
+* `peek(key)`
+
+    Returns the key value (or `undefined` if not found) without
+    updating the "recently used"-ness of the key.
+
+    (If you find yourself using this a lot, you *might* be using the
+    wrong sort of data structure, but there are some use cases where
+    it's handy.)
+
+* `del(key)`
+
+    Deletes a key out of the cache.
+
+* `reset()`
+
+    Clear the cache entirely, throwing away all values.
+
+* `has(key)`
+
+    Check if a key is in the cache, without updating the recent-ness
+    or deleting it for being stale.
+
+* `forEach(function(value,key,cache), [thisp])`
+
+    Just like `Array.prototype.forEach`.  Iterates over all the keys
+    in the cache, in order of recent-ness.  (Ie, more recently used
+    items are iterated over first.)
+
+* `keys()`
+
+    Return an array of the keys in the cache.
+
+* `values()`
+
+    Return an array of the values in the cache.
+
+# sigmund
+
+Quick and dirty signatures for Objects.
+
+This is like a much faster `deepEquals` comparison, which returns a
+string key suitable for caches and the like.
+
+## Usage
+
+```javascript
+function doSomething (someObj) {
+  var key = sigmund(someObj, maxDepth) // max depth defaults to 10
+  var cached = cache.get(key)
+  if (cached) return cached)
+
+  var result = expensiveCalculation(someObj)
+  cache.set(key, result)
+  return result
+}
+```
+
+The resulting key will be as unique and reproducible as calling
+`JSON.stringify` or `util.inspect` on the object, but is much faster.
+In order to achieve this speed, some differences are glossed over.
+For example, the object `{0:'foo'}` will be treated identically to the
+array `['foo']`.
+
+Also, just as there is no way to summon the soul from the scribblings
+of a cocain-addled psychoanalyst, there is no way to revive the object
+from the signature string that sigmund gives you.  In fact, it's
+barely even readable.
+
+As with `sys.inspect` and `JSON.stringify`, larger objects will
+produce larger signature strings.
+
+Because sigmund is a bit less strict than the more thorough
+alternatives, the strings will be shorter, and also there is a
+slightly higher chance for collisions.  For example, these objects
+have the same signature:
+
+    var obj1 = {a:'b',c:/def/,g:['h','i',{j:'',k:'l'}]}
+    var obj2 = {a:'b',c:'/def/',g:['h','i','{jkl']}
+
+Like a good Freudian, sigmund is most effective when you already have
+some understanding of what you're looking for.  It can help you help
+yourself, but you must be willing to do some work as well.
+
+Cycles are handled, and cyclical objects are silently omitted (though
+the key is included in the signature output.)
+
+The second argument is the maximum depth, which defaults to 10,
+because that is the maximum object traversal depth covered by most
+insurance carriers.
+
+# minimatch
+
+A minimal matching utility.
+
+[![Build Status](https://secure.travis-ci.org/isaacs/minimatch.png)](http://travis-ci.org/isaacs/minimatch)
+
+
+This is the matching library used internally by npm.
+
+Eventually, it will replace the C binding in node-glob.
+
+It works by converting glob expressions into JavaScript `RegExp`
+objects.
+
+## Usage
+
+```javascript
+var minimatch = require("minimatch")
+
+minimatch("bar.foo", "*.foo") // true!
+minimatch("bar.foo", "*.bar") // false!
+minimatch("bar.foo", "*.+(bar|foo)", { debug: true }) // true, and noisy!
+```
+
+## Features
+
+Supports these glob features:
+
+* Brace Expansion
+* Extended glob matching
+* "Globstar" `**` matching
+
+See:
+
+* `man sh`
+* `man bash`
+* `man 3 fnmatch`
+* `man 5 gitignore`
+
+## Minimatch Class
+
+Create a minimatch object by instanting the `minimatch.Minimatch` class.
+
+```javascript
+var Minimatch = require("minimatch").Minimatch
+var mm = new Minimatch(pattern, options)
+```
+
+### Properties
+
+* `pattern` The original pattern the minimatch object represents.
+* `options` The options supplied to the constructor.
+* `set` A 2-dimensional array of regexp or string expressions.
+  Each row in the
+  array corresponds to a brace-expanded pattern.  Each item in the row
+  corresponds to a single path-part.  For example, the pattern
+  `{a,b/c}/d` would expand to a set of patterns like:
+
+        [ [ a, d ]
+        , [ b, c, d ] ]
+
+    If a portion of the pattern doesn't have any "magic" in it
+    (that is, it's something like `"foo"` rather than `fo*o?`), then it
+    will be left as a string rather than converted to a regular
+    expression.
+
+* `regexp` Created by the `makeRe` method.  A single regular expression
+  expressing the entire pattern.  This is useful in cases where you wish
+  to use the pattern somewhat like `fnmatch(3)` with `FNM_PATH` enabled.
+* `negate` True if the pattern is negated.
+* `comment` True if the pattern is a comment.
+* `empty` True if the pattern is `""`.
+
+### Methods
+
+* `makeRe` Generate the `regexp` member if necessary, and return it.
+  Will return `false` if the pattern is invalid.
+* `match(fname)` Return true if the filename matches the pattern, or
+  false otherwise.
+* `matchOne(fileArray, patternArray, partial)` Take a `/`-split
+  filename, and match it against a single row in the `regExpSet`.  This
+  method is mainly for internal use, but is exposed so that it can be
+  used by a glob-walker that needs to avoid excessive filesystem calls.
+
+All other methods are internal, and will be called as necessary.
+
+## Functions
+
+The top-level exported function has a `cache` property, which is an LRU
+cache set to store 100 items.  So, calling these methods repeatedly
+with the same pattern and options will use the same Minimatch object,
+saving the cost of parsing it multiple times.
+
+### minimatch(path, pattern, options)
+
+Main export.  Tests a path against the pattern using the options.
+
+```javascript
+var isJS = minimatch(file, "*.js", { matchBase: true })
+```
+
+### minimatch.filter(pattern, options)
+
+Returns a function that tests its
+supplied argument, suitable for use with `Array.filter`.  Example:
+
+```javascript
+var javascripts = fileList.filter(minimatch.filter("*.js", {matchBase: true}))
+```
+
+### minimatch.match(list, pattern, options)
+
+Match against the list of
+files, in the style of fnmatch or glob.  If nothing is matched, and
+options.nonull is set, then return a list containing the pattern itself.
+
+```javascript
+var javascripts = minimatch.match(fileList, "*.js", {matchBase: true}))
+```
+
+### minimatch.makeRe(pattern, options)
+
+Make a regular expression object from the pattern.
+
+## Options
+
+All options are `false` by default.
+
+### debug
+
+Dump a ton of stuff to stderr.
+
+### nobrace
+
+Do not expand `{a,b}` and `{1..3}` brace sets.
+
+### noglobstar
+
+Disable `**` matching against multiple folder names.
+
+### dot
+
+Allow patterns to match filenames starting with a period, even if
+the pattern does not explicitly have a period in that spot.
+
+Note that by default, `a/**/b` will **not** match `a/.d/b`, unless `dot`
+is set.
+
+### noext
+
+Disable "extglob" style patterns like `+(a|b)`.
+
+### nocase
+
+Perform a case-insensitive match.
+
+### nonull
+
+When a match is not found by `minimatch.match`, return a list containing
+the pattern itself.  When set, an empty list is returned if there are
+no matches.
+
+### matchBase
+
+If set, then patterns without slashes will be matched
+against the basename of the path if it contains slashes.  For example,
+`a?b` would match the path `/xyz/123/acb`, but not `/xyz/acb/123`.
+
+### nocomment
+
+Suppress the behavior of treating `#` at the start of a pattern as a
+comment.
+
+### nonegate
+
+Suppress the behavior of treating a leading `!` character as negation.
+
+### flipNegate
+
+Returns from negate expressions the same as if they were not negated.
+(Ie, true on a hit, false on a miss.)
+
+
+## Comparisons to other fnmatch/glob implementations
+
+While strict compliance with the existing standards is a worthwhile
+goal, some discrepancies exist between minimatch and other
+implementations, and are intentional.
+
+If the pattern starts with a `!` character, then it is negated.  Set the
+`nonegate` flag to suppress this behavior, and treat leading `!`
+characters normally.  This is perhaps relevant if you wish to start the
+pattern with a negative extglob pattern like `!(a|B)`.  Multiple `!`
+characters at the start of a pattern will negate the pattern multiple
+times.
+
+If a pattern starts with `#`, then it is treated as a comment, and
+will not match anything.  Use `\#` to match a literal `#` at the
+start of a line, or set the `nocomment` flag to suppress this behavior.
+
+The double-star character `**` is supported by default, unless the
+`noglobstar` flag is set.  This is supported in the manner of bsdglob
+and bash 4.1, where `**` only has special significance if it is the only
+thing in a path part.  That is, `a/**/b` will match `a/x/y/b`, but
+`a/**b` will not.
+
+If an escaped pattern has no matches, and the `nonull` flag is set,
+then minimatch.match returns the pattern as-provided, rather than
+interpreting the character escapes.  For example,
+`minimatch.match([], "\\*a\\?")` will return `"\\*a\\?"` rather than
+`"*a?"`.  This is akin to setting the `nullglob` option in bash, except
+that it does not resolve escaped pattern characters.
+
+If brace expansion is not disabled, then it is performed before any
+other interpretation of the glob pattern.  Thus, a pattern like
+`+(a|{b),c)}`, which would not be valid in bash or zsh, is expanded
+**first** into the set of `+(a|b)` and `+(a|c)`, and those patterns are
+checked for validity.  Since those two are valid, matching proceeds.
+
+# ShellJS - Unix shell commands for Node.js [![Build Status](https://secure.travis-ci.org/arturadib/shelljs.png)](http://travis-ci.org/arturadib/shelljs)
+
+ShellJS is a portable **(Windows/Linux/OS X)** implementation of Unix shell commands on top of the Node.js API. You can use it to eliminate your shell script's dependency on Unix while still keeping its familiar and powerful commands. You can also install it globally so you can run it from outside Node projects - say goodbye to those gnarly Bash scripts!
+
+The project is [unit-tested](http://travis-ci.org/arturadib/shelljs) and battled-tested in projects like:
+
++ [PDF.js](http://github.com/mozilla/pdf.js) - Firefox's next-gen PDF reader
++ [Firebug](http://getfirebug.com/) - Firefox's infamous debugger
++ [JSHint](http://jshint.com) - Most popular JavaScript linter
++ [Zepto](http://zeptojs.com) - jQuery-compatible JavaScript library for modern browsers
++ [Yeoman](http://yeoman.io/) - Web application stack and development tool
++ [Deployd.com](http://deployd.com) - Open source PaaS for quick API backend generation
+
+and [many more](https://npmjs.org/browse/depended/shelljs).
+
+## Installing
+
+Via npm:
+
+```bash
+$ npm install [-g] shelljs
+```
+
+If the global option `-g` is specified, the binary `shjs` will be installed. This makes it possible to
+run ShellJS scripts much like any shell script from the command line, i.e. without requiring a `node_modules` folder:
+
+```bash
+$ shjs my_script
+```
+
+You can also just copy `shell.js` into your project's directory, and `require()` accordingly.
+
+
+## Examples
+
+### JavaScript
+
+```javascript
+require('shelljs/global');
+
+if (!which('git')) {
+  echo('Sorry, this script requires git');
+  exit(1);
+}
+
+// Copy files to release dir
+mkdir('-p', 'out/Release');
+cp('-R', 'stuff/*', 'out/Release');
+
+// Replace macros in each .js file
+cd('lib');
+ls('*.js').forEach(function(file) {
+  sed('-i', 'BUILD_VERSION', 'v0.1.2', file);
+  sed('-i', /.*REMOVE_THIS_LINE.*\n/, '', file);
+  sed('-i', /.*REPLACE_LINE_WITH_MACRO.*\n/, cat('macro.js'), file);
+});
+cd('..');
+
+// Run external tool synchronously
+if (exec('git commit -am "Auto-commit"').code !== 0) {
+  echo('Error: Git commit failed');
+  exit(1);
+}
+```
+
+### CoffeeScript
+
+```coffeescript
+require 'shelljs/global'
+
+if not which 'git'
+  echo 'Sorry, this script requires git'
+  exit 1
+
+# Copy files to release dir
+mkdir '-p', 'out/Release'
+cp '-R', 'stuff/*', 'out/Release'
+
+# Replace macros in each .js file
+cd 'lib'
+for file in ls '*.js'
+  sed '-i', 'BUILD_VERSION', 'v0.1.2', file
+  sed '-i', /.*REMOVE_THIS_LINE.*\n/, '', file
+  sed '-i', /.*REPLACE_LINE_WITH_MACRO.*\n/, cat 'macro.js', file
+cd '..'
+
+# Run external tool synchronously
+if (exec 'git commit -am "Auto-commit"').code != 0
+  echo 'Error: Git commit failed'
+  exit 1
+```
+
+## Global vs. Local
+
+The example above uses the convenience script `shelljs/global` to reduce verbosity. If polluting your global namespace is not desirable, simply require `shelljs`.
+
+Example:
+
+```javascript
+var shell = require('shelljs');
+shell.echo('hello world');
+```
+
+## Make tool
+
+A convenience script `shelljs/make` is also provided to mimic the behavior of a Unix Makefile. In this case all shell objects are global, and command line arguments will cause the script to execute only the corresponding function in the global `target` object. To avoid redundant calls, target functions are executed only once per script.
+
+Example (CoffeeScript):
+
+```coffeescript
+require 'shelljs/make'
+
+target.all = ->
+  target.bundle()
+  target.docs()
+
+target.bundle = ->
+  cd __dirname
+  mkdir 'build'
+  cd 'lib'
+  (cat '*.js').to '../build/output.js'
+
+target.docs = ->
+  cd __dirname
+  mkdir 'docs'
+  cd 'lib'
+  for file in ls '*.js'
+    text = grep '//@', file     # extract special comments
+    text.replace '//@', ''      # remove comment tags
+    text.to 'docs/my_docs.md'
+```
+
+To run the target `all`, call the above script without arguments: `$ node make`. To run the target `docs`: `$ node make docs`, and so on.
+
+
+
+<!-- 
+
+  DO NOT MODIFY BEYOND THIS POINT - IT'S AUTOMATICALLY GENERATED
+
+-->
+
+
+## Command reference
+
+
+All commands run synchronously, unless otherwise stated.
+
+
+### cd('dir')
+Changes to directory `dir` for the duration of the script
+
+### pwd()
+Returns the current directory.
+
+### ls([options ,] path [,path ...])
+### ls([options ,] path_array)
+Available options:
+
++ `-R`: recursive
++ `-A`: all files (include files beginning with `.`, except for `.` and `..`)
+
+Examples:
+
+```javascript
+ls('projs/*.js');
+ls('-R', '/users/me', '/tmp');
+ls('-R', ['/users/me', '/tmp']); // same as above
+```
+
+Returns array of files in the given path, or in current directory if no path provided.
+
+### find(path [,path ...])
+### find(path_array)
+Examples:
+
+```javascript
+find('src', 'lib');
+find(['src', 'lib']); // same as above
+find('.').filter(function(file) { return file.match(/\.js$/); });
+```
+
+Returns array of all files (however deep) in the given paths.
+
+The main difference from `ls('-R', path)` is that the resulting file names
+include the base directories, e.g. `lib/resources/file1` instead of just `file1`.
+
+### cp([options ,] source [,source ...], dest)
+### cp([options ,] source_array, dest)
+Available options:
+
++ `-f`: force
++ `-r, -R`: recursive
+
+Examples:
+
+```javascript
+cp('file1', 'dir1');
+cp('-Rf', '/tmp/*', '/usr/local/*', '/home/tmp');
+cp('-Rf', ['/tmp/*', '/usr/local/*'], '/home/tmp'); // same as above
+```
+
+Copies files. The wildcard `*` is accepted.
+
+### rm([options ,] file [, file ...])
+### rm([options ,] file_array)
+Available options:
+
++ `-f`: force
++ `-r, -R`: recursive
+
+Examples:
+
+```javascript
+rm('-rf', '/tmp/*');
+rm('some_file.txt', 'another_file.txt');
+rm(['some_file.txt', 'another_file.txt']); // same as above
+```
+
+Removes files. The wildcard `*` is accepted.
+
+### mv(source [, source ...], dest')
+### mv(source_array, dest')
+Available options:
+
++ `f`: force
+
+Examples:
+
+```javascript
+mv('-f', 'file', 'dir/');
+mv('file1', 'file2', 'dir/');
+mv(['file1', 'file2'], 'dir/'); // same as above
+```
+
+Moves files. The wildcard `*` is accepted.
+
+### mkdir([options ,] dir [, dir ...])
+### mkdir([options ,] dir_array)
+Available options:
+
++ `p`: full path (will create intermediate dirs if necessary)
+
+Examples:
+
+```javascript
+mkdir('-p', '/tmp/a/b/c/d', '/tmp/e/f/g');
+mkdir('-p', ['/tmp/a/b/c/d', '/tmp/e/f/g']); // same as above
+```
+
+Creates directories.
+
+### test(expression)
+Available expression primaries:
+
++ `'-b', 'path'`: true if path is a block device
++ `'-c', 'path'`: true if path is a character device
++ `'-d', 'path'`: true if path is a directory
++ `'-e', 'path'`: true if path exists
++ `'-f', 'path'`: true if path is a regular file
++ `'-L', 'path'`: true if path is a symboilc link
++ `'-p', 'path'`: true if path is a pipe (FIFO)
++ `'-S', 'path'`: true if path is a socket
+
+Examples:
+
+```javascript
+if (test('-d', path)) { /* do something with dir */ };
+if (!test('-f', path)) continue; // skip if it's a regular file
+```
+
+Evaluates expression using the available primaries and returns corresponding value.
+
+### cat(file [, file ...])
+### cat(file_array)
+
+Examples:
+
+```javascript
+var str = cat('file*.txt');
+var str = cat('file1', 'file2');
+var str = cat(['file1', 'file2']); // same as above
+```
+
+Returns a string containing the given file, or a concatenated string
+containing the files if more than one file is given (a new line character is
+introduced between each file). Wildcard `*` accepted.
+
+### 'string'.to(file)
+
+Examples:
+
+```javascript
+cat('input.txt').to('output.txt');
+```
+
+Analogous to the redirection operator `>` in Unix, but works with JavaScript strings (such as
+those returned by `cat`, `grep`, etc). _Like Unix redirections, `to()` will overwrite any existing file!_
+
+### sed([options ,] search_regex, replace_str, file)
+Available options:
+
++ `-i`: Replace contents of 'file' in-place. _Note that no backups will be created!_
+
+Examples:
+
+```javascript
+sed('-i', 'PROGRAM_VERSION', 'v0.1.3', 'source.js');
+sed(/.*DELETE_THIS_LINE.*\n/, '', 'source.js');
+```
+
+Reads an input string from `file` and performs a JavaScript `replace()` on the input
+using the given search regex and replacement string. Returns the new string after replacement.
+
+### grep([options ,] regex_filter, file [, file ...])
+### grep([options ,] regex_filter, file_array)
+Available options:
+
++ `-v`: Inverse the sense of the regex and print the lines not matching the criteria.
+
+Examples:
+
+```javascript
+grep('-v', 'GLOBAL_VARIABLE', '*.js');
+grep('GLOBAL_VARIABLE', '*.js');
+```
+
+Reads input string from given files and returns a string containing all lines of the
+file that match the given `regex_filter`. Wildcard `*` accepted.
+
+### which(command)
+
+Examples:
+
+```javascript
+var nodeExec = which('node');
+```
+
+Searches for `command` in the system's PATH. On Windows looks for `.exe`, `.cmd`, and `.bat` extensions.
+Returns string containing the absolute path to the command.
+
+### echo(string [,string ...])
+
+Examples:
+
+```javascript
+echo('hello world');
+var str = echo('hello world');
+```
+
+Prints string to stdout, and returns string with additional utility methods
+like `.to()`.
+
+### dirs([options | '+N' | '-N'])
+
+Available options:
+
++ `-c`: Clears the directory stack by deleting all of the elements.
+
+Arguments:
+
++ `+N`: Displays the Nth directory (counting from the left of the list printed by dirs when invoked without options), starting with zero.
++ `-N`: Displays the Nth directory (counting from the right of the list printed by dirs when invoked without options), starting with zero.
+
+Display the list of currently remembered directories. Returns an array of paths in the stack, or a single path if +N or -N was specified.
+
+See also: pushd, popd
+
+### pushd([options,] [dir | '-N' | '+N'])
+
+Available options:
+
++ `-n`: Suppresses the normal change of directory when adding directories to the stack, so that only the stack is manipulated.
+
+Arguments:
+
++ `dir`: Makes the current working directory be the top of the stack, and then executes the equivalent of `cd dir`.
++ `+N`: Brings the Nth directory (counting from the left of the list printed by dirs, starting with zero) to the top of the list by rotating the stack.
++ `-N`: Brings the Nth directory (counting from the right of the list printed by dirs, starting with zero) to the top of the list by rotating the stack.
+
+Examples:
+
+```javascript
+// process.cwd() === '/usr'
+pushd('/etc'); // Returns /etc /usr
+pushd('+1');   // Returns /usr /etc
+```
+
+Save the current directory on the top of the directory stack and then cd to `dir`. With no arguments, pushd exchanges the top two directories. Returns an array of paths in the stack.
+
+### popd([options,] ['-N' | '+N'])
+
+Available options:
+
++ `-n`: Suppresses the normal change of directory when removing directories from the stack, so that only the stack is manipulated.
+
+Arguments:
+
++ `+N`: Removes the Nth directory (counting from the left of the list printed by dirs), starting with zero.
++ `-N`: Removes the Nth directory (counting from the right of the list printed by dirs), starting with zero.
+
+Examples:
+
+```javascript
+echo(process.cwd()); // '/usr'
+pushd('/etc');       // '/etc /usr'
+echo(process.cwd()); // '/etc'
+popd();              // '/usr'
+echo(process.cwd()); // '/usr'
+```
+
+When no arguments are given, popd removes the top directory from the stack and performs a cd to the new top directory. The elements are numbered from 0 starting at the first directory listed with dirs; i.e., popd is equivalent to popd +0. Returns an array of paths in the stack.
+
+### exit(code)
+Exits the current process with the given exit code.
+
+### env['VAR_NAME']
+Object containing environment variables (both getter and setter). Shortcut to process.env.
+
+### exec(command [, options] [, callback])
+Available options (all `false` by default):
+
++ `async`: Asynchronous execution. Defaults to true if a callback is provided.
++ `silent`: Do not echo program output to console.
+
+Examples:
+
+```javascript
+var version = exec('node --version', {silent:true}).output;
+
+var child = exec('some_long_running_process', {async:true});
+child.stdout.on('data', function(data) {
+  /* ... do something with data ... */
+});
+
+exec('some_long_running_process', function(code, output) {
+  console.log('Exit code:', code);
+  console.log('Program output:', output);
+});
+```
+
+Executes the given `command` _synchronously_, unless otherwise specified.
+When in synchronous mode returns the object `{ code:..., output:... }`, containing the program's
+`output` (stdout + stderr)  and its exit `code`. Otherwise returns the child process object, and
+the `callback` gets the arguments `(code, output)`.
+
+**Note:** For long-lived processes, it's best to run `exec()` asynchronously as
+the current synchronous implementation uses a lot of CPU. This should be getting
+fixed soon.
+
+### chmod(octal_mode || octal_string, file)
+### chmod(symbolic_mode, file)
+
+Available options:
+
++ `-v`: output a diagnostic for every file processed
++ `-c`: like verbose but report only when a change is made
++ `-R`: change files and directories recursively
+
+Examples:
+
+```javascript
+chmod(755, '/Users/brandon');
+chmod('755', '/Users/brandon'); // same as above 
+chmod('u+x', '/Users/brandon');
+```
+
+Alters the permissions of a file or directory by either specifying the
+absolute permissions in octal form or expressing the changes in symbols.
+This command tries to mimic the POSIX behavior as much as possible.
+Notable exceptions:
+
++ In symbolic modes, 'a-r' and '-r' are identical.  No consideration is
+  given to the umask.
++ There is no "quiet" option since default behavior is to run silent.
+
+## Configuration
+
+
+### config.silent
+Example:
+
+```javascript
+var silentState = config.silent; // save old silent state
+config.silent = true;
+/* ... */
+config.silent = silentState; // restore old silent state
+```
+
+Suppresses all command output if `true`, except for `echo()` calls.
+Default is `false`.
+
+### config.fatal
+Example:
+
+```javascript
+config.fatal = true;
+cp('this_file_does_not_exist', '/dev/null'); // dies here
+/* more commands... */
+```
+
+If `true` the script will die on errors. Default is `false`.
+
+## Non-Unix commands
+
+
+### tempdir()
+Searches and returns string containing a writeable, platform-dependent temporary directory.
+Follows Python's [tempfile algorithm](http://docs.python.org/library/tempfile.html#tempfile.tempdir).
+
+### error()
+Tests if error occurred in the last command. Returns `null` if no error occurred,
+otherwise returns string explaining the error
+
+# strip-json-comments [![Build Status](https://secure.travis-ci.org/sindresorhus/strip-json-comments.png?branch=master)](http://travis-ci.org/sindresorhus/strip-json-comments)
+
+> Strip comments from JSON. Lets you use comments in your JSON files!
+
+This is now possible:
+
+```js
+{
+	// rainbows
+	"unicorn": /* ❤ */ "cake"
+}
+```
+
+*There's already [json-comments](https://npmjs.org/package/json-comments), but it's only for Node.js and uses a naive regex to strip comments which fails on simple cases like `{"a":"//"}`. This module however parses out the comments.*
+
+
+## Install
+
+Download [manually](https://github.com/sindresorhus/strip-json-comments/releases) or with a package-manager.
+
+#### [npm](https://npmjs.org/package/strip-json-comments)
+
+```
+npm install --save strip-json-comments
+```
+
+Or globally if you want to use it as a CLI app:
+
+```
+npm install --global strip-json-comments
+```
+
+You can then use it in your Terminal like:
+
+```
+strip-json-comments with-comments.json > without.json
+```
+
+Or pipe something to it:
+
+```
+cat with-comments.json | strip-json-comments > without.json
+```
+
+#### [Bower](http://bower.io)
+
+```
+bower install --save strip-json-comments
+```
+
+#### [Component](https://github.com/component/component)
+
+```
+component install sindresorhus/strip-json-comments
+```
+
+
+## Examples
+
+### Node.js
+
+```js
+var stripJsonComments = require('strip-json-comments');
+var json = '{//rainbows\n"unicorn":"cake"}';
+JSON.parse(stripJsonComments(json));
+//=> {unicorn: 'cake'}
+```
+
+### Bower
+
+```html
+<script src="bower_components/strip-json-comments/strip-json-comments.js"></script>
+```
+
+```js
+var json = '{//rainbows\n"unicorn":"cake"}';
+JSON.parse(stripJsonComments(json));
+//=> {unicorn: 'cake'}
+```
+
+
+## API
+
+### stripJsonComments(*string*)
+
+Accepts a string with JSON and strips out the comments.
+
+
+## License
+
+MIT © [Sindre Sorhus](http://sindresorhus.com)
+
+## How to contribute to Underscore.js
+
+* Before you open a ticket or send a pull request, [search](https://github.com/documentcloud/underscore/issues) for previous discussions about the same feature or issue. Add to the earlier ticket if you find one.
+
+* Before sending a pull request for a feature, be sure to have [tests](http://underscorejs.org/test/).
+
+* Use the same coding style as the rest of the [codebase](https://github.com/documentcloud/underscore/blob/master/underscore.js).
+
+* In your pull request, do not add documentation or re-build the minified `underscore-min.js` file. We'll do those things before cutting a new release.
+
+                       __
+                      /\ \                                                         __
+     __  __    ___    \_\ \     __   _ __   ____    ___    ___   _ __    __       /\_\    ____
+    /\ \/\ \ /' _ `\  /'_  \  /'__`\/\  __\/ ,__\  / ___\ / __`\/\  __\/'__`\     \/\ \  /',__\
+    \ \ \_\ \/\ \/\ \/\ \ \ \/\  __/\ \ \//\__, `\/\ \__//\ \ \ \ \ \//\  __/  __  \ \ \/\__, `\
+     \ \____/\ \_\ \_\ \___,_\ \____\\ \_\\/\____/\ \____\ \____/\ \_\\ \____\/\_\ _\ \ \/\____/
+      \/___/  \/_/\/_/\/__,_ /\/____/ \/_/ \/___/  \/____/\/___/  \/_/ \/____/\/_//\ \_\ \/___/
+                                                                                  \ \____/
+                                                                                   \/___/
+
+Underscore.js is a utility-belt library for JavaScript that provides
+support for the usual functional suspects (each, map, reduce, filter...)
+without extending any core JavaScript objects.
+
+For Docs, License, Tests, and pre-packed downloads, see:
+http://underscorejs.org
+
+Many thanks to our contributors:
+https://github.com/documentcloud/underscore/contributors
+
+JSHint, A Static Code Analysis Tool for JavaScript
+--------------------------------------------------
+
+\[ [Use it online](http://jshint.com/) •  [About](http://jshint.com/about/) •
+[Docs](http://jshint.com/docs/) • [FAQ](http://jshint.com/docs/faq) •
+[Install](http://jshint.com/install/) • [Hack](http://jshint.com/hack/) •
+[Blog](http://jshint.com/blog/) • [Twitter](https://twitter.com/jshint/) \]
+
+[![Build Status](https://travis-ci.org/jshint/jshint.png?branch=2.x)](https://travis-ci.org/jshint/jshint)
+[![NPM version](https://badge.fury.io/js/jshint.png)](http://badge.fury.io/js/jshint)
+
+JSHint is a community-driven tool to detect errors and potential problems
+in JavaScript code. It is very flexible so you can easily adjust it to your
+particular coding guidelines and the environment you expect your code to
+execute in.
+
+#### JSHint 2.x versus JSHint 3
+
+There's an effort going on to release the next major version of JSHint. All
+development in the `master` branch is for the version 3.0. Current stable
+version is in the `2.x` branch. Keep that in mind when submitting pull requests.
+
+Also, before reporting a bug or thinking about hacking on JSHint, read this:
+[JSHint 3 plans](http://www.jshint.com/blog/jshint-3-plans/). TL;DR: we're
+moving away from style checks within JSHint so no new features around
+style checks will be accepted. Bug fixes are fine for the `2.x` branch.
+
+#### Reporting a bug
+
+To report a bug simply create a
+[new GitHub Issue](https://github.com/jshint/jshint/issues/new) and describe
+your problem or suggestion. We welcome all kind of feedback regarding
+JSHint including but not limited to:
+
+ * When JSHint doesn't work as expected
+ * When JSHint complains about valid JavaScript code that works in all browsers
+ * When you simply want a new option or feature
+
+Before reporting a bug look around to see if there are any open or closed tickets
+that cover your issue. And remember the wisdom: pull request > bug report > tweet.
+
+
+#### License
+
+JSHint is distributed under the MIT License. One file and one file only
+(src/stable/jshint.js) is distributed under the slightly modified MIT License.
+
+
+#### Thank you!
+
+We really appreciate all kind of feedback and contributions. Thanks for using and supporting JSHint!
+
+# About
+
+![Travis CI](https://travis-ci.org/fkei/JSON.minify.png?branch=master)
+
+
+# Feature
+
+/*! JSON.minify()
+	v0.1 (c) Kyle Simpson
+	MIT License
+*/
+
+JSON.minify() minifies blocks of JSON-like content into valid JSON by removing all 
+whitespace *and* comments.
+
+JSON parsers (like JavaScript's JSON.parse() parser) generally don't consider JSON
+with comments to be valid and parseable. So, the intended usage is to minify 
+development-friendly JSON (with comments) to valid JSON before parsing, such as:
+
+JSON.parse(JSON.minify(str));
+
+Now you can maintain development-friendly JSON documents, but minify them before
+parsing or before transmitting them over-the-wire.
+
+Though comments are not officially part of the JSON standard, this post from
+Douglas Crockford back in late 2005 helps explain the motivation behind this project.
+
+http://tech.groups.yahoo.com/group/json/message/152
+
+"A JSON encoder MUST NOT output comments. A JSON decoder MAY accept and ignore comments."
+
+Basically, comments are not in the JSON *generation* standard, but that doesn't mean
+that a parser can't be taught to ignore them. Which is exactly what JSON.minify()
+is for.
+
+The first implementation of JSON.minify() is in JavaScript, but the intent is to
+port the implementation to as many other environments as possible/practical.
+
+NOTE: As transmitting bloated (ie, with comments/whitespace) JSON would be wasteful
+and silly, this JSON.minify() is intended for use in server-side processing
+environments where you can strip comments/whitespace from JSON before parsing
+a JSON document, or before transmitting such over-the-wire from server to browser.
+
+# install 
+
+## npm repo
+
+```
+$ npm install jsonminify
+```
+
+##  npm source
+
+```
+$ npm install https://github.com/fkei/JSON.minify.git
+```
+
+# example
+
+
+```javascript
+var jsonminify = require("jsonminify");
+
+jsonminify('{"key":"value"/** comment **/}')
+>> '{"key":"value"}'
+
+JSON.minify('{"key":"value"/** comment **/}')
+>> '{"key":"value"}'
+```
+
+# command-line
+
+Please use here. Use JSON.minify internally.
+
+**node-mjson** [https://github.com/fkei/node-mjson](https://github.com/fkei/node-mjson)
+
+
+# build
+
+```
+$ make
+```
+
+# release
+
+```
+$ make release
+```
+
+# test
+
+```
+$ make test
+```
+
+# jshint
+
+```
+$ make jshint
+```
+
+# Document
+
+- [JSDoc - API Document](http://fkei.github.io/JSON.minify/docs/index.html)
+- [Plato - Report](http://fkei.github.io/JSON.minify/report/index.html)
+- [Mocha - Test result (HTML)](http://fkei.github.io/JSON.minify/TestDoc.html)
+
+# Web-Site
+
+**[Github pages - JSON.minify Home Page](http://fkei.github.io/JSON.minify/)**
+
+# LICENSE
+
+forked from [getify/JSON.minify](https://github.com/getify/JSON.minify)
+
+```
+The MIT License (MIT)
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+

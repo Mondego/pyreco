@@ -1,0 +1,661 @@
+Interested in contributing? Contribute to the *.pre.* files and automatically generate the libraries for each client type by running `$ python render.py`. 
+This is a library for the Adafruit CC3000 WiFi Breakouts etc
+
+Designed specifically to work with the Adafruit CC3000 Breakout 
+  ----> https://www.adafruit.com/products/1469
+
+These modules use SPI to communicate, 6 pins are required to interface
+
+Adafruit invests time and resources providing this open source code, 
+please support Adafruit and open-source hardware by purchasing 
+products from Adafruit!
+
+Check out the links above for our tutorials and wiring diagrams 
+
+Arduino library Written by Limor Fried & Kevin Townsend for Adafruit Industries.  
+CC3000 host core written by TI
+
+To download. click the DOWNLOADS button in the top right corner, rename the uncompressed folder Adafruit_CC3000 
+Check that the Adafruit_CC3000 folder contains Adafruit_CC3000.cpp and Adafruit_CC3000.h
+
+Place the Adafruit_CC3000 library folder your *arduinosketchfolder*/libraries/ folder. 
+You may need to create the libraries subfolder if its your first library. Restart the IDE.
+Adafruit CC3000 Library Tests
+=============================
+
+This folder is meant to contain tests that are written to verify the CC3000 library.  Consumers
+of the library probably want to ignore the contents of this folder.
+
+Files:
+------
+
+-	listener.py
+	
+	Python script to run a TCP socket server which listens by default on port 9000 (but can be
+	changed by specifying a different port in the first command line parameter), accepts any
+	connections and echos all received data to standard output.  This is required for running some
+	of the tests.  In general you'll want to run listener.py with stdout directed to a file and then
+	run the test sketch on the CC3000 to capture what is output.  Compare the output of test runs
+	before and after making a change/bugfix to the library and diff the results to ensure no
+	unexpected changes in functionality.
+
+Tests:
+------
+
+-	Client\_fastrprint
+
+	Manual test to verify the fastrprint and fastrprintln functions of the client library.  Must
+	update the sketch to connect to your wireless network and set the SERVER_IP value to the IP
+	of a server running listener.py.
+
+### Plotly over Serial
+Graph data from your Arduino with just a serial connection. These sketches connect serially connected Arduinos to Plotly's real-time graphing API with the help of the [Standard Firmata protocal](/firmata/arduino), [Node.js](https://http://nodejs.org/), and [Johnny-Five](/rwaldron/johnny-five).
+
+[![](http://new.tinygrab.com/c751bc2ee22cd3db5a6d3fccb22458d570efc9ac84.png)](http://vimeo.com/93900876)
+
+
+### Quickstart
+1 - Install node.js: [http://nodejs.org/download/](http://nodejs.org/download/)
+
+2 - Launch the Arduino IDE and upload the `Standard Firmata` sketch. It's included in your Arduino IDE under `File` → `Examples` → `Firmata` → `StandardFirmata`.
+
+3 - Once uploaded, close the Arduino IDE. We're done with it. Your computer will now communicate with your Arduino over serial with node.js via the Standard Firmata protocol. Nice!
+
+4 - Open your terminal, create a project folder, move into it:
+
+```bash
+$ mkdir plotly_project
+$ cd plotly_project
+```
+Or, if your on a Windows machine, open up the `Node.js command prompt` and enter:
+
+```bash
+> md plotly_project
+> cd plotly_project
+```
+
+5 - Use the Node Package Manager (npm) to install two libraries. node.js is awesome and will only install these modules in your project directory. It's easy to keep things modular and organized!
+
+```bash
+$ npm install plotly
+$ npm install johnny-five
+```
+
+6 - Download one of our example scripts into your project folder and run it with node:
+
+```bash
+$ node simple_plotly.js
+1399607731073 Device(s) /dev/cu.usbmodem1421 
+1399607734347 Connected /dev/cu.usbmodem1421 
+1399607734347 Repl Initialized 
+>> View your streaming graph here: http://plot.ly/~streaming-demos/6/
+```
+
+or, on Windows it'll look something like:
+```bash
+C:\...\plotly_node> node simple_plotly.js
+1400090004506 Device(s) COM4
+1400090007789 Connected COM4
+1400090007789 Repl Initialized
+>> View your streaming graph here: http://plot.ly/~streaming-demos/6/
+```
+
+
+7 - Grab the url that is printed out and view your live-updating graph in plotly! Here is an example url: [https://plot.ly/~streaming-demos/6](https://plot.ly/~streaming-demos/6)
+
+### Projects
+
+See our [workshop page](https://plot.ly/workshop) for step-by-step instructions.
+
+- DHT22 Temperature and Humidity sensor: [http://plot.ly/workshop/arduino-dht22/](http://plot.ly/workshop/arduino-dht22/)
+
+- Analog Light Sensor: [http://plot.ly/workshop/arduino-analoglight/](http://plot.ly/workshop/arduino-analoglight/)
+
+- ML8511 UV Sensor: [http://plot.ly/workshop/arduino-uvsensor/](http://plot.ly/workshop/arduino-uvsensor/)
+
+- Air Quality Sensor: [http://plot.ly/workshop/arduino-airquality/](http://plot.ly/workshop/arduino-airquality/)
+
+- Water Flow Sensor: [http://plot.ly/workshop/arduino-waterflow/](http://plot.ly/workshop/arduino-waterflow/)
+
+- TMP36 Temperature Sensor: [http://plot.ly/workshop/arduino-tmp36/](http://plot.ly/workshop/arduino-tmp36/)
+
+
+
+### Get in touch
+- <chris@plot.ly>
+- [@plotlygraphs](https://twitter.com/plotlygraphs)
+
+
+
+
+## Real-time Graphing and Data Logging with the Yún
+
+#### The easiest and fastest way to plot and share data on the Yún. 
+
+
+The Plotly-Yún library streams data from your Arduino Yún to your Plotly web-account. It's free, open source, and the graphs and data are entirely online. 
+
+<p align="center">
+<a href="http://plot.ly/~streaming-demos/6">
+<img src="https://raw.github.com/plotly/Streaming-Demos/master/readme_gifs/real-timesensor.gif">
+</a><br>
+<a href="http://plot.ly/~streaming-demos/6">Click through to see the live graph</a>
+</p>
+
+#### It's super easy
+
+```C
+#include <PlotlyYun.h>
+#include <YunMessenger.h>
+#include <Bridge.h>
+#include <Console.h>
+
+// Initialize plotly "plotters" with a unique token that is generated for you
+// when you sign up for a free account on plotly (https://plot.ly)
+// Find your stream tokens in your plotly account here: https://plot.ly/settings
+// Initialize as many plotters as you want! Each plotter will send
+// data to the same plot as a separate line.
+
+plotly plotter("put_your_10_character_stream_token_here");
+
+void setup() { 
+
+    // start-up the bridge and the console
+    Bridge.begin();
+
+    delay(2000);
+    Console.begin();
+    while (!Console) {
+      ; // wait for Console port to connect.
+    }
+    Console.buffer(64);
+    delay(2000);
+} 
+
+void loop() { 
+
+    plotter.plot( analogRead(A0) );
+
+    delay(100); // Graph 10 points every second
+}
+```
+
+
+
+## 5-Min Quickstart
+
+
+#### Connect your Yún to WiFi
+You know the drill:
+
+1. Reset the WiFi chip: hold down the WLAN button for ~10 seconds until Arduino Yun-XXXX comes up as a network. I've found that this sometimes takes multiple tries and may take ~45 seconds.
+2. Connect to that network, enter `arduino.local` into your browser
+3. Configure the network, making sure that:
+ - Your encryption (WPA, WPA2, WEP) is correct
+ - Your *case-sensitive* network name is correct
+4. Connect to your old network, go to `arduino.local` in your browser. I've found that sometimes this may take ~30 seconds. If your browser can't find it, go back to step 1!
+
+#### Set up the Linino Side
+1. Download and uncompress this folders's zip file: [https://github.com/plotly/arduino-api/raw/master/plotly_yun/plotly_yun.zip](https://github.com/plotly/arduino-api/raw/master/plotly_yun/plotly_yun.zip)
+2. Update the file called `config.json` in the `Linino` folder with your plotly credentials. You can sign up to plotly here (it's free!): [https://plot.ly/ssu](https://plot.ly/ssu) and you can view your API key and stream tokens here: [https://plot.ly/settings](https://plot.ly/settings).
+    Your filled-in `config.json` file will look like:
+    
+   ```json
+   {
+        "plotly_username": "anna.lyst",
+        "plotly_api_key": "ab4kftunvd",
+        "plotly_streaming_tokens": ["ab4kf5nfdn", "kdf5bn4dbn"],
+        "show_this_many_points": 500
+   }
+   ```
+
+   (those are fake keys and tokens, so don't try to use them, they won't work!)
+3. Open up your computer's terminal and move to where you downloaded this folder:
+   
+    ```bash
+   $ cd ~/Downloads/plotly_yun
+   $ ls
+    Arduino         Linino          README.md
+   ```
+   
+
+4. Copy all of the files from the Linino folder to your Linino
+   
+    ```bash
+    $ scp -r Linino/* root@arduino.local:/root/
+    ```
+
+   a TON of stuff will print out, don't worry!
+5. Cruise into your Linino and install python-openssl:
+   
+    ```bash
+   $ ssh root@arduino.local
+   root@Arduino:~# opkg update
+   root@Arduino:~# opkg install python-openssl
+   ```
+
+(Are you new to the terminal? Here is screen-cast video of my terminal as I run through commands 3-5:
+[![](http://new.tinygrab.com/c751bc2ee2a578abe66d6b4d045e683ec084679f39.png)](http://asciinema.org/a/8137)
+
+Still need some help? Get in touch!)
+
+#### Run the Arduino program
+1. Add the folders inside the `Arduino` to your Arduino libraries folder. On a Mac, this is in `~/Documents/Arduino/libraries/`
+    ![](http://new.tinygrab.com/c751bc2ee2bdecc21b412dd36ba491606ed81fd36a.png)
+2. Open up the [latest version of the Arduino IDE](http://arduino.cc/en/main/software)
+3. Load up example.ino from the `Arduino` folder in this repository and add your tokens to the script, i.e. change these lines:
+    
+    ```cpp
+    plotly plotter1("put_your_10_character_stream_token_here");
+    plotly plotter2("put_another_token_here");
+    ```
+    
+    to the tokens you that you placed in `config.json` and that you found in [https://plot.ly/settings](https://plot.ly/settings):
+
+    ```cpp
+    plotly plotter1("ab4kf5nfdn");
+    plotly plotter2("kdf5bn4dbn");
+    ```
+
+4. Make sure that your IDE has selected `Arduino Yun` and the remote port:
+![Arduino IDE Port Selection](http://new.tinygrab.com/c751bc2ee2ee7fe227a406dbdb8a3d6dfb53b00b29.png)
+5. Upload the program!
+6. Go back into your Linino, and run `run.py`. It'll take about 10-45 seconds before the output comes up:
+    ```bash
+    $ ssh root@arduino.local
+    root@Arduino:~# python run.py
+    Plot initialized at: https://plot.ly/~Arduino-Yun/28
+    with tokens: ab4kf5nfdn, kdf5bn4dbn
+    ```
+    
+   (your tokens and your URL will be different!)
+
+   If you're watching the logs, you'll see something like:
+   ```bash
+   root@Arduino:~# tail -f YunMessenger.log
+   2014-03-12 02:57:36 INFO: Logger initiated
+   2014-03-12 02:57:38 INFO: Plot initialized at: https://plot.ly/~Arduino-Yun/28
+   with tokens: ab4kf5nfdn, kdf5bn4dbn
+   2014-03-12 02:57:38 INFO: Run initiated
+   2014-03-12 02:57:39 INFO: Attempting to connect to localhost:6571
+   ```
+
+7. Grab the URL that the terminal printed out, view your graph in your browser, and celebrate! The graph and data will also be saved in your plotly account. You can view, edit, and share your graphs while data is streaming to them in real-time!
+
+
+# How does it work?
+
+The Arduino microcontroller (ATmega32u4) sends data to the Linino over the `bridge` with the [YunMessenger](https://github.com/plotly/YunMessenger) library. The `bridge` is just a TCP connection over port `6571` on `localhost` and the `YunMessenger` library formalizes communication over that socket and allows multiple subscribers to listen to messages coming from the Arduino (the 32u4).
+
+On the Arduino side, the communication over this socket looks like:
+```C
+#include <Bridge.h>
+#include <Console.h>
+
+Bridge.begin();
+Console.begin();
+while (!Console) {
+  ; // wait for Console port to connect.
+}
+
+Console.print(char(29)); // indicate the start of the subscriber name
+Console.print("plotly"); // the name of the subscriber
+Console.print(char(30)); // indicates the start of the message
+Console.print("{\"x\": 1, \"y\": 10}"); // the message (in this case a plotly formatted JSON object)
+Console.print(char(31)); // indicates the end of the message
+```
+
+On the Linino side, `YunMessenger.Console` opens a TCP socket on port `6571` of `localhost`. `run.py` assigns a message handler to `"plotly"` messages that come through the YunMessenger. These messages are parsed and sent over a TCP socket to plotly's streaming servers, at `stream.plot.ly`.
+
+More about plotly's streaming API can be found here: [https://github.com/plotly/Streaming-Demos](https://github.com/plotly/Streaming-Demos)
+
+# More on Usage
+#### Debugging and Log Files
+On the Linino, status updates, warnings, and errors are written to a file called `~/Plotly.log`. This file is capped at 0.5MB. 
+```bash
+root@Arduino:~# cat ~/Plotly.log
+[...]
+```
+
+The file might have a ton of lines and be overwhelming to look at, so to check out just the last 50 lines, run:
+```
+root@Arduino:~# tail -n50 ~/Plotly.log
+[...]
+```
+
+To watch the messages as they're being written to the file in real-time, run:
+```bash
+root@Arduino:~# tail -f ~/Plotly.log
+
+2014-03-12 01:35:35 INFO: Attempting to connect to localhost:6571
+2014-03-12 01:35:35 ERROR: Can't connect to localhost:6571
+2014-03-12 01:35:35 DEBUG: Traceback (most recent call last):
+  File "/root/YunMessenger/Console.py", line 83, in run
+    self.console.connect(('localhost', 6571))
+  File "/usr/lib/python2.7/socket.py", line 224, in meth
+    return getattr(self._sock,name)(*args)
+error: [Errno 146] Connection refused
+
+2014-03-12 01:35:36 INFO: Attempting to connect to localhost:6571
+2014-03-12 01:35:36 INFO: Connected to localhost:6571
+```
+
+#### Running the Python program in the background
+You can run processes in the background by appending `&` to your bash commands:
+```bash
+root@Arduino:~# (python run.py)&
+```
+
+Observer which processes are running with `top`:
+```bash
+root@Arduino:~# top
+
+Mem: 53728K used, 7404K free, 0K shrd, 5256K buff, 18404K cached
+CPU:   0% usr   9% sys   0% nic  90% idle   0% io   0% irq   0% sirq
+Load average: 0.39 0.35 0.33 1/52 14213
+  PID  PPID USER     STAT   VSZ %VSZ %CPU COMMAND
+14213 13667 root     R     1500   2%   9% top
+13705 13667 root     S    13924  23%   0% python run.py
+ 1530     1 nobody   S     2180   4%   0% avahi-daemon: running [Arduino.local]
+ 1502     1 root     S     1700   3%   0% /usr/sbin/dbus-daemon --system
+ 1167     1 root     S     1588   3%   0% wpa_supplicant -B -P /var/run/wifi-wl
+ 1493     1 root     S     1576   3%   0% /usr/sbin/uhttpd -f -h /www -r Arduin
+  574     1 root     S     1552   3%   0% {rcS} /bin/sh /etc/init.d/rcS S boot
+  731     1 root     S     1540   3%   0% /sbin/netifd
+  701     1 root     S     1512   2%   0% /sbin/syslogd -C16
+ 1251   731 root     S     1512   2%   0% udhcpc -p /var/run/udhcpc-wlan0.pid -
+ 1565     1 root     S N   1508   2%   0% {uSDaemon} /bin/sh /sbin/uSDaemon
+    1     0 root     S     1508   2%   0% init
+13667 13655 root     S     1508   2%   0% -ash
+13352 13335 root     S     1508   2%   0% -ash
+11639     1 root     S     1504   2%   0% /bin/ash --login
+  788   731 root     S     1504   2%   0% udhcpc -p /var/run/udhcpc-eth1.pid -s
+13369 13352 root     S     1504   2%   0% top
+ 1556     1 root     S     1504   2%   0% /usr/sbin/ntpd -n -p 0.openwrt.pool.n
+  845     1 root     S     1504   2%   0% /sbin/watchdog -t 5 /dev/watchdog
+```
+
+Kill these background processes with:
+```bash
+root@Arduino:~# kill -9 $(pgrep -f "python run.py")
+```
+
+# Contact!
+- <chris@plot.ly>
+- [@plotlygraphs](https://twitter.com/plotlygraphs)
+
+
+# Troubleshooting
+- Get in touch!
+- Connecting the yun to WiFi has no error handling. It can fail silently while attempting to connect to a network, so double check your encryption and your network name. Also, network names are case-senstive!
+- Use the latest Arduino IDE (1.5.6 -r2)
+- Reseting the network ("hold down the wifi button for > 5 seconds") often requires several tries!
+- To verify that the python client on the Linino is ready to recieve commands, run `$ telnet localhost 6571`
+- Don't forget:
+  ```
+  while (!Console) {
+    ; // wait for Console port to connect.
+  }
+  ```
+
+## Real-time Graphing and Data Logging
+
+#### The easiest and fastest way to plot and share data on the Arduino. 
+[![Real-time Plotting with Arduino and Plotly](http://new.tinygrab.com/c751bc2ee22cd3db5a6d3fccb22458d570efc9ac84.png)](http://vimeo.com/89003132)
+
+Plotly's Arduino libraries connects Arduinos to plotly's beautiful online graphing tool for real-time, interactive data logging and graphing. It's free, open source, and your graphs and data are entirely online.
+
+Here is an example of a real-time graph: [http://plot.ly/~streaming-demos/6/](http://plot.ly/~streaming-demos/6/)
+
+## Super easy
+
+```C
+#include <WiFi.h>
+#include <plotly_wifi_streaming.h>
+
+#define num_traces 2
+// Sign up to plotly here: https://plot.ly
+// View your API key and stream tokens in your settings: https://plot.ly/settings
+char *streaming_tokens[num_traces] = {"your_plotly_stream_token", "another_plotly_stream_token"};
+plotly graph = plotly("your_plotly_username", "your_plotly_api_key", streaming_tokens, "your_plotly_filename", num_traces);
+
+void setup() {
+
+  Serial.begin(9600);
+
+  wifi_connect();
+
+  // Initialize a streaming graph in your plotly account
+  graph.init();
+  // Initialize plotly's streaming service
+  graph.openStream(); 
+}
+
+void loop() {
+  // now let's stream data to plotly, giddyup!
+  graph.plot(millis(), analogRead(A0), tokens[0]);
+  graph.plot(millis(), analogRead(A1), tokens[1]);
+}
+```
+
+## 5 Minute Quickstart
+
+If you're working on the Yún, click on the [`plotly_yun`](/plotly_yun) folder for separate instructions.
+
+If you're device isn't internet connected, you can still connect to plotly over serial. Click on the [`plotly_streaming_serial`](/plotly_streaming_serial) folder for separate instructions.
+
+1. Sign up to plotly: [https://plot.ly](https://plot.ly).
+2. Download and uncompress the latest plotly release: [https://github.com/plotly/arduino-api/releases](https://github.com/plotly/arduino-api/releases).
+3. Place the appropriate library your Arduino libraries folder. On a Mac, this is in `~/Documents/Arduino/libraries/`:
+    ![](http://new.tinygrab.com/c751bc2ee29f2d309e4fd8985685df0a1d83cf115a.png)
+4. Open up the Arduino IDE. If your using WiFi and haven't upgraded your firmware, use the [IDE version 1.0.3](http://arduino.cc/en/Main/OldSoftwareReleases).
+5. Load up one of the [examples](/examples) from this repository. Fill in your plotly username, API key, stream tokens, and filename. You can find your API key and stream tokens here: [https://plot.ly/settings](https://plot.ly/settings). It'll look something like:
+    
+    ```cpp
+    char *tokens[] = {"ab4kf5nfdn","kdf5bn4dbn"};
+    plotly graph("anna.lyst","ab4kftunvd", tokens, "arduino graph");
+    ```
+    (those are fake keys and tokens)
+
+6. Upload the program.
+7. Open up your Serial Monitor. You'll see an output like:
+
+    ```
+    ... Attempting to connect to WPA network...
+    ... Connected to network
+    ... Attempting to connect to plotly's REST servers
+    ... Connected to plotly's REST servers
+    ... Sending HTTP Post to plotly
+    ... Sent message, plotly's response:
+    ... A-ok from plotly, All Streams Go!
+    ... View your streaming plot here: https://plot.ly/~streaming-demos/6
+    ... Connecting to plotly's streaming servers...
+    ... Connected to plotly's streaming servers
+    ... Initializing stream
+    ... Done initializing, ready to stream!
+    ```
+8. Grab the URL that was printed out, view your graph in your browser, and celebrate! The graph and data is saved in your plotly account, so you can view it in your plotly file list here: [https://plot.ly/plot](https://plot.ly/plot). You can view, edit, and share your graphs while data is streaming to them in real-time. Everybody that views the graph will see the exact same data at the same time (try it out yourself: open your graph in two different browser windows).
+
+## Usage and Docs
+
+### Usage, Your Data Rights, and Private Graphs
+When you make a graph on plotly, you retain the rights to your content (see our terms [here](https://plot.ly/tou)). You also control whether your graphs are public or private. Public plotting is free; for a lot of private use, you can get a Premium or Organizational plan (see http://plot.ly/plans). It's just like GitHub.
+
+By default, anyone can view the graphs at the unique URL. To make the graphs private, so that only you can see them when your logged in, set `world_readable` to `false`:
+
+```Cpp
+  plotly graph = plotly("your_plotly_username", "your_plotly_api_key", streaming_tokens, "your_plotly_filename", num_traces);
+  graph.world_readable = false;
+```
+
+### Time stamping
+By default, plotly assumes that `x` is `millis()` and automatically converts the `x` to a real-time timestamp with the timezone `"America/Montreal"` on the server. To disable this, set `convertTimestamp` to `false`, e.g.
+
+```Cpp
+  plotly graph = plotly("your_plotly_username", "your_plotly_api_key", streaming_tokens, "your_plotly_filename", num_traces);
+  void setup(){
+    graph.convertTimestamp = false;
+  }
+```
+
+To change the timezone, set `timeZone` to one of the strings in here: [Accepted Timezone Strings.txt](https://github.com/plotly/arduino-api/blob/master/Accepted%20Timezone%20Strings.txt), e.g.
+
+```Cpp
+  plotly graph = plotly("your_plotly_username", "your_plotly_api_key", streaming_tokens, "your_plotly_filename", num_traces);
+  void setup(){
+    graph.timezone = "Africa/Abidjan";
+  }
+```
+
+### Adjusting the number of points plotted at a time
+By default, your real-time graph will graph the `30` most recent points at a time. To adjust this, set the member variable `maxpoints` to something else, e.g.
+
+```Cpp
+  plotly graph = plotly("your_plotly_username", "your_plotly_api_key", streaming_tokens, "your_plotly_filename", num_traces);
+  void setup(){
+    graph.maxpoints = 200;
+  }
+```
+
+### Editing the live  graph
+Plotly graphs can be edited while data is streaming to them. Every aspect of the graph is configurable: you can add a second y-axis, turn the graphs into subplots, change the colors, update the title, change the chart type, etc. To get started, just open up the graph in your list of files here: [https://plot.ly/plot](https://plot.ly/plot) or click `Save and Edit` on the public view of your graph that the serial monitor printed out (e.g. [http://plot.ly/~streaming-demos/6/](http://plot.ly/~streaming-demos/6/)).
+
+### Multiple Viewers
+Everybody who looks at your streaming graph sees the exact same data, at the exact same time. Give it a try yourself: open up a graph in two different browser windows.
+
+### Overwriting or Appending Data
+By default, the initialization of your graph (`graph.init();`) overwrites the existing graph with your new data. This is the perfect option for development: when you re-run your script, a fresh new graph is created. However, when you run your Arduino for an extended period of time, the Arduino may reset itself, which would in turn reset the graph and remove the existing data. To prevent this from happening, you can use the `fileopt` `"extend"`, which will append your new data to the existing data in the graph.
+
+
+So, for running your Arduino for a very long time, you should add 
+```Cpp
+graph.fileopt = "extend"; // Remove this if you want the graph to be overwritten on initialization
+```
+to your `setup()` loop, i.e.
+
+```Cpp
+void setup() {
+  Serial.begin(9600);
+
+  startEthernet();
+
+  bool success;
+  graph.maxpoints = 500;
+  graph.fileopt = "extend"; // Remove this if you want the graph to be overwritten
+  success = graph.init();
+  if(!success){while(true){}}
+  graph.openStream();
+}
+```
+
+### Logging and Debugging
+The parameter `log_level` sets how debugging information is printed out over serial. For troubleshooting, set `log_level` to `0`, i.e. 
+
+```Cpp
+void setup(){
+  Serial.begin(9600);
+  startEthernet();
+  
+  graph.log_level = 0;
+  
+  success = graph.init();
+  if(!success){while(true){}}
+  graph.openStream();
+}
+
+```
+Set `log_level` to `4` if you want nothing to be printed out on serial.
+
+### Docs
+
+```Cpp
+class plotly(char *username, char *api_key, char* stream_tokens[], char *filename, int nTraces);
+```
+
+**Public Member Functions**
+
+- `bool plotly.init()`
+  
+  Creates an empty graph in your plotly account that will get streamed to. This is done by making an API call to plotly's REST service. Returns `true` if initialization was successful, `false` otherwise.
+- `void plotly.openStream()`
+  
+  Opens a TCP connection to plotly's streaming service. The stream is uniquely identified by the `stream_tokens`.
+- `void plotly.closeStream()`
+  
+  Closes the TCP connection to plotly's streaming service.
+- `void plotly.reconnectStream()`
+  
+  Reopens the connection to plotly's streaming service if not connected.
+- `void plot(unsigned long x, int y, char *token)`
+  
+  Plots `(x, y)` to the streaming graph.
+- `void plot(unsigned long x, float y, char *token)`
+  
+  Plots `(x, y)` to the streaming graph.
+
+**Public Member Parameters**
+- `int plotly.log_level` (Default `2`)
+  
+  Determines which messages are printed over serial. Levels are:
+  - `0`: Debugging
+  - `1`: Informational
+  - `2`: Status
+  - `3`: Errors
+  - `4`: Quiet
+- `bool plotly.dry_run`
+  
+  If `True`, then no calls are made to Plotly's servers.
+- `int plotly.maxpoints` (Default `30`)
+  
+  Determines the number of points to plot at a time. Valid from `1` to `200000`. 
+- `bool plotly.convertTimestamp` (Default `true`)
+  
+  If `true`, the Plotly assumes that `x` is milliseconds since program start (`millis()`) and automatically converts these values into a timestamp.
+- `char *plotly.timeZone` (Default: `"America/Montreal"`)
+
+  The timezone to convert the timestamps if `plotly.convertTimestamp=true`. A list of the accepted timezones are in this repo: [Accepted Timezone Strings.txt](https://github.com/plotly/arduino-api/blob/master/Accepted%20Timezone%20Strings.txt)
+
+- `bool plotly.world_readable` (Default: true)
+
+  If `true`, then your graph is publicly viewable and discoverable by unique url. If `false`, then only you can view the graph.
+
+- `char *plotly.fileopt` (Default `"overwrite"`)
+
+  Either `"extend"` or `"overwrite"`. 
+  
+  If `"overwrite"`, then when the graph is initialized (during `plotly.init()`), the existing graph is overwritten with a new one. This means that the existing data in the graph will be removed. This option is good for development, when you want a fresh graph to appear everytime you run your script.
+  
+  If `"extend"`, then the existing data is kept when the graph is initialized (during `plotly.init()`), and the new data is appended onto the existing data. This option is good for when you are running your device for an extended period of time, for if the Arduino resets (which may happen every few hours) then the existing data in the graph is not removed.
+
+## Projects
+
+- A video of our real-time heart rate monitor (click to view): 
+[![Real-time Heart Rate Monitor with Plotly and an Arduino Yun](http://new.tinygrab.com/c751bc2ee2533bf46bba1b0b65720764edcfb06c6b.png)](https://vine.co/v/Mq2LQexrbl7)
+
+- A video of an Arduino streaming-data from a mountain edge, in Peachland, BC
+[![Arduino streaming-data data to plotly from a mountain edge, in Peachland, BC](http://new.tinygrab.com/c751bc2ee28fbde72ce2f6b8904f1efd034210827d.png)](http://vimeo.com/87362390)
+
+- DHT22 Temperature and Humidity sensor: [http://plot.ly/workshop/arduino-dht22/](http://plot.ly/workshop/arduino-dht22/)
+
+- Analog Light Sensor: [http://plot.ly/workshop/arduino-analoglight/](http://plot.ly/workshop/arduino-analoglight/)
+
+- ML8511 UV Sensor: [http://plot.ly/workshop/arduino-uvsensor/](http://plot.ly/workshop/arduino-uvsensor/)
+
+- Air Quality Sensor: [http://plot.ly/workshop/arduino-airquality/](http://plot.ly/workshop/arduino-airquality/)
+
+- Water Flow Sensor: [http://plot.ly/workshop/arduino-waterflow/](http://plot.ly/workshop/arduino-waterflow/)
+
+- TMP36 Temperature Sensor: [http://plot.ly/workshop/arduino-tmp36/](http://plot.ly/workshop/arduino-tmp36/)
+
+
+## Contributing Notes
+The `wifi`, `ethernet`, `gsm`, and `cc3000` libraries and examples are 95% identical and so are automatically generated from template files in the `plotly_dev` folder. We use Mako, one of Python's templating libraries to generate these files. To run, do:
+
+```bash
+$ python render.py
+```
+
+## Get in touch
+- [@plotlygraphs](https://twitter.com/plotlygraphs)
+- <chris@plot.ly>
+

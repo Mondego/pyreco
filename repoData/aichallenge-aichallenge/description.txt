@@ -1,0 +1,893 @@
+This is an Ada Starter Bot for http://aichallenge.org/
+
+The compilation has been tested with GCC 4.5.2 on Slackware 13.37 using the instructions in the included Makefile
+
+
+Known issues:
+
+- Ants currently all change direction when one changes direction since I'm not sure yet how to
+
+- I don't understand the concept of "visibility" yet so that may not be implemented properly. If anyone can enlighten me on this I can take a look at it.
+
+- Starter Pack by philxyz
+
+A C starter pack created by flagcapper. If given any unexpected input, it will crash. Compile using the makefile or with:
+
+gcc *.c -o MyBot -lm
+
+UPDATE: Hills have been added using code contributed from mpolitzer
+
+# CoffeeScript Starter Package for Ant Wars
+
+See the section after "Google AI Challenge Blurb" for information
+specific to this CoffeeScript starter package.
+
+
+## Google AI Challenge Blurb
+
+The files in this package are part of a starter package from the
+Google AI Challenge. The Google AI Challenge is an Artificial
+Intelligence programming contest. You can get more information by
+visiting [www.ai-contest.com](http://www.ai-contest.com/).
+
+The entire contents of this starter package are released under the
+Apache license as is all code related to the Google AI Challenge. See
+[http://github.com/aichallenge/aichallenge](http://github.com/aichallenge/aichallenge) for more details.
+
+There are a bunch of tutorials on the [ai-contest.com](http://ai-contest.com/)
+website that tell you what to do with the contents of this starter
+package. For the impatient, here is a brief summary.
+
+* In the root directory, there are a bunch of code files. These are a
+  simple working contest entry that employs a basic strategy. These
+  are meant to be used as a starting point for you to start writing
+  your own entry.  Alternatively, you can just package up the starter
+  package as-is and submit it on the website.
+
+* The tools directory contains a game engine and visualizer. This is
+  meant to be used to test your bot. See the relevant tutorials on the
+  website for information about how to use the tools.
+
+* The example_bots directory contains some sample bots for you to test
+  your own bot against.
+
+
+## CoffeeScript Starter Package Specific Information
+
+This rest of this file contains specific information about the CoffeeScript starter package for the [Ant Wars Google AI Challenge](http://ai-contest.com/).
+
+It is assumed you are using
+[CoffeeScript](http://jashkenas.github.com/coffee-script/) 1.1.1, since that
+is what the challenge server will be using as well.
+
+## Status
+
+This bot is still in development and has only been tested locally with
+data on standard input. Nevertheless, patches and improvements are welcome.
+
+
+## Usage
+
+To test your bot locally you'll need to get the AI
+Challenge source tree:
+
+    git clone git://github.com/aichallenge/aichallenge.git
+
+Go to the `aichallenge/ants` directory and do:
+
+    ./playgame.py --end_wait=0.25 --verbose --log_dir game_logs --turns 100 --map_file maps/symmetric_maps/symmetric_10.map "python dist/sample_bots/python/HunterBot.py" "python dist/sample_bots/python/LeftyBot.py" "python dist/sample_bots/python/HunterBot.py" "coffee /path/to/your/MyBot.coffee"
+
+To upload a submission you only need to zip all the files: "`zip
+submission.zip *.coffee`".
+
+## Source
+
+`MyBot.coffee` is needed for compilation on the official server. It also contains the "do_turn" function - this is where the starter bot's simple AI resides.
+
+`ants.coffee` contains all other helper functions.
+
+### Internal Map Representation
+
+The map is internally represented as a 2-dimensional array of Objects. It is reset and
+modified when "ants.MAP.reset()" is called during the main loop, so work
+on a copy if you have to.
+
+Each square of the map can be accessed by ants.MAP[x][y] 
+and the values of the squares have to following properties:
+
+MAP[x][y].type is one of {"WATER", "LAND", "DEAD", "FOOD", "ANT", "HILL"}
+
+Additionally squares on the map representing ants have the following properties:
+
+MAP[x][y].is_alive - being set to either "yes" or "no
+
+MAP[x][y].owner - Owner of 0 representing my_ants, and any other owner - enemy_ants.
+
+## Platforms
+
+The code has been tested on the following platforms:
+
+* x86: CoffeeScript 1.1.1., Ubuntu 10.04
+
+# Common Lisp Starter Package for Ant Wars
+
+This is the basic CL starter package, a more extensive starter package
+with [proxy-bot](http://ai-contest.com/forum/viewtopic.php?f=19&t=468)
+functionality can be found at [http://github.com/aerique/google-ai-challenge-2011-1-ants/tree/master/common-lisp-starter-package](http://github.com/aerique/google-ai-challenge-2011-1-ants/tree/master/common-lisp-starter-package).
+
+This rest of this file contains specific information about the Common
+Lisp starter package for the [Ant Wars Google AI Challenge](http://ai-contest.com/).
+
+It is assumed you are using [SBCL](http://www.sbcl.org/), since that
+is what the challenge server will be using as well.  Feel free to try
+any CL implementation locally but do realize SBCL is used on the
+official tournament server.
+
+
+## Usage
+
+To compile the source files into a `MyBot` binary issue "`sbcl --script
+MyBot.lisp`".  To test your bot locally you'll need to get the AI
+Challenge source tree:
+
+    git clone git://github.com/aichallenge/aichallenge.git
+
+Go to the `aichallenge/ants` directory and do:
+
+    ./playgame.py --end_wait=0.25 --verbose --log_dir game_logs --turns 100 --map_file maps/symmetric_maps/symmetric_10.map "python dist/sample_bots/python/HunterBot.py" "python dist/sample_bots/python/LeftyBot.py" "python dist/sample_bots/python/HunterBot.py" /path/to/your/MyBot
+
+To upload a submission you only need to zip all the lisp-files: "`zip
+submission.zip *.lisp`".  ("`make submission-zip`" will do the same).
+
+### Submission Errors
+
+If SBCL does any output on standard error (stderr / \*error-output*)
+it will count as a compilation error to the server.  So even innocuous
+compiler notes or warnings will cause a compilation error.
+
+I've added two statements to MyBot.lisp that should muffle most of the
+warnings, but I'm not sure they will catch them all.  If really
+necessary redirect \*error-output* to \*standard-output* like so:
+`(setf *error-output* *standard-output*)` at the top of MyBot.lisp.
+
+**However**, this will also hide genuine compilation errors that would
+otherwise be shown on your profile page!  So if your bot still fails
+compiling on the server, your best best is resubmitting with the
+redirection disabled.
+
+### Windows / MSYS Note
+
+You're probably best of putting a symbolic link `sbcl` in /usr/bin
+pointing to wherever SBCL is installed on your system.
+
+It is assumed you are running [MSYS](http://www.mingw.org/node/18).
+
+
+## Source
+
+`MyBot.lisp` is needed for compilation on the official server.
+
+`main.lisp` contains the main loop and the DO-TURN function, this is
+were the starter bot's simple AI resides.
+
+`ants.lisp` contains all other helper functions.
+
+### Internal Map Representation
+
+The map is internally represented as a 2-dimensional array of [fixnums](file:///export/home/ekwis/emacs/HyperSpec/Body/t_fixnum.htm#fixnum)
+and is accessible as `(game-map *state*)`.  Do note that it is reset and
+modified when PARSE-GAME-STATE is called during the main loop, so work
+on a copy if you have to.
+
+Each tile of the map can be accessed by `(aref (game-map *state) row col)`
+and the values of the tiles have to following meaning:
+
+0 = land  
+1 = water  
+2 = food  
+100+ = live ant  
+200+ = dead ant  
+
+Your live ants are always represented as 100 and your dead ants as
+200.
+
+The files in this package are part of the C++ starter package for Ants from the Google AI Challenge. The Google AI Challenge is an Artificial Intelligence programming contest. You can get more information by visiting www.ai-contest.com.
+
+The entire contents of this starter package are released under the Apache license as is all code related to the Google AI Challenge. See https://github.com/aichallenge/aichallenge/ for more details.
+
+There is a tools package you can download from the contests website, including an engine, visualizer and some sample bots to test against. There are also some tutorials on the website for how you can use them.
+
+How to compile:
+The simplest way to compile your bot is to use the Makefile, for example if you are on linux, open up a terminal window, change to the directory containing the sourcefiles and call "make", the produced file "MyBot" ("MyBot.exe" on windows) is what you want to use with the game engine for playing games. You can also call "make clean" to remove the created files.
+
+If you add any additional .cc files to your bot, you will need to alter the Makefile to include them. If you submit your bot with the Makefile included, the server will attempt to use this when compiling your bot, otherwise it will revert back to the auto compile script that is available on the contests github site.
+
+Alternatively, the Makefile is really just making the following calls:
+    g++ -O3 -funroll-loops -c Bot.cc -o Bot.o
+    g++ -O3 -funroll-loops -c MyBot.cc -o MyBot.o
+    g++ -O3 -funroll-loops -c State.cc -o State.o
+    g++ -O2 -lm Bot.o MyBot.o State.o -o MyBot
+
+An explanation of the files:
+Below is a fairly crude description of what each source file is used for:
+    MyBot.cc - This file contains the main function for the bot, it just uses a Bot object to play a single game of Ants.
+
+    Bot.h/cc - The Bot struct represents your bot in the game, the makeMoves function is where you ideally want to write your code for making moves each turn.
+
+    State.h/cc - The State struct stores information about the current state of the game, take a look at the variables and functions for what is already provided, then start adding your own.
+
+    Square.h - The Square struct is used to represent a square on the grid, it contains information like whether the square is water or food, if an ant is there what player it belongs to (this is set to -1 if no ant is currently there) and when it was last seen (this is set to 0 if the square has not been seen).
+
+    Location.h - The Location struct is used to represent a location inside the grid, it simply contains two integers to refer to a row and column.
+
+    Timer.h - The Timer struct allows you to check how long it has been since the start of the turn in milliseconds.
+
+    Bug.h - The Bug struct allows you to easily debug information to files.
+
+For some ideas on improving your bot from here, check out the tutorial and strategy idea pages on the contests website.
+
+
+## A Dart Language package for the Google AI Challenge Fall 2011 Ants Contest
+
+# Supported Systems
+
+This package works on OSX and Linux. It has not been tested on Windows.
+
+# Installation
+
+Step 1: Install the Node.js runtime:
+
+Download and unzip Node.js 0.4.10.zip: https://github.com/joyent/node/zipball/v0.4.10
+Follow the build and install instructions in README.md
+Double-check that you have the correct version of Node installed:
+
+    $ node --version
+    v0.4.10
+
+(This is because the Ants contest uses this version of Node.)
+
+Step 2: Install the Dart frogsh compiler:
+
+    $ curl -O http://ants-dart-starter-package.googlecode.com/files/dart-frogsh-r1499.tgz
+    $ tar xvzf dart-frogsh-r1499.tgz
+
+    Then follow instructions in dart-frogsh-r1499/README
+
+# Running your bot
+
+The frogsh command will compile and run your bot:
+
+    $ frogsh MyBot.dart
+
+# Credits
+
+This package is based upon the JavaScript starter pack. It has been converted to the Dart language.
+
+
+
+See http://icanhaslolcode.org/ for installation instructions.
+
+# Objective Caml Starter Package for Ant Wars
+
+NOTE - Anthills were added after most of this material was written, and it
+has not been updated.
+
+See the section after "AI Challenge Blurb" for information
+specific to this OCaml starter package.
+
+
+## AI Challenge Blurb
+
+The files in this package are part of a starter package from the
+AI Challenge. The AI Challenge is an Artificial
+Intelligence programming contest. You can get more information by
+visiting [www.ai-contest.com](http://www.ai-contest.com/).
+
+The entire contents of this starter package are released under the
+Apache license as is all code related to the AI Challenge. See
+[http://github.com/aichallenge/aichallenge](http://github.com/aichallenge/aichallenge) for more details.
+
+There are a bunch of tutorials on the [ai-contest.com](http://ai-contest.com/)
+website that tell you what to do with the contents of this starter
+package. For the impatient, here is a brief summary.
+
+* In the root directory, there are a bunch of code files. These are a
+  simple working contest entry that employs a basic strategy. These
+  are meant to be used as a starting point for you to start writing
+  your own entry.  Alternatively, you can just package up the starter
+  package as-is and submit it on the website.
+
+* The tools directory contains a game engine and visualizer. This is
+  meant to be used to test your bot. See the relevant tutorials on the
+  website for information about how to use the tools.
+
+* The example_bots directory contains some sample bots for you to test
+  your own bot against.
+
+
+## OCaml Starter Package Specific Information
+
+## Status
+
+This is an implementation of the core functionality and suggested helper 
+functions in the Ants Starter Pack guide.
+
+There is an optional update_vision function which does a Field of Vision 
+calculation for every ant passed in. This allows the visible function to 
+work. You don't have to call it, though, and you could implement a 
+per-tile visible function which might be more efficient if you're not 
+checking many tiles. 
+
+## Usage
+
+Build with
+
+   ocamlbuild -lib unix MyBot.native
+
+in the source directory.
+
+## Where to go from here
+
+Here are some incremental improvements:
+
+ * prevent ant collisions
+
+   Updating the state of the game map is one obvious way to do this.
+This will also allow other ants to see that it's okay to move into the
+space which is going to be vacated.
+
+   Many other possibilities exist, such as maintaining a list of
+destinations, and they may have benefits.
+
+ * move toward food and enemies
+
+   Even without pathfinding, a bot which tries to walk straight toward
+food or enemies will usually outperform the starter.
+
+ * explore the unknown
+
+   A bot which sits still when it can't see anything interesting is
+missing an opportunity to expand. Even if you just make it try random
+steps for every ant who doesn't know what to do, this will generally
+outperform the do-nothing approach.
+
+ * search for the shortest path
+
+   Implementing a breadth first search and searching outward from all
+food tiles simultaneously can tell every ant which direction to step in
+to find the nearest food. No more getting stuck against water.
+
+ * efficient food collection
+
+   Sending ten ants to collect one piece of food isn't very efficient.
+Finding ways to minimize the number of ants devoted to food collection
+allows more ants to be used for exploration and combat.
+
+ * consider battles
+
+   Battles are complex, and the approaches will be varied, but adding
+some sort of combat awareness makes a bot far more effective.
+
+ * broader strategy
+
+   After playing around with some of the above and watching some games, 
+it's worth thinking about what seems effective, what you can process in 
+one second, and what you can implement in the time available.
+
+## Some notes I wrote while getting this ready:
+
+Please note that most of these comments were written before I added the 
+OO interface. I've updated some things but may have missed some.
+
+The main change resulting from this is that you will need to add some 
+getters to the swrap class in Ants.ml when you want to access bits of 
+game state. After doing that, you will need to either hide (rename) or 
+recreate the Ants.mli file with "ocamlc -i", because it won't know 
+about your new getters. See methods my_ants and get_map if you don't 
+understand what I mean by "getters".
+
+You don't have to use the OO interface. You can change the loop function 
+in Ants.ml to provide the raw tgame_state, recreate (or remove) 
+Ants.mli, and use the raw functions which are called by the swrap class. 
+You could also revert the ant object to a record with associated 
+functions.
+
+The advantage of the OO interface is that some function calls require 
+fewer arguments, because they can be referenced internally.
+
+Have a look through the default Ants.mli for provided functions.
+
+MyBot.ml contains the starter bot logic, and Ants.ml implements the I/O 
+and helper functions. Users are encouraged to look at Ants.ml, 
+particularly at the comments near the end, relating to the loop 
+function.
+
+The bot directs its debugging info to stderr. Under normal conditions, 
+the starter pack should say nothing, but if things go wrong it will 
+generate some output. If you change the ddebug function in Ants.ml to a 
+unit () then the program will not generate any debugging output at all.
+
+The pack provides issue_order and finish_turn functions just as 
+specified in the starter pack guide; the functions write directly to 
+stdout. 
+
+This is my first attempt at making something like this for other people 
+to use. If anyone would like to make improvements, that would be great. 
+Also, testing and bug reports are appreciated.
+
+Food you have seen this turn is marked on the map, and cleared between 
+turns. As well as the food on the map, the game state object contains 
+all the food tiles seen this turn as a (row, col) list.
+
+Ants.ml does not expect you to modify gstate.tmap, though in theory you 
+could. Be careful, have a look at the code to understand the 
+consequences. Or work on a copy.
+
+The map is represented by a mapb array array, with mapb consisting of:
+
+type mapb {seen : int; content : int}
+
+seen is the turn on which the tile was last seen, so the visible 
+function can check if the tile was seen this turn.
+
+Tiletypes (content) are as follows:
+
+Unseen 	: 0
+Land	: 1
+Water	: 2
+Food	: 3
+Ant	: 100+ (100 for friendly, then add owner value for 101, 102...)
+Dead ant: 200+ (200 for friendly, then as for Ant)
+
+For the Unseen, Land, Water and Food values, there are functions for 
+converting to and from labels of similar names. They are named 
+tile_of_int and int_of_tile. They will work for Ant and Dead as well, 
+but for those you may want to look at the actual value. int_of_tile 
+returns 199 for a live ant, 299 for a dead ant, ignoring owner (even if 
+it's yours) so for those cases, check the ints.
+
+It is still likely that there are undiscovered bugs in this code: 
+testing would be great.
+
+The files in this package are part of the Octave starter package for Ants from the Google AI Challenge. The Google AI Challenge is an Artificial Intelligence programming contest. You can get more information by visiting www.ai-contest.com.
+
+The entire contents of this starter package are released under the Apache license as is all code related to the Google AI Challenge. See https://github.com/aichallenge/aichallenge/ for more details.
+
+There is a tools package you can download from the contests website, including an engine, visualizer and some sample bots to test against. There are also some tutorials on the website for how you can use them.
+
+How to compile:
+There's no need to compile! The only line required to run the bot (using the tools) and assuming that octave is installed in the path varible (for windows) is "octave -qf path_to_file/MyBot.m"
+
+An explanation of the files:
+Below is a fairly crude description of what each source file is used for:
+    MyBot.m - Contains the main function that plays the game as well as the function to decide which moves to make and the function that ends the turn and prints 'go' to the server
+    
+    state_functions.m - The "juice" of the bot. There's everything from the function that parses the input and saves everything in a struct state, to functions that compute distances between locations, update the information about visible squares, print the moves to the game server, reset the state, etc.
+
+REMARK: All the locations are stored 0-based in the state structure. In order to index the the state.grid you'll obviously have to add 1 to the row and column that are stored elsewhere (you can see examples of this in the code)
+
+For some ideas on improving your bot from here, check out the tutorial and strategy idea pages on the contest website.
+
+Author:
+Pedro Osório - 2011
+mebm.pedrosorio in the google mail 
+
+
+# Pascal Starter Package for Ant Wars
+
+Tested with FreePascal 2.4.0 64-bit on Linux.
+
+# Perl Starter Bot
+
+The Perl bot consists of a two parts.
+Firstly, Ants.pm is a library of utility functions for interacting with the
+game. Details of those functions are below.
+Secondly, MyBot.pm is an example implementation of a working bot.
+
+It contains two important methods: setup() and create_orders().
+
+setup() will be called once, after the game parameters come in, but before the
+game starts running.
+
+create_orders() will be called once per game turn, and it should issue orders
+via issue_order().
+
+To get started, edit MyBot.pm; you can run it with: perl MyBot.pl
+
+# ANTS LIBRARY METHODS
+
+## new
+
+The constructor; doesn't really take any parameters at the moment.
+
+Must be called prior to any other methods, though.
+
+## height
+
+Returns height of the game board
+
+## width
+
+Returns width of the game board
+
+## run
+
+The primary processing loop. This will get orders and map data and then
+call methods to generate orders, until the game ends.
+
+## parse
+
+Incoming data parser.
+
+## finish_turn
+
+Called to indicate the turn is over. Automatically called by run()
+
+## issue_order
+
+Method to issue an order to the server. Takes parameters of the Position
+of the ant, plus the direction for it to travel in.
+(Which must be N, E, S or W)
+
+## map_search
+
+Method to return a list of types-of-things from a given map.
+
+Searches a map and returns an array of Position objects for occupied points.
+Also takes a value to check against for those occupied points.
+
+(Position objects encapsulate the row/col values)
+
+## my_ants
+
+Returns list of our ants on the map.
+
+(As an array of Position objects)
+
+Example:
+
+  my @ants = $self->my_ants;
+  for my $ant (@ants) {
+    say "I am at " . $ant->row . " by " . $ant->col;
+    say sprintf('Also known as (%d,%d)', $ant->x, $ant->y);
+  }
+
+## enemy_ants
+
+Returns list of enemy ants on the map.
+
+See my_ants()
+
+## food
+
+Returns list of visible food on the map
+
+Data returned in same format as my_ants()
+
+## water
+
+Returns a list of known water tiles from the map.
+
+Data returned in same format as my_ants()
+
+## passable
+
+Returns true/false indicating if given Position is passable.. (ie. not water)
+
+Note: Does not check for current occupation by other ants.
+
+## distance
+
+Calculate the distance between two Positions.
+
+## direction
+
+Given a current Position, return which direction to move to get to
+another Position.
+
+Note: Does not take into account impassable terrain.
+This is a fairly naive algorithm.
+
+## create_orders
+
+This method is called each turn to generate orders. It does nothing here, and
+should be extended in a subclass.
+
+## setup
+
+You may optionally override setup() in your own bot.
+
+It is called after the initial configuration data is sent from the server.
+
+# AUTHOR
+
+Toby Corkindale, tjc@cpan.org.
+
+# LICENSE
+
+This code is freely released into the public domain for use by maintainers and
+entrants of the AI Challenge.
+
+
+# Scala Starter Package for Ant Wars
+
+See the section after "Google AI Challenge Blurb" for information
+specific to this Scala starter package.
+
+
+## Google AI Challenge Blurb
+
+The files in this package are part of a starter package from the
+Google AI Challenge. The Google AI Challenge is an Artificial
+Intelligence programming contest. You can get more information by
+visiting [www.ai-contest.com](http://www.ai-contest.com/).
+
+The entire contents of this starter package are released under the
+Apache license as is all code related to the Google AI Challenge. See
+[code.google.com/p/ai-contest/](http://code.google.com/p/ai-contest/)
+for more details.
+
+There are a bunch of tutorials on the
+[ai-contest.com](http://ai-contest.com/) website that tell you what to
+do with the contents of this starter package. For the impatient, here
+is a brief summary.
+
+* In the root directory, there are a bunch of code files. These are a
+  simple working contest entry that employs a basic strategy. These
+  are meant to be used as a starting point for you to start writing
+  your own entry.  Alternatively, you can just package up the starter
+  package as-is and submit it on the website.
+
+* The tools directory contains a game engine and visualizer. This is
+  meant to be used to test your bot. See the relevant tutorials on the
+  website for information about how to use the tools.
+
+* The example_bots directory contains some sample bots for you to test
+  your own bot against.
+
+
+## Scala Starter Package Specific Information
+
+This is the basic Scala starter package. It is implemented as per the
+requirements for a starter package as documented on the 
+[Google AI Challenge wiki](https://github.com/aichallenge/aichallenge/wiki/Ants-Starter-Pack-Guide).
+
+The official server will be executing Scala bots using [Scala 2.8.1-final](http://www.scala-lang.org/node/8102).
+Contestants are recommended to use this version for their development.
+
+
+## Source
+
+`AntsGame.scala` contains the game loop. `Parser.scala` contains the input 
+parsing logic. `MyBot.scala` contains the actual bot AI. Currently it does 
+nothing more than check whether it can go either north, east, south or west 
+and if it can it issues an order to the server to go in that direction.  
+(As described in the [Ants Starter Pack Guide](https://github.com/aichallenge/aichallenge/wiki/Ants-Starter-Pack-Guide)).
+
+The `Bot.scala` trait, from which `MyBot.scala` derives, provides the 
+interface for your bot.
+
+    def ordersFrom(gameState: Game): Set[Order]
+
+Given a `GameState` (being all that your bot has been told about the game 
+state in the current round; all bodies of water ever seen; and the
+parameters used to seed the game), your bot is tasked with returning a
+set of `Order`s (being the location of ants that should move and the
+direction they should move in).
+
+The simplest possible implementation is:
+
+    def ordersFrom(gameState: Game) = Set.empty[Order]
+
+
+## Status
+
+This bot has been tested locally with data on standard input and with 
+a locally running game engine. There may yet be undiscovered bugs within 
+the game loop. Assume nothing. At any rate, all code in this 
+starter package is able to be modified or removed within your own
+Scala bot submission.
+
+Patches to the Scala starter bot are welcomed. Fork the [offical repo](https://github.com/aichallenge/aichallenge)
+if you wish. Or, fork [my fork](https://github.com/Synesso/aichallenge)
+if you would like a review.
+
+
+
+## Tcl Package
+
+This is an AI Challenge starter bot written in Tcl. It requires tclsh 8.5.
+
+[Start Bot Guide on AI Challenge wiki](https://github.com/aichallenge/aichallenge/wiki/Ants-Starter-Pack-Guide)
+
+[Official Tcl website](http://tcl.tk)
+
+
+## Source
+
+`ants.tcl` maintains the game state and handles input and output.
+
+`helper.tcl` contains a few simple, helpful procedures.
+
+`MyBot.tcl` consists of the bot's gameplay logic. Therein are three required procedures: initialize, doTurn, and endGame.
+
+1. JAVA PLUGIN PATH IN ANT BUILD
+--------------------------------
+If you don't use the Sun/Oracle JRE or don't have the JAVA_HOME environment
+variable, you need to setup the path to the Java plugin for the ant build
+script. Create a file named "local.properties" next to "default.properties" and
+set the "java.plugin" variable. The following is an example location for 
+IcedTea 6 on Gentoo Linux:
+
+java.plugin: /opt/icedtea6-web-bin/share/icedtea-web/plugin.jar
+
+2. DOWNLOAD ADDITIONAL FILES
+----------------------------
+1. Select the Java perspective (Window -> Open Perspective -> Java).
+2. Display the Ant view (Window -> Show View -> Ant).
+3. Add "visualizer/build.xml" to the view via drag&drop or by clicking on the
+   add button.
+4. Double-click the "jar" ant tasks to run it. This will include downloads
+   of files that are listed as missing in Eclipse and build the visualizer.jar.
+5. Right-click on the project and select refresh. (You can configure the ant
+   launcher, that was newly created, to do this automatically in the future.)
+
+3. JAVA PLUGIN PATH IN ECLIPSE
+------------------------------
+To keep the project 'clean' I added a place holder library named 'Java plugin'
+that has to be filled with the actual location of the Java plugin jar.
+
+1. Right-click on the project and select "Properties".
+2. Select "Java Build Path" on the left and then the "Libraries" tab.
+3. Click on "Java plugin" and then the "Edit..." button.
+4. Create a User library named "Java plugin" that contains the Java plugin for
+   your Java Runtime.
+   (e.g.: <...>/jre/lib/plugin.jar or that path from you local.properties file)
+
+All displayed errors should now be gone.
+INFO
+----
+
+This is a place that you can use as an Eclipse workspace and import projects
+into. The projects work in Eclipse 3.7 (Indigo) with various language plugins.
+The "Platform Runtime Binary" is enough to get started, but any of the bundles
+will do as well. Start Eclipse and set the workspace to "ants/eclipse_workspace" 
+inside your working copy of the git repository. Then install the plugins and
+import projects according to the table below.
+Most Eclipse plugins offer detailed code analysis and formatting options that
+help in writing clean code, so it is worth to check for invalid characters in
+html or missing tags in PHP with it.
+I'm not generally a fan of putting IDE specific files up on source repositories,
+but I think with the wide language support, Eclipse offers a good platform for
+our project.
+
+- Marco 'mleise' Leise
+
+
+PROJECTS
+--------
+
+project     : JavaScript visualizer
+plugin      : JavaScript Development Tools
+              http://download.eclipse.org/releases/indigo/
+
+project     : Java wrapper for the visualizer
+plugin      : Eclipse Java Development Tools
+              http://download.eclipse.org/releases/indigo/
+note        : The user library 'Java plugin' must be created and list the JAR
+              file that contains the Java Netscape plugin code.
+              (jre/lib/plugin.jar for Sun/Oracle VMs)
+
+project     : Python
+plugin      : PyDev for Eclipse
+              http://pydev.org/updates
+note        : Set up the interpreter.
+
+project     : website
+plugin      : PHP Development Tools (PDT) Runtime Feature
+              http://download.eclipse.org/releases/indigo/
+
+
+HINTS
+-----
+
+- It is probably best to create a workspace outside the working copy and import
+  the projects there.
+- Shared launchers are *.launch files in the project. Right-click them and use
+  the Run As -> ... command to run and register them with your workspace.
+
+## Server
+
+* Install Ubuntu 11.04
+* Install git and a few of your favorite admin tools
+* Create the `contest` user
+    For Ubuntu: `sudo useradd -d /home/contest -m -s /bin/bash contest`
+* Switch to contest user: `sudo su contest; cd ~`
+* `git clone` the repository inside
+* Initialize the git submodules. `git submodule init; git submodule update`
+* `sudo python setup/server_setup.py`
+
+    * Leave blank for root mysql password (TODO: Fix this) if there's no mysql installed (change it later after install).
+    * Website hostname option is used by the apache host setup, do not include port in there.
+
+### Worker
+* Install Ubuntu 11.04
+* Install git and a few of your favorite admin tools
+* Get a root prompt
+* Run `curl http://example.com/api_server_setup.php?api_create_key=yourkey|sh`
+* Worker takes about 25 minutes to install
+* Worker starts processing games when done
+TSUpdate is a very simple command line utility for calculating updated player
+trueskill information after a multiplayer, single player on a team game. It
+receives the information on standard input and then outputs the updated player
+information to standard out.
+
+To compile it use the command "javac -cp JSkills_0.9.0.jar:. TSUpdate.java"
+
+To run use the command "java -cp JSkills_0.9.9.jar:. TSUpdate"
+
+It expects each player's information from the game on a line in the following
+format:
+P <player id> <game rank> <prior mu> <prior sigma>
+
+player id, can be any string not containing whitespace and must be unique to
+each player in the game.
+
+game rank, is the final ranking of the player in the game and must be an
+integer, but does not need to have any other structure other than lesser ranks
+are considered to have come in ahead of greater ranks. Players with the same rank are considered to have tied.
+
+prior mu and prior sigma, are floating point representations of the player's
+trueskill stats before the game.
+
+After all players are entered the program expects one line with "C" and will
+then calculate and output each player's updated trueskill stats with:
+<player id> <updated mu> <updated sigma>
+
+The program will then exit.
+
+
+AI Challenge Source Code Repository
+===================================
+
+*Codename: Epsilon*
+
+This code provides the basis for the Fall 2011 [AI Challenge](http://aichallenge.org/).
+Epsilon is supposed to implement the ants game.
+
+Folder Contents
+---------------
+
+* `ants/` - Everything related to ants: engine, starter packages, maps/mapgen, visualizer
+* `integration_testing` - Anything related to testing/stress-testing the contest setup
+* `manager/` - Tournament manager which coordinates the workers and computes skill ratings
+* `worker/` - Standalone workers which run games (including compiler and sandbox)
+* `sql/` - Files for creating an empty sql database
+* `website/` - Main website and frontend
+
+Initializing the git submodules:
+
+* `git submodule init`
+* `git submodule update`
+
+Installation
+---------------
+
+Follow [INSTALL.md](https://github.com/aichallenge/aichallenge/blob/epsilon/INSTALL.md).
+<?php
+
+$title="Problem Description";
+require_once('header.php');
+require_once('visualizer_widget.php');
+visualize_pre();
+
+?>
+
+<!--<MarkdownReplacement with="competition-Problem-Description.md">--><!--</MarkdownReplacement>-->
+
+<?php
+
+require_once('footer.php');
+
+?>
+

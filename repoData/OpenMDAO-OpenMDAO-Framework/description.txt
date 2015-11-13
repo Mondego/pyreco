@@ -1,0 +1,262 @@
+Use of f2py to run a Fortran-77 code.
+
+
+F2PY is a program which provides a connection between Python and Fortran routines
+by wrapping a Fortran program and creating a module which can then be executed.
+To understand the use of f2py, a simple Fortran code related to turbine flows AXOD is used.
+
+
+AXOD is an Axial-flow Turbine Off-design Fortran-77 code, made of 30 routines.
+Following modifications were needed to create a python wrapped module.
+
+
+1.  Main program (Program AXOD) was modified to run as a subroutine 
+    axodm.f(file name).
+
+        SUBROUTINE AXOD ( )
+
+2.  f2py allows only one no-name common block. To satisfy this requirement,
+    2 common blocks were changed from no-name to named common blocks.
+
+     C1FIT1, C2FIT2 in (fit.f,fit2.f, inst2.f, instg.f)
+
+     Only one no-name common block is left in the code.  No-name common block 
+     variable 'RES( )' dimension was changed. The common block does not have the same
+     structute in various routines. 
+
+3.   A  new subroutine 'icommon.f' is added which initializes the values of common block
+      variables.
+
+4.   The f2py module axodm was created as:
+
+      f2py  -c -m axodm  --f77flags=' -g - fno-automatic'  *.f
+
+      This will create a wrapper module "axodm.so" which can be used to run
+      the AXOD  code under python environment.  The script to run the code 
+      'testaxod.py' is created.
+
+5.    Execute it as "python testaxod.py" from the command line.
+      The testaxod.py script executes the code with  2 input files in a loop.
+
+      The "test_axod_comp.py" tests the component 'AxodCompn' with 2 input files           
+      (one_stage.inp & eee_hpt.inp).
+    
+      A test case is also included where input file is being modified with
+      data received from another component. (See also  newtest1.py in test
+      directory).
+
+6.    The wrapper module was tested by executing the code using two different
+      input files, namely, eee_hpt.inp & one_stage.inp. The script allows to run the code
+      in a loop by changing input files. The output produced matches with the output 
+      obtained from a run with the original code.
+
+7.    Makefile was modified to create an f2py wrapper module 'axodm.so'.
+      (tested with gfortran compiler)
+  
+      Use  "make f2py"                  for  f2py module
+           "make     "                  for  axod executable (default)
+
+*****************************************************************************************
+
+Following modifications were made to get output data to python environment.
+
+1.  Added a common block  DATTRF in subroutines axod, tempdata,inst2
+
+      COMMON /DATTRF/HP1, TT123(48), PT123(48), WG123(48), ETAS(48), ETAR(48), KS
+
+             HP1 = Turbine Power
+             TT123 = Total Temperature
+             PT123 = Total Pressure
+             WG123 = Total Mass flow
+             ETAS  = Stator Efficiency
+             ETAR  = Rotor Efficiency
+             KS    = Number of Stages
+
+2.   Added  subroutines 'tempdata.f, getdata.f'
+
+3.   Modified routines axodm.f, ovrall.f, inst2.f
+
+4.   Module axod.so is prepared as:
+
+     make f2py
+
+5.   This can be tested by:
+
+     cd ../test
+     python testaxod.py
+
+     This will display AXOD internals, then run eee_hpt and one_stage
+     input files.  
+
+6.   This version of code was done on 6/28/2010
+
+     All "Arithmetic IF" statements are replaced by equivalent "IF THEN"
+     statements.  This was done to remove all warning messages seen during
+     gfortran compilation process.
+
+
+This directory contains the f2py signature file. 
+Do not edit these file unless you really know what you are doing.
+
+This directory contains the Fortran 77 source for COBYLA, 
+modified for pyOpt interfacing by Dr. Ruben E. Perez, 
+plus two helper files called openunit.f and closeunit.f 
+to manipulate Fortran units from Python.
+
+For OpenMDAO, the source was modified to allow for writing
+to unit 6 as STDOUT.
+
+
+
+This is an example of a README.txt file for an OpenMDAO plugin 
+component.
+
+To view the Sphinx documentation for this distribution, type:
+
+plugin_docs mycomp
+
+
+
+NOTE: This was written back when we were using zc.buildout to construct
+      the OpenMDAO environment, so it's a bit out of date.  I'm not sure
+      if it works under our current virtualenv based scheme.  -BAN
+
+
+
+
+
+The code here was developed just as a feasability check.
+It's not intended to be the 'right', or even a 'good' way to do things.
+It was written by someone with very little 'mool' knowledge.
+Hopefully it will provide a start for a real implementation.
+
+NOTE: because we don't have Python eggs for mool, SciPy, etc. yet, this
+      code will run only if you add the following lines to the
+      [app] section of your buildout.cfg file (after the recipe)
+      and then re-run the buildout.  Note that the second path is there in 
+      order to find the SciPy distribution, which may be in a different place
+      on your system, so you may have to modify that path.
+
+extra-paths = ${buildout:directory}/../contrib
+              /usr/local/lib/python2.5/site-packages
+
+      Once we have the required eggs, you won't need the above hack,
+      and the __init__.py file can be removed from the m4 directory.
+
+To run the examples, use the bin/python script in the buildout directory to
+run doe_example.py and mid_fidelity_example.py in the examples directory.
+
+For example, from the buildout directory, type:
+
+   bin/python ../contrib/m4/examples/doe_example.py
+
+
+
+
+
+This directory is intended to contain source to be packaged into 
+python distributions that are releasable separately from OpenMDAO.  These
+distributions may or may not depend upon OpenMDAO.  Distributions that have 
+not yet been approved to be part of openmdao.lib can live here, as long as 
+they are license compatible with NOSA, i.e., no GPL or proprietary code 
+should be placed here.
+
+
+This directory contains the f2py signature file. 
+Do not edit these file unless you really know what you are doing.
+
+This directory contains the Fortran 77 source for 
+SLSQP, plus two helper files called openunit.f and
+closeunit.f to manipulate Fortran units from Python.
+
+For OpenMDAO, the source was modified to allow for writing
+to unit 6 as STDOUT. Also, all "SAVE" statments were
+removed and replaced with storage in the parent
+subroutine so that the code could be made thread-safe.
+In other words, this driver is now nestable.
+
+To create the documentation, type "bin/buildout" in the buildout directory on your branch. This will run a
+Sphinx build that will generate a directory called "_build", which contains the html pages generated by
+Sphinx. To display the documents, you must type "bin/docs."
+
+NOTES: Any .dia files placed within the diagrams/ directory will be converted into .png files, resized, 
+and placed in the generated_images folder.  .dia files should be version controlled.
+
+Any "static" .png files (i.e., not generated) should placed within the appropriate images/"document"
+sub-directories.  These static images should be version controlled.
+
+Sphinx will take care of copying any of the images that are used in any of the documents to the
+_build/html/_images directory.
+
+
+-------------------------------
+OpenMDAO Local Quickstart Guide
+-------------------------------
+
+The following is a very brief explanation of what you need to do to get up and running with an
+OpenMDAO build locally here at GRC. A more thorough explanation of all steps will be available to 
+you once you create a repository and build the OpenMDAO documentation.
+
+
+1. Log into torpedo.grc.nasa.gov
+
+   If you don't have an account on torpedo, contact James.Below@nasa.gov
+
+2. Type python2.5 /OpenMDAO/trunk/util/mkbranch.py -t <ticket number> -d <description>
+
+   If you don't have a ticket number, use 0.
+   
+   description is optional. If it contains spaces it must be enclosed in 
+   quotes.  Any spaces will be replaced by underscores (_)
+
+   For example: python2.5 /OpenMDAO/trunk/util/mkbranch.py -t 0 -d "my bugfix"
+   
+3. cd to /OpenMDAO/dev/<username>/T<ticket number>-<description>/buildout
+
+   where <username> is your user name on torpedo
+   
+   For example: cd /OpenMDAO/dev/bnaylor/T0000-bugfix/buildout
+   
+4. Type bin/buildout
+
+   This will take some time as all of the required python eggs will be installed in your
+   buildout area.
+   
+5. Type bin/docs. 
+
+   A firefox web browser should pop up and display
+   the front page of the OpenMDAO docs.  Click on the Developer's Guide for more instructions.
+   
+   
+
+Adding a new file here can cause a problem:
+
+test_PythonSourceTreeAnalyser can fail if openmdao.main/setup.py isn't
+updated to include entrypoints for new types.
+
+
+README.txt file for %(name)s.
+
+To view the Sphinx documentation for this distribution, type:
+
+plugin docs %(name)s
+
+
+To set up a development environment for OpenMDAO, run:
+
+    python go-openmdao-dev.py
+
+where python is in the 2.7.x series. 
+
+This will create a virtualenv within the current directory
+called 'devenv', with all of the openmdao namespace packages
+installed in it as 'develop' eggs.
+
+For more information, go to http://openmdao.org/dev_docs  
+
+This directory is intended to contain command line scripts that do not 
+require an active install of openmdao. Those that are tied to openmdao 
+should be added to a package as a console script that can be run from 
+the bin directory of the virtualenv.
+
+

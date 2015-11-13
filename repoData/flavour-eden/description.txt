@@ -1,0 +1,685 @@
+Sahana Eden is an Emergency Development Environment - an Open Source framework to rapidly build powerful applications for Emergency Management.
+
+It is a web based collaboration tool that addresses the common coordination problems during a disaster from finding missing people, managing aid, managing volunteers, tracking camps effectively between Government groups, the civil society (NGOs) and the victims themselves.
+
+Please see the website for more details: http://eden.sahanafoundation.org/
+
+Note to developers -- get started here!
+http://eden.sahanafoundation.org/wiki/Develop
+Before your first pull request, sign the Contributor's License Agreement, which protects your rights to your code, while allowing it to be distributed and used in Sahana Eden.
+http://bit.ly/SSF-eCLA
+
+GeoSilk icons by Rolando Pe–ate
+
+The GeoSilk icon set is derived from the Silk
+icon set by Mark James and the uDig icons made
+by Refractions Research. It aims to extend the
+Silk icon set to address the needs of
+geospatial software.
+
+_________________________________________
+Silk icon set 1.3 by Mark James
+http://www.famfamfam.com/lab/icons/silk/
+_________________________________________
+
+The Silk icon set is licensed under a
+Creative Commons Attribution 3.0 License.
+[ http://creativecommons.org/licenses/by/3.0/ ]
+
+This means you may use it for any purpose,
+and make any changes you like.
+All I ask is that you include a link back
+to this page in your credits.
+
+Are you using this icon set? Send me an email
+(including a link or picture if available) to
+mjames@gmail.com
+
+Any other questions about this icon set please
+contact mjames@gmail.com
+2010-03-16 jwr:
+The image directory, "yourtheme", is an exact copy of the "default" image directory. Remember to update your file paths in "css/yourtheme.css" if you make changes or add your own custom images for your custom theme.
+/**
+ * Copyright (c) 2008-2011 The Open Source Geospatial Foundation
+ * 
+ * Published under the BSD license.
+ * See http://svn.geoext.org/core/trunk/geoext/license.txt for the full text
+ * of the license.
+ */
+
+/**
+ * @require OpenLayers/Format/WMSDescribeLayer.js
+ * @require OpenLayers/Format/WMSDescribeLayer/v1_1.js
+ */
+
+/** api: (define)
+ *  module = GeoExt.data
+ *  class = WMSDescribeLayerReader
+ *  base_link = `Ext.data.DataReader <http://dev.sencha.com/deploy/dev/docs/?class=Ext.data.DataReader>`_
+ */
+Ext.namespace("GeoExt.data");
+
+/** api: constructor
+ *  .. class:: WMSDescribeLayerReader(meta, recordType)
+ *  
+ *      :param meta: ``Object`` Reader configuration.
+ *      :param recordType: ``Array | Ext.data.Record`` An array of field
+ *          configuration objects or a record object.  Default has
+ *          fields for owsType, owsURL, and typeName.
+ *   
+ *      Data reader class to create an array of
+ *      layer description objects from a WMS DescribeLayer
+ *      response.
+ */
+GeoExt.data.WMSDescribeLayerReader = function(meta, recordType) {
+    meta = meta || {};
+    if(!meta.format) {
+        meta.format = new OpenLayers.Format.WMSDescribeLayer();
+    }
+    if(!(typeof recordType === "function")) {
+        recordType = Ext.data.Record.create(
+            recordType || meta.fields || [
+                {name: "owsType", type: "string"},
+                {name: "owsURL", type: "string"},
+                {name: "typeName", type: "string"}
+            ]
+        );
+    }
+    GeoExt.data.WMSDescribeLayerReader.superclass.constructor.call(
+        this, meta, recordType
+    );
+};
+
+Ext.extend(GeoExt.data.WMSDescribeLayerReader, Ext.data.DataReader, {
+
+    /** private: method[read]
+     *  :param request: ``Object`` The XHR object which contains the parsed XML
+     *      document.
+     *  :return: ``Object`` A data block which is used by an ``Ext.data.Store``
+     *      as a cache of ``Ext.data.Record`` objects.
+     */
+    read: function(request) {
+        var data = request.responseXML;
+        if(!data || !data.documentElement) {
+            data = request.responseText;
+        }
+        return this.readRecords(data);
+    },
+
+    /** private: method[readRecords]
+     *  :param data: ``DOMElement | Strint | Object`` A document element or XHR
+     *      response string.  As an alternative to fetching layer description data
+     *      from a remote source, an object representing the layer descriptions can
+     *      be provided given that the structure mirrors that returned from the
+     *      layer description parser.
+     *  :return: ``Object`` A data block which is used by an ``Ext.data.Store``
+     *      as a cache of ``Ext.data.Record`` objects.
+     *  
+     *  Create a data block containing Ext.data.Records from an XML document.
+     */
+    readRecords: function(data) {
+        
+        if(typeof data === "string" || data.nodeType) {
+            data = this.meta.format.read(data);
+        }
+        var records = [], description;        
+        for(var i=0, len=data.length; i<len; i++){
+            description = data[i];
+            if(description) {
+                records.push(new this.recordType(description));
+            }
+        }
+
+        return {
+            totalRecords: records.length,
+            success: true,
+            records: records
+        };
+
+    }
+});
+
+/**x
+ * Copyright (c) 2008-2011 The Open Source Geospatial Foundation
+ * 
+ * Published under the BSD license.
+ * See http://svn.geoext.org/core/trunk/geoext/license.txt for the full text
+ * of the license.
+ */
+
+/**
+ * @include GeoExt/data/WMSDescribeLayerReader.js
+ */
+
+/** api: (define)
+ *  module = GeoExt.data
+ *  class = WMSDescribeLayerStore
+ *  base_link = `Ext.data.Store <http://dev.sencha.com/deploy/dev/docs/?class=Ext.data.Store>`_
+ */
+Ext.namespace("GeoExt.data");
+
+/** api: constructor
+ *  .. class:: WMSDescribeLayerStore
+ *  
+ *      Small helper class to make creating stores for remote WMS layer description
+ *      easier.  The store is pre-configured with a built-in
+ *      ``Ext.data.HttpProxy`` and :class:`GeoExt.data.WMSDescribeLayerReader`.
+ *      The proxy is configured to allow caching and issues requests via GET.
+ *      If you require some other proxy/reader combination then you'll have to
+ *      configure this with your own proxy or create a basic
+ *      store and configure as needed.
+ */
+
+/** api: config[format]
+ *  ``OpenLayers.Format``
+ *  A parser for transforming the XHR response into an array of objects
+ *  representing attributes.  Defaults to an ``OpenLayers.Format.WMSDescribeLayer``
+ *  parser.
+ */
+
+/** api: config[fields]
+ *  ``Array | Function``
+ *  Either an Array of field definition objects as passed to
+ *  ``Ext.data.Record.create``, or a record constructor created using
+ *  ``Ext.data.Record.create``.  Defaults to ``["name", "type"]``. 
+ */
+
+GeoExt.data.WMSDescribeLayerStore = function(c) {
+    c = c || {};
+    GeoExt.data.WMSDescribeLayerStore.superclass.constructor.call(
+        this,
+        Ext.apply(c, {
+            proxy: c.proxy || (!c.data ?
+                new Ext.data.HttpProxy({url: c.url, disableCaching: false, method: "GET"}) :
+                undefined
+            ),
+            reader: new GeoExt.data.WMSDescribeLayerReader(
+                c, c.fields
+            )
+        })
+    );
+};
+Ext.extend(GeoExt.data.WMSDescribeLayerStore, Ext.data.Store);
+
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for
+ * full list of contributors). Published under the 2-clause BSD license.
+ * See license.txt in the OpenLayers distribution or repository for the
+ * full text of the license. */
+
+/**
+ * @requires OpenLayers/Format/XML.js
+ * @requires OpenLayers/Format/OGCExceptionReport.js
+ */
+ 
+/**
+ * Class: OpenLayers.Format.WFSDescribeFeatureType
+ * Read WFS DescribeFeatureType response
+ * 
+ * Inherits from:
+ *  - <OpenLayers.Format.XML>
+ */
+OpenLayers.Format.WFSDescribeFeatureType = OpenLayers.Class(
+    OpenLayers.Format.XML, {
+
+    /**
+     * Property: regExes
+     * Compiled regular expressions for manipulating strings.
+     */
+    regExes: {
+        trimSpace: (/^\s*|\s*$/g)
+    },
+    
+    /**
+     * Property: namespaces
+     * {Object} Mapping of namespace aliases to namespace URIs.
+     */
+    namespaces: {
+        xsd: "http://www.w3.org/2001/XMLSchema"
+    },
+    
+    /**
+     * Constructor: OpenLayers.Format.WFSDescribeFeatureType
+     * Create a new parser for WFS DescribeFeatureType responses.
+     *
+     * Parameters:
+     * options - {Object} An optional object whose properties will be set on
+     *     this instance.
+     */
+    
+    /**
+     * Property: readers
+     * Contains public functions, grouped by namespace prefix, that will
+     *     be applied when a namespaced node is found matching the function
+     *     name.  The function will be applied in the scope of this parser
+     *     with two arguments: the node being read and a context object passed
+     *     from the parent.
+     */
+    readers: {
+        "xsd": {
+            "schema": function(node, obj) {
+                var complexTypes = [];
+                var customTypes = {};
+                var schema = {
+                    complexTypes: complexTypes,
+                    customTypes: customTypes
+                };
+                var i, len;
+                
+                this.readChildNodes(node, schema);
+
+                var attributes = node.attributes;
+                var attr, name;
+                for(i=0, len=attributes.length; i<len; ++i) {
+                    attr = attributes[i];
+                    name = attr.name;
+                    if(name.indexOf("xmlns") === 0) {
+                        this.setNamespace(name.split(":")[1] || "", attr.value);
+                    } else {
+                        obj[name] = attr.value;
+                    }
+                }
+                obj.featureTypes = complexTypes;                
+                obj.targetPrefix = this.namespaceAlias[obj.targetNamespace];
+                
+                // map complexTypes to names of customTypes
+                var complexType, customType;
+                for(i=0, len=complexTypes.length; i<len; ++i) {
+                    complexType = complexTypes[i];
+                    customType = customTypes[complexType.typeName];
+                    if(customTypes[complexType.typeName]) {
+                        complexType.typeName = customType.name;
+                    }
+                }
+            },
+            "complexType": function(node, obj) {
+                var complexType = {
+                    // this is a temporary typeName, it will be overwritten by
+                    // the schema reader with the metadata found in the
+                    // customTypes hash
+                    "typeName": node.getAttribute("name")
+                };
+                this.readChildNodes(node, complexType);
+                obj.complexTypes.push(complexType);
+            },
+            "complexContent": function(node, obj) {
+                this.readChildNodes(node, obj);
+            },
+            "extension": function(node, obj) {
+                this.readChildNodes(node, obj);
+            },
+            "sequence": function(node, obj) {
+                var sequence = {
+                    elements: []
+                };
+                this.readChildNodes(node, sequence);
+                obj.properties = sequence.elements;
+            },
+            "element": function(node, obj) {
+                var type;
+                if(obj.elements) {
+                    var element = {};
+                    var attributes = node.attributes;
+                    var attr;
+                    for(var i=0, len=attributes.length; i<len; ++i) {
+                        attr = attributes[i];
+                        element[attr.name] = attr.value;
+                    }
+                    
+                    type = element.type;
+                    if(!type) {
+                        type = {};
+                        this.readChildNodes(node, type);
+                        element.restriction = type;
+                        element.type = type.base;
+                    }
+                    var fullType = type.base || type;
+                    element.localType = fullType.split(":").pop();
+                    obj.elements.push(element);
+                    this.readChildNodes(node, element);
+                }
+                
+                if(obj.complexTypes) {
+                    type = node.getAttribute("type");
+                    var localType = type.split(":").pop();
+                    obj.customTypes[localType] = {
+                        "name": node.getAttribute("name"),
+                        "type": type
+                    };
+                }
+            },
+            "annotation": function(node, obj) {
+                obj.annotation = {};
+                this.readChildNodes(node, obj.annotation);
+            },
+            "appinfo": function(node, obj) {
+                if (!obj.appinfo) {
+                    obj.appinfo = [];
+                }
+                obj.appinfo.push(this.getChildValue(node));
+            },
+            "documentation": function(node, obj) {
+                if (!obj.documentation) {
+                    obj.documentation = [];
+                }
+                var value = this.getChildValue(node);
+                obj.documentation.push({
+                    lang: node.getAttribute("xml:lang"),
+                    textContent: value.replace(this.regExes.trimSpace, "")
+                });
+            },
+            "simpleType": function(node, obj) {
+                this.readChildNodes(node, obj);
+            },
+            "restriction": function(node, obj) {
+                obj.base = node.getAttribute("base");
+                this.readRestriction(node, obj);
+            }
+        }
+    },
+    
+    /**
+     * Method: readRestriction
+     * Reads restriction defined in the child nodes of a restriction element
+     * 
+     * Parameters:
+     * node - {DOMElement} the node to parse
+     * obj - {Object} the object that receives the read result
+     */
+    readRestriction: function(node, obj) {
+        var children = node.childNodes;
+        var child, nodeName, value;
+        for(var i=0, len=children.length; i<len; ++i) {
+            child = children[i];
+            if(child.nodeType == 1) {
+                nodeName = child.nodeName.split(":").pop();
+                value = child.getAttribute("value");
+                if(!obj[nodeName]) {
+                    obj[nodeName] = value;
+                } else {
+                    if(typeof obj[nodeName] == "string") {
+                        obj[nodeName] = [obj[nodeName]];
+                    }
+                    obj[nodeName].push(value);
+                }
+            }
+        }
+    },
+    
+    /**
+     * Method: read
+     *
+     * Parameters:
+     * data - {DOMElement|String} A WFS DescribeFeatureType document.
+     *
+     * Returns:
+     * {Object} An object representing the WFS DescribeFeatureType response.
+     */
+    read: function(data) {
+        if(typeof data == "string") { 
+            data = OpenLayers.Format.XML.prototype.read.apply(this, [data]);
+        }
+        if(data && data.nodeType == 9) {
+            data = data.documentElement;
+        }
+        var schema = {};
+        if (data.nodeName.split(":").pop() === 'ExceptionReport') {
+            // an exception must have occurred, so parse it
+            var parser = new OpenLayers.Format.OGCExceptionReport();
+            schema.error = parser.read(data);
+        } else {
+            this.readNode(data, schema);
+        }
+        return schema;
+    },
+    
+    CLASS_NAME: "OpenLayers.Format.WFSDescribeFeatureType" 
+
+});
+
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for
+ * full list of contributors). Published under the 2-clause BSD license.
+ * See license.txt in the OpenLayers distribution or repository for the
+ * full text of the license. */
+
+/**
+ * @requires OpenLayers/Format/XML/VersionedOGC.js
+ */
+
+/**
+ * Class: OpenLayers.Format.WMSDescribeLayer
+ * Read SLD WMS DescribeLayer response
+ * DescribeLayer is meant to couple WMS to WFS and WCS
+ * 
+ * Inherits from:
+ *  - <OpenLayers.Format.XML.VersionedOGC>
+ */
+OpenLayers.Format.WMSDescribeLayer = OpenLayers.Class(OpenLayers.Format.XML.VersionedOGC, {
+
+    /**
+     * APIProperty: defaultVersion
+     * {String} Version number to assume if none found.  Default is "1.1.1".
+     */
+    defaultVersion: "1.1.1",
+   
+    /**
+     * Constructor: OpenLayers.Format.WMSDescribeLayer
+     * Create a new parser for WMS DescribeLayer responses.
+     *
+     * Parameters:
+     * options - {Object} An optional object whose properties will be set on
+     *     this instance.
+     */
+
+    /**
+     * APIMethod: read
+     * Read DescribeLayer data from a string, and return the response. 
+     * The OGC currently defines 2 formats which are allowed for output,
+     * so we need to parse these 2 types
+     * 
+     * Parameters: 
+     * data - {String} or {DOMElement} data to read/parse.
+     *
+     * Returns:
+     * {Array} Array of {<LayerDescription>} objects which have:
+     * - {String} owsType: WFS/WCS
+     * - {String} owsURL: the online resource
+     * - {String} typeName: the name of the typename on the service
+     */
+    
+    CLASS_NAME: "OpenLayers.Format.WMSDescribeLayer" 
+
+});
+
+/* Copyright (c) 2006-2013 by OpenLayers Contributors (see authors.txt for
+ * full list of contributors). Published under the 2-clause BSD license.
+ * See license.txt in the OpenLayers distribution or repository for the
+ * full text of the license. */
+ 
+/**
+ * @requires OpenLayers/Format/XML.js
+ * @requires OpenLayers/Format/OWSCommon/v1_1_0.js
+ */
+
+/**
+ * Class: OpenLayers.Format.WPSDescribeProcess
+ * Read WPS DescribeProcess responses. 
+ *
+ * Inherits from:
+ *  - <OpenLayers.Format.XML>
+ */
+OpenLayers.Format.WPSDescribeProcess = OpenLayers.Class(
+    OpenLayers.Format.XML, {
+    
+    /**
+     * Constant: VERSION
+     * {String} 1.0.0
+     */
+    VERSION: "1.0.0",
+
+    /**
+     * Property: namespaces
+     * {Object} Mapping of namespace aliases to namespace URIs.
+     */
+    namespaces: {
+        wps: "http://www.opengis.net/wps/1.0.0",
+        ows: "http://www.opengis.net/ows/1.1",
+        xsi: "http://www.w3.org/2001/XMLSchema-instance"
+    },
+
+    /**
+     * Property: schemaLocation
+     * {String} Schema location
+     */
+    schemaLocation: "http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsAll.xsd",
+
+    /**
+     * Property: defaultPrefix
+     */
+    defaultPrefix: "wps",
+
+    /**
+     * Property: regExes
+     * Compiled regular expressions for manipulating strings.
+     */
+    regExes: {
+        trimSpace: (/^\s*|\s*$/g),
+        removeSpace: (/\s*/g),
+        splitSpace: (/\s+/),
+        trimComma: (/\s*,\s*/g)
+    },
+    
+    /**
+     * Constructor: OpenLayers.Format.WPSDescribeProcess
+     *
+     * Parameters:
+     * options - {Object} An optional object whose properties will be set on
+     *     this instance.
+     */
+
+    /**
+     * APIMethod: read
+     * Parse a WPS DescribeProcess and return an object with its information.
+     * 
+     * Parameters: 
+     * data - {String} or {DOMElement} data to read/parse.
+     *
+     * Returns:
+     * {Object}
+     */
+    read: function(data) {
+        if(typeof data == "string") {
+            data = OpenLayers.Format.XML.prototype.read.apply(this, [data]);
+        }
+        if(data && data.nodeType == 9) {
+            data = data.documentElement;
+        }
+        var info = {};
+        this.readNode(data, info);
+        return info;
+    },
+
+    /**
+     * Property: readers
+     * Contains public functions, grouped by namespace prefix, that will
+     *     be applied when a namespaced node is found matching the function
+     *     name.  The function will be applied in the scope of this parser
+     *     with two arguments: the node being read and a context object passed
+     *     from the parent.
+     */
+    readers: {
+        "wps": {
+            "ProcessDescriptions": function(node, obj) {
+                obj.processDescriptions = {};
+                this.readChildNodes(node, obj.processDescriptions);
+            },
+            "ProcessDescription": function(node, processDescriptions) {
+                var processVersion = this.getAttributeNS(node, this.namespaces.wps, "processVersion");
+                var processDescription = {
+                    processVersion: processVersion,
+                    statusSupported: (node.getAttribute("statusSupported") === "true"),
+                    storeSupported: (node.getAttribute("storeSupported") === "true")
+                };
+                this.readChildNodes(node, processDescription);
+                processDescriptions[processDescription.identifier] = processDescription;
+            },
+            "DataInputs": function(node, processDescription) {
+                processDescription.dataInputs = [];
+                this.readChildNodes(node, processDescription.dataInputs);
+            },
+            "ProcessOutputs": function(node, processDescription) {
+                processDescription.processOutputs = [];
+                this.readChildNodes(node, processDescription.processOutputs);
+            },
+            "Output": function(node, processOutputs) {
+                var output = {};
+                this.readChildNodes(node, output);
+                processOutputs.push(output);
+            },
+            "ComplexOutput": function(node, output) {
+                output.complexOutput = {};
+                this.readChildNodes(node, output.complexOutput);
+            },
+            "LiteralOutput": function(node, output) {
+                output.literalOutput = {};
+                this.readChildNodes(node, output.literalOutput);
+            },
+            "Input": function(node, dataInputs) {
+                var input = {
+                    maxOccurs: parseInt(node.getAttribute("maxOccurs")),
+                    minOccurs: parseInt(node.getAttribute("minOccurs"))
+                };
+                this.readChildNodes(node, input);
+                dataInputs.push(input);
+            },
+            "BoundingBoxData": function(node, input) {
+                input.boundingBoxData = {};
+                this.readChildNodes(node, input.boundingBoxData);
+            },
+            "CRS": function(node, obj) {
+                if (!obj.CRSs) {
+                    obj.CRSs = {};
+                }
+                obj.CRSs[this.getChildValue(node)] = true;
+            },
+            "LiteralData": function(node, input) {
+                input.literalData = {};
+                this.readChildNodes(node, input.literalData);
+            },
+            "ComplexData": function(node, input) {
+                input.complexData = {};
+                this.readChildNodes(node,  input.complexData);
+            },
+            "Default": function(node, complexData) {
+                complexData["default"] = {};
+                this.readChildNodes(node,  complexData["default"]);
+            },
+            "Supported": function(node, complexData) {
+                complexData["supported"] = {};
+                this.readChildNodes(node,  complexData["supported"]);
+            },
+            "Format": function(node, obj) {
+                var format = {};
+                this.readChildNodes(node, format);
+                if (!obj.formats) {
+                    obj.formats = {};
+                }
+                obj.formats[format.mimeType] = true;
+            },
+            "MimeType": function(node, format) {
+                format.mimeType = this.getChildValue(node);
+            }
+        },
+        "ows": OpenLayers.Format.OWSCommon.v1_1_0.prototype.readers["ows"]
+    },
+    
+    CLASS_NAME: "OpenLayers.Format.WPSDescribeProcess" 
+
+});
+
+ï»¿<tr id="description">
+<td><label>{{=T("Description")}}</label></td>
+<td><input name="description" type="text" value="{{try:}}{{=resource.description}}{{except:}}{{pass}}" />
+{{if customform.errors.description:}}
+  <div class="error" id="description__error">{{=customform.errors.description}}</div>
+{{pass}}
+</td></tr>

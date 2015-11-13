@@ -1,0 +1,143 @@
+.. -*- mode: rst -*-
+
+::
+
+                       _
+                      | |
+         _ __   _   _ | |_  ___
+        | '_ \ | | | || __|/ _ \
+        | |_) || |_| || |_|  __/
+        | .__/  \__, | \__|\___|
+        | |      __/ |
+        |_|     |___/      0.4.2
+
+        -- chicks dig dudes with terminals (c) @samfoo
+
+
+What is ``pyte``?
+-----------------
+
+What is ``pyte``? It's an in memory VTXXX-compatible terminal emulator.
+*XXX* stands for a series video terminals, developed by
+`DEC <http://en.wikipedia.org/wiki/Digital_Equipment_Corporation>`_ between
+1970 and 1995. The first, and probably the most famous one, was VT100
+terminal, which is now a de-facto standard for all virtual terminal
+emulators. ``pyte`` follows the suit.
+
+So, why would one need a terminal emulator library?
+
+* To screen scrape terminal apps, for example ``htop`` or ``aptitude``.
+* To write cross platform terminal emulators; either with a graphical
+  (`xterm <http://invisible-island.net/xterm/>`_,
+  `rxvt <http://www.rxvt.org/>`_) or a web interface, like
+  `AjaxTerm <http://antony.lesuisse.org/software/ajaxterm/>`_.
+* To have fun, hacking on the ancient, poorly documented technologies.
+
+**Note**: ``pyte`` started as a fork of `vt102 <http://github.com/samfoo/vt102>`_,
+which is an incomplete pure Python implementation of VT100 terminal.
+
+
+Installation
+------------
+
+If you have `setuptools <http://peak.telecommunity.com/DevCenter/setuptools>`_
+you can use ``easy_install -U pyte``. Otherwise, you can download the source
+from `GitHub <http://github.com/selectel/pyte>`_ and run ``python setup.py install``.
+
+
+Quick example
+-------------
+
+There are two important classes in ``pyte``: ``Screen`` and ``Stream``. The
+``Screen`` is the terminal screen emulator. It maintains an in-memory
+buffer of text and text-attributes to display on screen. The ``Stream``
+is the stream processor. It manages the state of the input and dispatches
+events to anything that's listening about things that are going on.
+Events are things like ``LINEFEED``, ``DRAW "a"``, or ``CURSOR_POSITION 10 10``.
+See the `API documentation` for more details.
+
+In general, if you just want to know what's being displayed on screen you
+can do something like the following:
+
+    >>> import pyte
+    >>> screen = pyte.Screen(80, 24)
+    >>> stream = pyte.Stream()
+    >>> stream.attach(screen)
+    >>> stream.feed("Hello World!")
+    >>> screen.display
+        ['Hello World!                                                                    ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ',
+         '                                                                                ']
+
+
+Alternatives
+------------
+
+``pyte`` is not alone in the weird world of terminal emulator libraries,
+here's a few other options worth checking out:
+`Termemulator <http://sourceforge.net/projects/termemulator/>`_,
+`pyqonsole <http://hg.logilab.org/pyqonsole/>`_,
+`webtty <http://code.google.com/p/webtty/>`_
+`AjaxTerm <http://antony.lesuisse.org/software/ajaxterm/>`_ and of course
+`vt102 <http://github.com/samfoo/vt102>`_.
+
+# Genesis
+
+Genesis is the interactive server management application for systems running the arkOS distribution. This project is currently in development. For more information about arkOS, visit [our website](https://arkos.io).
+
+
+## Getting Started
+For end-users: Genesis is already downloaded and installed on your arkOS node, running from the moment you start it up. Once your node is started and plugged into your router, simply go to `http://arkos:8000` in your browser to complete the setup and configuration process. From there, you are ready to use Genesis to manage your decentralized web!
+
+For more information see the [Getting Started](http://arkos.io/doc/getting-started/) page.
+
+Running Genesis from this Github repo is advised ONLY for development purposes. If you do this you will need the following Python modules: `pyOpenSSL`, `gevent`, `lxml`, `ntplib`, `python-iptables`, and `python-nginx`. Once you've cloned this repo, just run `genesis-panel` with root privileges to run a server live in stdout. `genesis-panel -d` and `genesis-panel -s` manually starts and stops the daemon respectively.
+
+
+## Writing Plugins
+For information on developing plugins for use with Genesis, see the development centre on https://arkos.io. Specifically:
+
+* [Webapp and Databases Structure](https://arkos.io/dev/genesis/apps-dbs) - Getting started with including new webapp and database types in Genesis
+* [Plugin Structure](https://arkos.io/dev/genesis/plugstruct) - Getting started with writing general Genesis plugins
+* [User Interface](https://arkos.io/dev/genesis/ux) - How to write a user interface compatible with Genesis' UX system
+* [Icon Reference](https://arkos.io/dev/genesis/iconref) - Choosing iconfont classes to use in your plugins
+* [General API Reference](https://arkos.io/dev/genesis/api) - The big book of all classes and functions
+
+Once you have a plugin, feel free to let Jacob (@peakwinter) know and testing can be arranged. If the plugin works well and contributes to arkOS' mission, it may then be included in the central plugin repository.
+
+
+## Acknowledgments
+Genesis is developed by:
+* Jacob Cook @peakwinter
+
+With a big thanks to those who have made contributions!
+* AJ Bahnken @ajvb
+* Jasper van Loenen @javl
+* Miguel Moitinho @mamoit
+* Steven Nelson @StevenNelson
+* Timothy Farrell @explorigin
+* Will Wilson @wwilson
+
+This project was forked from Ajenti, an excellent server management framework by @Eugeny located here: https://github.com/Eugeny/ajenti.
+

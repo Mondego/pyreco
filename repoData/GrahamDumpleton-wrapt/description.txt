@@ -1,0 +1,4100 @@
+How you implemented your Python decorator is wrong
+==================================================
+
+The rest of the Python community is currently doing lots of navel gazing
+over the issue of Python 3 adoption and the whole unicode/bytes divide. I
+am so over that and gave up caring when my will to work on WSGI stuff was
+leached away by how long it took to get the WSGI specification updated for
+Python 3.
+
+Instead my current favourite gripe these days is about how people implement
+Python decorators. Unfortunately, it appears to be a favourite topic for
+blogging by Python developers. It is like how when WSGI was all the rage
+and everyone wanted to write their own WSGI server or framework. Now it is
+like a rite of passage that one must blog about how to implement Python
+decorators as a way of showing that you understand Python. As such, I get
+lots of opportunity to grumble and wince. If only they did truly understand
+what they were describing and what problems exist with the approach they
+use.
+
+So what is my gripe then. My gripe is that although one can write a very
+simple decorator using a function closure, the scope it can be used in is
+usually limited. The most basic pattern for implementing a Python decorator
+also breaks various stuff related to introspection.
+
+Now most people will say who cares, it does the job I want to do and I
+don't have time to care whether it is correct in all situations.
+
+As people will know from when I did care more about WSGI, I am a pedantic
+arse though and when one does something, I like to see it done correctly.
+
+Besides my overly obsessive personal trait, it actually does also affect me
+in my day job as well. This is because I write tools which are dependent
+upon being able to introspect into code and I need the results I get back
+to be correct. If they aren't, then the data I generate becomes useless as
+information can get grouped against the wrong thing.
+
+As well as using introspection, I also do lots of evil stuff with monkey
+patching. As it happens, monkey patching and the function wrappers one
+applies aren't much different to decorators, it is just how they get
+applied which is different. Because though monkey patching entails going in
+and modifying other peoples code when they were not expecting it, or
+designing for it, means that when you do go in and wrap a function that how
+you do it is very important. If you do not do it correctly then you can
+crash the users application or inadvertently change how it runs.
+
+The first thing that is vitally important is preserving introspection for
+the wrapped function. Another not so obvious thing though is that you need
+to ensure that you do not mess with how the execution model for the Python
+object model works.
+
+Now I can in my own function wrappers that are used when performing monkey
+patching ensure that these two requirements are met so as to ensure that
+the function wrapper is transparent, but it can all fall in a heap when one
+needs to monkey patch functions which already have other decorators
+applied.
+
+So when you implement a Python decorator and do it poorly it can affect me
+and what I want to do. If I have to subsequently work around when you do it
+wrong, I get somewhat annoyed and grumpy as more often than not that
+entails a lot of pain.
+
+To cover everything there is to know about what is wrong with your typical
+Python decorators and wrapping of functions, plus how to fix it, will take
+a lot of explaining, so one blog post isn't going to be enough. See this
+blog post therefore as just part one of an extended discussion.
+
+For this first instalment I will simply go through the various ways in
+which your typical Python decorator can cause problems.
+
+Basics of a Python decorator
+----------------------------
+
+Everyone should know what the Python decorator syntax is.
+
+```
+@function_wrapper
+def function():
+    pass
+```
+
+The ``@`` annotation to denote the application of a decorator was only
+added in Python 2.4. It is actually though only fancy syntactic sugar. It
+is actually equivalent to writing:
+
+```
+def function():
+    pass
+
+function = function_wrapper(function)
+```
+
+and what you would have done prior to Python 2.4.
+
+The decorator syntax is therefore just a short hand way of being able to
+apply a wrapper around an existing function, or otherwise modify the
+existing function in place, while the definition of the function is being
+setup.
+
+What is referred to as monkey patching achieves pretty much the same
+outcome, the difference being that when monkey patching the wrapper isn't
+being applied at the time the definition of the function is being setup,
+but is applied retrospectively from a different context after the fact.
+
+Anatomy of a function wrapper
+-----------------------------
+
+Although I mentioned using function closures to implement a decorator, to
+understand how the more generic case of a function wrapper works it is more
+illustrative to show how to implement it using a class.
+
+```
+class function_wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs)
+
+@function_wrapper
+def function():
+    pass
+```
+
+The class instance in this example is initialised with and records the
+original function object. When the now wrapped function is called, it is
+actually the ``__call__()`` method of the wrapper object which is invoked.
+This in turn would then call the original wrapped function.
+
+Simply passing through the call to the wrapper alone isnt particularly
+useful, so normally you would actually want to do some work either before
+or after the wrapped function is called. Or you may want to modify the
+input arguments or the result as they pass through the wrapper. This is
+just a matter of modifying the ``__call__()`` method appropriately to do
+what you want.
+
+Using a class to implement the wrapper for a decorator isn't actually that
+popular. Instead a function closure is more often used. In this case a
+nested function is used as the wrapper and it is that which is returned by
+the decorator function. When the now wrapped function is called, the nested
+function is actually being called. This in turn would again then call the
+original wrapped function.
+
+```
+def function_wrapper(wrapped):
+    def _wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@function_wrapper
+def function():
+    pass
+```
+
+In this example the nested function doesn't actually get passed the
+original wrapped function explicitly. But it will still have access to it
+via the arguments given to the outer function call. This does away with the
+need to create a class to hold what was the wrapped function and thus why
+it is convenient and generally more popular.
+
+Introspecting a function
+------------------------
+
+Now when we talk about functions, we expect them to specify properties
+which describe them as well as document what they do. These include the
+``__name__`` and ``__doc__`` attributes. When we use a wrapper though, this
+no longer works as we expect as in the case of using a function closure,
+the details of the nested function are returned.
+
+```
+def function_wrapper(wrapped):
+    def _wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@function_wrapper
+def function():
+    pass 
+
+>>> print(function.__name__)
+_wrapper
+```
+
+If we use a class to implement the wrapper, as class instances do not
+normally have a ``__name__`` attribute, attempting to access the name of
+the function will actually result in an AttributeError exception.
+
+```
+class function_wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs) 
+
+@function_wrapper
+def function():
+    pass 
+
+>>> print(function.__name__)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AttributeError: 'function_wrapper' object has no attribute '__name__'
+```
+
+The solution here when using a function closure is to copy the attributes
+of interest from the wrapped function to the nested wrapper function. This
+will then result in the function name and documentation strings being
+correct.
+
+```
+def function_wrapper(wrapped):
+    def _wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    _wrapper.__name__ = wrapped.__name__
+    _wrapper.__doc__ = wrapped.__doc__
+    return _wrapper 
+
+@function_wrapper
+def function():
+    pass 
+
+>>> print(function.__name__)
+function
+```
+
+Needing to manually copy the attributes is laborious, and would need to be
+updated if any further special attributes were added which needed to be
+copied. For example, we should also copy the ``__module__`` attribute, and
+in Python 3 the ``__qualname__`` and ``__annotations__`` attributes were
+added. To aid in getting this right, the Python standard library provides
+the ``functools.wraps()`` decorator which does this task for you.
+
+```
+import functools 
+
+def function_wrapper(wrapped):
+    @functools.wraps(wrapped)
+    def _wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@function_wrapper
+def function():
+    pass 
+
+>>> print(function.__name__)
+function
+```
+
+If using a class to implement the wrapper, instead of the
+``functools.wraps()`` decorator, we would use the
+``functools.update_wrapper()`` function.
+
+```
+import functools 
+
+class function_wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        functools.update_wrapper(self, wrapped)
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs)
+```
+
+So we might have a solution to ensuring the function name and any
+documentation string is correct in the form of ``functools.wraps()``, but
+actually we don't and this will not always work as I will show below.
+
+Now what if we want to query the argument specification for a function.
+This also fails and instead of returning the argument specification for the
+wrapped function, it returns that of the wrapper. In the case of using a
+function closure, this is the nested function. The decorator is therefore
+not signature preserving.
+
+```
+import inspect 
+
+def function_wrapper(wrapped): ...
+
+@function_wrapper
+def function(arg1, arg2): pass 
+
+>>> print(inspect.getargspec(function))
+ArgSpec(args=[], varargs='args', keywords='kwargs', defaults=None)
+```
+
+A worse situation again occurs with the class based wrapper. This time we
+get an exception complaining that the wrapped function isn't actually a
+function. As a result it isn't possible to derive an argument specification
+at all, even though the wrapped function is actually still callable.
+
+```
+class function_wrapper(object): ... 
+
+@function_wrapper
+def function(arg1, arg2): pass 
+
+>>> print(inspect.getargspec(function))
+Traceback (most recent call last):
+  File "...", line XXX, in <module>
+    print(inspect.getargspec(function))
+  File ".../inspect.py", line 813, in getargspec
+    raise TypeError('{!r} is not a Python function'.format(func))
+TypeError: <__main__.function_wrapper object at 0x107e0ac90> is not a Python function
+```
+
+Another example of introspection one can do is to use
+``inspect.getsource()`` to get back the source code related to a function.
+This also will fail, with it giving the source code for the nested wrapper
+function in the case of a function closure and again failing outright with
+an exception in the case of the class based wrapper.
+
+Wrapping class methods
+----------------------
+
+Now, as well as normal functions, decorators can also be applied to methods
+of classes. Python even includes a couple of special decorators called
+``@classmethod`` and ``@staticmethod`` for converting normal instance
+methods into these special method types. Methods of classes do provide a
+number of potential problems though.
+
+```
+class Class(object): 
+
+    @function_wrapper
+    def method(self):
+        pass 
+
+    @classmethod
+    def cmethod(cls):
+        pass 
+
+    @staticmethod
+    def smethod():
+        pass
+```
+
+The first is that even if using ``functools.wraps()`` or
+``functools.update_wrapper()`` in your decorator, when the decorator is
+applied around ``@classmethod`` or ``@staticmethod``, it can fail with an
+exception. This is because the wrappers created by these, do not have some
+of the attributes being copied.
+
+```
+class Class(object):
+    @function_wrapper
+    @classmethod
+    def cmethod(cls):
+        pass 
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "<stdin>", line 3, in Class
+  File "<stdin>", line 2, in wrapper
+  File ".../functools.py", line 33, in update_wrapper
+    setattr(wrapper, attr, getattr(wrapped, attr))
+AttributeError: 'classmethod' object has no attribute '__module__'
+```
+
+As it happens, this is a Python 2 bug and it is fixed in Python 3 by
+ignoring missing attributes.
+
+Even when we run it under Python 3, we still hit trouble though. This is
+because both wrapper types assume that the wrapped function is directly
+callable. This need not actually be the case. A wrapped function can
+actually be what is called a descriptor, meaning that in order to get back
+a callable, the descriptor has to be correctly bound to the instance first.
+
+```
+class Class(object):
+    @function_wrapper
+    @classmethod
+    def cmethod(cls):
+        pass 
+
+>>> Class.cmethod() 
+Traceback (most recent call last):
+  File "classmethod.py", line 15, in <module>
+    Class.cmethod()
+  File "classmethod.py", line 6, in _wrapper
+    return wrapped(*args, **kwargs)
+TypeError: 'classmethod' object is not callable
+```
+
+Simple does not imply correctness
+---------------------------------
+
+So although the usual way that people implement decorators is simple, that
+doesn't mean they are necessarily correct and will always work.
+
+The issues highlighted so far are:
+
+* Preservation of function ``__name__`` and ``__doc__``.
+* Preservation of function argument specification.
+* Preservation of ability to get function source code.
+* Ability to apply decorators on top of other decorators that are implemented as descriptors.
+
+The ``functools.wraps()`` function is given as a solution to the first but
+doesn't always work, at least in Python 2. It doesn't help at all though
+with preserving the introspection of a functions argument specification and
+ability to get the source code for a function.
+
+Even if one could solve the introspection problem, the simple decorator
+implementation that is generally offered up as the way to do things, breaks
+the execution model for the Python object model, not honouring the
+descriptor protocol of anything which is wrapped by the decorator.
+
+Third party packages do exist which try and solve these issues, such as the
+decorator module available on PyPi. This module in particular though only
+helps with the first two and still has potential issues with how it works
+that may cause problems when trying to dynamically apply function wrappers
+via monkey patching.
+
+This doesn't mean these problems aren't solvable, and solvable in a way
+that doesn't sacrifice performance. In my search at least, I could not
+actually find any one who has described a comprehensive solution or offered
+up a package which performs all the required magic so you don't have to
+worry about it yourself.
+
+This blog post is therefore the first step in me explaining how it can be
+all made to work. I have stated the problems to be solved and in subsequent
+posts I will explain how they can be solved and what extra capabilities
+that gives you which enables the ability to write even more magic
+decorators than what is possible now with traditional ways that decorators
+have been implemented.
+
+So stay tuned for the next instalment. Hopefully I can keep the momentum up
+and keep them coming. Pester me if I don't.
+
+The interaction between decorators and descriptors
+==================================================
+
+This is the second post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the first post titled [How you implemented your Python decorator is wrong](
+01-how-you-implemented-your-python-decorator-is-wrong.md)
+
+In that first post I described a number of ways in which the traditional
+way that Python decorators are implemented is lacking. These were:
+
+* Preservation of function ``__name__`` and ``__doc__``.
+* Preservation of function argument specification.
+* Preservation of ability to get function source code.
+* Ability to apply decorators on top of other decorators that are implemented as descriptors.
+
+I described previously how ``functools.wraps()`` attempts to solve the problem
+with preservation of the introspection of the ``__name__`` and ``__doc__``
+attributes, but highlight one case in Python 2 where it can fail, and also
+note that it doesn't help with the preservation of the function argument
+specification nor the ability to access the source code.
+
+In this post I want to focus mainly on the last of the issues above. That
+is the interaction between decorators and descriptors, where a function
+wrapper is applied to a Python object which is actually a descriptor.
+
+What are descriptors?
+---------------------
+
+I am not going to give an exhaustive analysis of what descriptors are or
+how they work so if you want to understand them in depth, I would suggest
+reading up about them elsewhere.
+
+In short though, a descriptor is an object attribute with binding
+behaviour, one whose attribute access has been overridden by methods in the
+descriptor protocol. Those methods are ``__get__()``, ``__set__()``, and
+``__delete__()``. If any of those methods are defined for an object, it is
+said to be a descriptor.
+
+* ``obj.attribute``
+    --> ``attribute.__get__(obj, type(obj))``
+* ``obj.attribute = value``
+     --> ``attribute.__set__(obj, value)``
+*  ``del obj.attribute``
+    --> ``attribute.__delete__(obj)``
+
+What this means is that if an attribute of a class has any of these special
+methods defined, when the corresponding operation is performed on that
+attribute of a class, then those methods will be called instead of the
+default action. This allows an attribute to override how those operations
+are going to work.
+
+You may well be thinking that you have never made use of descriptors, but
+fact is that function objects are actually descriptors. When a function is
+originally added to a class definition it is as a normal function. When you
+access that function using a dotted attribute path, you are invoking the
+``__get__()`` method to bind the function to the class instance, turning it
+into a bound method of that object.
+
+```
+def f(obj): pass
+
+>>> hasattr(f, '__get__')
+True 
+
+>>> f
+<function f at 0x10e963cf8> 
+
+>>> obj = object()
+
+>>> f.__get__(obj, type(obj))
+<bound method object.f of <object object at 0x10e8ac0b0>>
+```
+
+So when calling a method of a class, it is not the ``__call__()`` method of
+the original function object that is called, but the ``__call__()`` method
+of the temporary bound object that is created as a result of accessing the
+function.
+
+You of course don't usually see all these intermediary steps and just see
+the outcome.
+
+```
+>>> class Object(object):
+...   def f(self): pass 
+
+>>> obj = Object()
+
+>>> obj.f
+<bound method Object.f of <__main__.Object object at 0x10abf29d0>>
+```
+
+Looking back now at the example given in the first blog post where we
+wrapped a decorator around a class method, we encountered the error:
+
+```
+class Class(object):
+    @function_wrapper
+    @classmethod
+    def cmethod(cls):
+        pass 
+
+>>> Class.cmethod() 
+Traceback (most recent call last):
+  File "classmethod.py", line 15, in <module>
+    Class.cmethod()
+  File "classmethod.py", line 6, in _wrapper
+    return wrapped(*args, **kwargs)
+TypeError: 'classmethod' object is not callable
+```
+
+The problem with this example was that for the ``@classmethod`` decorator
+to work correctly, it is dependent on the descriptor protocol being applied
+properly. This is because the ``__call__()`` method only exists on the
+result returned by ``__get__()`` when it is called, there is no
+``__call__()`` method on the ``@classmethod`` decorator itself.
+
+More specifically, the simple type of decorator that people normally use is
+not itself honouring the descriptor protocol and applying that to the
+wrapped object to yield the bound function object which should actually be
+called. Instead it is simply calling the wrapped object directly, which
+will fail if it doesn't have a ``__call__()``.
+
+Why then does applying a decorator to a normal instance method still work?
+
+This still works because a normal function still has a ``__call__()``
+method. In bypassing the descriptor protocol of the wrapped function it is
+calling this. Although the binding protocol is side stepped, things still
+work out because the wrapper will pass the 'self' argument for the instance
+explicitly as the first argument when calling the original unbound function
+object.
+
+For a normal instance method the result in this situation is effectively
+the same. It only falls apart when the wrapped object, as in the case of
+``@classmethod``, are dependent on the descriptor protocol being applied
+correctly.
+
+Wrappers as descriptors
+-----------------------
+
+The way to solve this problem where the wrapper is not honouring the
+descriptor protocol and performing binding on the wrapped object in the
+case of a method on a class, is for wrappers to also be descriptors.
+
+```
+class bound_function_wrapper(object): 
+    def __init__(self, wrapped):
+        self.wrapped = wrapped 
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs) 
+
+class function_wrapper(object): 
+    def __init__(self, wrapped):
+        self.wrapped = wrapped 
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__( instance, owner)
+        return bound_function_wrapper(wrapped) 
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs)
+```
+
+If the wrapper is applied to a normal function, the ``__call__()`` method
+of the wrapper is used. If the wrapper is applied to a method of a class,
+the ``__get__()`` method is called, which returns a new bound wrapper and
+the ``__call__()`` method of that is invoked instead. This allows our
+wrapper to be used around descriptors as it propagates the descriptor
+protocol.
+
+So since using a function closure will ultimately fail if used around a
+decorator which is implemented as a descriptor, the situation we therefore
+have is that if we want everything to work, then decorators should always
+use a class based wrapper, where the class implements the descriptor
+protocol as shown.
+
+The question now is how do we address the other issues that were listed.
+
+We solved naming using ``functools.wrap()``/``functools.update_wrapper()``
+before, but what do they do and can we still use them.
+
+Well ``wraps()`` just uses ``update_wrapper()``, so we just need to look at
+it.
+
+```
+WRAPPER_ASSIGNMENTS = ('__module__',
+       '__name__', '__qualname__', '__doc__',
+       '__annotations__')
+WRAPPER_UPDATES = ('__dict__',) 
+
+def update_wrapper(wrapper, wrapped,
+        assigned = WRAPPER_ASSIGNMENTS,
+        updated = WRAPPER_UPDATES): 
+    wrapper.__wrapped__ = wrapped 
+    for attr in assigned:
+        try:
+            value = getattr(wrapped, attr)
+        except AttributeError:
+            pass
+        else:
+            setattr(wrapper, attr, value) 
+    for attr in updated:
+        getattr(wrapper, attr).update(
+                getattr(wrapped, attr, {}))
+```
+
+What is shown here is what is in Python 3.3, although that actually has a
+bug in it, which is fixed in Python 3.4. :-)
+
+Looking at the body of the function, three things are being done. First off
+a reference to the wrapped function is saved as ``__wrapped__``. This is the
+bug, as it should be done last.
+
+The second is to copy those attributes such as ``__name__`` and ``__doc__``.
+
+Finally the third thing is to copy the contents of ``__dict__`` from the
+wrapped function into the wrapper, which could actually result in quite a
+lot of objects needing to be copied.
+
+If we are using a function closure or straight class wrapper this copying
+is able to be done at the point that the decorator is applied.
+
+With the wrapper being a descriptor though, it technically now also needs
+to be done in the bound wrapper.
+
+```
+class bound_function_wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        functools.update_wrapper(self, wrapped) 
+
+class function_wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        functools.update_wrapper(self, wrapped)
+```
+
+As the bound wrapper is created every time the wrapper is called for a
+function bound to a class, this is going to be too slow. We need a more
+performant way of handling this.
+
+Transparent object proxy
+------------------------
+
+The solution to the performance issue is to use what is called an object
+proxy. This is a special wrapper class which looks and behaves like what it
+wraps.
+
+```
+class object_proxy(object): 
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        try:
+            self.__name__= wrapped.__name__
+        except AttributeError:
+            pass 
+
+    @property
+    def __class__(self):
+        return self.wrapped.__class__ 
+
+    def __getattr__(self, name):
+        return getattr(self.wrapped, name)
+```
+
+A fully transparent object proxy is a complicated beast in its own right,
+so I am going to gloss over the details for the moment and cover it in a
+separate blog post at some point.
+
+The above example though is a minimal representation of what it does. In
+practice it actually needs to do a lot more than this though if it is to
+serve as a general purpose object proxy usable in the more generic use case
+of monkey patching.
+
+In short though, it copies limited attributes from the wrapped object to
+itself, and otherwise uses special methods, properties and
+``__getattr__()`` to fetch attributes from the wrapped object only when
+required thereby avoiding the need to copy across lots of attributes which
+may never actually be accessed.
+
+What we now do is derive our wrapper class from the object proxy and do
+away with calling ``update_wrapper()``.
+
+```
+class bound_function_wrapper(object_proxy):
+
+    def __init__(self, wrapped):
+        super(bound_function_wrapper, self).__init__(wrapped)
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs)  
+
+class function_wrapper(object_proxy):
+
+    def __init__(self, wrapped):
+       super(function_wrapper, self).__init__(wrapped)
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__( instance, owner)
+        return bound_function_wrapper(wrapped) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs) 
+```
+
+In doing this, attributes like ``__name__`` and ``__doc__``, when queried
+from the wrapper, return the values from the wrapped function. We don't
+therefore as a result have the problem we did before where details were
+being returned from the wrapper instead.
+
+Using a transparent object proxy in this way also means that calls like
+``inspect.getargspec()`` and ``inspect.getsource()`` will now work and
+return what we expect. So we have actually managed to solve those two
+problems at the same time without any extra effort, which is a bonus.
+
+Making this all more usable
+---------------------------
+
+Although this pattern addresses the problems which were originally
+identified, it consists of a lot of boiler plate code. Further, you now
+have two places in the code where the wrapped function is actually being
+called where you would need to insert the code to implement what the
+decorator was intended to do.
+
+Replicating this every time you need to implement a decorator would
+therefore be a bit of a pain.
+
+What we can instead do is wrap this all up and package it up into a
+decorator factory, thereby avoiding the need for this all to be done
+manually each time. How to do that will be the subject of the next blog
+post in this series.
+
+From that point we can start to look at how we can further improve the
+functionality and introduce new capabilities which are generally hard to
+pull off with the way that decorators are normally implemented.
+
+And before people start to complain that using this pattern is going to be
+too slow in the general use case, I will also address that in a future post
+as well, so just hold your complaints for now.
+
+Implementing a factory for creating decorators
+==============================================
+
+This is the third post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [The interaction between decorators and
+descriptors](02-the-interaction-between-decorators-and-descriptors.md),
+with the very first post in the series being [How you implemented your
+Python decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the very first post I described a number of ways in which the
+traditional way that Python decorators are implemented is lacking. These
+were:
+
+* Preservation of function ``__name__`` and ``__doc__``.
+* Preservation of function argument specification.
+* Preservation of ability to get function source code.
+* Ability to apply decorators on top of other decorators that are implemented as descriptors.
+
+In the followup post I described a pattern for implementing a decorator
+which built on top of what is called an object proxy, with the object proxy
+solving the first three issues. The final issue was dealt with by creating
+a function wrapper using the object proxy, which was implemented as a
+descriptor, and which performed object binding when a wrapper was used on
+class methods. This combination of the object proxy and a descriptor
+ensured that introspection continued to work properly and that the
+execution model of the Python object model was also respected.
+
+The issue at this point was how to make the solution more usable,
+eliminating the boiler plate and minimising the amount of code that someone
+implementing a decorator would need to write.
+
+In this post I will describe one such approach to simplifying the task of
+creating a decorator based on this pattern. This will be done by using a
+decorator as a factory to create decorators, requiring a user to only have
+to supply a single wrapper function which does the actual work of invoking
+the wrapped function, inserting any extra work that the specific decorator
+is intended to carry out as necessary.
+
+Pattern for implementing the decorator
+--------------------------------------
+
+Just to refresh where we got to last time, we had an implementation of an
+object proxy as:
+
+```
+class object_proxy(object): 
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        try:
+            self.__name__= wrapped.__name__
+        except AttributeError:
+            pass 
+
+    @property
+    def __class__(self):
+        return self.wrapped.__class__  
+
+    def __getattr__(self, name):
+        return getattr(self.wrapped, name)
+```
+
+As pointed out the last time, this is a minimal representation of what it
+does. In practice it actually needs to do a lot more than this if it is to
+serve as a general purpose object proxy usable in the more generic use case
+of monkey patching.
+
+The decorator itself would then be implemented per the pattern:
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped):
+        super(bound_function_wrapper, self).__init__(wrapped) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs) 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped):
+       super(function_wrapper, self).__init__(wrapped) 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__( instance, owner)
+        return bound_function_wrapper(wrapped) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs) 
+```
+
+When the wrapper is applied to a normal function, the ``__call__()`` method
+of the wrapper is used. If the wrapper is applied to a method of a class,
+the ``__get__()`` method is called when the attribute is accessed, which
+returns a new bound wrapper and the ``__call__()`` method of that is
+invoked instead when a call is made. This allows our wrapper to be used
+around descriptors as it propagates the descriptor protocol, also binding
+the wrapped object as necessary.
+
+A decorator for creating decorators
+-----------------------------------
+
+So we have a pattern for implementing a decorator that appears to work
+correctly, but as already mentioned, needing to do all that each time is
+more work than we really want. What we can do therefore is create a
+decorator to help us create decorators. This would reduce the code we need
+to write for each decorator to a single function, allowing us to simplify
+the code to just:
+
+```
+@decorator
+def my_function_wrapper(wrapped, args, kwargs):
+    return wrapped(*args, **kwargs) 
+
+@my_function_wrapper
+def function():
+    pass
+```
+
+What would this decorator factory need to look like?
+
+As it turns out, our decorator factory is quite simple and isn't really
+much different to using a ``partial()``, combining our new wrapper argument
+from when the decorator is defined, with the wrapped function when the
+decorator is used and passing them into our function wrapper object.
+
+```
+def decorator(wrapper):
+    @functools.wraps(wrapper)
+    def _decorator(wrapped):
+        return function_wrapper(wrapped, wrapper)
+    return _decorator
+```
+
+We now just need to amend our function wrapper implementation to delegate
+the actual execution of the wrapped object to the user supplied decorator
+wrapper function.
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, args, kwargs) 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, self.wrapper) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, args, kwargs)
+```
+
+The ``__call__()`` method of our function wrapper, for when it is used
+around a normal function, now just calls the user supplied decorator
+wrapper function with the wrapped function and arguments, leaving the
+calling of the wrapped function up to the user supplied decorator wrapper
+function.
+
+In the case where binding a function, the wrapper is also passed to the
+bound wrapper. The bound wrapper is more or less the same, with the
+``__call__()`` method delegating to the user supplied decorator wrapper
+function.
+
+So we can make creating decorators easier using a factory. Lets now check
+that this will in fact work in all cases in which it could be applied and
+also see what other problems we can find and whether we can improve on
+those situations as well.
+
+Decorating methods of classes
+-----------------------------
+
+The first such area which can cause problems is creating a single decorator
+that can work on both normal functions and instance methods of classes.
+
+To test out how our new decorator works, we can print out the args passed
+to the wrapper when the wrapped function is called and can compare the
+results.
+
+```
+@decorator
+def my_function_wrapper(wrapped, args, kwargs):
+    print('ARGS', args)
+    return wrapped(*args, **kwargs)
+```
+
+First up lets try wrapping a normal function:
+
+```
+@my_function_wrapper
+def function(a, b):
+    pass 
+
+>>> function(1, 2)
+ARGS (1, 2)
+```
+
+As would be expected, just the two arguments passed when the function is
+called are output.
+
+What about when wrapping an instance method?
+
+```
+class Class(object):
+    @my_function_wrapper
+    def function_im(self, a, b):
+        pass 
+
+c = Class() 
+
+>>> c.function_im()
+ARGS (1, 2)
+```
+
+Once again just the two arguments passed when the instance method is called
+are displayed. How the decorator works for both the normal function and the
+instance method is therefore the same.
+
+The problem here is what if the user within their decorator wrapper
+function wanted to know what the actual instance of the class was. We have
+lost that information when the function was bound to the instance of the
+class as it is now associated with the bound function passed in, rather
+than the argument list.
+
+To solve this problem we can remember what the instance was that was passed
+to the ``__get__()`` method when it was called to bind the function. This
+can then be passed through to the bound wrapper when it is created.
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, instance, wrapper):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, self.instance, args, kwargs) 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__( instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs)
+```
+
+In the bound wrapper, the instance pointer can then be passed through to
+the decorator wrapper function as an extra argument. To be uniform for the
+case of a normal function, in the top level wrapper we pass None for this
+new instance argument.
+
+We can now modify our wrapper function for the decorator to output both the
+instance and the arguments passed.
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    print('INSTANCE', instance)
+    print('ARGS', args)
+    return wrapped(*args, **kwargs) 
+
+>>> function(1, 2)
+INSTANCE None
+ARGS (1, 2) 
+
+>>> c.function_im(1, 2)
+INSTANCE <__main__.Class object at 0x1085ca9d0>
+ARGS (1, 2)
+```
+
+This change therefore allows us to be able to distinguish between a normal
+function call and an instance method call within the one decorator wrapper
+function. The reference to the instance is even passed separately so we
+don't have to juggle with the arguments to move it out of the way for an
+instance method when calling the original wrapped function.
+
+Now there is one final scenario in which an instance method can be called
+which we still need to check. This is calling an instance method by calling
+the function on the class and passing the object instance explicitly as the
+first argument.
+
+```
+>>> Class.function_im(c, 1, 2)
+INSTANCE None
+ARGS (<__main__.Class object at 0x1085ca9d0>, 1, 2)
+```
+
+Unfortunately passing in the instance explicitly as an argument against the
+function from the class, results in the instance passed to the decorator
+wrapper function being None, with the reference to the instance getting
+passed through as the first argument instead. This isn't really a desirable
+outcome.
+
+To deal with this variation, we can check for instance being None before
+calling the decorator wrapper function and pop the instance off the start
+of the argument list. We then use a partial to bind the instance to the
+wrapped function ourselves and call the decorator wrapper function.
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __call__(self, *args, **kwargs):
+        if self.instance is None:
+            instance, args = args[0], args[1:]
+            wrapped = functools.partial(self.wrapped, instance)
+            return self.wrapper(wrapped, instance, args, kwargs) 
+        return self.wrapper(self.wrapped, self.instance, args, kwargs)
+```
+
+We then get the same result no matter whether the instance method is called
+via the class or not.
+
+```
+>>> Class.function_im(c, 1, 2)
+INSTANCE <__main__.Class object at 0x1085ca9d0>
+ARGS (1, 2)
+```
+
+So everything works okay for instance methods, with the argument list seen
+by the decorator wrapper function being the same as if a normal function
+had been wrapped. At the same time though, by virtue of the new instance
+argument, we can if need be act on the instance of a class where the
+decorator was applied to an instance method of a class.
+
+What about other method types that a class can have, specifically class
+method and static methods.
+
+```
+class Class(object):
+
+    @my_function_wrapper
+    @classmethod
+    def function_cm(cls, a, b):
+        pass 
+
+>>> Class.function_cm(1, 2)
+INSTANCE 1
+ARGS (2,)
+```
+
+As can be seen, this fiddle has though upset things for when we have a
+class method, also causing the same issue for a static method. In both
+those cases the instance would initially have been passed as None when the
+function was bound. The result is that the real first argument ends up as
+the instance, which is obviously going to be quite wrong.
+
+What to do?
+
+A universal decorator
+---------------------
+
+So we aren't quite there yet, but what are we trying to achieve in even
+trying to do this? What was wrong with our initial pattern for the
+decorator?
+
+The ultimate goal here is what I call a universal decorator. A single
+decorator that can be applied to a normal function, an instance method, a
+class method, a static method or even a class, with the decorator being
+able to determine at the point it was called the context in which it was
+used.
+
+Right now with the way that decorators are normally implemented this is not
+possible. Instead different decorators are provided to be used in the
+different contexts, meaning duplication of the code into each, or the use
+of hacks to try and convert decorators created for one purpose so they can
+be used in a different context.
+
+What I am instead aiming for is the ability to do:
+
+```
+@decorator
+def universal(wrapped, instance, args, kwargs):
+    if instance is None:
+        if inspect.isclass(wrapped):
+            # class.
+        else:
+            # function or staticmethod.
+    else:
+        if inspect.isclass(instance):
+            # classmethod.
+        else:
+            # instancemethod.
+```
+
+At this point we have got things working for normal functions and instance
+methods, we just now need to work out how to handle class methods, static
+methods and the scenario where a decorator is applied to a class.
+
+The next post in this series will continue to pursue this goal and describe
+how our decorator can be tweaked further to get there.
+
+
+Implementing a universal decorator
+==================================
+
+This is the fourth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [Implementing a factory for creating
+decorators](03-implementing-a-factory-for-creating-decorators.md), with the
+very first post in the series being [How you implemented your Python
+decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the second post of this series I described a better way of building a
+decorator which avoided a number of issues I outlined with the typical way
+in which decorators are coded. This entailed a measure of boiler plate code
+which needed to be replicated each time. In the previous post to this one I
+described how we could use a decorator as a decorator factory, and a bit of
+delegation to hide the boiler plate code and reduce what a user needed to
+actually declare for a new decorator.
+
+In the prior post I also started to walk through some customisations which
+could be made to the decorator pattern which would allow the decorator
+wrapper function provided by a user to ascertain in what context it was
+used in. That is, for the wrapper function to be able to determine whether
+it was applied to a function, an instance method, a class method or a class
+type. The ability to determine the context in this way is what I called a
+universal decorator, as it avoided the need to have separate decorator
+implementations for use in each circumstance as is done now with a more
+traditional way of implementing a decorator.
+
+The walk through got as far as showing how one could distinguish between
+when the decorator was used on a normal function vs an instance method.
+Unfortunately the change required to be able to detect when an instance
+method was called via the class would cause problems for a class method or
+static method, so we still have a bit more work to do.
+
+In this post I will describe how we can accommodate the cases of a class
+method and a static method as well as explore other use cases which may
+give us problems in trying to come up with this pattern for a universal
+decorator.
+
+Normal functions vs instance methods
+------------------------------------
+
+The pattern for our universal decorator as described so far was as follows:
+
+```
+class bound_function_wrapper(object_proxy):  
+
+    def __init__(self, wrapped, instance, wrapper):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper 
+
+    def __call__(self, *args, **kwargs):
+        if self.instance is None:
+            instance, args = args[0], args[1:]
+            wrapped = functools.partial(self.wrapped, instance)
+            return self.wrapper(wrapped, instance, args, kwargs)
+        return self.wrapper(self.wrapped, self.instance, args, kwargs) 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs)
+```
+
+This was used in conjunction with our decorator factory:
+
+```
+def decorator(wrapper):
+    @functools.wraps(wrapper)
+    def _decorator(wrapped):
+        return function_wrapper(wrapped, wrapper)
+    return _decorator
+```
+
+To test whether everything is working how we want we used our decorator
+factory to create a decorator which would dump out the values of any
+instance the wrapped function is bound to, and the arguments passed to the
+call when executed.
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    print('INSTANCE', instance)
+    print('ARGS', args)
+    return wrapped(*args, **kwargs) 
+```
+
+This gave us the desired results for when the decorator was applied to a
+normal function and instance method, including when an instance method was
+called via the class and the instance passed in explicitly.
+
+```
+@my_function_wrapper
+def function(a, b):
+    pass
+
+>>> function(1, 2)
+INSTANCE None
+ARGS (1, 2) 
+
+class Class(object):
+    @my_function_wrapper
+    def function_im(self, a, b):
+        pass 
+
+c = Class() 
+
+>>> c.function_im(1, 2)
+INSTANCE <__main__.Class object at 0x1085ca9d0>
+ARGS (1, 2) 
+
+>>> Class.function_im(c, 1, 2)
+INSTANCE <__main__.Class object at 0x1085ca9d0>
+ARGS (1, 2) 
+```
+
+The change to support the latter however, broke things for the case of the
+decorator being applied to a class method. Similarly for a static method.
+
+```
+class Class(object):
+
+    @my_function_wrapper
+    @classmethod
+    def function_cm(self, a, b):
+        pass 
+
+    @my_function_wrapper
+    @staticmethod
+    def function_sm(a, b):
+        pass
+
+>>> Class.function_cm(1, 2)
+INSTANCE 1
+ARGS (2,) 
+
+>>> Class.function_sm(1, 2)
+INSTANCE 1
+ARGS (2,) 
+```
+
+Class methods and static methods
+--------------------------------
+
+The point we are at therefore, is that in the case where the instance is
+passed as ``None``, we need to be able to distinguish between the three
+cases of:
+
+* an instance method being called via the class
+* a class method being called
+* a static method being called
+
+One way this can be done is by looking at the ``__self__`` attribute of the
+bound function. This attribute will provide information about the type of
+object which the function was bound to at that specific point in time. Lets
+first check this out for where a method is called via the class.
+
+```
+>>> print(Class.function_im.__self__)
+None 
+
+>>> print(Class.function_cm.__self__)
+<class '__main__.Class'> 
+
+>>> print(Class.function_sm.__self__)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "test.py", line 19, in __getattr__
+    return getattr(self.wrapped, name)
+AttributeError: 'function' object has no attribute '__self__'
+```
+
+So for the case of calling an instance method via the class, ``__self__``
+will be ``None``, for a class method it will be the class type and in the
+case of a static method, there will not even be a ``__self__`` attribute.
+This would therefore appear to give us a way of detecting the different
+cases.
+
+Before we code up a solution based on this though, lets check with Python 3
+just to be sure we are okay there and that nothing has changed.
+
+```
+>>> print(Class.function_im.__self__)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "dectest.py", line 19, in __getattr__
+    return getattr(self.wrapped, name)
+AttributeError: 'function' object has no attribute '__self__' 
+
+>>> print(Class.function_cm.__self__)
+<class '__main__.Class'> 
+
+>>> print(Class.function_sm.__self__)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "test.py", line 19, in __getattr__
+    return getattr(self.wrapped, name)
+AttributeError: 'function' object has no attribute '__self__'
+```
+
+That isn't good, Python 3 behaves differently to Python 2, meaning we
+aren't going to be able to use this approach. Why is this case?
+
+The reason for this is that in Python 3 they decided to eliminate the idea
+of an unbound method and this check was relying on the fact that when
+accessing an instance method via the class, it would actually return an
+instance of an unbound method for which the ``__self__`` attribute was
+``None``. So although we can distinguish the case for a class method still,
+we can now no longer distinguish the case of calling an instance method via
+the class, from the case of calling a static method.
+
+The lack of this ability therefore leaves us with a bit of a problem for
+Python 3 and the one alternative isn't necessarily a completely fool proof
+way of doing it.
+
+This alternative is in the constructor of the function wrapper, to look at
+the type of the wrapped object and determine if it is an instance of a
+class method or static method. This information can then be passed through
+to the bound function wrapper and checked.
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, instance, wrapper, binding):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper
+        self.binding = binding 
+
+    def __call__(self, *args, **kwargs):
+        if self.binding == 'function' and self.instance is None:
+            instance, args = args[0], args[1:]
+            wrapped = functools.partial(self.wrapped, instance)
+            return self.wrapper(wrapped, instance, args, kwargs) 
+        return self.wrapper(self.wrapped, self.instance, args, kwargs) 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper 
+        if isinstance(wrapped, classmethod):
+            self.binding = 'classmethod'
+        elif isinstance(wrapped, staticmethod):
+            self.binding = 'staticmethod'
+        else:
+            self.binding = 'function' 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper,
+                self.binding) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs)
+```
+
+Now this test is a bit fragile, but as I showed before though, the
+traditional way that a decorator is written will fail if wrapped around a
+class method or static method as it doesn't honour the descriptor protocol.
+As such it is a pretty safe bet right now that I will only ever find an
+actual class method or static method object because no one would be using
+decorators around them.
+
+If someone is actually implementing the descriptor protocol in their
+decorator, hopefully they would also be using an object proxy as is done
+here. Because the object proxy implements ``__class__`` as a property, it
+would return the class of the wrapped object, this should mean that an
+``isinstance()`` check will still be successful as ``isinstance()`` gives
+priority to what ``__class__`` yields rather than the actual type of the
+object.
+
+Anyway, trying out our tests again with this change we get:
+
+```
+>>> c.function_im(1,2)
+INSTANCE <__main__.Class object at 0x101f973d0>
+ARGS (1, 2) 
+
+>>> Class.function_im(c, 1, 2)
+INSTANCE <__main__.Class object at 0x101f973d0>
+ARGS (1, 2)
+
+>>> c.function_cm(1,2)
+INSTANCE <__main__.Class object at 0x101f973d0>
+ARGS (1, 2)
+
+>>> Class.function_cm(1, 2)
+INSTANCE None
+ARGS (1, 2) 
+
+>>> c.function_sm(1,2)
+INSTANCE <__main__.Class object at 0x101f973d0>
+ARGS (1, 2) 
+
+>>> Class.function_sm(1, 2)
+INSTANCE None
+ARGS (1, 2)
+```
+
+Success, we have fixed the issue with the argument list when both a class
+method and a static method are called.
+
+The problem now is that although the instance argument is fine for the case
+of an instance method call, whether that be via the instance or the class,
+the instance as passed for a class method and static method aren't
+particularly useful as we can't use it to distinguish them from other
+cases.
+
+Ideally what we want in this circumstance is that for a class method call
+we want the instance argument to always be the class type, and for the case
+of a static method call, for it to always be ``None``.
+
+For the case of a static method, we could just check for 'staticmethod'
+from when we checked the type of object which was wrapped.
+
+For the case of a class method, if we look back at our test to see if we
+could use the ``__self__`` attribute, what we found was that for the class
+method, ``__self__`` was the class instance and for a static method the
+attribute didn't exist.
+
+What we can therefore do, is if the type of the wrapped object wasn't a
+function, then we can lookup up the value of ``__self__``, defaulting to
+``None`` if it doesn't exist. This one check will cater for both cases.
+
+What we now therefore have is:
+
+```
+class bound_function_wrapper(object_proxy):
+
+    def __init__(self, wrapped, instance, wrapper, binding):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper
+        self.binding = binding 
+
+    def __call__(self, *args, **kwargs):
+        if self.binding == 'function':
+            if self.instance is None:
+                instance, args = args[0], args[1:]
+                wrapped = functools.partial(self.wrapped, instance)
+                return self.wrapper(wrapped, instance, args, kwargs)
+            else:
+                return self.wrapper(self.wrapped, self.instance, args, kwargs)
+        else:
+            instance = getattr(self.wrapped, '__self__', None)
+            return self.wrapper(self.wrapped, instance, args, kwargs)
+```
+
+and if we run our tests one more time, we finally get the result we have
+been looking for:
+
+```
+>>> c.function_im(1,2)
+INSTANCE <__main__.Class object at 0x10c2c43d0>
+ARGS (1, 2) 
+
+>>> Class.function_im(c, 1, 2)
+INSTANCE <__main__.Class object at 0x10c2c43d0>
+ARGS (1, 2) 
+
+>>> c.function_cm(1,2)
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> Class.function_cm(1, 2)
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> c.function_sm(1,2)
+INSTANCE None
+ARGS (1, 2) 
+
+>>> Class.function_sm(1, 2)
+INSTANCE None
+ARGS (1, 2)
+```
+
+Are we able to celebrate yet? Unfortunately not.
+
+Multiple levels of binding
+--------------------------
+
+There is yet another obscure case we have yet to consider, one that I
+didn't even think of initially and only understood the problem when I
+started to see code breaking in crazy ways.
+
+This is when we take a reference to a method and reassign it back again as
+an attribute of a class, or even an instance of a class, and then call it
+via the alias so created. I only encountered this one due to some bizarre
+stuff a meta class was doing.
+
+```
+>>> Class.function_rm = Class.function_im
+
+>>> c.function_rm(1, 2)
+INSTANCE 1
+ARGS (2,)
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "test.py", line 132, in __call__
+    return self.wrapper(wrapped, instance, args, kwargs)
+  File "test.py", line 58, in my_function_wrapper
+    return wrapped(*args, **kwargs)
+TypeError: unbound method function_im() must be called with Class instance as first argument (got int instance instead) 
+
+>>> Class.function_rm = Class.function_cm
+
+>>> c.function_rm(1, 2)
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> Class.function_rm = Class.function_sm
+>>> c.function_rm(1, 2)
+INSTANCE None
+ARGS (1, 2)
+```
+
+Things work fine for a class method or static method, but fails badly for
+an instance method.
+
+The problem here comes about because in accessing the instance method the
+first time, it will return a bound function wrapper. That then gets
+assigned back as an attribute of the class.
+
+When a subsequent lookup is made via the new name, under normal
+circumstances binding would occur once more to bind it to the actual
+instance. In our implementation of the bound function wrapper, we do not
+however provide a ``__get__()`` method and thus this rebinding does not
+occur. The result is that on the subsequent call, it all falls apart.
+
+The solution therefore is that we need to add a ``__get__()`` method to the
+bound function wrapper which provides the ability to perform further
+binding. We only want to do this where the instance was ``None``,
+indicating that the initial binding wasn't actually against an instance,
+and where we are dealing with an instance method and not a class method or
+static method.
+
+A further wrinkle is that we need to bind what was the original wrapped
+function and not the bound one. The simplest way of handling that is to
+pass a reference to the original function wrapper to the bound function
+wrapper and reach back into that to get the original wrapped function.
+
+```
+class bound_function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, instance, wrapper, binding, parent):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper
+        self.binding = binding
+        self.parent = parent 
+
+    def __call__(self, *args, **kwargs):
+        if self.binding == 'function':
+            if self.instance is None:
+                instance, args = args[0], args[1:]
+                wrapped = functools.partial(self.wrapped, instance)
+                return self.wrapper(wrapped, instance, args, kwargs)
+            else:
+                return self.wrapper(self.wrapped, self.instance, args, kwargs)
+        else:
+            instance = getattr(self.wrapped, '__self__', None)
+            return self.wrapper(self.wrapped, instance, args, kwargs) 
+
+    def __get__(self, instance, owner):
+        if self.instance is None and self.binding == 'function':
+            descriptor = self.parent.wrapped.__get__(instance, owner)
+            return bound_function_wrapper(descriptor, instance, self.wrapper,
+                    self.binding, self.parent)
+        return self 
+
+class function_wrapper(object_proxy): 
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper
+        if isinstance(wrapped, classmethod):
+            self.binding = 'classmethod'
+        elif isinstance(wrapped, staticmethod):
+            self.binding = 'staticmethod'
+        else:
+            self.binding = 'function' 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper,
+                self.binding, self) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs)
+```
+
+Rerunning our most recent test once again we now get:
+
+```
+>>> Class.function_rm = Class.function_im
+
+>>> c.function_rm(1, 2)
+INSTANCE <__main__.Class object at 0x105609790>
+ARGS (1, 2) 
+
+>>> Class.function_rm = Class.function_cm
+>>> c.function_rm(1, 2)
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> Class.function_rm = Class.function_sm
+>>> c.function_rm(1, 2)
+INSTANCE None
+ARGS (1, 2)
+```
+
+Order that decorators are applied
+---------------------------------
+
+We must be getting close now. Everything appears to be working.
+
+If you had been paying close attention you would have noticed though that
+in all cases so far our decorator has always been placed outside of the
+existing decorators marking a method as either a class method or a static
+method. What happens if we reverse the order?
+
+```
+class Class(object):
+
+    @classmethod
+    @my_function_wrapper
+    def function_cm(self, a, b):
+        pass 
+
+    @staticmethod
+    @my_function_wrapper
+    def function_sm(a, b):
+        pass 
+
+c = Class() 
+
+>>> c.function_cm(1,2)
+INSTANCE None
+ARGS (<class '__main__.Class'>, 1, 2) 
+
+>>> Class.function_cm(1, 2)
+INSTANCE None
+ARGS (<class '__main__.Class'>, 1, 2) 
+
+>>> c.function_sm(1,2)
+INSTANCE None
+ARGS (1, 2) 
+
+>>> Class.function_sm(1, 2)
+INSTANCE None
+ARGS (1, 2)
+```
+
+So it works as we would expect for a static method but not for a class
+method.
+
+At this point you gotta be thinking why I am bothering.
+
+As it turns out there is indeed absolutely nothing I can do about this one.
+But that isn't actually my fault.
+
+In this particular case, it actually can be seen as being a bug in Python
+itself. Specifically, the classmethod decorator doesn't itself honour the
+descriptor protocol when it calls whatever it is wrapping. This is the
+exact same problem I faulted decorators implemented using a closure for
+originally. If it wasn't for the classmethod decorator doing the wrong
+thing, everything would be perfect.
+
+For those who are interested in the details, you can check out [issue
+19072](http://bugs.python.org/issue19072) in the Python bug tracker. If I
+had tried hard I could well have got it fixed by the time Python 3.4 came
+out, but I simply didn't have the time nor the real motivation to satisfy
+all the requirements to get the fix accepted.
+
+Decorating a class
+------------------
+
+Excluding that one case related to ordering of decorators for class
+methods, our pattern for implementing a universal decorator is looking
+good.
+
+I did mention though in the last post that the goal was that we could also
+distinguish when a decorator was applied to a class. So lets check that.
+
+```
+@my_function_wrapper
+class Class(object):
+    pass 
+
+>>> c = Class()
+INSTANCE None
+ARGS ()
+```
+
+Based on that we aren't able to distinguish it from a normal function or a
+class method.
+
+If we think about it though, we are in this case wrapping an actual class,
+so the wrapped object which is passed to the decorator wrapper function
+will be the class itself. Lets print out the value of the wrapped argument
+passed to the decorator wrapper function as well and see whether that can
+be used to distinguish this case from others.
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    print('WRAPPED', wrapped)
+    print('INSTANCE', instance)
+    print('ARGS', args)
+    return wrapped(*args, **kwargs) 
+
+@my_function_wrapper
+def function(a, b):
+    pass 
+
+>>> function(1, 2)
+WRAPPED <function function at 0x10e13bb18>
+INSTANCE None
+ARGS (1, 2) 
+
+class Class(object):
+
+    @my_function_wrapper
+    def function_im(self, a, b):
+        pass
+
+    @my_function_wrapper
+    @classmethod
+    def function_cm(self, a, b):
+        pass
+
+    @my_function_wrapper
+    @staticmethod
+    def function_sm(a, b):
+        pass 
+
+c = Class() 
+
+>>> c.function_im(1,2)
+WRAPPED <bound method Class.function_im of <__main__.Class object at 0x107e90950>>
+INSTANCE <__main__.Class object at 0x107e90950>
+ARGS (1, 2) 
+
+>>> Class.function_im(c, 1, 2)
+WRAPPED <functools.partial object at 0x107df3208>
+INSTANCE <__main__.Class object at 0x107e90950>
+ARGS (1, 2) 
+
+>>> c.function_cm(1,2)
+WRAPPED <bound method type.function_cm of <class '__main__.Class'>>
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> Class.function_cm(1, 2)
+WRAPPED <bound method type.function_cm of <class '__main__.Class'>>
+INSTANCE <class '__main__.Class'>
+ARGS (1, 2) 
+
+>>> c.function_sm(1,2)
+WRAPPED <function function_sm at 0x107e918c0>
+INSTANCE None
+ARGS (1, 2) 
+
+>>> Class.function_sm(1, 2)
+WRAPPED <function function_sm at 0x107e918c0>
+INSTANCE None
+ARGS (1, 2) 
+
+@my_function_wrapper
+class Class(object):
+    pass 
+
+c = Class() 
+
+>>> c = Class()
+WRAPPED <class '__main__.Class'>
+INSTANCE None
+ARGS ()
+```
+
+And the answer is yes, as it is the only case where wrapped will be a type
+object.
+
+The structure of a universal decorator
+--------------------------------------
+
+The goal of a decorator, one decorator, that can be implemented and applied
+to normal functions, instance methods, class methods and classes is
+therefore achievable. The odd one out is static methods, but in practice
+these aren't really different to normal functions, just being contained in
+a different scope, so I think I will let that one slide.
+
+The information to identify the static method is actually available in the
+way the decorator works, but since there is nothing in the arguments passed
+to a static method that link it to the class it is contained in, there
+doesn't seem a point. If that information was required, it probably should
+have been a class method to begin with.
+
+Anyway, after all this work, our universal decorator then would be written
+as:
+
+```
+@decorator
+def universal(wrapped, instance, args, kwargs):
+    if instance is None:
+        if inspect.isclass(wrapped):
+            # Decorator was applied to a class.
+            return wrapped(*args, **kwargs)
+        else:
+            # Decorator was applied to a function or staticmethod.
+            return wrapped(*args, **kwargs)
+    else:
+        if inspect.isclass(instance):
+            # Decorator was applied to a classmethod.
+            return wrapped(*args, **kwargs)
+        else:
+            # Decorator was applied to an instancemethod.
+            return wrapped(*args, **kwargs)
+```
+
+Are there actual uses for such a universal decorator? I believe there are
+some quite good examples and I will cover one in particular in a subsequent
+blog post.
+
+You also have frameworks such as Django which already use hacks to allow a
+decorator designed for use with a function, to be applied to an instance
+method. Turns out that the method they use is broken because it doesn't
+honour the descriptor protocol though. If you are interested in that one,
+see [issue 21247](https://code.djangoproject.com/ticket/21247) in the
+Django bug tracker.
+
+I will not cover this example of a use case for a universal decorator just
+yet. Instead in my next blog post in this series I will look at issues
+around having decorators that have optional arguments and how to capture
+any such arguments so the decorator can make use of them.
+
+
+Decorators which accept arguments
+=================================
+
+This is the fifth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [Implementing a universal
+decorator](04-implementing-a-universal-decorator.md), with the very first
+post in the series being [How you implemented your Python decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+So far in this series of posts I have explained the short comings of
+implementing a decorator in the traditional way they are done in Python. I
+have shown an alternative implementation based on an object proxy and a
+descriptor which solves these issues, as well as provides the ability to
+implement what I call a universal decorator. That is, a decorator which
+understands the context it was used in and can determine whether it was
+applied to a normal function, an instance method, a class method or a class
+type.
+
+In this post, I am going to take the decorator factory which was described
+in the previous posts and describe how one can use that to implement
+decorators which accept arguments. This will cover mandatory arguments, but
+also how to have the one decorator optionally except arguments.
+
+Pattern for creating decorators
+-------------------------------
+
+The key component of what was described in the prior posts was a function
+wrapper object. I am not going to replicate the code for that here so see
+the prior posts. In short though, it was a class type which accepted the
+function to be wrapped and a user supplied wrapper function. The instance
+of the resulting function wrapper object was used in place of the wrapped
+function and when called, would delegate the calling of the wrapped
+function to the user supplied wrapper function. This allows a user to
+modify how the call was made, performing actions before or after the
+wrapped function was called, or modify input arguments or the result.
+
+This function wrapper was used in conjunction with the decorator factory
+which was also described:
+
+```
+def decorator(wrapper):
+    @functools.wraps(wrapper)
+    def _decorator(wrapped):
+        return function_wrapper(wrapped, wrapper)
+    return _decorator
+```
+
+allowing a user to define their own decorator as:
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    print('INSTANCE', instance)
+    print('ARGS', args)
+    print('KWARGS', kwargs)
+    return wrapped(*args, **kwargs) 
+
+@my_function_wrapper
+def function(a, b):
+    pass
+```
+
+In this example, the final decorator which is created does not accept any
+arguments, but if we did want the decorator to be able to accept arguments,
+with the arguments accessible at the time the user supplied wrapper
+function was called, how would we do that?
+
+Using a function closure to collect arguments
+---------------------------------------------
+
+The easiest way to implement a decorator which accepts arguments is using a
+function closure.
+
+```
+def with_arguments(arg):
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@with_arguments(arg=1)
+def function():
+    pass
+```
+
+In effect the outer function is a decorator factory in its own right, where
+a distinct decorator instance will be returned which is customised
+according to what arguments were supplied to the outer decorator factory
+function.
+
+So, when this outer decorator factory function is applied to a function
+with the specific arguments supplied, it returns the inner decorator
+function and it is actually that which is applied to the function to be
+wrapped. When the wrapper function is eventually called and it in turn
+calls the wrapped function, it will have access to the original arguments
+to the outer decorator factory function by virtue of being part of the
+function closure.
+
+Positional or keyword arguments can be used with the outer decorator
+factory function, but I would suggest that keyword arguments are perhaps a
+better convention to adopt as I will show later.
+
+What now if a decorator with arguments had default values and as such they
+could be left out from the call. With this way of implementing the
+decorator, even though one would not need to pass the argument, one cannot
+avoid needing to still write it out as a distinct call. That is, you still
+need to supply empty parentheses.
+
+```
+def with_arguments(arg='default'):
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@with_arguments()
+def function():
+    pass
+```
+
+Although this is being specific and would dictate there be only one way to
+do it, it can be felt that this looks ugly. As such some people like to
+have a way that the parentheses are optional if the decorator arguments all
+have default values and none are being supplied explicitly. In other words,
+the desire is that when there are no arguments to be passed, that one can
+write:
+
+```
+@with_arguments
+def function():
+    pass
+```
+
+There is actually some merit in this idea when looked at the other way
+around. That is, if a decorator originally accepted no arguments, but it
+was determined later that it needed to be changed to optionally accept
+arguments, then if the parentheses could be optional, it would allow
+arguments to now be accepted, without needing to go back and change all
+prior uses of the original decorator where no arguments were supplied.
+
+Optionally allowing decorator arguments
+---------------------------------------
+
+To allow the decorator arguments to be optionally supplied, we can change
+the above recipe to:
+
+```
+def optional_arguments(wrapped=None, arg=1):
+    if wrapped is None:
+        return functools.partial(optional_arguments, arg=arg) 
+
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs)
+
+    return _wrapper(wrapped) 
+
+@optional_arguments(arg=2)
+def function1():
+    pass
+
+@optional_arguments
+def function2():
+    pass 
+```
+
+With the arguments having default values, the outer decorator factory would
+take the wrapped function as first argument with None as a default. The
+decorator arguments follow. Decorator arguments would need to be passed as
+keyword arguments. On the first call, wrapped will be None, and a partial
+is used to return the decorator factory again. On the second call, wrapped
+is passed and this time it is wrapped with the decorator.
+
+Because we have default arguments though, we don't actually need to pass
+the arguments, in which case the decorator factory is applied direct to the
+function being decorated. Because wrapped is not None when passed in, the
+decorator is wrapped around the function immediately, skipping the return
+of the factory a second time.
+
+Now why I said a convention of having keyword arguments may perhaps be
+preferable, is that Python 3 allows you to enforce it using the new keyword
+only argument syntax.
+
+```
+def optional_arguments(wrapped=None, *, arg=1):
+    if wrapped is None:
+        return functools.partial(optional_arguments, arg=arg)  
+
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs)
+
+    return _wrapper(wrapped)
+```
+
+This way you avoid the problem of someone accidentally passing in a
+decorator argument as the positional argument for wrapped. For consistency,
+keyword only arguments can also be enforced for required arguments even
+though it isn't strictly necessary.
+
+```
+def required_arguments(*, arg):
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs)
+    return _wrapper  
+```
+
+Maintaining state between wrapper calls
+---------------------------------------
+
+Quite often a decorator doesn't perform an isolated task for each
+invocation of a function it may be applied to. Instead it may need to
+maintain state between calls. A classic example of this is a cache
+decorator.
+
+In this scenario, because no state information can be maintained within the
+wrapper function itself, any state object needs to be maintained in an
+outer scope which the wrapper has access to.
+
+There are a few ways in which this can be done.
+
+The first is to require that the object which maintains the state, be
+passed in as an explicit argument to the decorator.
+
+```
+def cache(d):
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        try:
+            key = (args, frozenset(kwargs.items()))
+            return d[key]
+        except KeyError:
+            result = d[key] = wrapped(*args, **kwargs)
+            return result
+    return _wrapper 
+
+_d = {} 
+
+@cache(_d)
+def function():
+    return time.time()
+```
+
+Unless there is a specific need to be able to pass in the state object, a
+second better way is to create the state object on the stack within the
+call of the outer function.
+
+```
+def cache(wrapped):
+    d = {}
+
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        try:
+            key = (args, frozenset(kwargs.items()))
+            return d[key]
+        except KeyError:
+            result = d[key] = wrapped(*args, **kwargs)
+            return result
+
+    return _wrapper(wrapped) 
+
+@cache
+def function():
+    return time.time()
+```
+
+In this case the outer function rather than taking a decorator argument, is
+taking the function to be wrapped. This is then being explicitly wrapped by
+the decorator defined within the function and returned.
+
+If this was a reasonable default, but you did in some cases still need to
+optionally pass the state object in as an argument, then optional decorator
+arguments could instead be used.
+
+```
+def cache(wrapped=None, d=None):
+    if wrapped is None:
+        return functools.partial(cache, d=d) 
+
+    if d is None:
+        d = {} 
+
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        try:
+            key = (args, frozenset(kwargs.items()))
+            return d[key]
+        except KeyError:
+            result = d[key] = wrapped(*args, **kwargs)
+            return result
+
+    return _wrapper(wrapped) 
+
+@cache
+def function1():
+    return time.time() 
+
+_d = {} 
+
+@cache(d=_d)
+def function2():
+    return time.time() 
+
+@cache(d=_d)
+def function3():
+    return time.time()
+```
+
+Decorators as a class
+---------------------
+
+Now way back in the very first post in this series of blog posts, a way in
+which a decorator could be implemented as a class was described.
+
+```
+class function_wrapper(object):
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapped(*args, **kwargs)
+```
+
+Although this had short comings which were explained and which resulted in
+the alternate decorator pattern being presented, this original approach is
+also able to maintain state. Specifically, the constructor of the class can
+save away the state object as an attribute of the instance of the class,
+along with the reference to the wrapped function.
+
+```
+class cache(object):
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        self.d = {}
+
+    def __call__(self, *args, **kwargs):
+        try:
+            key = (args, frozenset(kwargs.items()))
+            return self.d[key]
+        except KeyError:
+            result = self.d[key] = self.wrapped(*args, **kwargs)
+            return result 
+
+@cache
+def function():
+    return time.time()
+```
+
+Use of a class in this way had some benefits in that where the work of the
+decorator was quite complex, it could all be encapsulated in the class
+implementing the decorator itself.
+
+With our new function wrapper and decorator factory, the user can only
+supply the wrapper as a function, which would appear to limit being able to
+implement a direct equivalent.
+
+One could still use a class to encapsulate the required behaviour, with an
+instance of the class created within the scope of a function closure for
+use by the wrapper function, and the wrapper function then delegating to
+that, but it isn't self contained as it was before.
+
+The question is, is there any way that one could still achieve the same
+thing with our new decorator pattern. Turns out there possibly is.
+
+What one should be able to do, at least for where there are required
+arguments, is do:
+
+```
+class with_arguments(object): 
+
+    def __init__(self, arg):
+        self.arg = arg 
+
+    @decorator
+    def __call__(self, wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs) 
+
+@with_arguments(arg=1)
+def function():
+    pass
+```
+
+What will happen here is that application of the decorator with arguments
+being supplied, will result in an instance of the class being created. In
+the next phase where that is called with the wrapped function, the
+``__call__()`` method with ``@decorator`` applied will be used as a
+decorator on the wrapped function. The end result should be that the
+``__call__()`` method of the class instance created ends up being our
+wrapper function.
+
+When the decorated function is now called, the ``__call__()`` method of the
+class would be called to then in turn call the wrapped function. As the
+``__call__()`` method at that point is bound to an instance of the class,
+it would have access to the state that it contained.
+
+What actually happens when we do this though?
+
+```
+Traceback (most recent call last):
+  File "test.py", line 483, in <module>
+    @with_arguments(1)
+TypeError: _decorator() takes exactly 1 argument (2 given)
+```
+
+So nice idea, but it fails.
+
+Is it game over? The answer is of course not, because if it isn't obvious
+by now, I don't give up that easily.
+
+Now the reason this failed is actually because of how our decorator factory
+is implemented.
+
+```
+def decorator(wrapper):
+    @functools.wraps(wrapper)
+    def _decorator(wrapped):
+        return function_wrapper(wrapped, wrapper)
+    return _decorator
+```
+
+I will not describe in this post what the problem is though and will leave
+the solving of this particular problem to a short followup post as the next
+in this blog post series on decorators.
+
+Maintaining decorator state using a class
+=========================================
+
+This is the sixth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [Decorators which accept
+arguments](05-decorators-which-accept-arguments.md), with the very first
+post in the series being [How you implemented your Python decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the previous post I described how to implement decorators which accept
+arguments. This covered mandatory arguments, but also how to have a
+decorator optionally accept arguments. I also touched on how one can
+maintain state between invocations of the decorator wrapper function for a
+specific wrapped function.
+
+One of the approaches described for maintaining state was to implement the
+decorator as a class. Using this approach though resulted in an unexpected
+error.
+
+This post will explore the source of the error when attempting to implement
+our decorator as a class using our new decorator factory and function
+wrapper, and then see if any other issues crop up.
+
+Single decorator for functions and methods
+------------------------------------------
+
+As described in the previous post, the pattern we were trying to use so as
+to allow us to use a class as a decorator was:
+
+```
+class with_arguments(object):
+
+    def __init__(self, arg):
+        self.arg = arg
+
+    @decorator
+    def __call__(self, wrapped, instance, args, kwargs):
+        return wrapped(*args, **kwargs) 
+
+@with_arguments(arg=1)
+def function():
+    pass
+```
+
+The intent here is that the application of the decorator, with arguments
+supplied, would result in an instance of the class being created. In the
+next phase where that is called with the wrapped function, the
+``__call__()`` method with ``@decorator`` applied will be used as a
+decorator on the function to be wrapped. The end result should be that the
+``__call__()`` method of the class instance created ends up being our
+wrapper function.
+
+When the decorated function is now called, the ``__call__()`` method of the
+class would be called with it in turn calling the wrapped function. As the
+``__call__()`` method at that point is bound to an instance of the class, it
+would have access to the state that it contained.
+
+When we tried this though we got, at the time that the decorator was being
+applied, the error:
+
+```
+Traceback (most recent call last):
+  File "test.py", line 483, in <module>
+    @with_arguments(1)
+TypeError: _decorator() takes exactly 1 argument (2 given)
+```
+
+The ``_decorator()`` function in this case is the inner function from our
+decorator factory.
+
+```
+def decorator(wrapper):
+    @functools.wraps(wrapper)
+    def _decorator(wrapped):
+        return function_wrapper(wrapped, wrapper)
+    return _decorator
+```
+
+The mistake that has been made here is that we are using a function closure
+to implement our decorator factory, yet we were expecting it to work on
+both normal functions and methods of classes.
+
+The reason this will not work is due to the binding that occurs when a
+method of a class is accessed. This process was described in a previous
+post in this series and is the result of the descriptor protocol being
+applied. This binding results in the reference to the instance of the class
+being automatically passed as the first argument to the method.
+
+Now as the ``_decorator()`` function was acting as a wrapper for the method
+call, and because ``_decorator()`` was not defined so as to accept both
+``self`` and ``wrapped`` as arguments, the call would fail.
+
+We could create a special variant of the decorator factory to be used just
+on instance methods, but that goes against the specific complaint expressed
+earlier in regard to how people create multiple variants of decorators for
+use on normal functions and instance methods.
+
+To resolve this issue, what we can do is use our function wrapper for the
+decorator returned by the decorator factory, instead of a function closure.
+
+```
+def decorator(wrapper):
+    def _wrapper(wrapped, instance, args, kwargs):
+        def _execute(wrapped):
+            return function_wrapper(wrapped, wrapper)
+        return _execute(*args, **kwargs)
+    return function_wrapper(wrapper, _wrapper)
+```
+
+Explicit binding of methods required
+------------------------------------
+
+This above change now means we do not have to worry about whether
+``@decorator`` is being applied to a normal function, instance method or
+even a class method. This is because in all cases, any reference to the
+instance being bound to is never passed through in ``args``. Thus any
+wrapper function doesn't need to worry about the distinction.
+
+Trying again with this change though, we are confronted with a further
+problem. This time at the point that the wrapped function is called.
+
+```
+>>> function()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "test.py", line 243, in __call__
+    return self.wrapper(self.wrapped, None, args, kwargs)
+TypeError: __call__() takes exactly 5 arguments (4 given)
+```
+
+The issue this time is that when ``@decorator`` is applied to the
+``__call__()`` method, the reference it is passed is that of the unbound
+method. This is because this occurs during the processing of the class
+definition, long before any instance of the class has been created.
+
+Normally the reference to the instance would be supplied later when the
+method is bound, but because our decorator is actually a factory there are
+two layers involved. The target instance is available to the upper factory
+as the 'instance' argument, but that isn't being used in any way when the
+inner function wrapper object is being created which associates the
+function to be wrapped with our wrapper function.
+
+To solve this problem we need for the case where we are being bound to an
+instance, to explicitly bind the wrapper function ourselves against the
+instance.
+
+```
+def decorator(wrapper):
+    def _wrapper(wrapped, instance, args, kwargs):
+        def _execute(wrapped):
+            if instance is None:
+                return function_wrapper(wrapped, wrapper)
+            elif inspect.isclass(instance):
+                return function_wrapper(wrapped, wrapper.__get__(None, instance))
+            else:
+                return function_wrapper(wrapped, wrapper.__get__(instance, type(instance)))
+        return _execute(*args, **kwargs)
+    return function_wrapper(wrapper, _wrapper)
+```
+
+So what we are using here is the feature of our function wrapper that
+allows us to implement a universal decorator. That is, one which can change
+its behaviour dependent upon the context it is used in.
+
+In this case we had three cases we needed to deal with.
+
+The first is where the instance was ``None``. This corresponds to a normal
+function, a static method or where the decorator was applied to a class
+type.
+
+The second is where the instance was not ``None``, but where it referred to a
+class type. This corresponds to a class method. In this case we need to
+bind the wrapper function to the class type by calling the ``__get__()``
+method of the wrapper function explicitly.
+
+The third and final case is where the instance was not ``None``, but where
+it was not referring to a class type. This corresponds to an instance
+method. In this case we again need to bind the wrapper function, this time
+to the instance.
+
+With these changes, we are now all done with addressing this issue, and to
+a large degree with filling out our new decorator pattern.
+
+Do not try and reproduce this
+-----------------------------
+
+So the complete solution we now have at this point is:
+
+```
+class object_proxy(object): 
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        try:
+            self.__name__ = wrapped.__name__
+        except AttributeError:
+            pass 
+
+    @property
+    def __class__(self):
+        return self.wrapped.__class__ 
+
+    def __getattr__(self, name):
+        return getattr(self.wrapped, name) 
+
+class bound_function_wrapper(object_proxy):  
+
+    def __init__(self, wrapped, instance, wrapper, binding, parent):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper
+        self.binding = binding
+        self.parent = parent  
+
+    def __call__(self, *args, **kwargs):
+        if self.binding == 'function':
+            if self.instance is None:
+                instance, args = args[0], args[1:]
+                wrapped = functools.partial(self.wrapped, instance)
+                return self.wrapper(wrapped, instance, args, kwargs)
+            else:
+                return self.wrapper(self.wrapped, self.instance, args, kwargs)
+        else:
+            instance = getattr(self.wrapped, '__self__', None)
+            return self.wrapper(self.wrapped, instance, args, kwargs)  
+
+    def __get__(self, instance, owner):
+        if self.instance is None and self.binding == 'function':
+            descriptor = self.parent.wrapped.__get__(instance, owner)
+            return bound_function_wrapper(descriptor, instance, self.wrapper,
+                    self.binding, self.parent)
+        return self  
+
+class function_wrapper(object_proxy):  
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper
+        if isinstance(wrapped, classmethod):
+            self.binding = 'classmethod'
+        elif isinstance(wrapped, staticmethod):
+            self.binding = 'staticmethod'
+        else:
+            self.binding = 'function'  
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper,
+                self.binding, self)  
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs) 
+
+def decorator(wrapper):
+    def _wrapper(wrapped, instance, args, kwargs):
+        def _execute(wrapped):
+            if instance is None:
+                return function_wrapper(wrapped, wrapper)
+            elif inspect.isclass(instance):
+                return function_wrapper(wrapped, wrapper.__get__(None, instance))
+            else:
+                return function_wrapper(wrapped, wrapper.__get__(instance, type(instance)))
+        return _execute(*args, **kwargs)
+    return function_wrapper(wrapper, _wrapper)
+```
+
+Take heed though of what was said in prior posts though. The object proxy
+implementation given here is not a complete solution. As a result, do not
+take this code and try and use it yourself as is. If you do you will find
+that some aspects of performing introspection on the wrapped function will
+not work as indicated they should.
+
+In particular, access to the function ``__doc__`` string will always yield
+``None``. Various attributes such as ``__qualname__`` in Python 3 and
+``__module__`` are not propagated either.
+
+Handling an attribute such as ``__doc__`` string correctly is actually a
+bit of a pain. This is because you cannot use a ``__doc__`` property in an
+object proxy base class that returns the value from the wrapped function
+and have it then work when you derive another class from it. This is
+because the separate ``__doc__`` string attribute from the derived class,
+even if no documentation string were specified in the derived class, will
+override that of the base class.
+
+So the object proxy as shown here was intended to be illustrative only of
+what was required.
+
+In some respects all the code here is meant to be illustrative only. It is
+not here to say use this code but to show you the general path to
+implementing a more robust decorator implementation. It is to provide a
+narrative from which you can learn. If you were expecting a one line TLDR
+summary on how to do it, then you can forget it, things just aren't that
+simple.
+
+Introducing the wrapt decorator module
+--------------------------------------
+
+If I am telling you not to use this code, what are you supposed to do then?
+
+The answer to that already exists in the form of the wrapt module on PyPi.
+
+The wrapt package has been available for a number of months already, but
+isn't widely known of at this point. It implements all of what is described
+but also more. The module has a complete implementation of the object proxy
+required to make all this work correctly. The module also provides a range
+of other features related to the decorator factory as well as other
+separate features related to monkey patching in general.
+
+Although I am now finally pointing out that this module exists, I will not
+be stopping the blog posts at this point as there is a range of topics I
+still want to cover. These include examples of how a universal decorator
+can be used, enabling/disabling of decorators, performance issues, the
+remaining parts of the implementation of the object proxy, monkey patching
+and much more.
+
+In the next post in this series I will look at one specific example of
+using a universal decorator by posing the question of if Python decorators
+are so wonderful, why does Python not provide a ``@synchronized`` decorator?
+
+Such a decorator was held up as a bit of a poster child as to what could be
+done with decorators when they were first introduced to the language, yet
+all the implementations I could find are half baked and not very practical
+in the real world. I believe that a universal decorator can help here and
+we can actually have a usable ``@synchronized`` decorator. I will therefore
+explore that possibility in the next post.
+
+The missing @synchronized decorator
+===================================
+
+This is the seventh post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [Maintaining decorator state using a
+class](06-maintaining-decorator-state-using-a-class.md), with the very
+first post in the series being [How you implemented your Python decorator
+is wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the previous post I effectively rounded out the discussion on the
+implementation of the decorator pattern, or at least the key parts that I
+care to cover at this point. I may expand on a few other things that can be
+done at a later time.
+
+At this point I want to start looking at ways this decorator pattern can be
+used to implement better decorators. For this post I want to look at the
+``@synchronized`` decorator.
+
+The concept of the ``@synchronized`` decorator originates from Java and the
+idea of being able to write such a decorator in Python was a bit of a
+poster child when decorators were first added to Python. Despite this,
+there is no standard ``@synchronized`` decorator in the Python standard
+library. If this was such a good example of why decorators are so useful,
+why is this the case?
+
+Stealing ideas from the Java language
+-------------------------------------
+
+The equivalent synchronization primitive from Java comes in two forms.
+These are synchronized methods and synchronized statements.
+
+In Java, to make a method synchronized, you simply add the synchronized
+keyword to its declaration:
+
+```
+public class SynchronizedCounter {
+    private int c = 0; 
+    public synchronized void increment() {
+        c++;
+    } 
+    public synchronized void decrement() {
+        c--;
+    } 
+    public synchronized int value() {
+        return c;
+    }
+}
+```
+
+Making a method synchronized means it is not possible for two invocations
+of synchronized methods on the same object to interleave. When one thread
+is executing a synchronized method for an object, all other threads that
+invoke synchronized methods for the same object block (suspend execution)
+until the first thread is done with the object.
+
+In other words, each instance of the class has an intrinsic lock object and
+upon entering a method the lock is being acquired, with it subsequently
+being released when the method returns. The lock is what is called a
+re-entrant lock, meaning that a thread can while it holds the lock, acquire
+it again without blocking. This is so that from one synchronized method it
+is possible to call another synchronized method on the same object.
+
+The second way to create synchronized code in Java is with synchronized
+statements. Unlike synchronized methods, synchronized statements must
+specify the object that provides the intrinsic lock:
+
+```
+public void addName(String name) {
+    synchronized(this) {
+        lastName = name;
+        nameCount++;
+    }
+    nameList.add(name);
+}
+```
+
+Of note is that in Java one can use any object as the source of the lock,
+it is not necessary to create an instance of a specific lock type to
+synchronize on. If more fined grained locking is required within a class
+one can simply create or use an existing arbitrary object to synchronize
+on.
+
+```
+public class MsLunch {
+    private long c1 = 0;
+    private long c2 = 0;
+    private Object lock1 = new Object();
+    private Object lock2 = new Object(); 
+    public void inc1() {
+        synchronized(lock1) {
+            c1++;
+        }
+    } 
+    public void inc2() {
+        synchronized(lock2) {
+            c2++;
+        }
+    }
+}
+```
+
+These synchronization primitives looks relatively simple to use, so how
+close did people come to actually achieving the level of simplicity by
+using decorators to do the same in Python.
+
+Synchronizing off a thread mutex
+--------------------------------
+
+In Python it isn't possible to synchronize off an arbitrary object. Instead
+it is necessary to create a specific lock object which internally holds a
+thread mutex. Such a lock object provides an ``acquire()`` and
+``release()`` method for manipulating the lock.
+
+Since context managers were introduced to Python however, locks also
+support being used in conjunction with the ``with`` statement. Using this
+specific feature, the typical recipe given for implementing a
+``@synchronized`` decorator for Python is:
+
+```
+def synchronized(lock=None):
+    def _decorator(wrapped):
+        @functools.wraps(wrapped)
+        def _wrapper(*args, **kwargs):
+            with lock:
+                return wrapped(*args, **kwargs)
+        return _wrapper
+    return _decorator 
+
+lock = threading.RLock() 
+
+@synchronized(lock)
+def function():
+    pass
+```
+
+Using this approach becomes annoying after a while because for every
+distinct function that needs to be synchronized, you have to first create a
+companion thread lock to go with it.
+
+The alternative to needing to pass in the lock object each time, is to
+create one automatically for each use of the decorator.
+
+```
+def synchronized(wrapped):
+    lock = threading.RLock() 
+    @functools.wraps(wrapped)
+    def _wrapper(*args, **kwargs):
+        with lock:
+            return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@synchronized
+def function():
+    pass
+```
+
+We can even use the pattern described previously for allowing optional
+decorator arguments to permit either approach.
+
+```
+def synchronized(wrapped=None, lock=None):
+    if wrapped is None:
+        return functools.partial(synchronized, lock=lock) 
+    if lock is None:
+        lock = threading.RLock() 
+    @functools.wraps(wrapped)
+    def _wrapper(*args, **kwargs):
+        with lock:
+            return wrapped(*args, **kwargs)
+    return _wrapper 
+
+@synchronized
+def function1():
+    pass 
+
+lock = threading.Lock() 
+
+@synchronized(lock=lock)
+def function2():
+    pass
+```
+
+Whatever the approach, the decorator being based on a function closure
+suffers all the problems we have already outlined. The first step we can
+therefore take is to update it to use our new decorator factory instead.
+
+```
+def synchronized(wrapped=None, lock=None):
+    if wrapped is None:
+        return functools.partial(synchronized, lock=lock) 
+
+    if lock is None:
+        lock = threading.RLock() 
+
+    @decorator
+    def _wrapper(wrapped, instance, args, kwargs):
+        with lock:
+            return wrapped(*args, **kwargs)
+
+    return _wrapper(wrapped)
+```
+
+Because this is using our decorator factory, it also means that the same
+code is safe to use on instance, class or static methods as well.
+
+Using this on methods of a class though starts to highlight why this
+simplistic approach isn't particularly useful. This is because the locking
+only applies to calls made to the specific method which is wrapped. Plus
+that it will be across that one method on all instances of the class. This
+isn't really want we want and doesn't mirror how synchronized methods in
+Java work.
+
+Reiterating what we are after again, for all instance methods of a specific
+instance of a class, if they have been decorated as being synchronized, we
+want them to synchronize off a single lock object associated with the class
+instance.
+
+Now there have been posts describing how to improve on this in the past,
+including for example this quite involved attempt. Personally though I find
+the way in which it is done is quite clumsy and even suspect it isn't
+actually thread safe, with a race condition over the creation of some of
+the locks.
+
+Because it used function closures and didn't have our concept of a
+universal decorator, it was also necessary to create a multitude of
+different decorators and then try and plaster them together under a single
+decorator entry point. Obviously, we should now be able to do a lot better
+than this.
+
+Storing the thread mutex on objects
+-----------------------------------
+
+Starting over, lets take a fresh look at how we can manage the thread locks
+we need to have. Rather than requiring the lock be passed in, or creating
+it within a function closure which is then available to the nested wrapper,
+lets try and manage the locks within the wrapper itself.
+
+In doing this the issue is where can we store the thread lock. The only
+options for storing any data between invocations of the wrapper are going
+to be on the wrapper itself, on the wrapped function object, in the case of
+wrapping an instance method, on the class instance, or for a class method,
+on the class.
+
+Lets first consider the case of a normal function. In that case what we can
+do is store the required thread lock on the wrapped function object itself.
+
+```
+@decorator
+def synchronized(wrapped, instance, args, kwargs):
+    lock = vars(wrapped).get('_synchronized_lock', None) 
+    if lock is None:
+        lock = vars(wrapped).setdefault('_synchronized_lock', threading.RLock()) 
+    with lock:
+        return wrapped(*args, **kwargs) 
+
+@synchronized
+def function():
+    pass 
+
+>>> function() 
+>>> function._synchronized_lock
+<_RLock owner=None count=0>
+```
+
+A key issue we have to deal with in doing this is how to create the thread
+lock the first time it is required. To do that the first thing we need do
+is to see if we already have created a thread lock.
+
+```
+lock = vars(wrapped).get('_synchronized_lock', None)
+```
+
+If this returns a valid thread lock object we are fine and can continue on
+to attempt to acquire the lock. If however it didn't exist we need to
+create it, but we have to be careful how we do this in order to avoid a
+race condition when two threads have entered this section of code at the
+same time and both believe it is responsible for creating the thread lock.
+
+The trick we use to solve this is to use:
+
+```
+lock = vars(wrapped).setdefault('_synchronized_lock', threading.RLock())
+```
+
+In the case of two threads trying to set the lock at the same time, they
+will both actually create an instance of a thread lock, but by virtue of
+using ``dict.setdefault()``, only one of them will win and actually be able
+to set it to the instance of the thread lock it created.
+
+As ``dict.setdefault()`` then returns whichever is the first value to be
+stored, both threads will then continue on and attempt to acquire the same
+thread lock object. It doesn't matter here that one of the thread objects
+gets thrown away as it will only occur at the time of initialisation and
+only if there was actually a race to set it.
+
+We have therefore managed to replicate what we had originally, the
+difference though being that the thread lock is stored on the wrapped
+function, rather than on the stack of an enclosing function. We still have
+the issue that every instance method will have a distinct lock.
+
+The simple solution is that we use the fact that this is what we are
+calling a universal decorator and use the ability to detect in what context
+the decorator was used.
+
+Specifically, what we want to do is detect when we are being used on an
+instance method or class method, and store the lock on the object passed as
+the ``instance`` argument instead.
+
+```
+@decorator
+def synchronized(wrapped, instance, args, kwargs):
+    if instance is None:
+        context = vars(wrapped)
+    else:
+        context = vars(instance) 
+
+    lock = context.get('_synchronized_lock', None) 
+
+    if lock is None:
+        lock = context.setdefault('_synchronized_lock', threading.RLock()) 
+
+    with lock:
+        return wrapped(*args, **kwargs)
+
+class Object(object):
+
+    @synchronized
+    def method_im(self):
+        pass 
+
+    @synchronized
+    @classmethod
+    def method_cm(cls):
+        pass
+
+o1 = Object()
+o2 = Object() 
+
+>>> o1.method_im()
+>>> o1._synchronized_lock
+<_RLock owner=None count=0>
+>>> id(o1._synchronized_lock)
+4386605392 
+
+>>> o2.method_im()
+>>> o2._synchronized_lock
+<_RLock owner=None count=0>
+>>> id(o2._synchronized_lock)
+4386605456
+```
+
+This simple change has actually achieved the result we desired. If the
+synchronized decorator is used on a normal function then the thread lock
+will be stored on the function itself and it will stand alone and only be
+synchronized with calls to the same function.
+
+For the case of the instance method, the thread lock will be stored on the
+instance of the class the instance methods are bound too and any instance
+methods marked as being synchronized on that class will all synchronize on
+that single thread lock, thus mimicking how Java behaves.
+
+Now what about that class method. In this case the instance argument is
+actually the class type. If the thread lock is stored on the type, then the
+result would be that if there were multiple class methods and they were all
+marked as synchronized, they would exclude each other. The thread lock in
+this case is distinct from any used by instance methods, but that is also
+actually what we want.
+
+Does the code work though for a class method?
+
+```
+>>> Object.method_cm()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "test.py", line 38, in __call__
+    return self.wrapper(self.wrapped, instance, args, kwargs)
+  File "synctest.py", line 176, in synchronized
+    lock = context.setdefault('_synchronized_lock',
+AttributeError: 'dictproxy' object has no attribute 'setdefault'
+```
+
+Unfortunately not.
+
+The reason this is the case is that the ``__dict__`` of a class type is not
+a normal dictionary, but a dictproxy. A dictproxy doesn't share the same
+methods as a normal dict and in particular, it does not provide the
+``setdefault()`` method.
+
+We therefore need a different way of synchronizing the creation of the
+thread lock the first time for the case where instance is a class.
+
+We also have another issue due to a dictproxy being used. That is that
+dictproxy doesn't support item assignment.
+
+```
+>>> vars(Object)['_synchronized_lock'] = threading.RLock()
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+TypeError: 'dictproxy' object does not support item assignment
+```
+
+What it does still support though is attribute assignment.
+
+```
+>>> setattr(Object, '_synchronized_lock', threading.RLock())
+>>> Object._synchronized_lock
+<_RLock owner=None count=0>
+```
+
+and since both function objects and class instances do as well, we will
+need to switch to that method of updating attributes.
+
+Storing a meta lock on the decorator
+------------------------------------
+
+As to an alternative for using dict.setdefault() as an atomic way of
+setting the lock the first time, what we can do instead is use a meta
+thread lock stored on the ``@synchronized`` decorator itself. With this we
+still have the issue though of ensuring that only one thread can get to set
+it. We therefore use ``dict.setdefault()`` to control creation of the meta
+lock at least.
+
+```
+@decorator
+def synchronized(wrapped, instance, args, kwargs):
+    if instance is None:
+        owner = wrapped
+    else:
+        owner = instance 
+
+    lock = vars(owner).get('_synchronized_lock', None) 
+
+    if lock is None:
+        meta_lock = vars(synchronized).setdefault(
+                '_synchronized_meta_lock', threading.Lock()) 
+
+        with meta_lock:
+            lock = vars(owner).get('_synchronized_lock', None) 
+            if lock is None:
+                lock = threading.RLock()
+                setattr(owner, '_synchronized_lock', lock) 
+
+    with lock:
+        return wrapped(*args, **kwargs)
+```
+
+Note that because of the gap between checking for the existence of the lock
+for the wrapped function and creating the meta lock, after we have acquired
+the meta lock we need to once again check to see if the lock exists. This
+is to handle the case where two threads came into the code at the same time
+and are racing to be the first to create the lock.
+
+Now one thing which is very important in this change is that we only
+swapped to using attribute access for updating the lock for the wrapped
+function. We have not changed to using ``getattr()`` for looking up the
+lock in the first place and are still looking it up in ``__dict__`` as
+returned by ``vars()``.
+
+This is necessary because when ``getattr()`` is used on an instance of a
+class, if that attribute doesn't exist on the instance of the class, then
+the lookup rules mean that if the attribute instead existed on the class
+type, then that would be returned instead.
+
+This would cause problems if a synchronized class method was the first to
+be called, because it would then leave a lock on the class type. When the
+instance method was subsequently called, if ``getattr()`` were used, it
+would find the lock on the class type and return it and it would be wrongly
+used. Thus we stay with looking for the lock via ``__dict__`` as that will
+only contain what actually exists in the instance.
+
+With these changes we are now all done and all lock creation is now
+completely automatic, with an appropriate lock created for the different
+contexts the decorator is used in.
+
+```
+@synchronized
+def function():
+    pass 
+
+class Object(object):
+
+    @synchronized
+    def method_im(self):
+        pass 
+
+    @synchronized
+    @classmethod
+    def method_cm(cls):
+        pass 
+
+o = Object() 
+
+>>> function()
+>>> id(function._synchronized_lock)
+4338158480 
+
+>>> Object.method_cm()
+>>> id(Object._synchronized_lock)
+4338904656 
+
+>>> o.method_im()
+>>> id(o._synchronized_lock)
+4338904592
+```
+
+The code also works for where ``@synchronized`` is used on a static method
+or class type. In summary, the result for the different places
+``@synchronized`` can be placed is:
+
+```
+@synchronized # lock bound to function1
+def function1():
+    pass 
+
+@synchronized # lock bound to function2
+def function2():
+    pass 
+
+@synchronized # lock bound to Class
+class Class(object): 
+
+    @synchronized # lock bound to instance of Class
+    def function_im(self):
+        pass 
+
+    @synchronized # lock bound to Class
+    @classmethod
+    def function_cm(cls):
+        pass 
+
+    @synchronized # lock bound to function_sm
+    @staticmethod
+    def function_sm():
+        pass
+```
+
+Implementing synchronized statements
+------------------------------------
+
+So we are all done with implementing support for synchronized methods, but
+what about those synchronized statements. The goal here is that we want to
+be able to write:
+
+```
+class Object(object): 
+
+    @synchronized
+    def function_im_1(self):
+        pass 
+
+    def function_im_2(self):
+        with synchronized(self):
+            pass
+```
+
+That is, we need for ``synchronized`` to not only be usable as a decorator,
+but for it also be able to be used as a context manager.
+
+In this role, similar to with Java, it would be supplied the object on
+which synchronization is to occur, which for instance methods would be the
+``self`` object or instance of the class.
+
+For an explanation of how we can do this though, you will need to wait for
+the next instalment in this series of posts.
+
+The @synchronized decorator as context manager
+==============================================
+
+This is the eigth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [The missing @synchronized
+decorator](07-the-missing-synchronized-decorator.md), with the very first
+post in the series being [How you implemented your Python decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the previous post I described how we could use our new universal
+decorator pattern to implement a better @synchronized decorator for Python.
+The intent in doing this was to come up with a better approximation of the
+equivalent synchronization mechanisms in Java.
+
+Of the two synchronization mechanisms provided by Java, synchronized
+methods and synchronized statements, we have however so far only
+implemented an equivalent to synchronized methods.
+
+In this post I will describe how we can take our ``@synchronized`` decorator
+and extend it to also be used as a context manager, thus providing an an
+equivalent of synchronized statements in Java.
+
+The original @synchronized decorator
+------------------------------------
+
+The implementation of our ``@synchronized`` decorator so far is:
+
+```
+@decorator
+def synchronized(wrapped, instance, args, kwargs):
+    if instance is None:
+        owner = wrapped
+    else:
+        owner = instance  
+
+    lock = vars(owner).get('_synchronized_lock', None)  
+
+    if lock is None:
+        meta_lock = vars(synchronized).setdefault(
+                '_synchronized_meta_lock', threading.Lock())  
+
+        with meta_lock:
+            lock = vars(owner).get('_synchronized_lock', None)
+            if lock is None:
+                lock = threading.RLock()
+                setattr(owner, '_synchronized_lock', lock)  
+
+    with lock:
+        return wrapped(*args, **kwargs)
+```
+
+By determining whether the decorator is being used to wrap a normal
+function, a method bound to a class instance or a class, and with the
+decorator changing behaviour as a result, we are able to use the one
+decorator implementation in a number of scenarios.
+
+```
+@synchronized # lock bound to function1
+def function1():
+    pass 
+
+@synchronized # lock bound to function2
+def function2():
+    pass 
+
+@synchronized # lock bound to Class
+class Class(object):  
+
+    @synchronized # lock bound to instance of Class
+    def function_im(self):
+        pass 
+
+    @synchronized # lock bound to Class
+    @classmethod
+    def function_cm(cls):
+        pass
+
+    @synchronized # lock bound to function_sm
+    @staticmethod
+    def function_sm():
+        pass
+```
+
+What we now want to do is modify the decorator to also allow:
+
+```
+class Object(object):  
+
+    @synchronized
+    def function_im_1(self):
+        pass  
+
+    def function_im_2(self):
+        with synchronized(self):
+            pass
+```
+
+That is, as well as being able to be used as a decorator, we enable it to
+be used as a context manager in conjunction with the ``with`` statement. By
+doing this it then provides the ability to only acquire the corresponding
+lock for a selected number of statements within a function rather than the
+whole function.
+
+For the case of acquiring the same lock used by instance methods, we would
+pass the ``self`` argument or instance object into ``synchronized`` when
+used as a context manager. It could instead also be passed the class type
+if needing to synchronize with class methods.
+
+The function wrapper as context manager
+---------------------------------------
+
+Right now with how the decorator is implemented, when we use
+``synchronized`` as a function call, it will return an instance of our
+function wrapper class.
+
+```
+>>> synchronized(None)
+<__main__.function_wrapper object at 0x107b7ea10>
+```
+
+This function wrapper does not implement the ``__enter__()`` and
+``__exit__()`` functions that are required for an object to be used as a
+context manager. Since the function wrapper type is our own class, all we
+need to do though is create a derived version of the class and use that
+instead. Because though the creation of that function wrapper is bound up
+within the definition of ``@decorator``, we need to bypass ``@decorator``
+and use the function wrapper directly.
+
+The first step therefore is to rewrite our ``@synchronized`` decorator so
+it doesn't use ``@decorator``.
+
+```
+def synchronized(wrapped): 
+    def _synchronized_lock(owner):
+        lock = vars(owner).get('_synchronized_lock', None) 
+
+        if lock is None:
+            meta_lock = vars(synchronized).setdefault(
+                    '_synchronized_meta_lock', threading.Lock()) 
+
+            with meta_lock:
+                lock = vars(owner).get('_synchronized_lock', None)
+                if lock is None:
+                    lock = threading.RLock()
+                    setattr(owner, '_synchronized_lock', lock) 
+
+        return lock 
+
+    def _synchronized_wrapper(wrapped, instance, args, kwargs):
+        with _synchronized_lock(instance or wrapped):
+            return wrapped(*args, **kwargs) 
+
+    return function_wrapper(wrapped, _synchronized_wrapper)
+```
+
+This works the same as our original implementation but we now have access
+to the point where the function wrapper was created. With that being the
+case, we can now create a class which derives from the function wrapper and
+adds the required methods to satisfy the context manager protocol.
+
+```
+def synchronized(wrapped): 
+    def _synchronized_lock(owner):
+        lock = vars(owner).get('_synchronized_lock', None) 
+
+        if lock is None:
+            meta_lock = vars(synchronized).setdefault(
+                    '_synchronized_meta_lock', threading.Lock()) 
+
+            with meta_lock:
+                lock = vars(owner).get('_synchronized_lock', None)
+                if lock is None:
+                    lock = threading.RLock()
+                    setattr(owner, '_synchronized_lock', lock) 
+
+        return lock 
+
+    def _synchronized_wrapper(wrapped, instance, args, kwargs):
+        with _synchronized_lock(instance or wrapped):
+            return wrapped(*args, **kwargs) 
+
+    class _synchronized_function_wrapper(function_wrapper): 
+
+        def __enter__(self):
+            self._lock = _synchronized_lock(self.wrapped)
+            self._lock.acquire()
+            return self._lock 
+
+        def __exit__(self, *args):
+            self._lock.release() 
+
+    return _synchronized_function_wrapper(wrapped, _synchronized_wrapper)
+```
+
+We now have two scenarios for what can happen.
+
+In the case of ``synchronized`` being used as a decorator still, our new
+derived function wrapper will wrap the function or method it was applied
+to. When that function or class method is called, the existing
+``__call__()`` method of the function wrapper base class will be called and
+the decorator semantics will apply with the wrapper called to acquire the
+appropriate lock and call the wrapped function.
+
+In the case where is was instead used for the purposes of a context
+manager, our new derived function wrapper would actually be wrapping the
+class instance or class type. Nothing is being called though and instead
+the ``with`` statement will trigger the execution of the ``__enter__()``
+and ``__exit__()`` methods to acquire the appropriate lock around the
+context of the statements to be executed.
+
+So all nice and neat and not even that complicated compared to previous
+attempts at doing the same thing which were referenced in the prior post on
+this topic.
+
+It isn't just about @decorator
+------------------------------
+
+Now one of the things that this hopefully shows is that although
+``@decorator`` can be used to create your own custom decorators, this isn't
+always the most appropriate way to go. The separate existence of the
+function wrapper gives a great deal of flexibility in what one can do as
+far as wrapping objects to modify the behaviour. One can also drop down and
+use the object proxy directly in certain circumstances.
+
+All together these provide a general purpose set of tools for doing any
+sort of wrapping or monkey patching and not just for use in decorators. I
+will now start to shift the focus of this series of blog posts to look more
+at the more general area of wrapping and monkey patching.
+
+Before I do get into that, in my next post I will first talk about the
+performance implications implicit in using the function wrapper which has
+been described when compared to the more traditional way of using function
+closures to implement decorators. This will include overhead comparisons
+where the complete object proxy and function wrapper classes are
+implemented as a Python C extension for added performance.
+
+Performance overhead of using decorators
+========================================
+
+This is the ninth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [The @synchronized decorator as context
+manager](08-the-synchronized-decorator-as-context-manager.md), with the
+very first post in the series being [How you implemented your Python
+decorator is
+wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+The posts so far in this series were bashed out in quick succession in a
+bit over a week. Because that was quite draining on the brain and due to
+other commitments I took a bit of a break. Hopefully I can get through
+another burst of posts, initially about performance considerations when
+implementing decorators and then start a dive into how to implement the
+object proxy which underlies the function wrapper the decorator mechanism
+described relies on.
+
+Overhead in decorating a normal function
+----------------------------------------
+
+In this post I am only going to look at the overhead of decorating a normal
+function with the decorator mechanism which has been described. The
+relevant part of the decorator mechanism which comes into play in this case
+is:
+
+```
+class function_wrapper(object_proxy):  
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper
+        ...
+
+    def __get__(self, instance, owner):
+        ...
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs)  
+
+def decorator(wrapper):
+    def _wrapper(wrapped, instance, args, kwargs):
+        def _execute(wrapped):
+            if instance is None:
+                return function_wrapper(wrapped, wrapper)
+            elif inspect.isclass(instance):
+                return function_wrapper(wrapped, wrapper.__get__(None, instance))
+            else:
+                return function_wrapper(wrapped, wrapper.__get__(instance, type(instance)))
+        return _execute(*args, **kwargs)
+    return function_wrapper(wrapper, _wrapper)
+```
+
+If you want to refresh your memory of the complete code that was previously
+presented you can check back to the last post where it was described in
+full.
+
+With our decorator factory, when creating a decorator and then decorating a
+normal function with it we would use:
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    return wrapped(*args, **kwargs)  
+
+@my_function_wrapper
+def function():
+    pass
+```
+
+This is in contrast to the same decorator created in the more traditional
+way using a function closure.
+
+```
+def my_function_wrapper(wrapped):
+    def _my_function_wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    return _my_function_wrapper 
+
+@my_function_wrapper
+def function():
+    pass
+```
+
+Now what actually occurs in these two different cases when we make the call:
+
+```
+function()
+```
+
+Tracing the execution of the function
+-------------------------------------
+
+In order to trace the execution of our code we can use Python's profile
+hooks mechanism.
+
+```
+import sys 
+def tracer(frame, event, arg):
+    print(frame.f_code.co_name, event) 
+
+sys.setprofile(tracer) 
+
+function()
+```
+
+The purpose of the profile hook is to allow you to register a callback
+function which is called on the entry and exit of all functions. Using this
+was can trace the sequence of function calls that are being made.
+
+For the case of a decorator implemented as a function closure this yields:
+
+```
+_my_function_wrapper call
+    function call
+    function return
+_my_function_wrapper return
+```
+
+So what we see here is that the nested function of our function closure is
+called. This is because the decorator in the case of a using a function
+closure is replacing ``function`` with a reference to that nested function.
+When that nested function is called, it then in turn calls the original
+wrapped function.
+
+For our implementation using our decorator factory, when we do the same
+thing we instead get:
+
+```
+__call__ call
+    my_function_wrapper call
+        function call
+        function return
+    my_function_wrapper return
+__call__ return
+```
+
+The difference here is that our decorator replaces ``function`` with an
+instance of our function wrapper class. Being a class, when it is called as
+if it was a function, the ``__call__()`` method is invoked on the instance
+of the class. The ``__call__()`` method is then invoking the user supplied
+wrapper function, which in turn calls the original wrapped function.
+
+The result therefore is that we have introduced an extra level of
+indirection, or in other words an extra function call into the execution
+path.
+
+Keep in mind though that ``__call__()`` is actually a method though and not
+just a normal function. Being a method that means there is actually a lot
+more work going on behind the scenes than a normal function call. In
+particular, the unbound method needs to be bound to the instance of our
+function wrapper class before it can be called. This doesn't appear in the
+trace of the calls, but it is occurring and that will incur additional
+overhead.
+
+Timing the execution of the function
+------------------------------------
+
+By performing the trace above we know that our solution incurs an
+additional method call overhead. How much actual extra overhead is this
+resulting in though?
+
+To try and measure the increase in overhead in each solution we can use the
+``timeit`` module to time the execution of our function call. As a baseline,
+we first want to time the call of a function without any decorator applied.
+
+```
+# benchmarks.py 
+def function():
+    pass 
+```
+
+To time this we use the command:
+
+```
+$ python -m timeit -s 'import benchmarks' 'benchmarks.function()'
+```
+
+The ``timeit`` module when used in this way will perform a suitable large
+number of iterations of calling the function, divide the resulting total
+time for all calls with the count of the number and end up with a time
+value for a single call.
+
+For a 2012 model MacBook Pro this yields:
+
+```
+10000000 loops, best of 3: 0.132 usec per loop
+```
+
+Next up is to try with a decorator implemented as a function closure. For
+this we get:
+
+```
+1000000 loops, best of 3: 0.326 usec per loop
+```
+
+And finally with our decorator factory:
+
+```
+1000000 loops, best of 3: 0.771 usec per loop
+```
+
+In this final case, rather than use the exact code as has been presented so
+far in this series of blog posts, I have used the ``wrapt`` module
+implementation of what has been described. This implementation works
+slightly differently as it has a few extra capabilities over what has been
+described and the design is also a little bit different. The overhead will
+still be roughly equivalent and if anything will cast things as being
+slightly worse than the more minimal implementation.
+
+Speeding up execution of the wrapper
+------------------------------------
+
+At this point no doubt there will be people wanting to point out that this
+so called better way of implementing a decorator is too slow to be
+practical to use, even if it is more correct as far as properly honouring
+things such as the descriptor protocol for method invocation.
+
+Is there therefore anything that can be done to speed up the implementation?
+
+That is of course a stupid question for me to be asking because you should
+realise by now that I would find a way. :-)
+
+The path that can be taken at this point is to implement everything that
+has been described for the function wrapper and object proxy as a Python C
+extension module. For simplicity we can keep the decorator factory itself
+implemented as pure Python code as execution of that is not time critical
+as it would only be invoked once when the decorator is applied to the
+function and not on every call of the decorated function.
+
+One thing I am definitely not going to do is blog about how to go about
+implementing the function wrapper and object proxy as a Python C extension
+module. Rest assured though that it works in the same way as the parallel
+pure Python implementation. It does obviously though run a lot quicker due
+to being implemented as C code using the Python C APIs rather than as pure
+Python code.
+
+What is the result then by implementing the function wrapper and object
+proxy as a Python C extension module? It is:
+
+```
+1000000 loops, best of 3: 0.382 usec per loop
+```
+
+So although a lot more effort was required in actually implementing the
+function wrapper and object proxy as a Python C extension module, the
+effort was well worth it, with the results now being very close to the
+implementation of the decorator that used a function closure.
+
+Normal functions vs methods of classes
+--------------------------------------
+
+So far we have only considered the case of decorating a normal function. As
+expected, due to the introduction of an extra level of indirection as well
+as the function wrapper being implemented as a class, overhead was notably
+more. Albeit, that it was still in the order of only half a microsecond.
+
+All the same, we were able to speed things up to a point, by implementing
+our function wrapper and object proxy as C code, where the overhead above
+that of a decorator implemented as a function closure was negligible.
+
+What now about where we decorate methods of a class. That is, instance
+methods, class methods and static methods. For that you will need to wait
+until the next blog post in this series on decorators.
+
+Performance overhead when applying decorators to methods
+========================================================
+
+This is the tenth post in my series of blog posts about Python decorators
+and how I believe they are generally poorly implemented. It follows on from
+the previous post titled [Performance overhead of using
+decorators](09-performance-overhead-of-using-decorators.md), with the very
+first post in the series being [How you implemented your Python decorator
+is wrong](01-how-you-implemented-your-python-decorator-is-wrong.md).
+
+In the previous post I started looking at the performance implications of
+using decorators. In that post I started out by looking at the overheads
+when applying a decorator to a normal function, comparing a decorator
+implemented as a function closure to the more robust decorator
+implementation which has been the subject of this series of posts.
+
+For a 2012 model MacBook Pro the tests yielded for a straight function call:
+
+```
+10000000 loops, best of 3: 0.132 usec per loop
+```
+
+When using a decorator implemented as a function closure the result was:
+
+```
+1000000 loops, best of 3: 0.326 usec per loop
+```
+
+And finally with the decorator factory described in this series of blog
+posts:
+
+```
+1000000 loops, best of 3: 0.771 usec per loop
+```
+
+This final figure was based on a pure Python implementation. When however
+the object proxy and function wrapper were implemented as a C extension, it
+was possible to get this down to:
+
+```
+1000000 loops, best of 3: 0.382 usec per loop
+```
+
+This result was not much different to when using a decorator implemented as
+a function closure.
+
+What now for when decorators are applied to methods of a class?
+
+Overhead of having to bind functions
+------------------------------------
+
+The issue with applying decorators to methods of a class is that if you are
+going to honour the Python execution model, the decorator needs to be
+implemented as a descriptor and correctly bind methods to a class or class
+instance when accessed. In the decorator described in this series of posts
+we actually made use of that mechanism so as to be able to determine when a
+decorator was being applied to a normal function, instance method or class
+method.
+
+Although this process of binding ensures correct operation, it comes at an
+additional cost in overhead over what a decorator implemented as a function
+closure, which does not make any attempt to preserve the Python execution
+model, would do.
+
+In order to see what extra steps occur, we can again use the Python profile
+hooks mechanism to trace execution of the call of our decorated function.
+In this case the execution of an instance method.
+
+First lets check again what we would get for a decorator implemented as a
+function closure.
+
+```
+def my_function_wrapper(wrapped):
+    def _my_function_wrapper(*args, **kwargs):
+        return wrapped(*args, **kwargs)
+    return _my_function_wrapper 
+
+class Class(object):
+    @my_function_wrapper
+    def method(self):
+        pass
+
+instance = Class()
+
+import sys
+
+def tracer(frame, event, arg):
+    print(frame.f_code.co_name, event)
+
+sys.setprofile(tracer)
+
+instance.method()
+```
+
+The result in running this is effectively the same as when decorating a
+normal function.
+
+```
+_my_function_wrapper call
+    method call
+    method return
+_my_function_wrapper return
+```
+
+We should therefore expect that the overhead will not be substantially
+different when we perform actual timing tests.
+
+Now for when using our decorator factory. To provide context this time we
+need to present the complete recipe for the implementation.
+
+```
+class object_proxy(object):
+
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+        try:
+            self.__name__ = wrapped.__name__
+        except AttributeError:
+            pass
+
+    @property
+    def __class__(self):
+        return self.wrapped.__class__
+
+    def __getattr__(self, name):
+        return getattr(self.wrapped, name)
+
+class bound_function_wrapper(object_proxy):
+
+    def __init__(self, wrapped, instance, wrapper, binding, parent):
+        super(bound_function_wrapper, self).__init__(wrapped)
+        self.instance = instance
+        self.wrapper = wrapper
+        self.binding = binding
+        self.parent = parent
+
+    def __call__(self, *args, **kwargs):
+        if self.binding == 'function':
+            if self.instance is None:
+                instance, args = args[0], args[1:]
+                wrapped = functools.partial(self.wrapped, instance)
+                return self.wrapper(wrapped, instance, args, kwargs)
+            else:
+                return self.wrapper(self.wrapped, self.instance, args, kwargs)
+        else:
+            instance = getattr(self.wrapped, '__self__', None)
+            return self.wrapper(self.wrapped, instance, args, kwargs)
+
+    def __get__(self, instance, owner):
+        if self.instance is None and self.binding == 'function':
+            descriptor = self.parent.wrapped.__get__(instance, owner)
+            return bound_function_wrapper(descriptor, instance, self.wrapper,
+                    self.binding, self.parent)
+        return self 
+
+class function_wrapper(object_proxy):
+
+    def __init__(self, wrapped, wrapper):
+        super(function_wrapper, self).__init__(wrapped)
+        self.wrapper = wrapper
+        if isinstance(wrapped, classmethod):
+            self.binding = 'classmethod'
+        elif isinstance(wrapped, staticmethod):
+            self.binding = 'staticmethod'
+        else:
+            self.binding = 'function' 
+
+    def __get__(self, instance, owner):
+        wrapped = self.wrapped.__get__(instance, owner)
+        return bound_function_wrapper(wrapped, instance, self.wrapper,
+                self.binding, self) 
+
+    def __call__(self, *args, **kwargs):
+        return self.wrapper(self.wrapped, None, args, kwargs) 
+
+def decorator(wrapper):
+    def _wrapper(wrapped, instance, args, kwargs):
+        def _execute(wrapped):
+            if instance is None:
+                return function_wrapper(wrapped, wrapper)
+            elif inspect.isclass(instance):
+                return function_wrapper(wrapped,
+                        wrapper.__get__(None, instance))
+            else:
+                return function_wrapper(wrapped,
+                        wrapper.__get__(instance, type(instance)))
+        return _execute(*args, **kwargs)
+    return function_wrapper(wrapper, _wrapper)
+```
+
+With our decorator implementation now being:
+
+```
+@decorator
+def my_function_wrapper(wrapped, instance, args, kwargs):
+    return wrapped(*args, **kwargs)
+```
+
+the result we get when executing the decorated instance method of the class
+is:
+
+```
+('__get__', 'call') # function_wrapper
+    ('__init__', 'call') # bound_function_wrapper
+        ('__init__', 'call') # object_proxy
+        ('__init__', 'return')
+    ('__init__', 'return')
+('__get__', 'return')
+
+('__call__', 'call') # bound_function_wrapper
+    ('my_function_wrapper', 'call')
+        ('method', 'call')
+        ('method', 'return')
+    ('my_function_wrapper', 'return')
+('__call__', 'return')
+```
+
+As can be seen, due to the binding of the method to the instance of the
+class which occurs in ``__get__()``, a lot more is now happening. The
+overhead can therefore be expected to be significantly more also.
+
+Timing execution of the method call
+-----------------------------------
+
+As before, rather than use the implementation above, the actual
+implementation from the wrapt library will again be used.
+
+This time our test is run as:
+
+```
+$ python -m timeit -s 'import benchmarks; c=benchmarks.Class()' 'c.method()'
+```
+
+For the case of no decorator being used on the instance method, the result
+is:
+
+```
+10000000 loops, best of 3: 0.143 usec per loop
+```
+
+This is a bit more than for the case of a normal function call due to the
+binding of the function to the instance which is occurring.
+
+Next up is using the decorator implemented as a function closure. For this
+we get:
+
+```
+1000000 loops, best of 3: 0.382 usec per loop
+```
+
+Again, somewhat more than the undecorated case, but not a great deal more
+than when the decorator implemented as a function closure was applied to a
+normal function. The overhead of this decorator when applied to a normal
+function vs a instance method is therefore not significantly different.
+
+Now for the case of our decorator factory and function wrapper which
+honours the Python execution model, by ensuring that binding of the
+function to the instance of the class is done correctly.
+
+First up is where a pure Python implementation is used.
+
+```
+100000 loops, best of 3: 6.67 usec per loop
+```
+
+Ouch. Compared to when using a function closure to implement the decorator,
+this is quite an additional hit in runtime overhead.
+
+Although this is only about an extra 6 usec per call, you do need to think
+about this in context. In particular, if such a decorator is applied to a
+function which is called 1000 times in the process of handing a web
+request, that is an extra 6 ms added on top of the response time for that
+web request.
+
+This is the point where many will no doubt argue that being correct is not
+worth it if the overhead is simply too much. But then, it also isn't likely
+the case that the decorated function, nor the decorator itself are going to
+do nothing and so the additional overhead incurred may still be a small
+percentage of the run time cost of those and so not in practice noticeable.
+
+All the same, can the use of a C extension improve things?
+
+For the case of the object proxy and function wrapper being implemented as
+a C extension, the result is:
+
+```
+1000000 loops, best of 3: 0.836 usec per loop
+```
+
+So instead of 6 ms, that is less than 1 ms of additional overhead if the
+decorated function was called a 1000 times.
+
+It is still somewhat more than when using a decorator implemented as a
+function closure, but reiterating again, the use of a function closure when
+decorating a method of a class is technically broken by design as it does
+not honour the Python execution model.
+
+Who cares if it isn't quite correct
+-----------------------------------
+
+Am I splitting hairs and being overly pedantic in wanting things to be done
+properly?
+
+Sure, for what you are using decorators for you may well get away with
+using a decorator implemented as a function closure. When you start though
+moving into the area of using function wrappers to perform monkey patching
+of arbitrary code, you cannot afford to do things in a sloppy way.
+
+If you do not honour the Python execution model when doing monkey patching,
+you can too easily break in very subtle and obscure ways the third party
+code you are monkey patching. Customers don't really like it when what you
+do crashes their web application. So for what I need to do at least, it
+does matter and it matters a lot.
+
+Now in this post I have only considered the overhead when decorating
+instance methods of a class. I did not cover what the overheads are when
+decorating static methods and class methods. If you are curious about those
+and how they may be different, you can check out the benchmarks for the
+full range of cases in the wrapt documentation.
+
+In the next post I will touch once again on issues of performance overhead,
+but also a bit on alternative ways of implementing a decorator so as to try
+and address the problems raised in my very first post. This will be as a
+part of a comparison between the approach described in this series of posts
+and the way in which the ``decorator`` module available from PyPi implements
+its variant of a decorator factory.
+
+Blog posts
+==========
+
+* 01 - [How you implemented your Python decorator is wrong](01-how-you-implemented-your-python-decorator-is-wrong.md) - (7th January 2014)
+* 02 - [The interaction between decorators and descriptors](02-the-interaction-between-decorators-and-descriptors.md) - (7th January 2014)
+* 03 - [Implementing a factory for creating decorators](03-implementing-a-factory-for-creating-decorators.md) - (8th January 2014)
+* 04 - [Implementing a universal decorator](04-implementing-a-universal-decorator.md) - (9th January 2014)
+* 05 - [Decorators which accept arguments](05-decorators-which-accept-arguments.md) - (11th January 2014)
+* 06 - [Maintaining decorator state using a class](06-maintaining-decorator-state-using-a-class.md) - (13th January 2014)
+* 07 - [The missing @synchronized decorator](07-the-missing-synchronized-decorator.md) - (14th January 2014)
+* 08 - [The @synchronized decorator as context manager](08-the-synchronized-decorator-as-context-manager.md) - (15th January 2014)
+* 09 - [Performance overhead of using decorators](09-performance-overhead-of-using-decorators.md) - (8th February 2014)
+* 10 - [Performance overhead when applying decorators to methods](10-performance-overhead-when-applying-decorators-to-methods.md) - (17th February 2014)
+
+wrapt
+=====
+
+A Python module for decorators, wrappers and monkey patching.
+
+For full documentation see:
+
+  http://wrapt.readthedocs.org
+

@@ -1,0 +1,157 @@
+
+ - Expire can accept a timedelta value
+
+Version 2.9.0.1
+
+ - Rename `redis.py` module as `client.py` to avoid naming conflicts from the nose plugin.
+ - Support contextmanager uses of `MockRedisLock`
+ - Support `string` operation: MSET
+
+Version 2.9.0.0
+
+ - Support redis-py 2.9.0
+ - Support: SCAN, SSCAN, HSCAN, and ZSCAN
+
+Version 2.8.0.3
+
+ - Support verifying unit tests against actual redis-server and redis-py.
+ - Improve exception representation/mapping.
+ - Update TTL to return -2 for unknown keys.
+ - Fix `zset` `score_range_func` behavior to expect string input
+ - Raise `WatchError` in `MockRedisPipeline.execute()`
+ - Added `list` operations: SORT
+
+Version 2.8.0.2
+
+ - Added `string` operations: MGET, MSETNX, and GETSET
+ - Added "*" support to KEYS
+ - Added container functions: __getitem__, __setitem__, __delitem__, __member__
+ - Added `pubsub` operations: PUBLISH
+
+Version 2.8.0.1
+
+ - Fixed for RPOPLPUSH
+
+Version 2.8.0.0
+
+ - Update LREM argument order to match redispy
+
+Version 2.7.5.2
+
+ - Added `list` operations: LSET, LTRIM
+ - Added `key` operations: INCRBY, DECRBY
+ - Added `transaction` operations: WATCH, MULTI, UNWATCH
+ - Added expiration operations: EXPIREAT, PEXPIRE, PTTL, PSETX
+ - Fixed return values for some `set` operations
+ 
+Version 2.7.5.1
+
+ - Changed DEL to support a list of keys as arguments and return the number of
+   keys that were deleted.
+ - Improved pipeline support
+
+Version 2.7.5.0
+
+ - Added `script` operations: EVAL, EVALSHA, SCRIPT_EXISTS, SCRIPT_FLUSH,
+   SCRIPT_LOAD, REGISTER_SCRIPT
+ - Added `list` operations: RPOPLPUSH
+ - Added `string` operations: SETEX, SETNX
+ - Changed `string` operation SET to support EX, PX, NX and XX options
+   (available in redis-py since 2.7.4).
+
+Version 2.7.2.5
+
+ - Added `hash` operations: HMGET, HSETNX, HINCRBYFLOAT, HKEYS, HVALS
+
+Version 2.7.2.4
+
+ - Added `list` operations: LREM
+
+Version 2.7.2.3
+
+ -  Changed distribution name to "mockredispy"
+ -  Added `set` operations: SADD (multivalue), SCARD, SDIFF, SDIFFSTORE,
+    SINTER, SINTERSTORE, SISMEMBER, SMEMBERS (minor improvement), SMOVE,
+    SPOP, SRANDMEMBER (improvement), SREM (multivalue), SUNION, SUNIONSTORE
+
+Version 2.7.2.2
+
+ -  Added `list` operations: LLEN, LPUSH, RPOP
+ -  Ensure that saved values are strings.
+
+Version 2.7.2.1
+
+ -  Added `zset` operations: ZADD, ZCARD, ZCOUNT, ZINCRBY, ZINTERSTORE, ZRANGE,
+    ZRANGEBYSCORE, ZRANK, ZREM, ZREMRANGEBYRANK, ZREMRANGEBYSCORE, ZREVRANGE,
+    ZREVRANGEBYSCORE, ZREVRANK, ZSCORE, ZUNIONSTORE
+
+# Contributing
+
+Mock Redis uses [git-flow][1] for its branch management. 
+We ask that contributors to this project please:
+
+ 1. Implement changes in new git branches, following git-flow's model:
+ 
+    -  Changes based off of *develop* will receive the least amount of skepticism.
+       
+    -  Changes based off of a *release* branches (if one exists) will be considered,
+       especially for small bug fixes relevant to the release. We are not likely to 
+       accept new features against *release* branches.
+       
+    -  Changes based off of *master* or a prior release tag will be given the most 
+       skepticism. We may accept patches for major bugs against past releases, but
+       would prefer to see such changes follow the normal git-flow process.
+       
+       We will not accept new features based off of *master*.
+    
+ 2. Limit the scope of changes to a single bug fix or feature per branch.
+ 
+ 3. Treat documentation and unit tests as an essential part of any change.
+ 
+ 4. Update the change log appropriately.
+
+Thank you!
+
+ [1]: https://github.com/nvie/gitflow
+
+# Mock for the redis-py client library
+
+Supports writing tests for code using the [redis-py][redis-py] library 
+without requiring a [redis-server][redis] install.
+
+[![Build Status](https://travis-ci.org/locationlabs/mockredis.png)](https://travis-ci.org/locationlabs/mockredis)
+
+## Installation
+
+Use pip:
+
+    pip install mockredispy
+
+## Usage
+
+Both `mockredis.mock_redis_client` and `mockredis.mock_strict_redis_client` can be
+used to patch instances of the *redis client*.
+
+For example, using the [mock][mock] library:
+                   
+    @patch('redis.Redis', mock_redis_client)
+                               
+Or:
+                                       
+    @patch('redis.StrictRedis', mock_strict_redis_client)
+
+## Testing
+
+Many unit tests exist to verify correctness of mock functionality. In addition, most
+unit tests support testing against an actual redis-server instance to verify the tests
+against ground truth. See `mockredis.tests.fixtures` for more details and disclaimers.
+
+## Attribution
+
+This code is shamelessly derived from work by [John DeRosa][john].
+
+ [redis-py]: https://github.com/andymccurdy/redis-py
+ [redis]:    http://redis.io
+ [john]:     http://seeknuance.com/2012/02/18/replacing-redis-with-a-python-mock/
+ [mock]:     http://www.voidspace.org.uk/python/mock/
+

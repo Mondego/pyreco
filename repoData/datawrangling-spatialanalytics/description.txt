@@ -1,0 +1,125 @@
+h1. Spatial Analysis of Twitter Data with Hadoop, Pig, & Mechanical Turk
+
+This repository contains the code examples and supporting material for the "Spatial Analytics Workshop":http://en.oreilly.com/where2010/public/schedule/detail/12400 held at O'Reilly Where 2.0 on March 30, 2010.  Twitter is rolling out enhanced geo features.  It will be a while before geo tagged tweets are widely adopted, but there is a lot we can do right now using just profile location string information.
+
+From the Workshop description: 
+
+bq[fr]. "This workshop will focus on uncovering patterns and generating actionable insights from large datasets using spatial analytics. We will explore combining open government data with other location based information sources like Twitter. Participants will be guided through examples that use Hadoop and Amazon EC2 for scalable processing of location data. We will also cover some basics on spatial statistics, correlations, and trends along with how to visualize and communicate your results with open source tools."
+
+h3. Spatial distribution of Twitter users based on a Streaming API sample:
+
+!http://where20.s3.amazonaws.com/twitter_users.png!
+
+
+h2. Part I: Location Preprocessing & Basic Statistics
+
+h3. Setting up our Hadoop cluster
+
+* Launch an interactive Pig Session using Elastic MapReduce and note the ec2 address (something like ec2-174-129-153-177.compute-1.amazonaws.com) 
+
+* Get the spatialanalytics code from github and use the hcon.sh script on your local machine to set up the Hadoop web UI in a browser window (substitute the path to your own EC2 keypair and instance address)
+
+<pre>
+	git clone git://github.com/datawrangling/spatialanalytics.git
+	cd spatialanalytics/
+	./util/hcon.sh ec2-174-129-153-177.compute-1.amazonaws.com /Users/pskomoroch/id_rsa-gsg-keypair
+</pre>	
+
+* ssh into the master Hadoop instance
+
+<pre>
+	skom:spatialanalytics pskomoroch$ ssh hadoop@ec2-174-129-153-177.compute-1.amazonaws.com
+	The authenticity of host 'ec2-174-129-153-177.compute-1.amazonaws.com (174.129.153.177)' can't be established.
+	RSA key fingerprint is 6d:b1:d6:48:db:37:61:df:b6:04:4a:93:eb:2d:1d:40.
+	Are you sure you want to continue connecting (yes/no)? yes
+	Warning: Permanently added 'ec2-174-129-153-177.compute-1.amazonaws.com,174.129.153.177' (RSA) to the list of known hosts.
+	Linux domU-12-31-39-0F-74-82 2.6.21.7-2.fc8xen #1 SMP Fri Feb 15 12:39:36 EST 2008 i686
+	--------------------------------------------------------------------------------
+
+	Welcome to Amazon Elastic MapReduce running Hadoop 0.18.3 and Debian/Lenny.
+
+	Hadoop is installed in /home/hadoop. Log files are in /mnt/var/log/hadoop. Check
+	/mnt/var/log/hadoop/steps for diagnosing step failures.
+
+	The Hadoop UI can be accessed via the command: lynx http://localhost:9100/
+
+	--------------------------------------------------------------------------------
+	hadoop@domU-12-31-39-0F-74-82:~$ 
+</pre>	
+
+* Install git and fetch the same spatialanalytics code on the Hadoop cluster:
+
+<pre>
+	sudo apt-get -y install git-core
+	cd /mnt
+	git clone git://github.com/datawrangling/spatialanalytics.git
+</pre>
+
+h3. Counting locations with Hadoop
+
+* Parse Tweets with Hadoop streaming
+** streaming/parse_tweets.sh
+* Count global locations in parsed Tweets with Pig
+** <pre>
+$ cd /mnt/spatialanalytics/pig	
+$ pig -l /mnt locationcounts/global_location_tweets.pig 
+$ hadoop dfs -cat /global_location_tweets/part-* | head -30	
+</pre>
+* Count US based locations in parsed Tweets with Pig
+** pig/us_location_counts.pig
+* Visualize long tail of locations
+
+h3. Standardize location strings using exact matches in Geonames data 
+
+* Load Geonames data into Hadoop & map to Tweet location strings
+** location_standardization/parse_geonames.py
+* City, state abbreviation mapping
+** pig/city_state_exactmatch.pig
+* City mapping
+** pig/city_exactmatch.pig
+
+h3. Standardize remaining location strings with Mechanical Turk
+
+* Expose Geonames data in a Rails search interface
+** The code for the Turk task and rails app is here: http://github.com/datawrangling/locations
+* Run Pig jobs to generate top locations & time zones for turkers
+** pig/locations_timezones.pig
+* Publish mechanical turk tasks 
+** rails app
+* Parse mechanical turk results for use in Hadoop
+** location_standardization/parse_turk_responses.py
+
+h3. Generate location standardized Tweets
+
+* Merge standardized location mappings into lookup table
+* Join lookup table with parsed Tweets, emit standardized tweet dataset
+* Emit: user_screen_name, tweet_id, tweet_created_at, city, state, fipscode, latitude, longitude, tweet_text,
+user_id, user_name, user_description, user_profile_image_url, user_url,
+user_followers_count, user_friends_count, user_statuses_count
+
+h3. Data sanity check: Where are conservative & liberal Twitter users?
+
+* Grep for tweets with "conservative" or "liberal" in user_description
+* Aggregate by fipscode with Pig
+* Generate "county level SVG heatmaps":http://flowingdata.com/2009/11/12/how-to-make-a-us-county-thematic-map-using-free-tools/ and compare to 2008 presidential election 
+
+h2. Part II: Spatial Analysis, Leveraging other data
+
+h3. Spatial Trends
+
+* Use Pig to tokenize tweet text
+* Aggregate counts at hourly & county level
+* Generate time resolved heatmaps for top 100 trends over 10 days in Feb
+* Explore data with quick Rails app
+
+h3. Location Characterization, Classification, & Prediction
+
+* Find phrases highly associated with each county
+* Use per-capita conservative and liberal users by county & tweet text to classify tweets
+* Load Data.gov datasets on Unemployment, Income, Voting record
+* Correlate Tweet phrases to those quantities using location
+
+h3. Next steps
+
+* Load reverse geocode data into distributed cache, use spatial index to assign lat/lon coordinates to counties or congressional districts using Hadoop
+* Use Tweet phrases associated with high crime areas to predict real time level of criminal activity based on Tweets

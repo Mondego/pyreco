@@ -1,0 +1,482 @@
+Tempest - The OpenStack Integration Test Suite
+==============================================
+
+This is a set of integration tests to be run against a live OpenStack
+cluster. Tempest has batteries of tests for OpenStack API validation,
+Scenarios, and other specific tests useful in validating an OpenStack
+deployment.
+
+Design Principles
+----------
+Tempest Design Principles that we strive to live by.
+
+- Tempest should be able to run against any OpenStack cloud, be it a
+  one node devstack install, a 20 node lxc cloud, or a 1000 node kvm
+  cloud.
+- Tempest should be explicit in testing features. It is easy to auto
+  discover features of a cloud incorrectly, and give people an
+  incorrect assessment of their cloud. Explicit is always better.
+- Tempest uses OpenStack public interfaces. Tests in Tempest should
+  only touch public interfaces, API calls (native or 3rd party),
+  public CLI or libraries.
+- Tempest should not touch private or implementation specific
+  interfaces. This means not directly going to the database, not
+  directly hitting the hypervisors, not testing extensions not
+  included in the OpenStack base. If there is some feature of
+  OpenStack that is not verifiable through standard interfaces, this
+  should be considered a possible enhancement.
+- Tempest strives for complete coverage of the OpenStack API and
+  common scenarios that demonstrate a working cloud.
+- Tempest drives load in an OpenStack cloud. By including a broad
+  array of API and scenario tests Tempest can be reused in whole or in
+  parts as load generation for an OpenStack cloud.
+- Tempest should attempt to clean up after itself, whenever possible
+  we should tear down resources when done.
+- Tempest should be self testing.
+
+Quickstart
+----------
+
+To run Tempest, you first need to create a configuration file that
+will tell Tempest where to find the various OpenStack services and
+other testing behavior switches.
+
+The easiest way to create a configuration file is to copy the sample
+one in the ``etc/`` directory ::
+
+    $> cd $TEMPEST_ROOT_DIR
+    $> cp etc/tempest.conf.sample etc/tempest.conf
+
+After that, open up the ``etc/tempest.conf`` file and edit the
+configuration variables to match valid data in your environment.
+This includes your Keystone endpoint, a valid user and credentials,
+and reference data to be used in testing.
+
+.. note::
+
+    If you have a running devstack environment, tempest will be
+    automatically configured and placed in ``/opt/stack/tempest``. It
+    will have a configuration file already set up to work with your
+    devstack installation.
+
+Tempest is not tied to any single test runner, but testr is the most commonly
+used tool. After setting up your configuration file, you can execute
+the set of Tempest tests by using ``testr`` ::
+
+    $> testr run --parallel
+
+To run one single test  ::
+
+    $> testr run --parallel tempest.api.compute.servers.test_servers_negative.ServersNegativeTestJSON.test_reboot_non_existent_server
+
+Alternatively, you can use the run_tempest.sh script which will create a venv
+and run the tests or use tox to do the same.
+
+Configuration
+-------------
+
+Detailed configuration of tempest is beyond the scope of this
+document. The etc/tempest.conf.sample attempts to be a self
+documenting version of the configuration.
+
+The sample config file is auto generated using the script:
+tools/generate_sample.sh
+
+The most important pieces that are needed are the user ids, openstack
+endpoints, and basic flavors and images needed to run tests.
+
+Common Issues
+-------------
+
+Tempest was originally designed to primarily run against a full OpenStack
+deployment. Due to that focus, some issues may occur when running Tempest
+against devstack.
+
+Running Tempest, especially in parallel, against a devstack instance may
+cause requests to be rate limited, which will cause unexpected failures.
+Given the number of requests Tempest can make against a cluster, rate limiting
+should be disabled for all test accounts.
+
+Additionally, devstack only provides a single image which Nova can use.
+For the moment, the best solution is to provide the same image uuid for
+both image_ref and image_ref_alt. Tempest will skip tests as needed if it
+detects that both images are the same.
+
+Unit Tests
+----------
+
+Tempest also has a set of unit tests which test the tempest code itself. These
+tests can be run by specifing the test discovery path::
+
+    $> OS_TEST_PATH=./tempest/tests testr run --parallel
+
+By setting OS_TEST_PATH to ./tempest/tests it specifies that test discover
+should only be run on the unit test directory. The default value of OS_TEST_PATH
+is OS_TEST_PATH=./tempest/test_discover which will only run test discover on the
+tempest suite.
+
+Alternatively, you can use the run_tests.sh script which will create a venv and
+run the unit tests. There are also the py26, py27, or py33 tox jobs which will
+run the unit tests with the corresponding version of python.
+
+Python 2.6
+----------
+
+Tempest can be run with Python 2.6 however the unit tests and the gate
+currently only run with Python 2.7, so there are no guarantees about the state
+of tempest when running with Python 2.6. Additionally, to enable testr to work
+with tempest using python 2.6 the discover module from the unittest-ext
+project has to be patched to switch the unittest.TestSuite to use
+unittest2.TestSuite instead. See::
+
+https://code.google.com/p/unittest-ext/issues/detail?id=79
+
+Tempest Field Guide to API tests
+================================
+
+
+What are these tests?
+---------------------
+
+One of Tempest's prime function is to ensure that your OpenStack cloud
+works with the OpenStack API as documented. The current largest
+portion of Tempest code is devoted to test cases that do exactly this.
+
+It's also important to test not only the expected positive path on
+APIs, but also to provide them with invalid data to ensure they fail
+in expected and documented ways. Over the course of the OpenStack
+project Tempest has discovered many fundamental bugs by doing just
+this.
+
+In order for some APIs to return meaningful results, there must be
+enough data in the system. This means these tests might start by
+spinning up a server, image, etc, then operating on it.
+
+
+Why are these tests in tempest?
+-------------------------------
+
+This is one of the core missions for the Tempest project, and where it
+started. Many people use this bit of function in Tempest to ensure
+their clouds haven't broken the OpenStack API.
+
+It could be argued that some of the negative testing could be done
+back in the projects themselves, and we might evolve there over time,
+but currently in the OpenStack gate this is a fundamentally important
+place to keep things.
+
+
+Scope of these tests
+--------------------
+
+API tests should always use the Tempest implementation of the
+OpenStack API, as we want to ensure that bugs aren't hidden by the
+official clients.
+
+They should test specific API calls, and can build up complex state if
+it's needed for the API call to be meaningful.
+
+They should send not only good data, but bad data at the API and look
+for error codes.
+
+They should all be able to be run on their own, not depending on the
+state created by a previous test.
+
+Tempest Field Guide to CLI tests
+================================
+
+
+What are these tests?
+---------------------
+The cli tests test the various OpenStack command line interface tools
+to ensure that they minimally function. The current scope is read only
+operations on a cloud that are hard to test via unit tests.
+
+
+Why are these tests in tempest?
+-------------------------------
+These tests exist here because it is extremely difficult to build a
+functional enough environment in the python-\*client unit tests to
+provide this kind of testing. Because we already put up a cloud in the
+gate with devstack + tempest it was decided it was better to have
+these as a side tree in tempest instead of another QA effort which
+would split review time.
+
+
+Scope of these tests
+--------------------
+This should stay limited to the scope of testing the cli. Functional
+testing of the cloud should be elsewhere, this is about exercising the
+cli code.
+
+
+Example of a good test
+----------------------
+Tests should be isolated to a single command in one of the python
+clients.
+
+Tests should not modify the cloud.
+
+If a test is validating the cli for bad data, it should do it with
+assertRaises.
+
+A reasonable example of an existing test is as follows::
+
+    def test_admin_list(self):
+        self.nova('list')
+        self.nova('list', params='--all-tenants 1')
+        self.nova('list', params='--all-tenants 0')
+        self.assertRaises(subprocess.CalledProcessError,
+                          self.nova,
+                          'list',
+                          params='--all-tenants bad')
+
+This directory consists of simple read only python client tests.
+
+============================
+Tempest Field Guide Overview
+============================
+
+Tempest is designed to be useful for a large number of different
+environments. This includes being useful for gating commits to
+OpenStack core projects, being used to validate OpenStack cloud
+implementations for both correctness, as well as a burn in tool for
+OpenStack clouds.
+
+As such Tempest tests come in many flavors, each with their own rules
+and guidelines. Below is the proposed Havana restructuring for Tempest
+to make this clear.
+
+| tempest/
+|    api/ - API tests
+|    cli/ - CLI tests
+|    scenario/ - complex scenario tests
+|    stress/ - stress tests
+|    thirdparty/ - 3rd party api tests
+
+Each of these directories contains different types of tests. What
+belongs in each directory, the rules and examples for good tests, are
+documented in a README.rst file in the directory.
+
+
+api
+---
+
+API tests are validation tests for the OpenStack API. They should not
+use the existing python clients for OpenStack, but should instead use
+the tempest implementations of clients. This allows us to test both
+XML and JSON. Having raw clients also lets us pass invalid JSON and
+XML to the APIs and see the results, something we could not get with
+the native clients.
+
+When it makes sense, API testing should be moved closer to the
+projects themselves, possibly as functional tests in their unit test
+frameworks.
+
+
+cli
+---
+
+CLI tests use the openstack CLI to interact with the OpenStack
+cloud. CLI testing in unit tests is somewhat difficult because unlike
+server testing, there is no access to server code to
+instantiate. Tempest seems like a logical place for this, as it
+prereqs having a running OpenStack cloud.
+
+
+scenario
+--------
+
+Scenario tests are complex "through path" tests for OpenStack
+functionality. They are typically a series of steps where complicated
+state requiring multiple services is set up exercised, and torn down.
+
+Scenario tests can and should use the OpenStack python clients.
+
+
+stress
+------
+
+Stress tests are designed to stress an OpenStack environment by
+running a high workload against it and seeing what breaks. Tools may
+be provided to help detect breaks (stack traces in the logs).
+
+TODO: old stress tests deleted, new_stress that david is working on
+moves into here.
+
+
+thirdparty
+----------
+
+Many openstack components include 3rdparty API support. It is
+completely legitimate for Tempest to include tests of 3rdparty APIs,
+but those should be kept separate from the normal OpenStack
+validation.
+
+Tempest Field Guide to Scenario tests
+=====================================
+
+
+What are these tests?
+---------------------
+
+Scenario tests are "through path" tests of OpenStack
+function. Complicated setups where one part might depend on completion
+of a previous part. They ideally involve the integration between
+multiple OpenStack services to exercise the touch points between them.
+
+Any scenario test should have a real-life use case. An example would be:
+
+ - "As operator I want to start with a blank environment":
+    1. upload a glance image
+    2. deploy a vm from it
+    3. ssh to the guest
+    4. create a snapshot of the vm
+
+
+Why are these tests in tempest?
+-------------------------------
+This is one of tempests core purposes, testing the integration between
+projects.
+
+
+Scope of these tests
+--------------------
+Scenario tests should use the official python client libraries for
+OpenStack, as they provide a more realistic approach in how people
+will interact with the services.
+
+Tests should be tagged with which services they exercise, as
+determined by which client libraries are used directly by the test.
+
+
+Example of a good test
+----------------------
+While we are looking for interaction of 2 or more services, be
+specific in your interactions. A giant "this is my data center" smoke
+test is hard to debug when it goes wrong.
+
+A flow of interactions between glance and nova, like in the
+introduction, is a good example. Especially if it involves a repeated
+interaction when a resource is setup, modified, detached, and then
+reused later again.
+
+Tempest Field Guide to Stress Tests
+===================================
+
+OpenStack is a distributed, asynchronous system that is prone to race condition
+bugs. These bugs will not be easily found during
+functional testing but will be encountered by users in large deployments in a
+way that is hard to debug. The stress test tries to cause these bugs to happen
+in a more controlled environment.
+
+
+Environment
+-----------
+This particular framework assumes your working Nova cluster understands Nova
+API 2.0. The stress tests can read the logs from the cluster. To enable this
+you have to provide the hostname to call 'nova-manage' and
+the private key and user name for ssh to the cluster in the
+[stress] section of tempest.conf. You also need to provide the
+location of the log files:
+
+	target_logfiles = "regexp to all log files to be checked for errors"
+	target_private_key_path = "private ssh key for controller and log file nodes"
+	target_ssh_user = "username for controller and log file nodes"
+	target_controller = "hostname or ip of controller node (for nova-manage)
+	log_check_interval = "time between checking logs for errors (default 60s)"
+
+To activate logging on your console please make sure that you activate `use_stderr`
+in tempest.conf or use the default `logging.conf.sample` file.
+
+Running default stress test set
+-------------------------------
+
+The stress test framework can automatically discover test inside the tempest
+test suite. All test flag with the `@stresstest` decorator will be executed.
+In order to use this discovery you have to be in the tempest root directory
+and execute the following:
+
+	tempest/stress/run_stress.py -a -d 30
+
+Running the sample test
+-----------------------
+
+To test installation, do the following (from the tempest/stress directory):
+
+	./run_stress.py -t etc/server-create-destroy-test.json -d 30
+
+This sample test tries to create a few VMs and kill a few VMs.
+
+
+Additional Tools
+----------------
+
+Sometimes the tests don't finish, or there are failures. In these
+cases, you may want to clean out the nova cluster. We have provided
+some scripts to do this in the ``tools`` subdirectory.
+You can use the following script to destroy any keypairs,
+floating ips, and servers:
+
+tempest/stress/tools/cleanup.py
+
+Tempest Field Guide to Unit tests
+=================================
+
+What are these tests?
+---------------------
+
+Unit tests are the self checks for Tempest. They provide functional
+verification and regression checking for the internal components of tempest.
+They should be used to just verify that the individual pieces of tempest are
+working as expected. They should not require an external service to be running
+and should be able to run solely from the tempest tree.
+
+Why are these tests in tempest?
+-------------------------------
+These tests exist to make sure that the mechanisms that we use inside of
+tempest to are valid and remain functional. They are only here for self
+validation of tempest.
+
+
+Scope of these tests
+--------------------
+Unit tests should not require an external service to be running or any extra
+configuration to run. Any state that is required for a test should either be
+mocked out or created in a temporary test directory. (see test_wrappers.py for
+an example of using a temporary test directory)
+
+Tempest Field Guide to Third Party API tests
+============================================
+
+
+What are these tests?
+---------------------
+
+Third party tests are tests for non native OpenStack APIs that are
+part of OpenStack projects. If we ship an API, we're really required
+to ensure that it's working.
+
+An example is that Nova Compute currently has EC2 API support in tree,
+which should be tested as part of normal process.
+
+
+Why are these tests in tempest?
+-------------------------------
+
+If we ship an API in an OpenStack component, there should be tests in
+tempest to exercise it in some way.
+
+
+Scope of these tests
+--------------------
+
+Third party API testing should be limited to the functional testing of
+third party API compliance. Complex scenarios should be avoided, and
+instead exercised with the OpenStack API, unless the third party API
+can't be tested without those scenarios.
+
+Whenever possible third party API testing should use a client as close
+to the third party API as possible. The point of these tests is API
+validation.
+

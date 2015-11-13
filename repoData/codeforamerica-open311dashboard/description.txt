@@ -1,0 +1,72 @@
+Fixtures live here. To be added soon!
+
+Open311 Dashboard
+=================
+We are creating an application to help people visualize and analyze 311 data on one unified dashboard.
+
+<img src="http://i.imgur.com/Kmjmy.png"/>
+
+Non-Python Requirements
+-----------------------
+You will need all of the libraries to run [GeoDjango](https://docs.djangoproject.com/en/dev/ref/contrib/gis/install/). If you are so inclined, you can install most of these with [homebrew](https://github.com/mxcl/homebrew).
+[KyngChaos](http://www.kyngchaos.com/software:frameworks) may also be a useful resource for MacOS X users. 
+
+* [GEOS](http://trac.osgeo.org/geos/)
+* [GDAL](http://www.gdal.org/)
+* [PROJ.4](http://trac.osgeo.org/proj/)
+* [PostGIS](http://postgis.refractions.net/)
+* [Mapnik2](http://trac.mapnik.org/wiki/Mapnik2) (not explicitly required but this generates map tiles, see below.)
+
+Getting Started
+---------------
+1. Set up a database using the [PostGIS spatial database template](https://docs.djangoproject.com/en/dev/ref/contrib/gis/install/#spatialdb-template).
+2. Rename settings_local.example.py to settings_local.py and set your db/secretkey variables.
+3. `pip install -r requirements.txt`
+4. `python manage.py syncdb` creates the database schema.
+5. `python manage.py update_db` imports initial data.
+6. Generate GeoJSON files with `python manage.py geojson`
+7. `git submodule update --init` adds bootstrap submodule
+8. `python manage.py runserver`
+
+A Word on Mapnik
+----------------
+[Mapnik2's Wiki](https://github.com/mapnik/mapnik/wiki/Mapnik2) has instructions for installing Mapnik2 on Mac OSX and Linux.
+Dane Springmeyer recently released [Mapnik2 binaries for Mac OSX](https://github.com/mapnik/mapnik/downloads).
+
+Database Update Script
+----------------------
+To update data from the Open311 API, run `python manage.py update_db`.
+This command has a few options that may be useful. The first argument is
+the end date, defaults to yesterday. The second argument is the number
+of days to download previous to that date.
+
+* Ex: `python manage.py updatedb 2011-07-01 30` will download the entire
+  month of June.
+
+To set up automatic updates (midnight every night):
+
+1. `crontab -e`
+2. Insert `0 0 * * * /path/to/dir/manage.py update_db`
+
+API Access
+----------
+There are a number API calls to return JSON in various forms.
+
+* `/api`
+    * `/tickets/(open|closed|both)`
+        * `/[0-9]+` (n days previous to today)
+        * `/YYYY-MM-DD(/[0-9]+)` (n days previous to the date)
+        * `/YYYY-MM-DD/YYYY-MM-DD` (simple date range)
+    * `/more_info/YYYY-MM-DD` (single day)
+        * `/YYYY-MM-DD` (range)
+    * `/list/YYYY-MM-DD` (singe day)
+        * `/YYYY-MM-DD` (range)
+
+More Information
+----------------
+Visit our [project page](http://codeforamerica.org/?cfa_project=open311-dashboard).
+
+Join the [official Open311 Dashboard mailing list](http://groups.google.com/group/open311-dashboard).
+
+[![Code for America Tracker](http://stats.codeforamerica.org/codeforamerica/open311dashboard.png)](http://stats.codeforamerica.org/projects/open311dashboard)
+

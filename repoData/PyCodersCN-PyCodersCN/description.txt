@@ -1,0 +1,514 @@
+# 如何给你的网站增加推送通知
+
+这周我发布了 [https://github-notifications.herokuapp.com/](https://github-notifications.herokuapp.com/)，一个 [Firefox 推送通知](http://jbalogh.me/2012/01/30/push-notifications/)的实例。 它使用了 Github 的网站接口来实现当你的代码库有新的提交时发送通知。推送通知在 Firefox 中已经以一个试验性[插件](https://github.com/jbalogh/push-addon/)实现了。
+
+这篇文章将展示我用于从网站上发送推送通知的代码。
+
+## 获取推送 URL
+
+当你给予一个网站权限来发送推送通知时，Firefox 向推送通知服务 (Push Notification Service) 请求创建一个 URL 以使网站可以联系到你。这个 URL 用过 `mozNotification` JavaScript API 返回。
+
+	var notification = navigator.mozNotification;
+	if (notification && notification.requestRemotePermission) {
+	  var request = notification.requestRemotePermission();
+	  request.onsuccess = function() {
+	    var url = request.result.url;
+	    jQuery.post("/add-push-url", {"push-url": url});
+	  }
+	}
+
+这段代码检查了 `navigator.mozNotification` 的存在，并且使用 `requestRemotePermission()` 请求发送通知的权限。当 `onsuccess` 事件被触发时，回调函数将这个推送用的 URL `POST` 回服务器。
+
+(你可以通过安装这个[插件](https://github.com/jbalogh/push-addon/)来实验 `mozNotification` API。)
+
+## 保存推送 URL
+
+我的网站的后端是一个简单的 [Flask](http://flask.pocoo.org/) 应用。`User` 模型保存了用户名和推送 URL：
+
+	class User(Model, db.Model):
+	    id = db.Column(db.Integer, primary_key=True)
+	    username = db.Column(db.String(80), unique=True)
+	    push_url = db.Column(db.String(256), nullable=True)
+
+当通过 OAuth 连接到 Github 时，将会创建一个 `push_url` 为空的新用户，而 `push_url` 将在调用 `/add-push-url` 视图时被填充：
+
+	@app.route('/add-push-url', methods=['POST'])
+	def add_push_url():
+	    username = session['username']
+	    user = User.query.filter_by(username=username).first_or_404()
+	    user.push_url = request.form['push-url']
+	    db.session.add(user)
+	    db.session.commit()
+	    notify(user.push_url,
+	           'Welcome to Github Notifications!',
+	           'So glad to have you %s.' % user.username)
+	    return ''
+
+## 发送通知
+
+发送一条通知非常简单，只要 `POST` 到推送 URL 即可。
+
+	def notify(push_url, title, body, action_url=None):
+	    msg = {'title': title,
+	           'body': body}
+	    if action:
+	        msg['actionUrl'] = action_url
+	    requests.post(push_url, msg)
+
+`notify` 函数使用 [requests](http://python-requests.org/) 库将一条消息以 URL 参数编码的字符串发送回用户的推送 URL，在那之后，推送通知系统负责将消息显示在用户的浏览器上。
+
+以上就是发送推送通知到 Firefox 需要的全部代码，我们努力让整个系统对于开发者来说尽量简单。在未来的数个月中，这个插件将会被集成到浏览器中，而我们的推送通知服务也将上线。如果你有任何问题，欢迎通过电子邮件或 Twitter 与我联系。
+# 一行 Python 实现树
+
+使用 Python 内置的 [`defaultdict`](http://docs.python.org/library/collections.html#collections.defaultdict)，我们可以很容易的定义一个树形数据结构：
+
+```python
+def tree(): return defaultdict(tree)
+```
+
+就是这样！
+
+简单地来说，一颗树就是一个默认值是其子树的字典。
+
+(使用之前需要确认已经 `from collections import defaultdict` 了)
+
+(另: Hacker News 读者 @zbuc 指出这种结构被称为 [autovivification](https://en.wikipedia.org/wiki/Autovivification)。 太酷了！)
+
+## 例子
+### JSON 风格
+现在我们可以创建一个 JSON 风格的嵌套字典，我们不需要显式地创建子字典——当我们需要时，它们神奇地自动出现了：
+
+```python
+users = tree()
+users['harold']['username'] = 'hrldcpr'
+users['handler']['username'] = 'matthandlersux'
+```
+
+我们可以将这些用 `print(json.dumps(users))` 以 JSON 的形式输出，于是我们得到：
+
+```javascript
+{"harold": {"username": "hrldcpr"}, "handler": {"username": "matthandlersux"}}
+```
+
+### 不需要赋值
+我们甚至可以不需要任何赋值就可以创建整个树结构：
+
+```python
+taxonomy = tree()
+taxonomy['Animalia']['Chordata']['Mammalia']['Carnivora']['Felidae']['Felis']['cat']
+taxonomy['Animalia']['Chordata']['Mammalia']['Carnivora']['Felidae']['Panthera']['lion']
+taxonomy['Animalia']['Chordata']['Mammalia']['Carnivora']['Canidae']['Canis']['dog']
+taxonomy['Animalia']['Chordata']['Mammalia']['Carnivora']['Canidae']['Canis']['coyote']
+taxonomy['Plantae']['Solanales']['Solanaceae']['Solanum']['tomato']
+taxonomy['Plantae']['Solanales']['Solanaceae']['Solanum']['potato']
+taxonomy['Plantae']['Solanales']['Convolvulaceae']['Ipomoea']['sweet potato']
+```
+
+我们接下来将漂亮地输出他们，不过需要先将他们转换为标准的字典：
+
+```python
+def dicts(t): return {k: dicts(t[k]) for k in t}
+```
+
+现在我们用 `pprint(dicts(taxonomy))` 来漂亮地输出结构：
+
+```python
+{'Animalia': {'Chordata': {'Mammalia': {'Carnivora': {'Canidae': {'Canis': {'coyote': {},
+                                                                            'dog': {}}},
+                                                      'Felidae': {'Felis': {'cat': {}},
+                                                                  'Panthera': {'lion': {}}}}}}},
+ 'Plantae': {'Solanales': {'Convolvulaceae': {'Ipomoea': {'sweet potato': {}}},
+                           'Solanaceae': {'Solanum': {'potato': {},
+                                                      'tomato': {}}}}}}
+```
+
+于是我们引用到的子结构以字典的形式存在，空字典即代表了叶子。
+
+### 迭代
+这棵树可以很欢乐地被迭代处理，同样因为只要简单地引用一个结构它就会出现。
+
+举例来说，假设我们想要解析一个新动物的列表，将它们加入我们上面的 taxonomy，我们只要这样调用一个函数：
+```python
+add(taxonomy,
+    'Animalia,Chordata,Mammalia,Cetacea,Balaenopteridae,Balaenoptera,blue whale'.split(','))
+```
+
+我们可以简单地这样实现它：
+
+```python
+def add(t, keys):
+  for key in keys:
+    t = t[key]
+```
+
+再一次，我们完全没有对字典使用任何赋值，仅仅是引用了这些键，我们便创建了我们新的结构：
+
+```python
+{'Animalia': {'Chordata': {'Mammalia': {'Carnivora': {'Canidae': {'Canis': {'coyote': {},
+                                                                            'dog': {}}},
+                                                      'Felidae': {'Felis': {'cat': {}},
+                                                                  'Panthera': {'lion': {}}}},
+                                        'Cetacea': {'Balaenopteridae': {'Balaenoptera': {'blue whale': {}}}}}}},
+ 'Plantae': {'Solanales': {'Convolvulaceae': {'Ipomoea': {'sweet potato': {}}},
+                           'Solanaceae': {'Solanum': {'potato': {},
+                                                      'tomato': {}}}}}}
+```
+
+## 结论
+这也许并不特别实用，而且也出现了一些令人困惑的代码 (见上面的 `add()`)。
+
+不过如果你喜欢 Python，我希望思考这些会让你觉得有趣，或者值得去理解。
+# Python 和 QR Code
+
+几天前，我决定尝试来生成一些 QR Code。这篇文章展示了如何用 Python 来完成这个工作。
+
+## 工具
+
+用 Google 搜索 _QRCodes generation_ (_QR Code 生成_，译注)，我发现一些网站可以为你生成 QR Code。
+
+其中 [ZXing 生成器](http://zxing.appspot.com/generator/) 和 [Kaywa 生成器](http://qrcode.kaywa.com/) 看起来十分强大和完善，不过我是在寻找一种可以在软件中直接使用，而不是需要发起网络请求的 QR Code 生成方式。
+
+一个人 (MarkTraceur) 在我在 reddit 的帖子上做了评论，告诉我一个他创建的工具：[QRustom](https://qrustom.com/)！非常感谢他！
+
+在 Python 中，你可以使用 [pyqrcode](http://pyqrcode.sourceforge.net/)，不过它使用一个 C/C++ 编码器和一个 Java 解码器……
+
+我也发现了 [PyQRNative](http://code.google.com/p/pyqrnative/) 库，看起来是一个 [JavaScript 版生成器](http://d-project.googlecode.com/svn/trunk/misc/qrcode/js/qrcode.js) 的重写版本 (非常确信可以用这个 JS 库和 [Node.js](http://nodejs.org/) 做出非常棒的东西)。
+
+它的代码 (你可以从[这里](http://pyqrnative.googlecode.com/svn/trunk/pyqrnative/src/PyQRNative.py) `wget` 它) 应该需要一次认真的重写以使之文档化并符合 [PEP8](http://www.python.org/dev/peps/pep-0008/)，不过它确实可以用 (这里有一个由 PyQRNative 生成的 QR Code 包含了这个帖子的 URL)。
+
+**更新：**我在 reddit 发帖之后，Chris Beaven 告诉我他已经重写了它。他的代码已经在 [Pypi](http://pypi.python.org/pypi/qrcode) 上了。我也已经重写了这篇文章使用他的库。
+
+请注意你同样需要安装 [Python Imaging Library](http://www.pythonware.com/products/pil/) (PIL) 来自己生成图像。
+
+只需要运行：
+
+	$ sudo pip install pil qrcode
+
+## 使用
+
+	from qrcode import *
+	
+	qr = QRCode(version=20, error_correction=ERROR_CORRECT_L)
+	qr.add_data("http://blog.matael.org/")
+	qr.make() # 自己生成 QR Code
+	
+	# im 包含了一个 PIL.Image.Image 对象
+	im = qr.make_image()
+	
+	# 保存它
+	im.save("filename.png")
+
+在第三行我们使用两个参数实例化了一个新的 `qrcode.QRCode` 对象。这个类还有其他我们没有在这里用到的参数 (`box_size`、`border` 等等)。
+
+第一个是 QR 的版本，一个在0到40之间的整数定义了条码的大小和我们能够储存的数据的量。
+
+第二个是修正级别 (冗余度)。根据[维基百科的资料](http://en.wikipedia.org/wiki/QR_code)，我们可以从它们之中选择一个：
+
+* `ERROR_CORRECT_L` 7%的内容可以被还原
+* `ERROR_CORRECT_M` 15%的内容可以被还原 (默认)
+* `ERROR_CORRECT_Q` 25% 的内容可以被还原
+* `ERROR_CORRECT_H` 30% 的内容可以被还原
+
+正是它的冗余特性使得即使代码被破坏也依然可以解码出来。
+
+### 让库来猜测你需要什么
+
+`qrcode` 模块给 `QRCode.make()` 方法添加了 `fit` 参数，如果使用了 `fit` 参数，`QRCode.version` 就会被设为 `None`，`qrcode` 将猜测正确的版本。
+
+### 更快！
+
+这是一个用来快速生成的很短的代码：
+
+	import qrcode
+	img = qrcode.make("your awesome data")
+
+**Chris，感谢你伟大的作品！**
+
+## 结论
+
+QR Code 是一个非常优美的在设备之间分享数据的方式。它可以被用在很多应用上，从工厂内的产品跟踪到博客地址 URL。
+
+它的冗余特性也让艺术化的使用和 QR Code 变形成为可能，你可以做出像这样的东西：
+
+![](http://blog.matael.org/static/images/qr/qr_matael.png)
+
+我真的觉得这个编码非常强大。
+
+此外还有，使用 [processing](http://processing.org/) 和 QR Code，你可以实现[增强现实](http://processing.org/) ;)
+# 用 Python 编写守护进程
+
+在 Unix™ 和类似的系统中，守护进程 (daemon) 是一个后台程序，它不以终端或 X11 系统作为主要的输入输出。在其他操作系统中，守护进程也叫服务 (service)。一个守护进程通常执行一个专门的任务，比如 NTP 守护进程让你计算机的时间与 NTP 服务器保持同步。许多要执行异步任务的应用程序需要这类程序来让你生活得更轻松。例如说 Gearman 任务服务器的任务队列处理器就可以用这类程序来处理。
+
+一个 Unix™ 下典型的守护进程，首先会关闭三个主要的输入输出流：_stdin_、_stdout_ 和 _stderr_，然后执行 `fork(2)` 系统调用，建立一个当前进程的镜像，一旦这一工作完成，父进程就会调用 `exit(1)` 系统调用，而子进程则在后台保持工作。由于 Python 的成为产品级语言的哲学思想，这个并不复杂的流程已经由 `daemon` 模块实现了，所以你可以用这个模块来实现一个守护进程程序。
+
+	import os
+	import sys
+	import daemon
+	import atexit
+	
+	def main():
+		"""
+		Main Program
+		"""
+		
+		install_signal_handler()
+		atexit.register(at_exit_handler)
+		
+		opts = parse_opts()
+		config = parse_config(opts)
+		if not opts.cwd:
+			print("No Working Directory")
+			sys.exit(0)
+		
+		with daemon.DaemonContext():
+			os.chdir(opts.cwd)
+			install_signal_handler()
+			start_schedule(config, opts)
+	
+	""" Executes the main() Function """
+	if __name__ == '__main__':
+		main()
+
+如果你观察一下代码，它使用 `os.chdir()` 函数修改了工作目录，因为一旦一个守护进程启动，它的工作目录常会自动修改到根目录或 `/`。一些守护进程如 Apache HTTP 服务器有一个预编译的工作目录，但它也允许使用 `chroot` 让其工作在其他目录下。此外，这个程序还配置了信号处理程序 (signal handler) 以允许程序来处理如 SIGHUP 和 SIGCHLD 这样的信号。`parse_opts()` 和 `parse_config()` 函数分别使用 `optparse` 和 `ConfigParser` 模块来解析守护进程的参数和配置。
+
+`atexit` 模块用于保证大部分的程序资源——如文件、连接以及类似的东西——可以在守护进程中止时被释放或关闭。下面的 `atexit` 范例展示了释放资源的过程：
+
+	from django.db import connections
+	import atexit
+	
+	def at_exit_handler():
+		"""
+		At Exit Function (close all connections)
+		"""
+		for con in connections.all():
+			try:
+				con.close()
+			except Exception, exc:
+				log().error(exc)
+		log().close()
+
+信号处理程序之间有十分相似的行为，它注册一个用于处理信号的回调函数，这个函数会在每次一个信号接收到的时候被执行。比如说当 SIGHUP 信号到达的时候，我让守护进程更新配置而不是中止。
+
+	import signal as sig
+	import trackback as tb
+	
+	def rehash_daemon():
+		"""
+		Rehash the daemon, reading configurations again.
+		"""
+		global DAEMON_CONFIG
+		DAEMON_CONFIG = parse_config()
+	
+	def install_signal_handler():
+		"""
+		Signal Handler Installer
+		"""
+		try:
+			sig.signal(sig.SIGHUP, rehash_daemon)
+		except Exception, exc:
+			log().error(repr(exec))
+			log().error(tb.format_exc(exc))
+			return False
+
+这让你可以创建一个健壮的守护进程：可以处理信号、在退出时资源可以被释放等等。记住作为一个有垃圾收集的语言，如果你没有正确地切断对象的引用，由于 GIL 循环的垃圾回收器使用的引用计数法，Python 会产生内存泄露。你的守护进程设计应该很好了。
+# 使用 Python C 扩展实现生成器/yield
+
+在 Python 中，生成器 (generator) 是一个返回迭代器 (iterator) 对象的函数。虽然有很多方法来实现，不过最优雅和常用的形式是使用 `yield` 语句。
+
+举例来说，这是一个简单的例子：
+
+	def pyrevgen(seq):
+		for i, elem in enumerate(reversed(seq)):
+			yield i, elem
+
+这里的 `pyrevgen` 函数就是一个生成器。给定一个序列，它将会返回一个迭代器用以逆序输出这个串的元素并附上序号。比如说：
+
+	>>> for i, e in pyrevgen(['a', 'b', 'c']):
+	... print(i, e)
+	...
+	0 c
+	1 b
+	2 a
+
+这篇文章的目的是说明使用 Python 的 C API ，换言之，在一个 C 的扩展模块中，如何实现相同的功能。我们主要关注的是 Python 3，对于 Python 2 来说原理是一样的，不过细节上可能会有一些差异。
+
+`yield` 是 Python 中一个非常强大的东西，在 C 中没有与之对应的能力 (除非你使用一些协程宏函数，不过这不在我们这里的讨论范围之内)。因此我们不得不显式地返回一个迭代器对象，并且处理迭代的细节。
+
+在 Python 中写一个[迭代器](http://docs.python.org/dev/library/stdtypes.html#iterator-types)我们需要创建一个实现了 `__iter__` 和 `__next__` 特殊函数的类，C API 中与之对应的方法分别是 `tp_iter` 和 `tp_iternext`。
+
+我们来创建一个叫做 `spam` 的新的扩展模块，他将导出一个对象——`revgen` 类型，这个类型可以像上面的 Python 代码一样被调用。换句话说，Python 可以这样使用它：
+
+	import spam
+	for i, e in spam.revgen(['a', 'b', 'c']):
+		print(i, e)
+
+我们开始吧 (在这篇文章的末尾会给出完整代码的链接)：
+
+	PyTypeObject PyRevgen_Type = {
+	    PyVarObject_HEAD_INIT(&PyType_Type, 0)
+	    "revgen",                       /* tp_name */
+	    sizeof(RevgenState),            /* tp_basicsize */
+	    0,                              /* tp_itemsize */
+	    (destructor)revgen_dealloc,     /* tp_dealloc */
+	    0,                              /* tp_print */
+	    0,                              /* tp_getattr */
+	    0,                              /* tp_setattr */
+	    0,                              /* tp_reserved */
+	    0,                              /* tp_repr */
+	    0,                              /* tp_as_number */
+	    0,                              /* tp_as_sequence */
+	    0,                              /* tp_as_mapping */
+	    0,                              /* tp_hash */
+	    0,                              /* tp_call */
+	    0,                              /* tp_str */
+	    0,                              /* tp_getattro */
+	    0,                              /* tp_setattro */
+	    0,                              /* tp_as_buffer */
+	    Py_TPFLAGS_DEFAULT,             /* tp_flags */
+	    0,                              /* tp_doc */
+	    0,                              /* tp_traverse */
+	    0,                              /* tp_clear */
+	    0,                              /* tp_richcompare */
+	    0,                              /* tp_weaklistoffset */
+	    PyObject_SelfIter,              /* tp_iter */
+	    (iternextfunc)revgen_next,      /* tp_iternext */
+	    0,                              /* tp_methods */
+	    0,                              /* tp_members */
+	    0,                              /* tp_getset */
+	    0,                              /* tp_base */
+	    0,                              /* tp_dict */
+	    0,                              /* tp_descr_get */
+	    0,                              /* tp_descr_set */
+	    0,                              /* tp_dictoffset */
+	    0,                              /* tp_init */
+	    PyType_GenericAlloc,            /* tp_alloc */
+	    revgen_new,                     /* tp_new */
+	};
+	
+	static struct PyModuleDef spammodule = {
+	   PyModuleDef_HEAD_INIT,
+	   "spam",                  /* m_name */
+	   "",                      /* m_doc */
+	   -1,                      /* m_size */
+	};
+	
+	PyMODINIT_FUNC
+	PyInit_spam(void)
+	{
+	    PyObject *module = PyModule_Create(&spammodule);
+	    if (!module)
+	        return NULL;
+	
+	    if (PyType_Ready(&PyRevgen_Type) < 0)
+	        return NULL;
+	    Py_INCREF((PyObject *)&PyRevgen_Type);
+	    PyModule_AddObject(module, "revgen", (PyObject *)&PyRevgen_Type);
+	
+	    return module;
+	}
+
+这是创建一个新模块和一个新类型的标准代码。模块初始化函数 (`PyInit_spam`) 添加了一个叫做 `revgen` 的对象到模块，这个对象是类型 `PyRevgen_Type`。通过调用这个对象，用户可以创建这个类型的一个新实例。
+
+下面的结构 (`PyObject` 的子类) 是将用来表示 `revgen` 的实例的：
+
+	/* RevgenState - reverse generator instance.
+	 *
+	 * sequence: ref to the sequence that's being iterated
+	 * seq_index: index of the next element in the sequence to yield
+	 * enum_index: next enumeration index to yield
+	 *
+	 * In pseudo-notation, the yielded tuple at each step is:
+	 *  enum_index, sequence[seq_index]
+	 *
+	*/
+	typedef struct {
+	    PyObject_HEAD
+	    Py_ssize_t seq_index, enum_index;
+	    PyObject *sequence;
+	} RevgenState;
+
+这里需要特别点出的一个非常有趣的东西是对我们在迭代的序列的引用。每当 `next` 被调用时，迭代器需要它来访问那个序列。
+
+这里是用来创建新的实例的那个函数，它被赋给了 `tp_new`。注意我们没有给 `tp_init` 赋值，所以默认的“什么都不做”的初始化器将会被使用：
+
+	static PyObject *
+	revgen_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+	{
+	    PyObject *sequence;
+	
+	    if (!PyArg_UnpackTuple(args, "revgen", 1, 1, &sequence))
+	        return NULL;
+	
+	    /* We expect an argument that supports the sequence protocol */
+	    if (!PySequence_Check(sequence)) {
+	        PyErr_SetString(PyExc_TypeError, "revgen() expects a sequence");
+	        return NULL;
+	    }
+	
+	    Py_ssize_t len = PySequence_Length(sequence);
+	    if (len == -1)
+	        return NULL;
+	
+	    /* Create a new RevgenState and initialize its state - pointing to the last
+	     * index in the sequence.
+	    */
+	    RevgenState *rgstate = (RevgenState *)type->tp_alloc(type, 0);
+	    if (!rgstate)
+	        return NULL;
+	
+	    Py_INCREF(sequence);
+	    rgstate->sequence = sequence;
+	    rgstate->seq_index = len - 1;
+	    rgstate->enum_index = 0;
+	
+	    return (PyObject *)rgstate;
+	}
+
+这是个非常直观的 `tp_new` 实现，它保证了要迭代的对象是一个序列，同时初始化了状态，准备好第一次 `next` 调用时将要返回的最后一个元素。与之对应的销毁函数也并没有什么特别的：
+
+	static void
+	revgen_dealloc(RevgenState *rgstate)
+	{
+	    /* We need XDECREF here because when the generator is exhausted,
+	     * rgstate->sequence is cleared with Py_CLEAR which sets it to NULL.
+	    */
+	    Py_XDECREF(rgstate->sequence);
+	    Py_TYPE(rgstate)->tp_free(rgstate);
+	}
+
+现在剩下的就是看看 `tp_iter` 和 `tp_iternext` 的实现。因为我们的类型是一个迭代器，我们可以简单的将 `PyObject_SelfIter` 函数赋给 `tp_iter`。`tp_iternext` 才是发生有趣的事情的地方。它正是执行内置函数 `next` 时真正调用的东西，也是 `for` 循环使用迭代器时调用的：
+
+	static PyObject *
+	revgen_next(RevgenState *rgstate)
+	{
+	    /* seq_index < 0 means that the generator is exhausted.
+	     * Returning NULL in this case is enough. The next() builtin will raise the
+	     * StopIteration error for us.
+	    */
+	    if (rgstate->seq_index >= 0) {
+	        PyObject *elem = PySequence_GetItem(rgstate->sequence,
+	                                            rgstate->seq_index);
+	        /* Exceptions from PySequence_GetItem are propagated to the caller
+	         * (elem will be NULL so we also return NULL).
+	        */
+	        if (elem) {
+	            PyObject *result = Py_BuildValue("lO", rgstate->enum_index, elem);
+	            rgstate->seq_index--;
+	            rgstate->enum_index++;
+	            return result;
+	        }
+	    }
+	
+	    /* The reference to the sequence is cleared in the first generator call
+	     * after its exhaustion (after the call that returned the last element).
+	     * Py_CLEAR will be harmless for subsequent calls since it's idempotent
+	     * on NULL.
+	    */
+	    rgstate->seq_index = -1;
+	    Py_CLEAR(rgstate->sequence);
+	    return NULL;
+	}
+
+在这里，应该被牢记的最重要的一点是迭代的状态应该被完全地保存在迭代器对象中。相比与 Python 实现，这需要多做许多工作。Python 的 `yield` 语句让我们可以用 Python 解析器自己来为我们保存这些状态。这也是为什么[在 Python 中协程如此强大](http://eli.thegreenplace.net/2009/08/29/co-routines-as-an-alternative-to-state-machines/)——几乎没有显式的状态需要手工保存。正如我在文章一开始就提到的，在 C 扩展中我们没有这样的奢侈品，所以我们不得不自己动手。由于现在这个例子还非常简单，而且是线性的，这还相对简单一些。在更复杂的例子中，为了正确地设计状态对象和 `tp_iternext` 函数，需要更用心。
+
+这篇文章的完整代码以及简单的 Python 测试脚本，还有用于使用 distutils 构建这个扩展的 `setup.py` 都可以[在这里下载](http://eli.thegreenplace.net/wp-content/uploads/2012/04/generator_c_ext.tgz)。

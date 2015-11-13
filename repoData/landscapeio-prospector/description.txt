@@ -1,0 +1,180 @@
+Prospector Changelog
+=======
+
+## Version 0.5.2
+
+##### New Features
+
+* Support for new error messages introduced in recent versions of `pep8` and `pylint` was included.
+
+## Version 0.5.1
+
+##### New Features
+
+* All command line arguments can now also be specified in a `tox.ini` and `setup.cfg` (thanks to [Jason Simeone](https://github.com/jayclassless))
+* `--max-line-length` option can be used to override the maximum line length specified by the chosen strictness
+
+##### Bug Fixes
+
+* [#17](https://github.com/landscapeio/prospector/issues/17) Prospector generates messages if in a path containing a directory beginning with a `.` - ignore patterns were previously incorrectly being applied to the absolute path rather than the relative path.
+* [#12](https://github.com/landscapeio/prospector/issues/12) Library support for Django now extends to all tools rather than just pylint
+* Some additional bugs related to ignore paths were squashed.
+
+## Version 0.5
+ 
+* Files and paths can now be ignored using the `--ignore-paths` and `--ignore-patterns` arguments.
+
+* Full PEP8 compliance can be turned on using the `--full-pep8` flag, which overrides the defaults in the strictness profile.
+* The PEP8 tool will now use existing config if any is found in `.pep8`, `tox.ini`, `setup.cfg` in the path to check, or `~/.config/pep8`. These will override any other configuration specified by Prospector. If none are present, Prospector will fall back on the defaults specified by the strictness.
+* A new flag, `--external-config`, can be used to tweak how PEP8 treats external config. `only`, the default, means that external configuration will be preferred to Prospector configuration. `merge` means that Prospector will combine external configuration and its own 
+values. `none` means that Prospector will ignore external config.
+
+* The `--path` command line argument is no longer required, and Prospector can be called with `prospector path_to_check`.
+
+* Pylint version 1.1 is now used.
+
+* Prospector will now run under Python3.
+
+## Version 0.4.1
+
+* Additional blending of messages - more messages indicating the same problem from different tools are now merged together
+* Fixed the maximum line length to 160 for medium strictness, 100 for high and 80 for very high. This affects both the pep8 tool and pylint.
+
+## Version 0.4
+
+* Added a changelog
+* Added support for the [dodgy](https://github.com/landscapeio/dodgy) codebase checker
+* Added support for pep8 (thanks to [Jason Simeone](https://github.com/jayclassless))
+* Added support for pyflakes (thanks to [Jason Simeone](https://github.com/jayclassless))
+* Added support for mccabe (thanks to [Jason Simeone](https://github.com/jayclassless))
+* Replaced Pylint W0312 with a custom checker. This means that warnings are only generated for inconsistent indentation characters, rather than warning if spaces were not used.
+* Some messages will now be combined if Pylint generates multiple warnings per line for what is the same cause. For example, 'unused import from wildcard import' messages are now combined rather than having one message per unused import from that line.
+* Messages from multiple tools will be merged if they represent the same problem.
+* Tool failure no longer kills the Prospector process but adds a message instead.
+* Tools can be enabled or disabled from profiles.
+* All style warnings can be suppressed using the `--no-style-warnings` command line switch.
+* Uses a newer version of [pylint-django](https://github.com/landscapeio/pylint-django) for improved analysis of Django-based code.
+Contributors
+===
+
+* Carl Crowder ([@carlio](https://github.com/carlio))
+
+* Jason Simeone ([@jayclassless](https://github.com/jayclassless))
+prospector
+==========
+
+# Status
+
+#### Package
+
+[![Latest Version](https://pypip.in/v/prospector/badge.png)](https://crate.io/packages/prospector)
+[![Downloads](https://pypip.in/d/prospector/badge.png)](https://crate.io/packages/prospector)
+
+#### Stable ([master](https://github.com/landscapeio/prospector/tree/master))
+
+[![Build Status](https://travis-ci.org/landscapeio/prospector.png?branch=master)](https://travis-ci.org/landscapeio/prospector) 
+[![Code Quality](https://landscape.io/github/landscapeio/prospector/master/landscape.png)](https://landscape.io/github/landscapeio/prospector/master)
+[![Coverage Status](https://coveralls.io/repos/landscapeio/prospector/badge.png)](https://coveralls.io/r/landscapeio/prospector)
+
+#### Development ([develop](https://github.com/landscapeio/prospector/tree/develop))
+
+[![Build Status](https://travis-ci.org/landscapeio/prospector.png?branch=develop)](https://travis-ci.org/landscapeio/prospector) 
+[![Code Quality](https://landscape.io/github/landscapeio/prospector/develop/landscape.png)](https://landscape.io/github/landscapeio/prospector/develop)
+[![Coverage Status](https://coveralls.io/repos/landscapeio/prospector/badge.png?branch=develop)](https://coveralls.io/r/landscapeio/prospector)
+
+# About
+
+Prospector is a tool to analyse Python code and output information about errors, potential problems, convention violations and complexity.
+
+It brings together the functionality of other Python analysis tools such as [pylint](http://pylint.org), [pep8](https://pypi.python.org/pypi/pep8) and [McCabe complexity](https://pypi.python.org/pypi/mccabe). See the 'Supported Tools' section below for a complete list.
+
+The primary aim of Prospector is to be useful 'out of the box'. A common complaint of other Python analysis tools is that it takes a long time to filter through which errors are relevant or interesting to your own coding style. Prospector provides some default profiles, which hopefully will provide a good starting point and be useful straight away. 
+
+# Usage
+
+Simply run prospector from the root of your project:
+
+```
+prospector
+```
+
+This will output a list of messages pointing out potential problems or errors, for example:
+
+```
+prospector.tools.base (prospector/tools/base.py):
+    L5:0 ToolBase: pylint - R0922
+    Abstract class is only referenced 1 times
+```
+
+## Options
+
+Run `prospector --help` for a full list of options and their effects.
+
+### Output Format
+
+The default output format of `prospector` is designed to be human readable. For parsing (for example, for reporting), you can use the `--output-format json` flag to get JSON-formatted output.
+
+### If your code uses frameworks and libraries
+
+Often tools such as pylint find errors in code which is not an error, due to, for example, attributes of classes being created at run time by a library or framework used by your project. For example, by default, pylint will generate an error for Django models when accessing `objects`, as the `objects` attribute is not part of the `Model` class definition. 
+
+Prospector mitigates this by providing an understanding of these frameworks to the underlying tools.
+
+Prospector will try to intuit which libraries your project uses by [detecting dependencies](https://github.com/landscapeio/requirements-detector) and automatically turning on support for the requisite libraries. You can see which adaptors were run in the metadata section of the report.
+
+If Prospector does not correctly detect your project's dependencies, you can specify them manually from the commandline:
+
+```
+prospector --uses django celery
+```
+
+Additionally, if Prospector is automatically detecting a library that you do not in fact use, you can turn off autodetection completely:
+
+```
+prospector --no-autodetect
+```
+
+Note that as far as possible, these adaptors have been written as plugins or augmentations for the underlying tools so that they can be used without requiring Prospector. For example, the Django support is available as a pylint plugin. See the "Supported frameworks and libraries" section for more information.
+
+### Strictness
+
+Prospector has a configurable 'strictness' level which will determine how harshly it searches for errors.
+
+```
+prospector --strictness high
+```
+
+Possible values are `verylow`, `low`, `medium`, `high`, `veryhigh`.
+
+Additionally, you can turn off all documentation warnings using the `--no-doc-warnings` flag.
+
+
+# License
+
+Prospector is available under the GPLv2 License.
+
+
+# Appendix
+
+## Supported Tools
+
+Currently, prospector runs the following tools:
+
+* [Pylint](http://docs.pylint.org/)
+* [McCabe complexity](https://pypi.python.org/pypi/mccabe)
+* [pyflakes](https://launchpad.net/pyflakes)
+* [pep8](http://pep8.readthedocs.org/en/latest/) (with [pep8-naming](https://github.com/flintwork/pep8-naming))
+* [dodgy](https://github.com/landscapeio/dodgy)
+* [frosted](https://github.com/timothycrosley/frosted)
+
+
+## Supported frameworks and libraries
+
+Prospector has support for the following frameworks:
+
+* Celery: [https://github.com/landscapeio/pylint-celery](https://github.com/landscapeio/pylint-celery)
+* Django: [https://github.com/landscapeio/pylint-django](https://github.com/landscapeio/pylint-django)
+
+If you have a suggestion for another framework or library which should be supported, please [add an issue](https://github.com/landscapeio/prospector/issues).
+
+

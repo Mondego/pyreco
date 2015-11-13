@@ -1,0 +1,761 @@
+Norc v2.2.4
+===========
+
+## Tweaks
+  - Queues can now be placed in multiple QueueGroups (see migration doc).
+
+
+Norc v2.2.4
+===========
+
+## Features
+  - Support for a new _finally() method on custom instance implementations
+    has been added.  This method will be executed after the main run()
+    function has exited, when the process is interrupted, or when the
+    task times out.
+
+## Bug Fixes
+  - More #! script fixes.
+
+
+Norc v2.2.3
+===========
+
+## Tweaks
+  - The __unicode__ methods for all models have been unified to a new
+    pattern: "[class_name info...]".
+  - Templates have been moved to a subdirectory to avoid naming conflicts.
+  - AbstractInstance now has defaults for timeout (0) and log_path
+    (instances/class_name/id).  
+  - The norc_log_viewer script now accepts a leading # for IDs to support
+    copy/paste from log files.
+
+## Bug Fixes
+  - More specific exception catching in Queue so bad exceptions aren't hidden.
+  - Fixed --handle option of norc_control.
+
+
+Norc v2.2.2
+===========
+
+## Changes
+  - The meaning of the ERROR and FAILURE statuses has changed.  ERROR now
+    explicitly means that something went wrong with the Norc system, whereas
+    FAILURE encompasses any issue coming from the task itself.  Previously,
+    the task run() letting an exception escape would result in an ERROR.
+
+## Tweaks
+  - The warning "pulse" for when no schedulers are found is now less frequent.
+  - Caching is disabled for the status view.
+  - The controls popup for executors is now positioned slightly better.
+
+## Bug Fixes
+  - Task timeouts and kill commands now call os._exit(1) after cleaning up
+    to force the process to end.
+  - Clicking on a control for an executor now no longer also pops up the log.
+
+## Optional
+  - As of v2.2.2, it is recommended that the following index be made for any
+    large table of instances:
+
+    create index <instance_table>_executor_id_ended_status on
+    <instance_table> (`executor_id`,`ended`,`status`);
+
+
+Norc v2.2.1
+===========
+
+## Features
+  - New SUSPENDED state for executors; if a task fails during initializing
+    (a sign something is wrong with the system), the executor will enter
+    SUSPENDED, which is exactly like PAUSED except considered an error state.
+
+## Tweaks
+  - Add log_url property to AbstractInstance.
+
+## Bug Fixes
+  - PAUSED is now correctly colored as a good status.
+  - The AWS_ settings are no longer imported by backup.py if BACKUP_SYSTEM is
+    not "AmazonS3".
+
+
+Norc v2.2
+=========
+
+## Features
+  - Added "handle" option to norc_control and the front end that sets
+    status to HANDLED and sets the end date.
+  - Added queue groups, which allow an executor to handle multiple
+    prioritized queues.
+  - Added a hook for revision tracking implementations.
+
+## Tweaks
+  - Added a set to Scheduler to ensure that duplicate schedules never get
+    claimed.
+  - In CronSchedule, set_encoding() has been renamed to reschedule() to
+    better reflect its purpose.  It also now automatically requests a
+    reload in the scheduler.
+  - Improved stdout/stderr redirection to logs for tasks; now all output
+    goes to a log file even before the logging library loads.
+  - Queue name uniqueness across implementations is now enforced
+    in the Queue.save() method.
+
+## Bug Fixes
+  - Executors now check that a completed instance's status is "final",
+    and change it to ERROR if not.
+  - Some cleanup code in Scheduler was in the wrong place.
+  - Scheduler.add() is now wrapped in a try block to protect against bad
+    data crashing the scheduler.
+
+
+Norc v2.1.1
+===========
+
+## Features
+  - Added host-wide functionality to norc_control, as well as a wait option.
+
+## Tweaks:
+  - The queue failure rate column has been removed due to slowness.
+  - The Alive column has been removed and merged into the Status column
+    as a color-coding.
+
+## Bug Fixes:
+  - Updated norc_control to work with new request design.
+  - Fixed timeframe selection in the web interface.
+  - Fixed a bug with saving in AbstractDaemon was allowing requests
+    to be overwritten.
+  - Added missing SQL commands to the migration doc.
+
+
+Norc v2.1
+=========
+
+__SCHEMA CHANGES__, please see migration.md.
+
+## Features
+  - Scheduler now has a status and supports requests.
+  - Support for changing a schedule after it's been made.
+  - Schedules now have a deleted flag, making data deletion unnecessary.
+  - New setting: STATUS_TABLES.  Custom-define what tables show up in
+    the front end!
+  - New command line utility "norc_control" for sending request to
+    Executors and Schedulers.
+  - S3 log backups are now compressed prior to uploading.
+
+## Tweaks:
+  - BaseInstance and BaseSchedule are now AbstractInstance and
+    AbstractSchedule, respectively.
+  - New base class AbstractDaemon for commonalities between Executor
+    and Scheduler.
+  - Log backing of instance logs is now done by a thread pool inside
+    the Executor for that instance.
+
+## Bug Fixes:
+  - Front end controls for Executors and Schedulers now work again.
+  - Fixed broken query for orphaned schedules.
+  - Fixed signal registering in both Executor and Scheduler.
+
+
+Norc v2.0
+=========
+
+## Features:
+  - Full rewrite of Norc.  See design documentation, if it ever gets written.
+
+
+Norc v1.1.2
+===========
+
+## Tweaks:
+  - Fixed (or at least greatly improved) the horrible slowness of the
+    daemons table in the front end by switching from len(queryset) to
+    queryset.count().
+
+## Bug Fixes:
+  - Fixed the norc utility's displaying of SQS task counts.
+
+
+Norc v1.1.1
+===========
+
+## Tweaks:
+  - Improved FileLog in log_new.py to handle echoing to stdout and
+    redirecting of both stdout and stderr.
+
+## Bug Fixes:
+  - Another attempted fix at the weird Perpetually bug involving
+    recognizing daemons as SQS or NORC.
+  - Half fixed the weird expanding cell bug when using the daemon control
+    slideout.  Now there may be a 1px shift.
+
+
+Norc v1.1
+=========
+
+## Features:
+  - (DEV) New function init_test_db creates a suitable test database.
+  - Several useful unit test for the web module now exist!
+  - Better version of daemon control!  Vertical orientation, some lovely
+    padding, and the security elements listed below.
+
+## Security:
+  - The daemon control interface only appears if the user is a superuser.
+  - Even for superusers it now requires confirmation before trying the
+    POST request.
+
+## Tweaks:
+  - Renamed init_db.py to just db.py.
+
+
+Norc v1.0.2
+===========
+
+## Features:
+  - Rudimentary version of daemon control through the status page.  Hover
+    over a daemon status to get a menu.  Use with caution.
+
+## Tweaks:
+  - Added tmp/ and log/ directories to Norc by default.
+  - An sqs_populate_db.py script now exists to add random SQS data.  It
+    takes a long time to run because adds hundreds of thousands of items
+    to the database.
+  - Renamed structure.py to data_defs.py and rewrote it to use objects.
+  - SQS data definitions now live inside the sqs/__init__.py file.
+  - Added Iteration column to the task tables.
+
+## Bug Fixes:
+  - Loading indicators will now disappear if an AJAX request fails.
+  - The get_daemon_type() function now checks for existence of sqstaskrunstatus_set before querying it.
+  - Added timeframe filtering and ordering to SQS tasks.
+  - Added ordering to failed tasks.
+
+
+Norc v1.0.1
+===========
+
+## Features:
+  - Added 'Failed Tasks' table, which shows all tasks with an error status.
+
+## Tweaks:
+  - Content is no longer centered.
+  - display:table allows for intelligently sized content sections.
+  - Clicking on a different task count cell now switches to showing those
+    tasks, instead of just collapsing the details.
+  - Fixed highlighting color of task count by status cells when the row
+    is expanded.
+  - The get_daemon_type hack in models.py no longer uses .count() for
+    efficiency purposes.
+
+## Bug Fixes:
+  - Switched back a CSS class change that broke proper coloring of pagination.
+  - Added the loading indicator to source control.
+  - Improved how the indicator is displayed so that table cells
+    don't get shifted.
+  - An exception will be thrown if the NORC_ENVIRONMENT shell variable is
+    not set.  Before it would default to 'BaseEnv', but since Django needs
+    more settings than that to run, a custom environment is now enforced.
+
+
+Norc v1.0
+=========
+
+## Features:
+  - populate_db.py script in utils can fill your DB with large amounts of
+    random data for testing.  Requires init_db to be run first from an
+    empty database.
+  - SINCE_FILTER dictionary in structures.py now allows a per data key
+    definition of how to filter a data set using a since date.
+  - ORDER dictionary in structures.py allows an optional per data key
+    definition of how to order the results.
+  - Added a map in status.js that allows customization of data tables.
+  - Task selection by status: Click on the number of running/success/errored
+    tasks for any daemon to reveal only those tasks.
+  - Timestamp of the last full page refresh.
+  - Loading indicator for any data retrieval.
+
+## Tweaks:
+  - Auto-reload is now disabled by default.
+  - Hard-coded width of sqsqueues table to 50% (in status.css) to
+    appease Darrell.
+
+## Bug Fixes:
+  - Subtables now reflect the correct timeframe (for real this time).
+  - Removed erroneous reference in sqs/__init__.py to a test setting,
+    SQSTASK_IMPLEMENTATIONS, that was not supposed to be committed.
+
+
+Norc v0.9
+=========
+
+## Features:
+  - Proper pagination of all subtables!
+  - Highlighting of selected timeframe.
+  - SQS Queue table now exists, with proper handling if SQS isn't enabled.
+  - JSON response now uses a list, allowing for ordering of items.
+  - Daemons are now ordered by descending time started.
+  - There is now an auto-reload checkbox to disable it.
+  - Middleware that lets you view the traceback of an exception caused
+    by an AJAX request as plain text.
+
+## Tweaks:
+  - Default page size is now 20 for all table levels.
+  - Detail tables with only one page no longer show the paging row.
+  - Rows will no longer line-wrap; the table just grows horizontally.
+  - More columns have been aligned properly.
+  - Added ErrorHandlingMiddleware to the default middleware list.
+
+## Bug Fixes:
+  - Going from the nth page back to a timeframe with < n pages now works
+    (goes back to the first page).
+  - Options are now properly inherited from parent chains.  This means
+    that subtables now reflect the selected timeframe.
+  - Several other minor issues.
+
+Norc Glossary
+=============
+
+__Task__: An abstract concept of some work to be done.
+
++   __CommandTask__: A Task that executes an arbitrary shell command.
++   __Job__: A Task which executes a group of other Tasks.  This is done by
+    constructing a directed graph using task Nodes and Dependencies.
+  
+__Schedule__: A definition of when a Task is to run (i.e., start an Instance of it).
+
+__Scheduler__: A process which uses schedules to create and enqueue Instances at the appropriate time.
+
+__Instance__: An execution of a Task.
+
+__Queue__: An abstract concept of a distributed queueing system to disperse instances with.
+
++   __DBQueue__: Queue implemented using the database.
++   __SQSQueue__: Queue implemented using SQS.
+
+__Executor__: A process which continually pops instances off a specific queue and starts them.
+
+Note: Norc requires at least one Scheduler total and at least one Executor per queue to be running in order to function.  Multiple Executors are key to scaling the system for heavy workloads.
+
+A __Task__ has at least one __Schedule__ which is used by a __Scheduler__ to create __Instances__ which go in a __Queue__ and are then popped and executed by __Executors__.
+
+
+# Installing Norc
+
+The goal of this walkthrough is to set up the basic Norc environment, and run a sample Task.  Much of the power of Norc is in its extensibility beyond simple Task management, so the more hack-happy you are, the better!
+
+
+## Environment
+
+Other environments will probably work, but we've not tested too many different configurations.
+
+ * Python 2.5.x or 2.6.x.   We've tested on all these versions, 
+ * Linux (Redhat Fedora 4) or OS X (Tiger, Leopard or Snow Leopard).
+ * Django 1.1; later versions have not been tested yet.
+ * A semi-recent version of MySQL (5.x or greater).  If you're not using MySQL everything should still work.  You'll just have to replace the mysql steps with whatever database backend you're using and change the configuration in settings.py as necessary.
+
+
+## Download
+
+    $ git clone git://github.com/darrellsilver/norc.git
+    Cloning into norc...
+    remote: Counting objects: 2600, done.
+    remote: Compressing objects: 100% (725/725), done.
+    remote: Total 2600 (delta 1867), reused 2509 (delta 1802)
+    Receiving objects: 100% (2600/2600), 573.53 KiB | 1.07 MiB/s, done.
+    Resolving deltas: 100% (1867/1867), done.
+
+We'll be inside the norc/ directory for the rest of the tutorial.
+
+    $ cd norc/
+
+
+## Prepare the Database
+
+This step depends on what database you're using; MySQL is recommended as it is the only DB that has been tested with Norc.  You need to have a username and password for Django's settings.
+
+
+## Configuration
+
+All user settings are stored in the settings_local.py file, which is not contained in Git.  Therefore, create it by copying the example file:
+
+    $ cp -p settings_local.py.example settings_local.py
+
+Norc uses a class structure to easily allow for multiple environments with common settings.  Create your own class that inherits from BaseEnv by renaming and editing DemoEnv to have the proper credentials.  Then, set the NORC_ENVIRONMENT shell variable to the name of that class (see below).  Crucial items are in the example file, but see defaults.py for more options that can be set.
+
+
+## Run Environment
+
+In your shell environment, Django & Norc require a few variables.  These should be set in your shell's configuration file (e.g., ~/.bashrc or ~/.zshrc).  In the following code, replace <norc_path> with the full path to the folder **containing** the norc directory.
+    
+    # Norc source code must be in your PYTHONPATH.
+    export PYTHONPATH=$PYTHONPATH:**<norc_path>**
+    # The settings environment to be used by Norc.
+    export NORC_ENVIRONMENT='BaseEnv'
+    # Python import path to the settings.py file.
+    export DJANGO_SETTINGS_MODULE='norc.settings'
+    # Norc has a few executables that need to be in your PATH.
+    export PATH=$PATH:**<norc_path>**/norc/bin
+
+
+## Initialize Django
+
+This is the first time you'll be running the full app, so any errors in configuration so far will show up here.
+
+The manage.py is a Django idiom used for controlling the app.  The command syncdb for it will synchronize the models of Norc with the database, which in this case means creating them all.  This is the output log of Django creating the tables in MySQL.  Because we've also never setup an admin account, Django also prompts us to setup an admin user; you should do this and remember the credentials for the next step.
+
+    $ python manage.py syncdb
+    Creating table django_admin_log
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table auth_message
+    Creating table django_content_type
+    Creating table django_session
+    Creating table django_site
+    Creating table norc_instance
+    Creating table norc_commandtask
+    Creating table norc_job
+    Creating table norc_jobnode
+    Creating table norc_jobnodeinstance
+    Creating table norc_dependency
+    Creating table norc_schedule
+    Creating table norc_cronschedule
+    Creating table norc_scheduler
+    Creating table norc_dbqueue
+    Creating table norc_dbqueueitem
+    Creating table norc_executor
+    
+    You just installed Django's auth system, which means you don't have any superusers defined.
+    Would you like to create one now? (yes/no): yes
+    Username (Leave blank to use 'norc_demo'): 
+    E-mail address: demo@norcproject.com
+    Password: 
+    Password (again): 
+    Superuser created successfully.
+    Installing index for admin.LogEntry model
+    Installing index for auth.Permission model
+    Installing index for auth.Message model
+    Installing index for core.Instance model
+    Installing index for core.JobNode model
+    Installing index for core.JobNodeInstance model
+    Installing index for core.Dependency model
+    Installing index for core.Schedule model
+    Installing index for core.CronSchedule model
+    Installing index for core.DBQueueItem model
+    Installing index for core.Executor model
+
+
+## Unit Tests
+
+Ok, at this point, you should be able to run the unit tests successfully.
+
+    $ python manage.py test
+    Creating test database...
+    Creating table django_admin_log
+    Creating table auth_permission
+    Creating table auth_group
+    Creating table auth_user
+    Creating table auth_message
+    Creating table django_content_type
+    Creating table django_session
+    Creating table django_site
+    Creating table norc_instance
+    Creating table norc_commandtask
+    Creating table norc_job
+    Creating table norc_jobnode
+    Creating table norc_jobnodeinstance
+    Creating table norc_dependency
+    Creating table norc_schedule
+    Creating table norc_cronschedule
+    Creating table norc_scheduler
+    Creating table norc_dbqueue
+    Creating table norc_dbqueueitem
+    Creating table norc_executor
+    Creating table norc_sqsqueue
+    Installing index for admin.LogEntry model
+    Installing index for auth.Permission model
+    Installing index for auth.Message model
+    Installing index for core.Instance model
+    Installing index for core.JobNode model
+    Installing index for core.JobNodeInstance model
+    Installing index for core.Dependency model
+    Installing index for core.Schedule model
+    Installing index for core.CronSchedule model
+    Installing index for core.DBQueueItem model
+    Installing index for core.Executor model
+    ..................................................
+    ----------------------------------------------------------------------
+    Ran 50 tests in 47.740s
+
+    OK
+    Destroying test database...
+
+
+## Demo Data
+
+To run the system, a pieces of data are needed.  These you can currently either create via the Django admin screen or a Python shell.  For now, we'll stick to the shell because the admin screen isn't fully customized for Norc.
+
+    $ python manage.py shell
+    Python 2.6.1 (r261:67515, Jun 24 2010, 21:47:49) 
+    [GCC 4.2.1 (Apple Inc. build 5646)] on darwin
+    Type "help", "copyright", "credits" or "license" for more information.
+    (InteractiveConsole)
+    >>> from norc.core.models import *
+    >>> q = DBQueue.objects.create(name="DemoQueue")
+    >>> t = CommandTask.objects.create(name="DemoTask", command="echo 'Demo successful!'")
+    >>> 
+    
+Now leave this open until after the next step.
+
+
+## Starting the Daemons
+
+Norc relies on two separate daemons to function: norc_scheduler and norc_executor.  Only one Scheduler should ever be needed at a time, but multiple Executors is how Norc is designed to scale across systems.  To see the current status, the norc_reporter command exists:
+
+    norc_reporter -esq
+    [2010/12/17 05:17:49] 
+
+    ## Executors ##
+    None found.
+
+    ## Schedulers ##
+    None found.
+
+    ## Queues ##
+    None found.
+
+Now open two new terminal sessions and start both a Scheduler and an Executor:
+
+    $ norc_scheduler -e
+    [2010/12/17 05:19:20.715991] INFO: Scheduler #1 on host Zaraki.local initialized; starting...
+
+The -e tells the daemon to echo its log output back to the console.
+
+    $ norc_executor DemoQueue -c 5 -e
+    [2010/12/17 05:28:15.823928] INFO: <Executor #1 on Zaraki.local> initialized; starting...
+    [2010/12/17 05:28:15.828948] INFO: <Executor #1 on Zaraki.local> is now running on host Zaraki.local.
+
+DemoQueue is the name of the queue this Executor will pull from, and -c 5 means it can run up to 5 things concurrently.
+
+
+## Adding a Schedule
+
+You now have all the pieces set up for a task to run except one: when to run it?  Go back to the Python shell you were working with earlier and create a basic Schedule:
+
+    >>> Schedule.create(task=t, queue=q, period=5, reps=5)
+    <Schedule #1, CommandTask DemoTask:5s>
+    >>> 
+
+That tells Norc to run the task every 5 seconds, 5 times total, starting now.  You should see something like this in the Scheduler:
+
+    [2010/12/17 05:38:20.326725] INFO: Claiming <Schedule #1, CommandTask DemoTask:5s>.
+    [2010/12/17 05:38:20.340241] INFO: Enqueuing <Instance #1 of CommandTask DemoTask>.
+    [2010/12/17 05:38:25.008153] INFO: Enqueuing <Instance #2 of CommandTask DemoTask>.
+    [2010/12/17 05:38:30.007917] INFO: Enqueuing <Instance #3 of CommandTask DemoTask>.
+    [2010/12/17 05:38:35.006390] INFO: Enqueuing <Instance #4 of CommandTask DemoTask>.
+    [2010/12/17 05:38:40.004968] INFO: Enqueuing <Instance #5 of CommandTask DemoTask>.
+
+And something like this in the Executor:
+
+    [2010/12/17 05:38:20.702097] INFO: Starting instance '<Instance #1 of CommandTask DemoTask>'...
+    [2010/12/17 05:38:21.722821] INFO: Instance '<Instance #1 of CommandTask DemoTask>' ended with status SUCCESS.
+    [2010/12/17 05:38:25.260937] INFO: Starting instance '<Instance #2 of CommandTask DemoTask>'...
+    [2010/12/17 05:38:26.278038] INFO: Instance '<Instance #2 of CommandTask DemoTask>' ended with status SUCCESS.
+    [2010/12/17 05:38:30.317053] INFO: Starting instance '<Instance #3 of CommandTask DemoTask>'...
+    [2010/12/17 05:38:31.336631] INFO: Instance '<Instance #3 of CommandTask DemoTask>' ended with status SUCCESS.
+    [2010/12/17 05:38:35.374896] INFO: Starting instance '<Instance #4 of CommandTask DemoTask>'...
+    [2010/12/17 05:38:36.392472] INFO: Instance '<Instance #4 of CommandTask DemoTask>' ended with status SUCCESS.
+    [2010/12/17 05:38:40.431078] INFO: Starting instance '<Instance #5 of CommandTask DemoTask>'...
+    [2010/12/17 05:38:41.454383] INFO: Instance '<Instance #5 of CommandTask DemoTask>' ended with status SUCCESS.
+
+Congratulations, you've run your first task!  To see the output, look at the log file in norc/logs/tasks/CommandTask/DemoTask/DemoTask-1, which should look like this:
+
+    [2010/12/17 05:38:21.391439] INFO: Starting <Instance #1 of CommandTask DemoTask>.
+    Executing command...
+    $ echo 'Demo successful!'
+    Demo successful!
+    [2010/12/17 05:38:21.404867] INFO: Task ended with status SUCCESS.
+
+Fin!
+
+v2.2.4 -> v2.2.5
+================
+
+  - Queues can now be in multiple QueueGroups.
+
+### SQL Statements
+__Norc must be completely stopped before making these changes.__
+
+    ALTER TABLE norc_queuegroupitem DROP KEY queue_type_id;
+    ALTER TABLE norc_queuegroupitem DROP KEY queue_type_id_2;
+    ALTER TABLE norc_queuegroupitem ADD UNIQUE KEY `group_id` (`group_id`,`queue_type_id`,`queue_id`);
+
+v2.1 -> v2.2
+============
+
+  - Task "name" field is now nullable.
+  - New table norc_revisions
+
+### SQL Statements
+__Norc must be completely stopped before making these changes.__
+
+This must be run for each task implementation:
+
+    ALTER TABLE norc_commandtask MODIFY name VARCHAR(128);
+    ALTER TABLE norc_job MODIFY name VARCHAR(128);
+    ...
+
+This must be run for each instance implementation:
+    
+    ALTER TABLE norc_instance ADD COLUMN revision_id INT(11) DEFAULT NULL;
+    ALTER TABLE norc_jobnodeinstance ADD COLUMN revision_id INT(11) DEFAULT NULL;
+    ...
+
+Create the new tables:
+
+    CREATE TABLE `norc_revision` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `info` varchar(64) NOT NULL,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `info` (`info`)
+    ) ENGINE=MyISAM DEFAULT CHARSET=latin1;
+    CREATE TABLE `norc_queuegroup` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `name` varchar(64) NOT NULL,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `name` (`name`)
+    ) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=latin1;
+    CREATE TABLE `norc_queuegroupitem` (
+      `id` int(11) NOT NULL AUTO_INCREMENT,
+      `group_id` int(11) NOT NULL,
+      `queue_type_id` int(11) NOT NULL,
+      `queue_id` int(10) unsigned NOT NULL,
+      `priority` int(10) unsigned NOT NULL,
+      PRIMARY KEY (`id`),
+      UNIQUE KEY `queue_type_id` (`queue_type_id`,`queue_id`),
+      UNIQUE KEY `queue_type_id_2` (`queue_type_id`,`queue_id`,`priority`),
+      KEY `norc_queuegroupitem_group_id` (`group_id`),
+      KEY `norc_queuegroupitem_queue_type_id` (`queue_type_id`)
+    ) ENGINE=MyISAM AUTO_INCREMENT=3 DEFAULT CHARSET=latin1;
+
+v2.0 -> v2.1
+============
+
+  - BaseInstance and BaseSchedule are renamed to AbstractInstance and
+    AbstractSchedule.
+  - Scheduler loses "active" column (BooleanField), gains "status",
+    "request" (both PositiveSmallIntegerField, request is nullable), and
+    "pid" (IntegerField) columns.  Old Schedulers should have status set
+    to 8 (Status.ENDED).
+  - Schedule and CronSchedule both gain "changed" and "deleted"
+    (BooleanField) columns.
+  - Deleting of schedules should now be done using the .soft_delete() method.
+
+### SQL Statements
+__Norc must be completely stopped before making these changes.__
+
+    ALTER TABLE norc_scheduler DROP COLUMN active;
+    ALTER TABLE norc_scheduler ADD COLUMN status SMALLINT(5) unsigned NOT NULL;
+    ALTER TABLE norc_scheduler ADD COLUMN request SMALLINT(5) unsigned DEFAULT NULL;
+    ALTER TABLE norc_scheduler ADD COLUMN pid INT(11) NOT NULL AFTER host;
+    UPDATE norc_scheduler SET status=8;
+    ALTER TABLE norc_schedule ADD COLUMN changed TINYINT(1) NOT NULL AFTER added;
+    ALTER TABLE norc_schedule ADD COLUMN deleted TINYINT(1) NOT NULL AFTER changed;
+    ALTER TABLE norc_cronschedule ADD COLUMN changed TINYINT(1) NOT NULL AFTER added;
+    ALTER TABLE norc_cronschedule ADD COLUMN deleted TINYINT(1) NOT NULL AFTER changed;
+    ALTER TABLE norc_executor MODIFY heartbeat datetime;
+    ALTER TABLE norc_executor MODIFY started datetime;
+
+# Norc
+
+Norc is a task management and scheduling system that replaces the Unix cron utility.  Its goal is to allow tasks to be created, managed and tracked in a flexible, user-friendly way.  Norc was first developed by [Darrell Silver](http://darrellsilver.com/) for use as the scheduling system for [Perpetually](http://www.perpetually.com/), the web archiving company.  It is currently used in production, and was open-sourced in October, 2009 at [NYC Python](http://www.nycpython.org/) at the suggestion of [David Christian](http://twitter.com/duganesque).  It has since undergone a major overhaul at the hands of Max Bogue, under Perpetually's employ.
+
+Norc was first developed by [Darrell Silver](http://darrellsilver.com/) as the archiving scheduling system for [Perpetually.com's](http://www.perpetually.com/) archiving system, and is currently in production.   [Perpetually.com](http://www.perpetually.com/) lets you capture and archive any web site with a single click. It's the history of the internet made useful.  A core feature of [Perpetually's](http://www.perpetually.com/) offering is repeated, scheduled archives, a task for which Norc has proven a good fit.
+
+
+## Features
+
+ * Define **groups of Tasks** as Jobs with **Task dependencies**, ensuring that Task 'C' only runs after 'A' and 'B' have completed successfully.
+ * All output for Tasks is managed in **normalized logs**, with support for uploading to an **external location** (Amazon S3 support built in).
+ * **Schedule** Tasks, just like Cron. 
+ * Run Tasks on **any number of hosts**.  Task state is shared in a single DB, making Norc as **scalable** as its underlying database.
+ * Set **timeouts** for any Task, catching errors and prevent runaway processing.
+ * Because all state is stored in a DB, it can be **administered through a web interface**.  In addition to Django's administration tools, Norc provides a powerful web reporting layer.
+
+
+## Design & Terminology ##
+
+Norc is written entirely in Python/Django.  It has been tested and rolled out by Perpetually, running on OS X and Linux, using MySQL, Python 2.5/2.6 and Django-1.1.
+
+Each of these concepts are represented by Django models, mapping to a table in the database unless they are abstract.  Subclasses of the abstract models will produce their own tables.
+
+See ./glossary.md for a quick overview of the Norc design.
+
+
+### Tasks ###
+
+A Norc Task is an **abstract description** of work to be done.  A Task class is implemented by subclassing norc.core.models.Task, and objects of that class represent different variations of that abstract type of work.  For example, Norc comes with the CommandTask class, of which specific objects represent different shell commands to execute.
+
+
+### Jobs ###
+
+A Job is an extension of a Norc task.  It contains JobNodes (which wrap other Tasks) and Dependencies (Node A must run after Node B, and uses those to execute the tasks in proper sequence.
+
+
+### Instances ###
+
+An Instance in Norc represents an **execution** of some work.  This generally means a run of a Task, but in some cases other subclasses of AbstractInstance are handy (for example, JobNodeInstances allow for the custom behavior that drives Jobs).  Instances store data about the execution, including start/end times, status, and the Executor that ran them.
+
+
+### Schedules ###
+
+In order for a Task to run, a schedule must be made to tell Norc when to run it.  There are two schedule classes: a simple Schedule which allows any number of repetitions with a set period between them, and a more complex CronSchedule which allows the user to choose the months, days, weekdays, hours, minutes, and seconds on which the Task should run.  More than one schedule may be created for a single Task.
+
+
+### Scheduler ###
+
+A process that reads schedules and uses them to create and enqueue instances at the appropriate time.  Norc **requires** at least one Scheduler to be running in order to function.  Schedulers can be run using the norc_scheduler script.
+
+
+### Queues ###
+
+Queues double as the way that instances are prioritized in Norc and as the means for distributing them to Executors.  Queues are an abstract concept; Norc comes with two implementations, DBQueue (the default) and SQSQueue.
+
+
+### Executors ###
+
+The workhorse of the Norc design flow, an Executor is a process that is designated for a specific queue, pulls instances from that queue, and then runs them.  Scalability of processing power for Norc is achieved by changing the number of Executors running for a given queue.  Since distribution is achieved through the queue implementation, Executors for a queue can be run on any number of different machines.  The norc_executor script is provided for starting Executors.
+
+
+## Interacting & Monitoring ##
+
+Norc has a web front end that allows for easy monitoring of the system, as well as controlling of Executors and Schedulers.  Paired with the Django admin interface, this creates a powerful web-based toolset.  In the future, the two should be merged to create an admin interface that conforms to Norc's design somewhat better.
+
+On top of the web front end, there are various command line tools for interacting with Norc.
+
+### norc_control ###
+
+Allows stopping, killing, pausing and resuming for any single Executor or Scheduler at a time, or on a host-wide basis.
+
+### norc_reporter ###
+
+Displays similar status tables as the web front end.
+
+### norc_log_viewer ###
+
+Can be used to easily retrieve logs, both locally and from a remote backup location (e.g., Amazon S3).
+
+
+## Installation ##
+
+See ./INSTALL.md for a walkthrough.
+
+
+Setup:
+
+1.  Sign up for Amazon SQS at http://aws.amazon.com/.
+2.  Install boto from http://code.google.com/p/boto/.
+3.  Set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY in settings_local.py to
+    your AWS account keys.
+4.  To use the sqs module of norc, create a subclass of SQSTask that does
+    whatever you want, then import it in the sqs/task_impls.py file.
+5.  Repeat step 4 for as many 

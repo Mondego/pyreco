@@ -1,0 +1,507 @@
+MSongsDB/CppSrc/README
+
+  Thierry Bertin-Mahieux (2012) Columbia University
+  tb2332@columbia.edu
+
+ C++ wrapper for the Million Song Dataset song files in HDF5.
+
+ The core code is in hdf5_getters.cc and .h.
+ The program hdf5_display shows all the field of a given HDF5 song file and
+ acts as a demo on how to use the wrapper.
+
+ To compile under Linux type 'make'.
+ The libraries needed for this code are 'hdf5' and 'hdf5_cpp', available at:
+ http://www.hdfgroup.org/HDF5/
+
+ To use in your code you can:
+  - (hacky) add hdf5_getters.cc/h source as part of your project
+  - compile it as a library and link your project to it
+
+ DISCLAIMER:
+  This code is distributed 'as is' without any guarantee whatsoever.
+  Use at your own risk.
+  The data in the Million Song Dataset is subject to licenses, read before
+  you start using it, especially if you are not an academic researcher.
+Million Song Dataset
+JavaSrc/README.txt
+tb2332@columbia.edu
+
+You must have install the HDF5 library.
+You also need the JAVA HDF5 jar files for your operating system, details at:
+http://www.hdfgroup.org/hdf-java-html/hdf-object/index.html
+Specifically: jhdf5.jar  jhdf5obj.jar  jhdfobj.jar  
+
+To compile (could be simplified) and run the java demo, do (on Linux):
+
+cd <blablabla/JavaSrc>
+javac -classpath jhdf5.jar:jhdf5obj.jar:jhdfobj.jar hdf5_getters.java
+java -classpath ./jhdf5.jar:./jhdf5obj.jar:./jhdfobj.jar:. hdf5_getters
+
+/PythonSrc/DatasetCreation/README.txt
+
+     by T. Bertin-Mahieux (2010) Columbia University
+        tb2332@columbia.edu
+
+Contains the python code and some text files used to
+create (=download!) the Million Song Dataset.
+
+/PythonSrc/MBrainzDB/README.txt
+   by T. Bertin-Mahieux (2010) Columbia University
+      tb2332@columbia.edu
+
+Code to call the music brainz database that has been installed
+locally.
+
+This is not an extensive code to access all fields in the database!
+The main goal is to provide a release year and some musicbrainz id
+to the Million Song dataset.
+
+The database is postgresql, the two database names are:
+musicbrainz_db and musicbrainz_db_raw.
+The user is 'gordon' with password 'gordon'.
+
+For details on the structure of the MusicBrainz dataset, see:
+musicbrainz.org
+
+MILLION SONG DATASET
+====================
+
+http://labrosa.ee.columbia.edu/millionsong/
+
+January 2011
+
+************************************************************
++ The dataset contains the analysis and metadata for a million songs.
+The goal is to provide a large dataset for researchers to report results 
+on, hence encouraging algorithms that scale to commercial sizes.
+
++ Most of the information is provided by The Echo Nest.
+The dataset is the result of a collaboration between The Echo Nest
+and LabROSA at Columbia University.
+This project is funded in part by the NSF.
+
++ Most of the data is licensed the same way as Echo Nest's API.</br>
+<br>For the SecondHandSongs dataset (cover songs), see the webpage:</br>
+   <br>[http://labrosa.ee.columbia.edu/millionsong/secondhand](http://labrosa.ee.columbia.edu/millionsong/secondhand 'SecondHandSongs dataset')</br>
+<br>For the musiXmatch dataset (lyrics), see the webpage:</br>
+   <br>[http://labrosa.ee.columbia.edu/millionsong/musixmatch](http://labrosa.ee.columbia.edu/millionsong/musixmatch 'musiXmatch dataset')</br>
+<br>The code is under GNU public license.
+See LICENSE for details.</br>
+
++ Most details and instructions on how to get the dataset can be found
+on the project's website:</br>
+[http://labrosa.ee.columbia.edu/millionsong/](http://labrosa.ee.columbia.edu/millionsong/)
+
+************************************************************
+
+If you have any question or comment:
+------------------------------------
+https://groups.google.com/forum/#!forum/millionsongdataset
+
+/Tasks_Demos/ArtistRecognition/README.txt
+    by T. Bertin-Mahieux (2010) Columbia University
+       tb2332@columbia.edu
+
+This folder contains all code related to artist recognition.
+
+REMINDER:
+ - the dataset contains 44,745 unique artists based on their Echo Nest ID
+ - out of that, 18,073 have at least 20 songs.
+
+
+TWO SPLITS? WHAT IS THE DIFFERENCE?
+Both only look at artists with at least 20 songs. Differences are:
+- in the regular split, each artist has 15 songs in the training set,
+the rest is in the testing set.
+- in the unbalanced split, each artist has 2/3 of his songs in the training
+set, the rest in the testing set. It makes things easier because 1) the
+training set is larger and 2) you can use a non uniform prior on the artists.
+
+INCLUDE ALL ARTISTS?
+when we do KNN, if our KNN model includes all existing artists,
+it is obviously easier to mistake a test artist.
+In our code, use -onlytesta flag to train only on artists that are in the
+test set.
+
+BENCHMARK
+
+easy case: unbalanced split, train only on test artists
+           - best constant predictor (always same artist): 69/261503=0.026%
+           - using our K-nn model (K=1)   9.578%
+
+difficult case: balanced split, train on all artists
+           - best contant predictor       193/532300=0.036%
+	   - using our K-nn model (K=1)   4.82%
+
+
+CODE TO REPRODUCE THE K-NN BENCHMARK EXPERIMENTS
+easy case:
+python process_train_set.py -onlytesta -nthreads 5 MillionSong/data ArtistRecognition/songs_test_unbalanced.txt track_metadata.db trained_knn_unbalanced.h5
+(2h30m)
+python process_test_set.py -nthreads MillionSong/data trained_knn_unbalanced.h5 ArtistRecognition/songs_test_unbalanced.txt track_metadata.db
+(2h10m)
+difficult case:
+python process_train_set.py -nthreads 5 MillionSong/data ArtistRecognition/songs_test.txt track_metadata.db trained_knn.h5
+(2h10m)
+python process_test_set.py -nthreads MillionSong/data trained_knn.h5 ArtistRecognition/songs_test.txt track_metadata.db
+(4h30m)
+
+/Tasks_Demos/CoverSongs/README.txt
+
+    by T. Bertin-Mahieux (2010) Columbia University
+       tb2332@columbia.edu
+
+This folder contains the SecondHandSongs dataset!
+http://labrosa.ee.columbia.edu/millionsong/secondhand
+
+Also, it will eventually contain helper code to deal with covers,
+and even benchmark algorithms.
+
+
+/MSongsDB/Tasks_Demos/CoverSongs/waspaa11/README.txt
+
+This folder contains the code to reproduce the result from:
+
+"Large-scale cover song recognition using hashed chroma landmarks"
+by T. Bertin-Mahieux and D. Ellis, WASPAA 2011
+
+The code is provided "as is", with no guarantee whatsoever, under the GNU GPL 
+license. From a research point of view, we do not claim that this represents
+the state-of-the-art, please see it merely as a benchmark to compare your
+own algoithm against.
+
+If you have questions, first please read the paper. Then do not
+hesitate to contact the authors.
+
+Thierry Bertin-Mahieux
+July 2011
+
+******** REQUIREMENTS *************
+
+We use python 2.6 with numpy installed on an Ubuntu machine.
+We use pytables (http://www.pytables.org/) -> HDF5 wrapper.
+We use coffee, and sometimes alcoholic beverages.
+
+
+******** GETTING STARTED ***********
+
+Here is how to reproduce results on the SHS dataset:
+
+* for quick parameter testing (first result of the paper)
+python quick_query_test.py /CoversSubsetData shs_dataset_train.txt
+
+* create a database containing the fingerprints for the ~12k tracks
+  of the SecondHandSongs dataset (using 2 threads)
+  Here we have a directory with only the train songs from SHS.
+python compute_hashcodes_mprocess.py /CoversSubsetData hashes.db 2
+
+* add tables to the database, one per hashcode, in order to get
+  track IDs that contain a given hashcode
+python create_jcode_tables.py hashes.db
+
+* now let's check covers from the SHS train dataset
+  (this reproduces one of the first results from the paper)
+python query_for_covers_mprocess.py hashes.db shs_dataset_train.txt output.h5 2
+
+* to check the results, in python/ipython, the file 'output.h5' contains,
+  under root/results you'll find:
+  - query      track ID for which we want to find covers
+  - target     track ID of a specific cover
+  - pos        position (rank) of the target to the query
+  - n_results  number of tracks with overlapping hashcodes with query
+import numpy as np, tables
+h5 = tables.openFile('./output.h5')
+np.average(h5.root.results.pos[:])
+
+Good luck,and enjoy!
+
+
+******** IMPROVEMENTS ************
+
+Starting at step 2, implementation is awful! We should not have used
+SQL when all we needed was a lookup table.
+Implement a keystore that, given an hashcode, gives you track IDs.
+It could even fit in memory and be 100x faster!
+Even a python dict() might do the job if you have enough RAM:
+   {1131:[TR1234, TR456], 231231:[TR1234, TR789], ...}
+
+/Tasks_Demos/Lyrics/README.txt
+   by T. Bertin-Mahieux (2011) Columbia University
+      tb2332@columbia.edu
+
+This folder contains code to deal with the musiXmatch dataset,
+the official collection of lyrics for the Million Song Dataset.
+See:
+  http://labrosa.ee.columbia.edu/millionsong/musixmatch
+
+The mXm dataset comes in 2 text files, train and test.
+
+To simplify its usage, we also provide a SQLite database with the
+same data. The code to recreate this database is:
+   mxm_dataset_to_db.py
+More details on the database:
+   - it contains two tables, 'words' and 'lyrics'
+   - table 'words' has one column: 'word'. Words are entered according
+     to popularity, check their ROWID if you want to check their position.
+     ROWID is an implicit column in SQLite, it starts at 1.
+   - table 'lyrics' contains 5 columns, see below
+   - column 'track_id' -> as usual, track id from the MSD
+   - column 'mxm_tid' -> track ID from musiXmatch
+   - column 'word' -> a word that is also in the 'words' table
+   - column 'cnt' -> word count for the word
+   - column 'is_test' -> 0 if this example is from the train set, 1 if test
+
+If you want to know exactly how we created the bag-of-wirds, look at:
+  lyrics_to_bow.py
+Note that it requires the following Python package:
+  http://pypi.python.org/pypi/stemming/1.0
+
+Please enjoy, and don't hesitate to give us feedback!
+
+tasks/NamesAnalysis/README.txt
+   by T. Bertin-Mahieux (2010) Columbia University
+      tb2332@columbia.edu
+
+This folder / task deals with metadata like artist names,
+release names, song names.
+
+We extract useful information like the list of all artists in
+the dataset, the list of all releases, etc.
+
+Some results are interesting on their own, e.g. the average
+artist name length, but mostly this is code that could be reuse
+for other things.
+For instance, the list of all artists is important to split
+the dataset into train / test for a tag recognition task.
+
+/tasks/Preview7digital/README.txt
+
+T. Bertin-Mahieux (2010) Columbia University
+tb2332@columbia.edu
+
+Simple code to get a url preview from 7digital.com for
+a given track in the Million Song Dataset project.
+This could be incorporated in a user study experiment,
+or as a debugging tool (is this song really that 'rock'?),
+etc.
+
+You need a 7digital API key, available at:
+http://access.7digital.com/partnerprogram
+we recommend you put the key as a environment variable:
+DIGITAL7_API_KEY
+
+In general, 7digital developer's website is:
+http://developer.7digital.net/
+
+We are aware of a python wrapper around 7digital API (thanks Oscar!):
+https://github.com/ocelma/7-digital
+To be as general as possible, we intend not to use it, but
+we do recommend its use in a real application!
+
+PLAYER
+------
+We are building a graphical player, see player_7digital.py
+It is in development, but the basic functionnalities are there.
+It takes a track or song ID, or an artist/title as input.
+It is Linux-dependent for the moment, but it should be ready
+for Mac soon.
+It depends on Tkinter, pyao and pymad. If you can install these,
+you can make it work, write us if you need help or want to suggest
+features.
+
+MATLAB
+------
+Dan Ellis provided a Matlab version of the script, see MatlabSrc directory
+at the top level of this repository, script name: load_preview.m
+
+Tasks/README.txt
+
+T. Bertin-Mahieux (2010) Columbia University
+tb2332@columbia.edu
+Part of the Million Song Dataset, a collaboration
+between LabROSA and the Echo Nest
+
+This folder contains code to get people started on
+specific tasks.
+
+See each task for details, plus the webpage.
+Most of it is in python, and it might rely on external
+libraries.
+
+If you have code that you want to be included here, or
+more simply have a link on the Million Song Dataset
+webpage, please send me an email!
+
+Tasks/Segmentation/README.txt
+
+T. Bertin-Mahieux (2010) Columbia University
+tb2332@columbia.edu
+Part of the Million Song Dataset, a collaboration
+between LabROSA and the Echo Nest
+
+This folder contains code to perform segmentation
+on the Million Song dataset data.
+Out starting point is the code from Luke Barrington
+at UCSD:
+http://cosmal.ucsd.edu/cal/projects/segment/
+
+/Tasks_Demos/SQLite/README.txt
+   by T. Bertin-Mahieux (2010) Columbia University
+      tb2332@columbia.edu
+
+This folder contains code to create SQLite databses to help us
+search through the Million Song database.
+The SQLite databases can be downloaded (if not provied with the
+dataset in the first place)
+Look at the demo to see how to use them.
+
+The first database should have 1M row, one per track, and contain
+the metadata (artist id, album id, track id, names, ...)
+
+The second database should have one row per artist and one column
+per tag, and is binary, e.g. this artist got that term.
+
+Code in progress, write me for question / comments / status report: 
+tb2332@columbia.edu
+
+/Tasks_Demos/Tagging/README.txt
+    by T. Bertin-Mahieux (2010) Columbia University
+       tb2332@columbia.edu
+
+
+This folder contains every code related to automatic tagging using
+Echo Nest artist terms.
+
+A SPLIT BETWEEN TRAIN AND TEST ARTISTS HAS BEEN MADE.
+Please report results using this split, so they are easily comparable.
+File are: artists_train.txt and artists_test.txt
+
+We based the split on the 300 most used terms, the list is provided,
+ordered by frequency: top_terms.txt
+
+/Tasks_Demos/YahooRatings/README.txt
+      by Thierry Bertin-Mahieux (2011) Columbia University
+         tb2332@columbia.edu
+
+
+This folder contains code to link the Yahoo Ratings data
+with the Million SOng Dataset
+
+For Yahoo data:
+http://webscope.sandbox.yahoo.com/
+
+The most important code links Yahoo artist name with
+Echo Nest artist ID from the Million Song Dataset
+See: match_artist_names.py
+
+We then count how many ratings these artists cover, see:
+ count_ratings_known_artists.py
+usage:
+ python count_ratings_known_artists.py \
+         /YahooData/R1/ydata-ymusic-artist-names-v1_0.txt \
+         mapping_15780artists.txt \
+         /YahooData/R1/ydata-ymusic-user-artist-ratings-v1_0.txt
+
+Using the artist coverage as of January 10 2011, 
+we cover 91% of the ratings (105215445/115579440 ratings)
+
+MISSING ARTISTS
+remember that you can use The Echo Nest API to get info and track
+analysis for the artists not covered in the Million Song Dataset.
+You even have the code to put these artists into this dataset format.
+
+
+
+/MSongsDB/Tasks_Demos/YearPrediction/ismir11/README.txt
+
+Code to reproduce the experiments on year prediction from the paper:
+
+The Million Song Dataset
+by T. Bertin-Mahieux, D. Ellis, B. Whitman and P. Lamere
+ISMIR 2011
+
+The code is shared under the GNU GPL license.
+
+Enjoy, and please write us if you have questions!
+
+Thierry Bertin-Mahieux
+tb2332@columbia.edu
+
+
+********* REQUIREMENTS *********
+
+We use python 2.6 with numpy on an Ubuntu machine.
+We installed the great Vowpal Wabbit (http://hunch.net/~vw/).
+We dance in circle for the full moon.
+
+
+********* EXPERIMENTS **********
+
+The paper contains 3 main results:
+- no audio features, i.e. best constant predictor
+- kNN, slow and poor results
+- vw, fast and better results
+
+****************
+** no features:
+
+* simply launch:
+python year_pred_benchmark.py ../artists_test.txt track_metadata.db
+
+****************
+** kNN:
+
+* 'train' the model, e.g. save a bunch of examples
+  look at the flags to set parameters like number
+  of threads, window size, ...
+  as we said, it is slow, and not great
+python process_train_set.py -testartists ../artists_test.txt /MSD/data model.h5
+
+* test it.
+  if you set flags during training, make sure you
+  have the same during testing
+  numerical results will be output.
+python process_test_set.py /MSD/data model.h5 ../artists_test.txt track_metadata.db
+
+* measure
+
+
+****************
+** vowpal wabbit:
+
+* create the dataset using:
+python create_vw_dataset.py /MSD/data ../artists_test.txt track_metadata.db vw_train.txt vw_test.txt
+
+* test many vw settings using the following script.
+  some values to set at the top.
+python auto_vw.py
+
+* or just launch vw using the parameters we give in the paper
+  measure the result with the following
+python measure_vw_res.py vw_test.txt vwoutput
+
+/Tasks_Demos/YearPrediction/README.txt
+    by T. Bertin-Mahieux (2010) Columbia University
+       tb2332@columbia.edu
+
+This folder contains all code related to year prediction, or era prediction
+in general.
+
+To start, look at tracks_per_year.txt in the addiontal files. 
+If you don't have it already, look at the Million Song website.
+This contains every tracks for which
+we have the year information (based on musicbrainz) in ascending order.
+The format is: year<SEP>track id<SEP>artist name<SEP>song title
+
+We also provide a train/test split of artists, so everyone reports
+similar results. In more details, prediction should be made for every
+song of every test artist!
+See artists_train.txt and artists_test.txt, and for details on how we
+did the split: split_train_test.py
+
+
+NOTE: some details are missing in this folder, we are preparing a submission
+presenting the Million Song Dataset, and this will be the featured task.
+The full code and results will soon be released, write us if you need them
+sooner: Thierry Bertin-Mahieux, tb2332@columbia.edu   (January 2011)
+

@@ -1,0 +1,1743 @@
+lynode.conf配置文件说明
+==============================================
+.. note::
+   lynode.conf是lynode服务器的配置文件,通过此文件,您可以指定lynode的工作方式与一些技术细节.
+   默认安装时,此文件位于 /opt/LuoYun/platform/etc/luoyun-cloud 目录中.
+
+配置文件参数说明
+----------------------------------------------
+.. note::
+   以#开头的是开发人员编码时所做的注释,对紧接着下面的行所起的作用加以了注释说明,您可以通过注释帮助您了解此文件的功能.
+
+下面我们来逐项加以说明:
+
+虚拟化模式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+   
+   # Configuration file for LuoYun cloud compute nodes
+   #
+   # Hypervisor driver used on compute node
+   #
+   # default is KVM
+   #
+   LYNODE_DRIVER = KVM
+
+**此处的前6行是由#号表示的注释(下文中将不再引用注释)**
+
+所注释的参数行是紧随其后的: LYNODE_DRIVER = KVM
+
+此参数指明了lynode采用的虚拟化工作模式,默认采用的是KVM虚拟化方案,未来版本中还将提供Xen等其他虚拟化方案的支持.
+
+指定lynode服务配置记录的保存路径
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_SYSCONF_PATH = /opt/LuoYun/platform/etc/luoyun-cloud/lynode.sysconf
+
+此参数表示的是lynode服务器的配置在连接成功后生成的记录文件保存路径,默认与lynode.conf在同一目录,文件名为lynode.sysconf.如果需要重新配置node服务器,可以将lynode.sysconf文件删除,系统会在重新配置时自动生成该文件.
+
+指定lynode服务器与lyclc服务器的连接方式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYCLC_AUTO_CONNECT = ALWAYS
+   LYCLC_HOST = 
+   LYCLC_PORT = 1369
+
+此处的三行参数指定了lynode服务器与lyclc服务器的连接方式.
+
+LYCLC_AUTO_CONNECT
+ 指定连接方式,默认为ALWAYS,表示lynode服务器将不断通过网络连接到lyclc服务器,可选参数还有ONCE,表示仅连接lyclc服务器一次,并在连接成功后记录lyclc服务器的ip地址,以后直接连接所记录的lyclc服务器ip地址,还可选DISABLE,表示通过第二行的参数连接.
+
+LYCLC_HOST 
+ 指定lyclc服务器的IP地址,当第一参数为DISABLE时生效.默认为空.
+
+LYCLC_PORT
+ 指定与lyclc服务器连接时所使用的端口号.
+
+
+连接lyclc服务器的方式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYCLC_MCAST_IP = 228.0.0.1
+   LYCLC_MCAST_PORT = 1369
+
+此处的两行参数指定的是lynode服务器在尝试自动连接lyclc服务器时所使用的网络掩码与监听端口.
+
+lynode服务器的数据存储位置
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_DATA_DIR = /opt/LuoYun/platform/node_data
+
+此参数指定是用户最关心的数据存储问题,lynode服务器提供的服务数据都保存的此处指定的目录,默认为*/opt/LuoYun/platform/node_data* ,您也可以自定义到其他目录,但node投入使用后请不要轻易修改此参数,以免造成用户数据丢失. 在此参数指定的目录下将保存用户创建的虚拟机,额外存储的磁盘,以及应用等数据.请确保此目录空间足够使用.
+
+
+UUID设置
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_UUID_PATH = /opt/LuoYun/platform/etc/luoyun-cloud/lynode.uuid
+
+
+此参数为后续版本的高级设置保留,目前暂未使用.
+
+
+指定lynode的日志记录位置
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_LOG_PATH = /opt/LuoYun/platform/logs/lynode.log
+
+此参数指定lynode服务器的日志文件保存位置,默认为 /opt/LuoYun/platform/logs/lynode.log ,管理员可以查看此文件来了解lynode的运行情况.
+
+
+PID设置
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_PID_PATH = /var/run/lynode.pid
+
+
+此参数为后续版本的高级设置保留,目前暂未使用.
+
+VM模板参数自定义
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   #LYNODE_VM_TEMPLATE =
+   #LYNODE_VM_DISK_TEMPLATE =
+   #LYNODE_VM_NET_BRIDGE_TEMPLATE =
+   #LYNODE_VM_NET_NAT_TEMPLATE =
+
+此处的四行参数默认被注释掉不启用,由于luoyuncloud推荐使用centos环境,不需要另行指定此参数值,但考虑到一些用户使用debain/ubuntu类系统,所以提供此处的参数供高级用户使用.
+
+.. note::
+   如果您使用的是ubuntu服务器环境,可以去掉此行的第一行 #LYNODE_VM_TEMPLATE = 的 # 号,并在=号后指定自定义的模板xml文件路径.
+
+指定网络连接方式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_NET_PRIMARY = br0
+   LYNODE_NET_SERCONDARY = 
+
+此处的两行参数指定的是网卡的工作方式.单机部署时第一行参数建议改为virbr0,以免虚拟机无法获得IP地址.默认配置为br0,第二行参数指定的是第二块网卡的IP地址,默认为空.
+
+
+osm的旧版读取方式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYOSM_CONF_PATH = /LuoYun/conf/luoyun.conf
+   LYOSM_KEY_PATH = /LuoYun/conf/luoyun.key
+
+此处的两行参数为0.2版的osmanger读取参数方式,目前已经停止使用,仅为保留.
+
+
+lynode运行方式
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_DAEMON = 1
+
+此参数指定lynode服务程序的运行方式,默认为1,lynode服务程序以后台服务的形式运行;可选参数0,可指定lynode以非后台的形式运行.
+
+
+调试模式开关
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+::
+
+   LYNODE_DEBUG = 0
+
+此参数可指定lynode服务以调试模式运行,使lynode的日志文件记录更详细的内容,默认为0,不打开调试模式;可选参数1,打开调试模式.
+
+安装 LuoYun Web
+==============
+
+
+0. 前提
+------
+
+   1. 下载源码
+
+   2. 准备好 lynode, lyclc
+
+
+1. 安装 web
+----------
+
+    复制 LuoYunCloud/lyweb 到 /opt/LuoYun/web
+
+    复制 lib => /opt/LuoYun/web/lib
+
+
+2. 创建 db user
+--------------
+
+    查看 postgresql 己有用戶
+    # su - postgres -c "createuser -SRD luoyun"
+    # su - postgres -c "createdb luoyun -O luoyun"
+
+    创建 luoyun user
+    # su - postgres -c "psql -c 'dg'" 
+
+
+3. 设置 db user 正确登录权限
+------------------------
+
+    编辑 /etc/postgresql/9.1/main/pg_hba.conf 中 luoyun 本地登录为 trust
+
+    重启 postgresql :
+    /etc/init.d/postgresql restart
+
+
+4. 初紿化数据库
+------------
+
+    python /opt/LuoYun/web/manage.py
+
+
+5. 编绎 nginx
+------------
+
+    useradd -d /opt/LuoYun/ -s /bin/false luoyun
+
+    ./configure \
+       --prefix=/etc/nginx \
+       --sbin-path=/usr/sbin/nginx \
+       --pid-path=/var/run/nginx.pid \
+       --lock-path=/var/lock/nginx.lock \
+       --http-client-body-temp-path=/var/spool/nginx/client_body_temp \
+       --http-proxy-temp-path=/var/spool/nginx/proxy_temp \
+       --http-fastcgi-temp-path=/var/spool/nginx/fastcgi_temp \
+       --http-log-path=/var/log/nginx/access.log \
+       --error-log-path=/var/log/nginx/error.log \
+       --user=luoyun --group=luoyun \
+       --with-imap \
+       --with-imap_ssl_module \
+       --with-http_ssl_module \
+       --with-http_stub_status_module \
+       --with-http_dav_module \
+       --with-http_gzip_static_module \
+       --with-ipv6 \
+       --http-scgi-temp-path=/var/spool/nginx \
+       --http-uwsgi-temp-path=/var/spool/nginx \
+       --add-module=../nginx_upload_module-2.2.0/ \
+       --add-module=../masterzen-nginx-upload-progress-module-82b35fc
+
+   # 如果有错误，运行 "sed -i -e 's@-Werror@@g' objs/Makefile"
+
+   make
+   make install
+
+   mkdir -pv /var/{spool,log}/nginx/
+   mkdir -pv /opt/LuoYun/data/{upload,appliance} /opt/LuoYun/logs/
+
+   配置 /etc/nginx/conf/nginx.conf
+
+IPy - class and tools for handling of IPv4 and IPv6 addresses and networks.
+
+Website: https://github.com/haypo/python-ipy/
+
+Presentation of the API
+=======================
+
+The IP class allows a comfortable parsing and handling for most
+notations in use for IPv4 and IPv6 addresses and networks. It was
+greatly inspired by RIPE's Perl module NET::IP's interface but
+doesn't share the implementation. It doesn't share non-CIDR netmasks,
+so funky stuff like a netmask of 0xffffff0f can't be done here.
+
+    >>> from IPy import IP
+    >>> ip = IP('127.0.0.0/30')
+    >>> for x in ip:
+    ...  print(x)
+    ...
+    127.0.0.0
+    127.0.0.1
+    127.0.0.2
+    127.0.0.3
+    >>> ip2 = IP('0x7f000000/30')
+    >>> ip == ip2
+    1
+    >>> ip.reverseNames()
+    ['0.0.0.127.in-addr.arpa.', '1.0.0.127.in-addr.arpa.', '2.0.0.127.in-addr.arpa.', '3.0.0.127.in-addr.arpa.']
+    >>> ip.reverseName()
+    '0-3.0.0.127.in-addr.arpa.'
+    >>> ip.iptype()
+    'PRIVATE'
+
+
+Supports most IP address formats
+================================
+
+It can detect about a dozen different ways of expressing IP addresses
+and networks, parse them and distinguish between IPv4 and IPv6 addresses:
+
+    >>> IP('10.0.0.0/8').version()
+    4
+    >>> IP('::1').version()
+    6
+
+IPv4 addresses
+--------------
+
+    >>> print(IP(0x7f000001))
+    127.0.0.1
+    >>> print(IP('0x7f000001'))
+    127.0.0.1
+    >>> print(IP('127.0.0.1'))
+    127.0.0.1
+    >>> print(IP('10'))
+    10.0.0.0
+
+IPv6 addresses
+--------------
+
+    >>> print(IP('1080:0:0:0:8:800:200C:417A'))
+    1080::8:800:200c:417a
+    >>> print(IP('1080::8:800:200C:417A'))
+    1080::8:800:200c:417a
+    >>> print(IP('::1'))
+    ::1
+    >>> print(IP('::13.1.68.3'))
+    ::d01:4403
+
+Network mask and prefixes
+-------------------------
+
+    >>> print(IP('127.0.0.0/8'))
+    127.0.0.0/8
+    >>> print(IP('127.0.0.0/255.0.0.0'))
+    127.0.0.0/8
+    >>> print(IP('127.0.0.0-127.255.255.255'))
+    127.0.0.0/8
+
+
+Derive network address
+===========================
+
+IPy can transform an IP address into a network address by applying the given
+netmask:
+>>> print(IP('127.0.0.1/255.0.0.0', make_net=True))
+127.0.0.0/8
+
+This can also be done for existing IP instances:
+>>> print(IP('127.0.0.1').make_net('255.0.0.0'))
+127.0.0.0/8
+
+
+Convert address to string
+=========================
+
+Nearly all class methods which return a string have an optional
+parameter 'wantprefixlen' which controls if the prefixlen or netmask
+is printed. Per default the prefilen is always shown if the network
+contains more than one address::
+
+    wantprefixlen == 0 / None     don't return anything   1.2.3.0
+    wantprefixlen == 1            /prefix                 1.2.3.0/24
+    wantprefixlen == 2            /netmask                1.2.3.0/255.255.255.0
+    wantprefixlen == 3            -lastip                 1.2.3.0-1.2.3.255
+
+You can also change the defaults on an per-object basis by fiddling with
+the class members:
+
+ * NoPrefixForSingleIp
+ * WantPrefixLen
+
+Examples of string conversions:
+
+    >>> IP('10.0.0.0/32').strNormal()
+    '10.0.0.0'
+    >>> IP('10.0.0.0/24').strNormal()
+    '10.0.0.0/24'
+    >>> IP('10.0.0.0/24').strNormal(0)
+    '10.0.0.0'
+    >>> IP('10.0.0.0/24').strNormal(1)
+    '10.0.0.0/24'
+    >>> IP('10.0.0.0/24').strNormal(2)
+    '10.0.0.0/255.255.255.0'
+    >>> IP('10.0.0.0/24').strNormal(3)
+    '10.0.0.0-10.0.0.255'
+    >>> ip = IP('10.0.0.0')
+    >>> print(ip)
+    10.0.0.0
+    >>> ip.NoPrefixForSingleIp = None
+    >>> print(ip)
+    10.0.0.0/32
+    >>> ip.WantPrefixLen = 3
+    >>> print(ip)
+    10.0.0.0-10.0.0.0
+
+Work with multiple networks
+===========================
+
+Simple addition of neighboring netblocks that can be aggregated will yield
+a parent network of both, but more complex range mapping and aggregation
+requires is available with the IPSet class which will hold any number of
+unique address ranges and will aggregate overlapping ranges.
+
+    >>> from IPy import IP, IPSet
+    >>> IP('10.0.0.0/22') - IP('10.0.2.0/24')
+    IPSet([IP('10.0.0.0/23'), IP('10.0.3.0/24')])
+    >>> IPSet([IP('10.0.0.0/23'), IP('10.0.3.0/24'), IP('10.0.2.0/24')])
+    IPSet([IP('10.0.0.0/22')])
+    >>> s = IPSet([IP('10.0.0.0/22')])
+    >>> s.add(IP('192.168.1.0/29'))
+    >>> s
+    IPSet([IP('10.0.0.0/22'), IP('192.168.1.0/29')])
+    >>> s.discard(IP('192.168.1.2'))
+    >>> s
+    IPSet([IP('10.0.0.0/22'), IP('192.168.1.0/31'), IP('192.168.1.3'), IP('192.168.1.4/30')])
+
+Compatibility and links
+=======================
+
+IPy 0.81 works on Python version 2.5 - 3.3.
+
+This Python module is under BSD license: see COPYING file.
+
+Further Information might be available at:
+https://github.com/haypo/python-ipy
+
+=========================
+Mako Templates for Python
+=========================
+
+Mako is a template library written in Python. It provides a familiar, non-XML 
+syntax which compiles into Python modules for maximum performance. Mako's 
+syntax and API borrows from the best ideas of many others, including Django
+templates, Cheetah, Myghty, and Genshi. Conceptually, Mako is an embedded 
+Python (i.e. Python Server Page) language, which refines the familiar ideas
+of componentized layout and inheritance to produce one of the most 
+straightforward and flexible models available, while also maintaining close 
+ties to Python calling and scoping semantics.
+
+Nutshell
+========
+
+::
+
+    <%inherit file="base.html"/>
+    <%
+        rows = [[v for v in range(0,10)] for row in range(0,10)]
+    %>
+    <table>
+        % for row in rows:
+            ${makerow(row)}
+        % endfor
+    </table>
+
+    <%def name="makerow(row)">
+        <tr>
+        % for name in row:
+            <td>${name}</td>\
+        % endfor
+        </tr>
+    </%def>
+
+Philosophy
+===========
+
+Python is a great scripting language. Don't reinvent the wheel...your templates can handle it !
+
+Documentation
+==============
+
+See documentation for Mako at http://www.makotemplates.org/docs/
+
+License
+========
+
+Mako is licensed under an MIT-style license (see LICENSE).
+Other incorporated projects may be licensed under different licenses.
+All licenses allow for non-commercial and commercial use.
+
+Installing Python-Markdown
+==========================
+
+As an Admin/Root user on your system do:
+
+    pip install markdown
+
+Or for more specific instructions, view the documentation in `docs/install.txt`
+or on the website at <http://packages.python.org/Markdown/>.
+
+Copyright 2007, 2008 The Python Markdown Project (v. 1.7 and later)  
+Copyright 2004, 2005, 2006 Yuri Takhteyev (v. 0.2-1.6b)  
+Copyright 2004 Manfred Stienstra (the original version)  
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+    
+*   Redistributions of source code must retain the above copyright
+    notice, this list of conditions and the following disclaimer.
+*   Redistributions in binary form must reproduce the above copyright
+    notice, this list of conditions and the following disclaimer in the
+    documentation and/or other materials provided with the distribution.
+*   Neither the name of the <organization> nor the
+    names of its contributors may be used to endorse or promote products
+    derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE PYTHON MARKDOWN PROJECT ''AS IS'' AND ANY
+EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL ANY CONTRIBUTORS TO THE PYTHON MARKDOWN PROJECT
+BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+POSSIBILITY OF SUCH DAMAGE.
+
+
+[Python-Markdown][]
+===================
+
+This is a Python implementation of John Gruber's [Markdown][]. 
+It is almost completely compliant with the reference implementation,
+though there are a few known issues. See [Features][] for information 
+on what exactly is supported and what is not. Additional features are 
+supported by the [Available Extensions][].
+
+[Python-Markdown]: http://packages.python.org/Markdown/
+[Markdown]: http://daringfireball.net/projects/markdown/
+[Features]: http://packages.python.org/Markdown/index.html#Features
+[Available Extensions]: http://packages.python.org/Markdown/extensions/index.html
+
+
+Documentation
+-------------
+
+Installation and usage documentation is available in the `docs/` directory
+of the distribution and on the project website at 
+<http://packages.python.org/Markdown/>.
+
+Support
+-------
+
+You may ask for help and discuss various other issues on the [mailing list][] and report bugs on the [bug tracker][].
+
+[mailing list]: http://lists.sourceforge.net/lists/listinfo/python-markdown-discuss
+[bug tracker]: http://github.com/waylan/Python-Markdown/issues 
+
+
+========================
+Developing new Dialects
+========================
+
+.. note::
+
+   When studying this file, it's probably a good idea to also
+   familiarize with the  README.unittests.rst file, which discusses
+   SQLAlchemy's usage and extension of the Nose test runner.
+
+While SQLAlchemy includes many dialects within the core distribution, the
+trend for new dialects should be that they are published as external
+projects.   SQLAlchemy has since version 0.5 featured a "plugin" system
+which allows external dialects to be integrated into SQLAlchemy using
+standard setuptools entry points.  As of version 0.8, this system has
+been enhanced, so that a dialect can also be "plugged in" at runtime.
+
+On the testing side, SQLAlchemy as of 0.8 also includes a "dialect
+compliance suite" that is usable by third party libraries.  There is no
+longer a strong need for a new dialect to run through SQLAlchemy's full
+testing suite, as a large portion of these tests do not have
+dialect-sensitive functionality.  The "dialect compliance suite" should
+be viewed as the primary target for new dialects, and as it continues
+to grow and mature it should become a more thorough and efficient system
+of testing new dialects.
+
+Dialect Layout
+===============
+
+The file structure of a dialect is typically similar to the following::
+
+    sqlalchemy-<dialect>/
+                         setup.py
+                         setup.cfg
+                         run_tests.py
+                         sqlalchemy_<dialect>/
+                                              __init__.py
+                                              base.py
+                                              <dbapi>.py
+                                              requirements.py
+                         test/
+                                              __init__.py
+                                              test_suite.py
+                                              test_<dialect_specific_test>.py
+                                              ...
+
+An example of this structure can be seen in the Access dialect at
+https://bitbucket.org/zzzeek/sqlalchemy-access/.
+
+Key aspects of this file layout include:
+
+* setup.py - should specify setuptools entrypoints, allowing the
+  dialect to be usable from create_engine(), e.g.::
+
+        entry_points={
+         'sqlalchemy.dialects': [
+              'access = sqlalchemy_access.pyodbc:AccessDialect_pyodbc',
+              'access.pyodbc = sqlalchemy_access.pyodbc:AccessDialect_pyodbc',
+              ]
+        }
+
+  Above, the two entrypoints ``access`` and ``access.pyodbc`` allow URLs to be
+  used such as::
+
+    create_engine("access://user:pw@dsn")
+
+    create_engine("access+pyodbc://user:pw@dsn")
+
+* setup.cfg - this file contains the traditional contents such as [egg_info]
+  and [nosetests] directives, but also contains new directives that are used
+  by SQLAlchemy's testing framework.  E.g. for Access::
+
+    [egg_info]
+    tag_build = dev
+
+    [nosetests]
+    with-sqla_testing = true
+    where = test
+    cover-package = sqlalchemy_access
+    with-coverage = 1
+    cover-erase = 1
+
+    [sqla_testing]
+    requirement_cls=sqlalchemy_access.requirements:Requirements
+    profile_file=.profiles.txt
+
+    [db]
+    default=access+pyodbc://admin@access_test
+    sqlite=sqlite:///:memory:
+
+  Above, the ``[sqla_testing]`` section contains configuration used by
+  SQLAlchemy's test plugin.The ``[nosetests]`` section includes the
+  directive ``with-sql_testing = true``, which indicates to Nose that
+  the SQLAlchemy nose plugin should be used.
+
+* run_tests.py - The plugin is provided with SQLAlchemy, however is not
+  plugged into Nose automatically; instead, a ``run_tests.py`` script
+  should be composed as a front end to Nose, such that SQLAlchemy's plugin
+  will be correctly installed.
+
+  run_tests.py has two parts.  One optional, but probably helpful, step
+  is that it installs your third party dialect into SQLAlchemy without
+  using the setuptools entrypoint system; this allows your dialect to
+  be present without any explicit setup.py step needed.  The other
+  step is to import SQLAlchemy's nose runner and invoke it.  An
+  example run_tests.py file looks like the following::
+
+    from sqlalchemy.dialects import registry
+
+    registry.register("access", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+    registry.register("access.pyodbc", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+
+    from sqlalchemy.testing import runner
+
+    # use this in setup.py 'test_suite':
+    # test_suite="run_tests.setup_py_test"
+    def setup_py_test():
+        runner.setup_py_test()
+
+    if __name__ == '__main__':
+        runner.main()
+
+  Where above, the ``registry`` module, introduced in SQLAlchemy 0.8, provides
+  an in-Python means of installing the dialect entrypoints without the use
+  of setuptools, using the ``registry.register()`` function in a way that
+  is similar to the ``entry_points`` directive we placed in our ``setup.py``.
+  The call to ``runner.main()`` then runs the Nose front end, which installs
+  SQLAlchemy's testing plugins.   Invoking our custom runner looks like the
+  following::
+
+    $ python run_tests.py -v
+
+* requirements.py - The ``requirements.py`` file is where directives
+  regarding database and dialect capabilities are set up.
+  SQLAlchemy's tests are often annotated with decorators   that mark
+  tests as "skip" or "fail" for particular backends.  Over time, this
+  system   has been refined such that specific database and DBAPI names
+  are mentioned   less and less, in favor of @requires directives which
+  state a particular capability.   The requirement directive is linked
+  to target dialects using a ``Requirements`` subclass.   The custom
+  ``Requirements`` subclass is specified in the ``requirements.py`` file
+  and   is made available to SQLAlchemy's test runner using the
+  ``requirement_cls`` directive   inside the ``[sqla_testing]`` section.
+
+  For a third-party dialect, the custom ``Requirements`` class can
+  usually specify a simple yes/no answer for a particular system. For
+  example, a requirements file that specifies a database that supports
+  the RETURNING construct but does not support reflection of tables
+  might look like this::
+
+      # sqlalchemy_access/requirements.py
+
+      from sqlalchemy.testing.requirements import SuiteRequirements
+
+      from sqlalchemy.testing import exclusions
+
+      class Requirements(SuiteRequirements):
+          @property
+          def table_reflection(self):
+              return exclusions.closed()
+
+          @property
+          def returning(self):
+              return exclusions.open()
+
+  The ``SuiteRequirements`` class in
+  ``sqlalchemy.testing.requirements`` contains a large number of
+  requirements rules, which attempt to have reasonable defaults. The
+  tests will report on those requirements found as they are run.
+
+  The requirements system can also be used when running SQLAlchemy's
+  primary test suite against the external dialect.  In this use case,
+  a ``--dburi`` as well as a ``--requirements`` flag are passed to SQLAlchemy's
+  main test runner ``./sqla_nose.py`` so that exclusions specific to the
+  dialect take place::
+
+    cd /path/to/sqlalchemy
+    python ./sqla_nose.py -v \
+      --requirements sqlalchemy_access.requirements:Requirements \
+      --dburi access+pyodbc://admin@access_test
+
+* test_suite.py - Finally, the ``test_suite.py`` module represents a
+  Nose test suite, which pulls   in the actual SQLAlchemy test suite.
+  To pull in the suite as a whole, it can   be imported in one step::
+
+      # test/test_suite.py
+
+      from sqlalchemy.testing.suite import *
+
+  That's all that's needed - the ``sqlalchemy.testing.suite`` package
+  contains an ever expanding series of tests, most of which should be
+  annotated with specific requirement decorators so that they can be
+  fully controlled. To specifically modify some of the tests, they can
+  be imported by name and subclassed::
+
+      from sqlalchemy.testing.suite import *
+
+      from sqlalchemy.testing.suite import ComponentReflectionTest as _ComponentReflectionTest
+
+      class ComponentReflectionTest(_ComponentReflectionTest):
+          @classmethod
+          def define_views(cls, metadata, schema):
+              # bypass the "define_views" section of the
+              # fixture
+              return
+
+Going Forward
+==============
+
+The third-party dialect can be distributed like any other Python
+module on Pypi. Links to prominent dialects can be featured within
+SQLAlchemy's own documentation; contact the developers (see AUTHORS)
+for help with this.
+
+While SQLAlchemy includes many dialects built in, it remains to be
+seen if the project as a whole might move towards "plugin" model for
+all dialects, including all those currently built in.  Now that
+SQLAlchemy's dialect API is mature and the test suite is not far
+behind, it may be that a better maintenance experience can be
+delivered by having all dialects separately maintained and released.
+
+As new versions of SQLAlchemy are released, the test suite and
+requirements file will receive new tests and changes.  The dialect
+maintainer would normally keep track of these changes and make
+adjustments as needed.
+
+Continuous Integration
+======================
+
+The most ideal scenario for ongoing dialect testing is continuous
+integration, that is, an automated test runner that runs in response
+to changes not just in the dialect itself but to new pushes to
+SQLAlchemy as well.
+
+The SQLAlchemy project features a Jenkins installation that runs tests
+on Amazon EC2 instances.   It is possible for third-party dialect
+developers to provide the SQLAlchemy project either with AMIs or EC2
+instance keys which feature test environments appropriate to the
+dialect - SQLAlchemy's own Jenkins suite can invoke tests on these
+environments.  Contact the developers for further info.
+
+
+=================
+PYTHON 3 SUPPORT
+=================
+
+Current Python 3k support in SQLAlchemy is provided by a customized
+2to3 script which wraps Python's 2to3 tool.
+
+Installing Distribute
+---------------------
+
+Distribute should be installed with the Python3 installation.  The
+distribute bootloader is included.
+
+Running as a user with permission to modify the Python distribution,
+install Distribute:
+
+    python3 distribute_setup.py
+
+
+Installing SQLAlchemy in Python 3
+---------------------------------
+
+Once Distribute is installed, SQLAlchemy can be installed directly.
+The 2to3 process will kick in which takes several minutes:
+
+    python3 setup.py install
+
+Converting Tests, Examples, Source to Python 3
+----------------------------------------------
+
+To convert all files in the source distribution, run 
+SQLAlchemys "sa2to3.py" script, which monkeypatches a preprocessor
+onto the 2to3 tool:
+
+    python3 sa2to3.py --no-diffs -w lib test examples
+
+The above will rewrite all files in-place in Python 3 format.
+
+Running Tests
+-------------
+
+To run unit tests in Py3k, Nose 1.0 is required, or a development
+version of Nose that supports Python 3.   The tests are run
+using ./sqla_nose.py as described in README.unittests.
+
+Current 3k Issues
+-----------------
+
+Current bugs and tickets related to Py3k are on the Py3k milestone in trac:
+
+http://www.sqlalchemy.org/trac/query?status=new&status=assigned&status=reopened&milestone=py3k
+
+
+SQLAlchemy
+==========
+
+The Python SQL Toolkit and Object Relational Mapper
+
+Introduction
+-------------
+
+SQLAlchemy is the Python SQL toolkit and Object Relational Mapper
+that gives application developers the full power and
+flexibility of SQL. SQLAlchemy provides a full suite
+of well known enterprise-level persistence patterns,
+designed for efficient and high-performing database
+access, adapted into a simple and Pythonic domain
+language.
+
+Major SQLAlchemy features include:
+
+* An industrial strength ORM, built 
+  from the core on the identity map, unit of work,
+  and data mapper patterns.   These patterns
+  allow transparent persistence of objects 
+  using a declarative configuration system.
+  Domain models
+  can be constructed and manipulated naturally,
+  and changes are synchronized with the
+  current transaction automatically.
+* A relationally-oriented query system, exposing
+  the full range of SQL's capabilities 
+  explicitly, including joins, subqueries, 
+  correlation, and most everything else, 
+  in terms of the object model.
+  Writing queries with the ORM uses the same 
+  techniques of relational composition you use 
+  when writing SQL.  While you can drop into
+  literal SQL at any time, it's virtually never
+  needed.
+* A comprehensive and flexible system 
+  of eager loading for related collections and objects.
+  Collections are cached within a session,
+  and can be loaded on individual access, all 
+  at once using joins, or by query per collection
+  across the full result set.
+* A Core SQL construction system and DBAPI 
+  interaction layer.  The SQLAlchemy Core is
+  separate from the ORM and is a full database
+  abstraction layer in its own right, and includes
+  an extensible Python-based SQL expression 
+  language, schema metadata, connection pooling, 
+  type coercion, and custom types.
+* All primary and foreign key constraints are 
+  assumed to be composite and natural.  Surrogate
+  integer primary keys are of course still the 
+  norm, but SQLAlchemy never assumes or hardcodes
+  to this model.
+* Database introspection and generation.  Database
+  schemas can be "reflected" in one step into
+  Python structures representing database metadata;
+  those same structures can then generate 
+  CREATE statements right back out - all within
+  the Core, independent of the ORM.
+
+SQLAlchemy's philosophy:
+
+* SQL databases behave less and less like object
+  collections the more size and performance start to
+  matter; object collections behave less and less like
+  tables and rows the more abstraction starts to matter.
+  SQLAlchemy aims to accommodate both of these
+  principles.
+* An ORM doesn't need to hide the "R".   A relational
+  database provides rich, set-based functionality
+  that should be fully exposed.   SQLAlchemy's
+  ORM provides an open-ended set of patterns
+  that allow a developer to construct a custom
+  mediation layer between a domain model and 
+  a relational schema, turning the so-called
+  "object relational impedance" issue into
+  a distant memory.
+* The developer, in all cases, makes all decisions
+  regarding the design, structure, and naming conventions
+  of both the object model as well as the relational
+  schema.   SQLAlchemy only provides the means
+  to automate the execution of these decisions.
+* With SQLAlchemy, there's no such thing as 
+  "the ORM generated a bad query" - you 
+  retain full control over the structure of 
+  queries, including how joins are organized,
+  how subqueries and correlation is used, what 
+  columns are requested.  Everything SQLAlchemy
+  does is ultimately the result of a developer-
+  initiated decision.
+* Don't use an ORM if the problem doesn't need one.
+  SQLAlchemy consists of a Core and separate ORM
+  component.   The Core offers a full SQL expression
+  language that allows Pythonic construction 
+  of SQL constructs that render directly to SQL
+  strings for a target database, returning
+  result sets that are essentially enhanced DBAPI
+  cursors.
+* Transactions should be the norm.  With SQLAlchemy's
+  ORM, nothing goes to permanent storage until
+  commit() is called.  SQLAlchemy encourages applications
+  to create a consistent means of delineating
+  the start and end of a series of operations.
+* Never render a literal value in a SQL statement.
+  Bound parameters are used to the greatest degree
+  possible, allowing query optimizers to cache 
+  query plans effectively and making SQL injection
+  attacks a non-issue.
+
+Documentation
+-------------
+
+Latest documentation is at:
+
+http://www.sqlalchemy.org/docs/
+
+Installation / Requirements
+---------------------------
+
+Full documentation for installation is at 
+`Installation <http://www.sqlalchemy.org/docs/intro.html#installation>`_.
+
+Getting Help / Development / Bug reporting
+------------------------------------------
+
+Please refer to the `SQLAlchemy Community Guide <http://www.sqlalchemy.org/support.html>`_.
+
+License
+-------
+
+SQLAlchemy is distributed under the `MIT license
+<http://www.opensource.org/licenses/mit-license.php>`_.
+
+
+=====================
+SQLALCHEMY UNIT TESTS
+=====================
+
+SQLAlchemy unit tests by default run using Python's built-in sqlite3
+module.  If running on Python 2.4, pysqlite must be installed.
+
+Unit tests are run using nose.  Nose is available at::
+
+    https://pypi.python.org/pypi/nose/
+
+SQLAlchemy implements a nose plugin that must be present when tests are run.
+This plugin is invoked when the test runner script provided with
+SQLAlchemy is used.
+
+The test suite as of version 0.8.2 also requires the mock library.  While
+mock is part of the Python standard library as of 3.3, previous versions
+will need to have it installed, and is available at::
+
+    https://pypi.python.org/pypi/mock
+
+**NOTE:** - the nose plugin is no longer installed by setuptools as of
+version 0.7 !  Use "python setup.py test" or "./sqla_nose.py".
+
+RUNNING TESTS VIA SETUP.PY
+--------------------------
+A plain vanilla run of all tests using sqlite can be run via setup.py:
+
+    $ python setup.py test
+
+The -v flag also works here::
+
+    $ python setup.py test -v
+
+RUNNING ALL TESTS
+------------------
+To run all tests::
+
+    $ ./sqla_nose.py
+
+If you're running the tests on Microsoft Windows, then there is an additional
+argument that must be passed to ./sqla_nose.py::
+
+    > ./sqla_nose.py --first-package-wins
+
+This is required because nose's importer will normally evict a package from
+sys.modules if it sees a package with the same name in a different location.
+Setting this argument disables that behavior.
+
+Assuming all tests pass, this is a very unexciting output.  To make it more
+interesting::
+
+    $ ./sqla_nose.py -v
+
+RUNNING INDIVIDUAL TESTS
+-------------------------
+Any directory of test modules can be run at once by specifying the directory
+path::
+
+    $ ./sqla_nose.py test/dialect
+
+Any test module can be run directly by specifying its module name::
+
+    $ ./sqla_nose.py test.orm.test_mapper
+
+To run a specific test within the module, specify it as module:ClassName.methodname::
+
+    $ ./sqla_nose.py test.orm.test_mapper:MapperTest.test_utils
+
+
+COMMAND LINE OPTIONS
+--------------------
+Help is available via --help::
+
+    $ ./sqla_nose.py --help
+
+The --help screen is a combination of common nose options and options which
+the SQLAlchemy nose plugin adds.  The most commonly SQLAlchemy-specific
+options used are '--db' and '--dburi'.
+
+
+DATABASE TARGETS
+----------------
+
+Tests will target an in-memory SQLite database by default.  To test against
+another database, use the --dburi option with any standard SQLAlchemy URL::
+
+    --dburi=postgresql://user:password@localhost/test
+
+Use an empty database and a database user with general DBA privileges.
+The test suite will be creating and dropping many tables and other DDL, and
+preexisting tables will interfere with the tests.
+
+Several tests require alternate usernames or schemas to be present, which
+are used to test dotted-name access scenarios.  On some databases such
+as Oracle or Sybase, these are usernames, and others such as Postgresql
+and MySQL they are schemas.   The requirement applies to all backends
+except SQLite and Firebird.  The names are::
+
+    test_schema
+    test_schema_2 (only used on Postgresql)
+
+Please refer to your vendor documentation for the proper syntax to create
+these namespaces - the database user must have permission to create and drop
+tables within these schemas.  Its perfectly fine to run the test suite
+without these namespaces present, it only means that a handful of tests which
+expect them to be present will fail.
+
+Additional steps specific to individual databases are as follows::
+
+    MYSQL: Default storage engine should be "MyISAM".   Tests that require
+    "InnoDB" as the engine will specify this explicitly.
+
+    ORACLE: a user named "test_schema" is created.
+
+    The primary database user needs to be able to create and drop tables,
+    synonyms, and constraints within the "test_schema" user.   For this
+    to work fully, including that the user has the "REFERENCES" role
+    in a remote schema for tables not yet defined (REFERENCES is per-table),
+    it is required that the test the user be present in the "DBA" role:
+
+        grant dba to scott;
+
+    SYBASE: Similar to Oracle, "test_schema" is created as a user, and the
+    primary test user needs to have the "sa_role".
+
+    It's also recommended to turn on "trunc log on chkpt" and to use a
+    separate transaction log device - Sybase basically seizes up when
+    the transaction log is full otherwise.
+
+    A full series of setup assuming sa/master:
+
+        disk init name="translog", physname="/opt/sybase/data/translog.dat", size="10M"
+        create database sqlalchemy on default log on translog="10M"
+        sp_dboption sqlalchemy, "trunc log on chkpt", true
+        sp_addlogin scott, "tiger7"
+        sp_addlogin test_schema, "tiger7"
+        use sqlalchemy
+        sp_adduser scott
+        sp_adduser test_schema
+        grant all to scott
+        sp_role "grant", sa_role, scott
+
+    Sybase will still freeze for up to a minute when the log becomes
+    full.  To manually dump the log::
+
+        dump tran sqlalchemy with truncate_only
+
+    MSSQL: Tests that involve multiple connections require Snapshot Isolation
+    ability implemented on the test database in order to prevent deadlocks that
+    will occur with record locking isolation. This feature is only available
+    with MSSQL 2005 and greater. You must enable snapshot isolation at the
+    database level and set the default cursor isolation with two SQL commands:
+
+     ALTER DATABASE MyDatabase SET ALLOW_SNAPSHOT_ISOLATION ON
+
+     ALTER DATABASE MyDatabase SET READ_COMMITTED_SNAPSHOT ON
+
+    MSSQL+zxJDBC: Trying to run the unit tests on Windows against SQL Server
+    requires using a test.cfg configuration file as the cmd.exe shell won't
+    properly pass the URL arguments into the nose test runner.
+
+If you'll be running the tests frequently, database aliases can save a lot of
+typing.  The --dbs option lists the built-in aliases and their matching URLs::
+
+    $ ./sqla_nose.py --dbs
+    Available --db options (use --dburi to override)
+               mysql    mysql://scott:tiger@127.0.0.1:3306/test
+              oracle    oracle://scott:tiger@127.0.0.1:1521
+            postgresql    postgresql://scott:tiger@127.0.0.1:5432/test
+    [...]
+
+To run tests against an aliased database::
+
+    $ ./sqla_nose.py --db=postgresql
+
+To customize the URLs with your own users or hostnames, create a file
+called `test.cfg` at the top level of the SQLAlchemy source distribution.
+This file is in Python config format, and contains a [db] section which
+lists out additional database configurations::
+
+    [db]
+    postgresql=postgresql://myuser:mypass@localhost/mydb
+
+Your custom entries will override the defaults and you'll see them reflected
+in the output of --dbs.
+
+CONFIGURING LOGGING
+-------------------
+SQLAlchemy logs its activity and debugging through Python's logging package.
+Any log target can be directed to the console with command line options, such
+as::
+
+    $ ./sqla_nose.py test.orm.unitofwork --log-info=sqlalchemy.orm.mapper \
+      --log-debug=sqlalchemy.pool --log-info=sqlalchemy.engine
+
+This would log mapper configuration, connection pool checkouts, and SQL
+statement execution.
+
+
+BUILT-IN COVERAGE REPORTING
+------------------------------
+Coverage is tracked using Nose's coverage plugin.   See the nose
+documentation for details.  Basic usage is::
+
+    $ ./sqla_nose.py test.sql.test_query --with-coverage
+
+BIG COVERAGE TIP !!!  There is an issue where existing .pyc files may
+store the incorrect filepaths, which will break the coverage system.  If
+coverage numbers are coming out as low/zero, try deleting all .pyc files.
+
+DEVELOPING AND TESTING NEW DIALECTS
+-----------------------------------
+
+See the new file README.dialects.rst for detail on dialects.
+
+
+Running the Tornado AppEngine example
+=====================================
+This example is designed to run in Google AppEngine, so there are a couple
+of steps to get it running. You can download the Google AppEngine Python
+development environment at http://code.google.com/appengine/downloads.html.
+
+1. Link or copy the tornado code directory into this directory:
+
+   ln -s ../../tornado tornado
+
+   AppEngine doesn't use the Python modules installed on this machine.
+   You need to have the 'tornado' module copied or linked for AppEngine
+   to find it.
+
+3. Install and run dev_appserver
+
+   If you don't already have the App Engine SDK, download it from
+   http://code.google.com/appengine/downloads.html
+
+   To start the tornado demo, run the dev server on this directory:
+
+   dev_appserver.py .
+
+4. Visit http://localhost:8080/ in your browser
+
+   If you sign in as an administrator, you will be able to create and
+   edit blog posts. If you sign in as anybody else, you will only see
+   the existing blog posts.
+
+
+If you want to deploy the blog in production:
+
+1. Register a new appengine application and put its id in app.yaml
+
+   First register a new application at http://appengine.google.com/.
+   Then edit app.yaml in this directory and change the "application"
+   setting from "tornado-appenginge" to your new application id.
+
+2. Deploy to App Engine
+
+   If you registered an application id, you can now upload your new
+   Tornado blog by running this command:
+
+   appcfg update .
+
+   After that, visit application_id.appspot.com, where application_id
+   is the application you registered.
+
+
+Running the Tornado Blog example app
+====================================
+This demo is a simple blogging engine that uses MySQL to store posts and
+Google Accounts for author authentication. Since it depends on MySQL, you
+need to set up MySQL and the database schema for the demo to run.
+
+1. Install prerequisites and build tornado
+
+   See http://www.tornadoweb.org/ for installation instructions. If you can
+   run the "helloworld" example application, your environment is set up
+   correctly.
+
+2. Install MySQL if needed
+
+   Consult the documentation for your platform. Under Ubuntu Linux you
+   can run "apt-get install mysql". Under OS X you can download the
+   MySQL PKG file from http://dev.mysql.com/downloads/mysql/
+
+3. Install Python prerequisites
+
+   Install the packages MySQL-python, torndb, and markdown (e.g. using pip or
+   easy_install)
+
+3. Connect to MySQL and create a database and user for the blog.
+
+   Connect to MySQL as a user that can create databases and users:
+   mysql -u root
+
+   Create a database named "blog":
+   mysql> CREATE DATABASE blog;
+
+   Allow the "blog" user to connect with the password "blog":
+   mysql> GRANT ALL PRIVILEGES ON blog.* TO 'blog'@'localhost' IDENTIFIED BY 'blog';
+
+4. Create the tables in your new database.
+
+   You can use the provided schema.sql file by running this command:
+   mysql --user=blog --password=blog --database=blog < schema.sql
+
+   You can run the above command again later if you want to delete the
+   contents of the blog and start over after testing.
+
+5. Run the blog example
+
+   With the default user, password, and database you can just run:
+   ./blog.py
+
+   If you've changed anything, you can alter the default MySQL settings
+   with arguments on the command line, e.g.:
+   ./blog.py --mysql_user=casey --mysql_password=happiness --mysql_database=foodblog
+
+6. Visit your new blog
+
+   Open http://localhost:8888/ in your web browser. You will be redirected to
+   a Google account sign-in page because the blog uses Google accounts for
+   authentication.
+
+   Currently the first user to connect will automatically be given the
+   ability to create and edit posts.
+
+   Once you've created one blog post, subsequent users will not be
+   prompted to sign in.
+
+Running the Tornado Facebook example
+=====================================
+To work with the provided Facebook api key, this example must be
+accessed at http://localhost:8888/ to match the Connect URL set in the
+example application.
+
+To use any other domain, a new Facebook application must be registered
+with a Connect URL set to that domain.
+
+Tornado Web Server
+==================
+
+`Tornado <http://www.tornadoweb.org>`_ is a Python web framework and
+asynchronous networking library, originally developed at `FriendFeed
+<http://friendfeed.com>`_.  By using non-blocking network I/O, Tornado
+can scale to tens of thousands of open connections, making it ideal for
+`long polling <http://en.wikipedia.org/wiki/Push_technology#Long_polling>`_,
+`WebSockets <http://en.wikipedia.org/wiki/WebSocket>`_, and other
+applications that require a long-lived connection to each user.
+
+
+Quick links
+-----------
+
+* `Documentation <http://www.tornadoweb.org/en/stable/>`_
+* `Source (github) <https://github.com/facebook/tornado>`_
+* `Mailing list <http://groups.google.com/group/python-tornado>`_
+* `Wiki <https://github.com/facebook/tornado/wiki/Links>`_
+
+Hello, world
+------------
+
+Here is a simple "Hello, world" example web app for Tornado::
+
+    import tornado.ioloop
+    import tornado.web
+
+    class MainHandler(tornado.web.RequestHandler):
+        def get(self):
+            self.write("Hello, world")
+
+    application = tornado.web.Application([
+        (r"/", MainHandler),
+    ])
+
+    if __name__ == "__main__":
+        application.listen(8888)
+        tornado.ioloop.IOLoop.instance().start()
+
+This example does not use any of Tornado's asynchronous features; for
+that see this `simple chat room
+<https://github.com/facebook/tornado/tree/master/demos/chat>`_.
+
+Installation
+------------
+
+**Automatic installation**::
+
+    pip install tornado
+
+Tornado is listed in `PyPI <http://pypi.python.org/pypi/tornado/>`_ and
+can be installed with ``pip`` or ``easy_install``.  Note that the
+source distribution includes demo applications that are not present
+when Tornado is installed in this way, so you may wish to download a
+copy of the source tarball as well.
+
+**Manual installation**: Download the latest source from `PyPI
+<http://pypi.python.org/pypi/tornado/>`_.
+
+.. parsed-literal::
+
+    tar xvzf tornado-$VERSION.tar.gz
+    cd tornado-$VERSION
+    python setup.py build
+    sudo python setup.py install
+
+The Tornado source code is `hosted on GitHub
+<https://github.com/facebook/tornado>`_.
+
+**Prerequisites**: Tornado runs on Python 2.6, 2.7, 3.2, and 3.3.  It has
+no strict dependencies outside the Python standard library, although some
+features may require one of the following libraries:
+
+* `unittest2 <https://pypi.python.org/pypi/unittest2>`_ is needed to run
+  Tornado's test suite on Python 2.6 (it is unnecessary on more recent
+  versions of Python)
+* `concurrent.futures <https://pypi.python.org/pypi/futures>`_ is the
+  recommended thread pool for use with Tornado and enables the use of
+  ``tornado.netutil.ThreadedResolver``.  It is needed only on Python 2;
+  Python 3 includes this package in the standard library.
+* `pycurl <http://pycurl.sourceforge.net>`_ is used by the optional
+  ``tornado.curl_httpclient``.  Libcurl version 7.18.2 or higher is required;
+  version 7.21.1 or higher is recommended.
+* `Twisted <http://www.twistedmatrix.com>`_ may be used with the classes in
+  `tornado.platform.twisted`.
+* `pycares <https://pypi.python.org/pypi/pycares>`_ is an alternative
+  non-blocking DNS resolver that can be used when threads are not
+  appropriate.
+* `Monotime <https://pypi.python.org/pypi/Monotime>`_ adds support for
+  a monotonic clock, which improves reliability in environments
+  where clock adjustments are frequent.  No longer needed in Python 3.3.
+
+**Platforms**: Tornado should run on any Unix-like platform, although
+for the best performance and scalability only Linux (with ``epoll``)
+and BSD (with ``kqueue``) are recommended (even though Mac OS X is
+derived from BSD and supports kqueue, its networking performance is
+generally poor so it is recommended only for development use).
+
+Discussion and support
+----------------------
+
+You can discuss Tornado on `the Tornado developer mailing list
+<http://groups.google.com/group/python-tornado>`_, and report bugs on
+the `GitHub issue tracker
+<https://github.com/facebook/tornado/issues>`_.  Links to additional
+resources can be found on the `Tornado wiki
+<https://github.com/facebook/tornado/wiki/Links>`_.
+
+Tornado is one of `Facebook's open source technologies
+<http://developers.facebook.com/opensource/>`_. It is available under
+the `Apache License, Version 2.0
+<http://www.apache.org/licenses/LICENSE-2.0.html>`_.
+
+This web site and all documentation is licensed under `Creative
+Commons 3.0 <http://creativecommons.org/licenses/by/3.0/>`_.
+
+Test coverage is almost non-existent, but it's a start.  Be sure to
+set PYTHONPATH apprioriately (generally to the root directory of your
+tornado checkout) when running tests to make sure you're getting the
+version of the tornado package that you expect.
+WTForms is a flexible forms validation and rendering library for python web
+development.
+
+For installation instructions, see INSTALL.txt.
+
+To get started using WTForms, we recommend reading the crash course on the
+website: http://wtforms.simplecodes.com/.
+
+If you downloaded the package from PyPI, there will be a prebuilt copy of the
+html documentation in the `docs/html/` directory. If not, you can
+generate it yourself by running `make html` in the `docs` directory.
+
+=================================
+Translation Submission Guidelines
+=================================
+
+To create a translation, the easiest way to start is to run:
+
+ $ python setup.py init_catalog --locale <your locale>
+
+Which will copy the template to the right location. To run that setup.py
+sub-command, you need Babel and setuptools/distribute installed.
+
+.po files:
+ - must be a valid utf-8 text file
+ - should have the header filled out appropriately
+ - should translate all messages
+
+You probably want to try setup.py compile_catalog and try loading your
+translations up to verify you did it all right.
+
+Submitting
+----------
+
+The best ways to submit your translation are as a pull request on bitbucket, or
+an email to james+i18n@simplecodes.com, with the file included as an attachment.
+
+utf-8 text may not format nicely in an email body, so please refrain from
+pasting the translations into an email body, and include them as an attachment
+instead. Also do not post translation files in the issue tracker text box, or
+onto the mailing list either, because again formatting may be broken.
+
+Markup language: 
+Markdown
+
+Description:
+A basic Markdown markup set with Headings, Bold, Italic, Picture, Link, List, Quotes, Code, Preview button.
+
+Install:
+- Download the zip file
+- Unzip it in your markItUp! sets folder
+- Modify your JS link to point at this set.js
+- Modify your CSS link to point at this style.css
+<%inherit file="/admin/account/base.html" />
+
+<%block name="innav">
+<li><a href="${ reverse_url('admin:user') }?id=${ USER.id }">${ USER.username }</a></li>
+<li>${ _("Edit Resources") }</li>
+</%block>
+
+<%block name="submain">
+
+<% DESC = USER.description if USER.description else '' %>
+
+<script type="text/javascript" src="${ static_url('markitup/jquery.markitup.js') }"></script>
+<script type="text/javascript" src="${ static_url('markitup/sets/markdown/set.js') }"></script>
+
+<div>
+  <form method="POST">${ xsrf_form_html() }
+    <textarea name="description" id="description">${ DESC }</textarea>
+    <button type="submit" class="btn">${ _("Save") }</button>
+  </form>
+</div>
+
+<script type="text/javascript" >
+   mySettings.previewParserPath = "/t/preview?markup_language=markdown&_xsrf=${ xsrf_cookie }";
+   $(document).ready(function() {
+      $("#description").markItUp(mySettings);
+   });
+</script>
+
+</%block>
+
+Files in this directory are Python implementation of OS manager, which is
+used by some LuoYun Virtual Appliance. OS manager allows better control for
+the appliance through cloud.
+
+The typical use of OS manager is as follows,
+1. Inside appliance, make sure iptables is turned off. If iptables has to be
+   turned on, please make sure multicast packets to 228.0.0.1/1369 is allowed
+   to be received by the appliance.
+
+2. In the root file system of an appliance, create the following directories
+/LuoYun/bin
+/LuoYun/bin/pyosm
+/LuoYun/conf
+/LuoYun/log
+/LuoYun/scripts
+
+3. Copy all the Python files in this directory to /LuoYun/bin/pyosm
+
+4. Start OS manager with the following command, as root
+# python /LuoYun/bin/pyosm/lyosm.py &
+
+The above invocation of lyosm.py will use default configuration settings that
+built into the lyosm.py code. The default settings are,
+
+/LuoYun/conf/luoyun.conf - default cloud configuration file location, the file
+                           is provided by the cloud
+/LuoYun/log/luoyun.log   - default log file location, the file will created
+                           by lyosm.py
+/LuoYun/scripts          - default directory where appliance related scripts
+                           are stored. It's not neccessary to provide
+                           appliance scripts. However, if a script named
+                           "status" exists in the directory, lyosm.py will
+                           run the "status" script periodically to check
+                           status of the web application running in the
+                           appliance and report result to cloud controller.
+
+The above settings, along with other command options, can be changed on 
+commad line of lyosm.py.
+
+The purpose of os mananger is to allow better control of instance in the cloud.
+Also, since os manager runs in the instance, it's decided to use python to 
+implement os manager so that it can be easily modified to fit instance's need.
+
+1. OS Manager Explanation
+
+LuoYun Cloud passes instance runtime configuration through instance's floppy
+disk. Script osmanager.sh is the entry point of OS manager. It reads 
+configuration data from floppy and copy it to a standard location, which is
+/LuoYun/conf/luoyun.conf. It then starts various components of OS manager.
+
+Currently, there are four main components in OS mamanger. These components
+are under bin/ directory.
+
+pyosc	- pyosc configures essential system settings such as root password,
+          root ssh key, network interface address and name server.
+
+pyweb	- pyweb runs after instance network interface is properly set up
+          and enabled. Currently pyweb starts a simple HTTP server and serves
+          simple web pages for the instance. The web pages are under
+          custom/www directory.
+
+pyosm	- pyosm runs after instance network interface is properly set up
+          and enabled. Based on information provided by instance
+          configuration file, it registers the instance in LuoYun cloud
+          and maintains the connection as long as the instance is in running
+          state. Currently, pyosm also periodically runs 'status' script
+          that's under custom/scripts directory. The 'status' command 
+          currently tells Cloud Controller whether pyweb is properly running.
+
+webssh	- webssh runs after instance network interface is properly set up
+          and enabled. Instance owner can also choose to not run the webssh
+          client when instance gets started. The control option is given on
+          LuoYun Cloud Web interface.
+
+Under top level directory of OS Manager, there's a custom/ subdirectory. All
+the files under custom/ directory are subject to change while installing OS
+Manager in appliance. The files under custom/ are used by other components
+of OS manager. 
+
+2. OS Manager Installation
+
+Here are the steps to install os manager in instance,
+1) Create top level OS Manager in instance root file system. Typically,
+   /LuoYun is used.
+2) Copy all the files/directories into the directory created above. Typically,
+   it is /LuoYun. Please notice that webssh requires Shell-in-a-box executable
+   binary shellinaboxd to be under /LuoYun/bin/webssh. The pre-built binary
+   file can be obtained in OS Manager installation package on LuoYun company
+   web site luoyun.co.
+3) Create build/ subdirectory under /LuoYun in instance, and create following
+   regular text files under build/
+   BASE: info about instance base OS
+   BUILD: build info about instance
+   CHANGELOG: chnagelog of instance
+   PACKAGES: list of packages installed in instance
+   VERSION: the version of instance and the version of main application
+            installed in instance
+   Currently, only file VERSION is used by pyweb to build the web pages served
+   by pyweb, all the other files are optional.
+4) Review and modify files under /LuoYun/custom/ directory.
+   /LuoYun/custom/www - contains files used by pyweb. These files should be
+                        modified with information specific to the application
+                        installed in instance.
+   /LuoYun/custom/scrtips/config - is the file used to configure application.
+                                   It's invoked by osmanager.sh.
+5) Review mand modify osmanager.sh when neceassry.
+6) For system that doesn't support init scripts, run /LuoYun/install.sh to
+   start OS Manager automatically when instance gets started. For systems that
+   support init scripts, such as Centos6+, scripts in init/luoyun directory
+   will be picked up and run automatically by system's init process.
+
+While installing OS Manager in appliance, make sure stop 5 above is done in
+chroot or similar environment.
+
+3. Uninstall OS Manager
+1) Run /LuoYun/uninstall.sh and remove /etc/init/luoyun
+2) Remove whole directory of /LuoYun
+
+Any question, please send email to contact@luoyun.co
+
+
+Welcome to luoyun-cloud.
+
+luoyun-cloud is free software. Please see the file COPYING for details.
+For documentation, please see the files in the doc subdirectory.
+For building and installation instructions please see the INSTALL file.
+
+Welcome to luoyun-cloud.
+
+luoyun-cloud is free software. Please see the file COPYING for details.
+For documentation, please see the files in the doc subdirectory.
+For building and installation instructions please see the INSTALL file.
+
+
+1. Run the following command to install LuoYun Cloud platform applications
+
+   sudo ./install.sh
+
+2. To start Cloud Controller daemon
+
+   Make sure postgresql DB is properly started
+   Make sure network traffic to multicast IP 228.0.0.1 is open in iptables
+   Then run the following command,
+        sudo /etc/init.d/lyclcd start
+
+3. To start Node Server daemon
+
+   Make sure livirtd service is properly started
+   Make sure KVM bridge mode is properly set up
+   Make sure network traffic to multicast IP 228.0.0.1 is open iptables
+   Then run the following command,
+        sudo /etc/init.d/lynoded start
+
+
+文件结构说明：
+README 		-此说明文件
+lyweb  		-LuoYunCloud的web服务软件
+platform 	-落云控制与计算节点的服务软件,请查看 platform/INSTALL 了解更多信息
+osmanager	-落云OS管理软件,使用Python编写，请查看 osmanager/README 了解更多信息
+tools		-帮助您快速部署与使用的脚本，目前仍在完善中
+docs		-落云软件文档，仍在完善中，欢迎大家参与更新
+win-osmanager 	-为windows应用提供的osm服务包
+
+Files in top directory:
+
+README     - this file
+lyweb      - web server of LuoYunCloud Software
+platform   - Cloud Controller and Node Server of LuoYunCloud Software
+             the C implementation of LuoYunCloud OS Manager is obsoleted since LuoYunCloud version 0.2
+             See file platform/INSTALL for more detail
+osmanager  - LuoYunCloud OS manager written in Python, effective since LuoYunCloud version 0.4
+             See file osmanager/README for more detail
+tools      - some helper scripts (not very useful, yet)
+
+开发/编绎前提条件
+==============
+
+请先在 Windows 平台上安装下面程序:
+
+ - [Python](http://www.python.org/)
+ - [py2exe](http://www.py2exe.org/) (将 py 文件编绎成 exe)
+ - [pywin32](http://sourceforge.net/projects/pywin32/) (pywin32 不是只有 32 位, 编写了 Windows 服务程序)
+ - [wxPython](http://www.wxpython.org/) (编写了系统托盘)
+ - [NSIS](http://nsis.sourceforge.net/) (打包成安装程序)
+
+
+
+编绎 EXE 程序
+===========
+
+win-osmanager 使用 py2exe 编绎,　源码目录中的 winsetup.py 是编绎配置文件.
+
+下截 win-osmanager 源码,进入目录,运行:
+
+    winsetup.py py2exe
+
+命令执行成功后,在当前目录下生成 build, dist 目录.　dist 目录中的文件就是生成的结果.
+
+
+
+生成安装程序
+==========
+
+前提:
+
+ - 编绎成 EXE 程序,　进入 dist 目录
+ - 安装好 NSIS
+
+满足前提条件,在 dist 目录可以看到 osminstall.nsi 文件(和 NSIS 同样图
+标),右键选择编绎即可. 编绎成功后,会在当前目录生成 EXE 安装程序.
+
+
+
+安装/删除 OSM Windows 服务
+========================
+
+osmwinserv.py 编绎后是 osmwinserv.exe 文件,　打开 Windows 系统的 CMD,
+进入 osmwinserv.exe 所在的目录,定装服务:
+
+    osmwinserv.exe -install -interactive -auto
+
+参数解释:
+
+ - `-install` 表示安装
+ - `-interactive` 表示允许服务和 GUI 交互,即 OSM system tray (taskbaricon) 能出来
+ - `-auto` 表示该服务在 Windows 系统启动时会自动启动
+
+删除服务,运行:
+
+    osmwinserv.exe -remove
+
+**注意**: 如果您己生成了安装程序,就不用这里的手动安装服务步聚了,安装程
+  序会自动做这些事情.
+OS Manager for Windows
+
+1. Copy the LuoYun directory to C:\
+2. Set up Windows task so that C:\LuoYun\bin\pyosm\lyosm.py can be started automatically when Windows starts
+3. Restart Windows
+

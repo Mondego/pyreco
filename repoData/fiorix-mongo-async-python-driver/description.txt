@@ -1,0 +1,132 @@
+# MongoDB driver for Python Twisted
+
+This package started out as a fork of fiorix/mongo-async-python-driver.
+However, to implement the more difficult features of a MongoDB driver such as
+failover, it was nearly completely rewritten.
+
+The primary features of the rewrite include:
+
+ * reconfiguration of protocol connections upon master change.
+ * failover to new master upon AutoReconnect failure.
+ * depend on pymongo to avoid in tree pymongo driver to avoid drift.
+ * Use python bson driver rather than in tree version.
+ * tries to be careful about building and parsing protocol strings to improve throughput.
+ * use namedtuple for message structures.
+
+This particular fork of txmongo has added authentication support for the connection pool.
+The authentication is carried out using the "mongo_cred" method. The credentials are cached
+for each database and the authorization is carried out on a per socket basis for the connection
+pool as and when required. This particular fork uses helper functions from the PyMongo v2.5 to 
+perform nonce and key generation to carry out the authentication. 
+
+
+# Installing
+
+You can use setuptools to install this txmongo fork.
+
+```sh
+sudo python setup.py install
+```
+
+# Packages
+
+## Debian
+
+Packing for debian exists in debian/, you can build yourself a package
+(remember to update debian/changelog) if you make changes.
+
+```sh
+dpkg-buildpackage -b
+```
+
+Then look for the package in your home directory.
+
+## Fedora
+
+```sh
+rpmbuild -bb python-txmongo.spec
+```
+
+You might need to download Source0 from the .spec and place it in
+rpmbuild/SOURCES first.
+
+# Contributing
+
+If this fork provides the features you need, feel free to add to it. I'll try
+to be responsive to merge requests.
+
+=======
+TxMongo
+=======
+:Info: See `the mongo site <http://www.mongodb.org>`_ for more information. See `github <http://github.com/fiorix/mongo-async-python-driver/tree>`_ for the latest source.
+:Author: Alexandre Fiori <fiorix@gmail.com>
+
+About
+=====
+An asynchronous Python driver for the Mongo database, based on Twisted.
+The ``txmongo`` package is an alternative to the original ``pymongo``
+shipped with the Mongo database.
+
+Because the original ``pymongo`` package has it's own connection pool and
+blocking low-level socket operations, it is hard to fully implement
+network servers using the Twisted framework.
+Instead of deferring database operations to threads, now it's possible
+to do it asynchronously, as easy as using the original API.
+
+Installation
+============
+You need `setuptools <http://peak.telecommunity.com/DevCenter/setuptools>`_
+in order to get ``txmongo`` installed.
+Just run **python setup.py install**
+
+Docs and examples
+=================
+Generate them with **make docs**. You will need `epydoc` installed.
+There are some examples in the *examples/* directory.
+
+Hacking
+=======
+Run **make env** to create clean hacking environment with `virtualenv`.
+Run **make** to torture your code with tests and code style tools.
+
+Credits
+=======
+Thanks to (in no particular order):
+
+- Mike Dirolf (mdirolf)
+
+  - The author of original ``pymongo`` package.
+
+- Renzo Sanchez-Silva (rnz0)
+ 
+  - Initial twisted trial unit tests.
+
+- Vanderson Mota (chunda)
+
+  - Patching setup.py and PyPi maintenance
+
+- flanked
+
+  - For porting GridFS to txmongo
+
+- Andre Ferraz
+
+  - For creating and maintaining the debian package
+
+- Mark L
+
+  - Bugfixes and Unit Tests
+
+- Alexey Palazhchenko (AlekSi)
+
+  - Code clean up and hacking environment
+
+- `Silas Sewell <https://github.com/silas>`_
+
+  - Minor build and type fixes
+
+- Tryggvi Björgvinsson
+
+  - Aggregation pipeline
+
+

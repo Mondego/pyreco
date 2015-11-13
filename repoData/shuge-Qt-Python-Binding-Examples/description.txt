@@ -1,0 +1,612 @@
+# QtGui.QToolButton
+
+> A tool button is a special button that provides quick-access to specific commands
+or options. As opposed to a normal command button,
+a tool button usually doesn’t show a text label, but shows an icon instead.
+
+http://www.pyside.org/docs/pyside/PySide/QtGui/QToolButton.html#qtoolbutton
+
+通常用于显示图标式按钮
+
+Standard Dialogs
+
+对话框分为模态（modal）和非模态（modalless），对于标准对话框，当用户按下确定按钮，对话框消失，
+并且主窗口得到了用户确认的信息，按取消按钮，对话框消失，没有别的改变。
+
+smart dialogs 一般都是指的非模态对话框，就是用户想要实时的看到自己的操作对主窗口的影响，
+当然在某些模态对话框中，添加预览功能可以实现上面的需求，但是这些在非模态对话框中是很容易做到的。
+
+|| features\name || QtGui.QTextEdit || QtWebKit.QWebView ||
+| custom css | y | y |
+| custom js | n | y |
+| display rich text | y | y |
+# System Tray Icon Demo
+
+
+## Interaction
+
+    click X on main window
+        |
+        |
+        V
+    trigger quit confirmation
+
+    if settings["confirm"]:
+        show options for config X action
+        save settings
+
+    quit or hide main window
+
+
+(main window state is hide)
+
+single click on tray icon
+ -> popup specify window or show main window
+
+mouse over on tray icon
+ ->  show rich text menu items or webkit widget
+
+
+## dialog text
+
+    When you click the close button should me:
+
+     O Minimize to system tray
+     O Exit program
+
+    [] Don\'t ask me again
+
+
+## References
+
+ - http://stackoverflow.com/questions/1414781/prompt-on-exit-in-pyqt-application
+
+
+## UI Resources
+
+ - /Users/lee/Downloads/mac_apps/adium/Resources/Status Icons/iBubble Status.AdiumStatusIcons/
+# Drag And Drop
+
+Drag and drop a image from desktop/file manager into a window or widget,
+get the image file type and path.
+
+
+## External links
+
+ - [PySide documentation - QMimeData](http://www.pyside.org/docs/pyside/PySide/QtCore/QMimeData.html)
+
+
+http://doc.qt.nokia.com/latest/internationalization.html
+
+
+http://doc.qt.nokia.com/latest/qaction.html
+# Layout
+
+http://doc.qt.nokia.com/latest/layout.html
+http://doc.qt.nokia.com/latest/widgets-and-layouts.html
+
+four types of layout
+
+ - horizontally
+ - vertically
+ - in a grid layout
+ - in a form layout
+
+
+## Default layout
+
+上下反转笛卡儿坐标系(Cartesian coordinate system)
+
+使用绝对坐标布局时，c 是 b 的子 widget, b 是 a 的子 widget
+
+    a -> b -> cd
+
+c 在计算坐标时是以父 widget b 为参照。
+
+例子：label, button 构建时候加上 parent 参数，它们会作为 parent 子 widget，呈现于 parent x = 0, y = 0 处。
+
+    import sys, os
+    try:
+        from PySide import QtCore, QtGui
+    except ImportError:
+        from PyQt4 import QtCore, QtGui
+
+    class Demo(QtGui.QWidget):
+        def __init__(self):
+            super(Demo, self).__init__()
+
+            x, y, w, h = 500, 200, 300, 400
+            self.setGeometry(x, y, w, h)
+
+            self.label = QtGui.QLabel("foo", self)
+            self.show()
+
+    app = QtGui.QApplication(sys.argv)
+    demo = Demo()
+    sys.exit(app.exec_())
+
+
+## Widget size and position
+
+disable resize
+
+    self.setFixedSize(w, h)
+
+references
+
+ - http://www.velocityreviews.com/forums/t611856-re-pyqt-how-to-prevent-a-dialog-being-resized.html
+ - http://www.pyside.org/docs/pyside/PySide/QtGui/QWidget.html#PySide.QtGui.PySide.QtGui.QWidget.setFixedSize
+ - http://www.pyside.org/docs/pyside/PySide/QtGui/QWidget.html#size-hints-and-size-policies
+
+
+## Qt doesn't supports nest layout
+
+    QLayout: Attempting to add QLayout "" to ChatWin "", which already has a layout
+## diff listView, treeView and tableView
+
+ - listView 显示相同 item 的组合，跟 Python list 概念相似
+ - tree 显示二维表里面的数据, 坐标、目录
+ - table 显示有层次的 list, like the layout of a spreadsheet application, 
+    such as Microsoft Excel, Apple Numbers or NeoOffice Presentation on Mac OS X.
+
+|| widget\features || horizontal or vertical headers ||
+| QListView | x |
+| QTreeView | v |
+| QTableView | _ |
+
+
+QAbstractItemModel
+
+ - QAbstractListModel
+    - QStringListModel
+      - QHelpIndexModel
+
+ - QStandardItemModel
+
+ - QFileSystemModel
+
+ - QAbstractTableModel
+    - QSqlQueryModel
+       - QSqlTableModel
+         - QSqlRelationalTableModel
+
+ - QAbstractProxyModel
+    - QSortFilterProxyModel
+
+ - QDirModel
+ - QHelpContentModel
+ - QProxyModel
+
+
+QAbstractScrollArea
+ - QAbstractItemView
+   - QColumnView
+   - QHeaderView
+   - QListView
+     - QListWidget
+   - QTableView
+     - QTreeWidget
+   - QTreeView
+     - QTableWidget
+
+QAbstractItemDelegate
+ - QItemDelegate
+ - QStyledItemDelegate
+
+## Logo resources
+
+Ubuntu
+http://www.ubuntu.com
+
+Mac OS X
+http://www.guidebookgallery.org/screenshots/macosx103
+
+Plan9
+http://plan9.bell-labs.com/plan9/
+
+## External links
+
+ - [Qt Reference Documentation - Model/View Programming](http://doc.qt.nokia.com/latest/model-view-programming.html)
+
+# References
+
+ * http://www.thetoryparty.com/2009/08/27/pyqt-and-py2app-seriously-i-dont-know-what-to-do-with-you-when-youre-like-this/
+ * http://stackoverflow.com/questions/885906/enabling-jpeg-support-for-qimage-in-py2exe-compiled-python-scripts
+
+# Package Maker
+
+ - [Aral Balkan · How to make standalone OS X application bundles from PyQt apps using py2app](http://aralbalkan.com/1675)
+ - [Building Mac OS X applications with py2app](http://www.rkblog.rk.edu.pl/w/p/building-mac-os-x-applications-py2app/)
+ - [Hatchet: hack frozen PySide apps down to size](http://www.rfk.id.au/blog/entry/hatchet-hack-frozen-pyside-apps/), Feb 2011
+ - [How do I create a nice-looking DMG for Mac OS X using command-line tools?](http://stackoverflow.com/questions/96882/how-do-i-create-a-nice-looking-dmg-for-mac-os-x-using-command-line-tools/97025#97025)
+ - [Problem using py2app with the lxml package](http://stackoverflow.com/questions/868510/problem-using-py2app-with-the-lxml-package)
+ 
+TODO:
+
+ - simple pyside
+ - multiple packages/modules (third part/yours)
+ - non-script resources, suck as icon, image, xml etc
+
+## py2app bugs
+
+    ./dist/your_app_name.app/Contents/MacOS/your_app_name
+
+
+crash log
+
+    Qt internal error: qt_menu.nib could not be loaded. The .nib file should be placed in QtGui.framework/Versions/Current/Resources/  or in the resources directory of your application bundle.
+Abort trap
+
+solution
+
+    build package with [py2app_setup.py](https://gist.github.com/1378312)
+
+
+
+crash log
+
+    On Mac OS X, you might be loading two sets of Qt binaries into the same process. Check that all plugins are compiled against the right Qt binaries. Export DYLD_PRINT_LIBRARIES=1 and check that only one set of binaries are being loaded.
+    Segmentation fault
+
+solution
+
+    sudo mv  /opt/local/lib/libQtGui.4.dylib ./
+
+
+
+problem:
+
+    loading two sets of Qt binaries
+
+solution:
+
+    create a empty qt.conf file
+
+    http://www.thetoryparty.com/2009/08/27/pyqt-and-py2app-seriously-i-dont-know-what-to-do-with-you-when-youre-like-this/
+
+
+problem:
+
+    load and render image failed
+
+solution:
+
+    use PIL and convert image into png
+
+    http://www.thetoryparty.com/2009/08/27/pyqt-and-py2app-seriously-i-dont-know-what-to-do-with-you-when-youre-like-this/
+
+
+## py2exe bugs
+
+
+### __file__ not defined
+
+    NameError: global name '__file__' is not defined
+
+ - http://www.py2exe.org/index.cgi/WhereAmI
+ - http://stackoverflow.com/questions/595305/python-path-of-script
+ - http://stackoverflow.com/questions/247770/retrieving-python-module-path
+
+__file__ doesn't works in package build by py2exe.
+
+solution:
+
+    def we_are_frozen():
+        """Returns whether we are frozen via py2exe.
+        This will affect how we find out where we are located."""
+
+        return hasattr(sys, "frozen")
+
+    def module_path():
+        """ This will get us the program's directory,
+        even if we are frozen using py2exe"""
+
+        if we_are_frozen():
+            return os.path.dirname(unicode(sys.executable, sys.getfilesystemencoding( )))
+
+        return os.path.dirname(unicode(__file__, sys.getfilesystemencoding( )))
+
+    #PWD = os.path.dirname(os.path.realpath(__file__))
+    PWD = module_path()
+
+
+### ImportError exception
+
+    ImportError: No module named gzip
+    ImportError: No module named dom
+
+缺少什么模块，在 options -> py2exe -> includes 里添加什么模块。
+
+    options = {
+        "py2exe": {
+            "includes": ["PyQt4", "sip", "gzip", "xml.dom.minidom"],
+
+
+ - http://www.py2exe.org/index.cgi/Py2exeAndPyQt
+
+
+﻿# A Short Guide for Qt Designer 
+
+## Synopsis
+
+How to use Qt Designer in PySide project?
+
+ - draw UI with Qt Designer, save it into foo.ui
+ - convert foo.ui to foo.py by pyuic4
+ - import it in your main.py
+ - fix compatible problem in foo.py
+
+## Demo
+
+pyuic4 is provider by 'py27-pyside-tools' on Mac OS X MacPorts.
+
+    pyuic4 add_group.ui -o add_group.py
+
+import add_group.py in your main.py:
+
+```
+#!/usr/bin/env python
+import sys
+
+try:
+    from PySide import QtGui
+except ImportError:
+    from PyQt4 import QtGui
+
+from add_group import Ui_Form
+
+
+class Demo(QtGui.QWidget, Ui_Form):
+    def __init__(self, parent = None):
+        super(Demo, self).__init__(parent)
+
+        self.setupUi(self)
+
+    def show_and_raise(self):
+        self.show()
+        self.raise_()
+
+if __name__ == "__main__":
+    app = QtGui.QApplication(sys.argv)
+
+    demo = Demo()
+    demo.show_and_raise()
+
+    sys.exit(app.exec_())
+```
+
+Problem:
+
+```
+TypeError: 'PySide.QtCore.QObject.setObjectName' called with wrong argument types:
+  PySide.QtCore.QObject.setObjectName(QString)
+Supported signatures:
+  PySide.QtCore.QObject.setObjectName(unicode)
+```
+
+Solution:
+
+edit add_group.py(generated from add_group.ui), replace `from PyQt4 import QtCore, QtGui` with
+
+```
+try:
+    from PySide import QtCore, QtGui
+except ImportError:
+    from PyQt4 import QtCore, QtGui
+```
+
+## References
+
+ - [Qt Designer Manual](http://developer.qt.nokia.com/doc/qt-4.8/designer-manual.html)
+ - [PySide.QtUiTools](http://www.pyside.org/docs/pyside/PySide/QtUiTools/QUiLoader.html)
+# Resources About Qt GUI Framework Python Binding
+
+Lots of simple and Pythonic PySide demos,  
+this project is released under the permissive 3-clause BSD license.
+
+
+Qt FEATURES, you should read these first of all
+
+ - [Qt and Key Technologies](http://doc.qt.nokia.com/latest/technology-apis.html)
+ - [MVC](http://doc.qt.nokia.com/latest/model-view-programming.html)
+
+## Implementations
+
+ - PySide
+ - PyQt4 (sucks)
+
+[Differences Between PySide and PyQt](http://developer.qt.nokia.com/wiki/Differences_Between_PySide_and_PyQt)
+
+
+## Tutorials collection
+
+ - [Tutorials - PyQt Wiki](http://diotavelli.net/PyQtWiki/Tutorials)
+ - [Qt | DevBean's World](http://www.devbean.info/category/qt)
+ - [Qt Creator系列教程](http://www.yafeilinux.com/?page_id=3)
+ - [Qt - 1+1=2](http://blog.csdn.net/dbzhang800/article/category/759342)
+
+## Other Resources
+
+ - [Books about GUI Design](http://doc.qt.nokia.com/latest/guibooks.html)
+ - [PySide Documentation contents](http://www.pyside.org/docs/pyside/contents.html)
+ - [Qt Quarterly: C++ and Qt programmers' newsletter](http://doc.qt.nokia.com/qq/index.html)
+ - [Qt Reference Documentation](http://doc.qt.nokia.com/latest/index.html)
+     - [Qt and Key Technologies](http://doc.qt.nokia.com/latest/technology-apis.html)
+
+## PyQt demos on Mac OS X
+
+Run PyQt Demos (version Python2.7)
+
+    python /opt/local/share/doc/py27-pyqt4/examples/demos/qtdemo/qtdemo.py
+
+Fix 'Documentation' button doesn't works on Mac OS X
+
+    sudo ln -s  /Applications/MacPorts/Qt4/*.app /opt/local/bin/
+
+
+
+
+
+# Notes On Resources
+
+Qt resource system 用于在可执行应用程序里面保存二进制文件(icons, translation files 等等)。
+
+ - [The Qt Resource System](http://doc.qt.nokia.com/latest/resources.html)
+ - [Resource Compiler (rcc)](http://doc.qt.nokia.com/latest/rcc.html)
+
+rcc means Qt's **r**esour**c**e **c**ompiler .
+
+
+## Example
+
+    find . | grep -v DS_Store
+
+    .
+    ./foo.py
+    ./resources
+    ./resources/icons
+    ./resources/icons/camera.png
+    ./resources/icons/iblah.png
+    ./resources/icons/mic.png
+    ./resources/icons/send_files.png
+
+
+    rcc -project -o bar.qrc
+    pyrcc4-2.7 -no-compress bar.qrc -o bar.py
+
+
+in foo.py
+
+    import bar
+
+    ...
+    pix = QtGui.QPixmap(":/resources/icons/camera.png")
+# Qt On Mac
+
+ - [Qt/Mac Special Features](http://doc.qt.nokia.com/qq/qq18-macfeatures.html)
+ - [Best Practice Guides](http://doc.qt.nokia.com/latest/best-practices.html)
+ - [Qt Quick](http://doc.qt.nokia.com/latest/qtquick.html)
+
+ - [Qt Quarterly - Qt on Mac OS X using Cocoa](Qt on Mac OS X using Cocoa](http://doc.qt.nokia.com/qq/QtQuarterly28.pdf)
+
+## Native
+
+ - [Qt for Mac OS X - Specific Issues](http://doc.qt.nokia.com/latest/mac-differences.html0
+ - [Qt is Mac OS X Native](http://doc.qt.nokia.com/latest/qtmac-as-native.html)
+
+## Window
+
+ - [Window and Dialog Widgets](http://doc.qt.nokia.com/latest/application-windows.html)/The different between Window and Widget
+ - [Cocoa Textured Window in QT](http://stackoverflow.com/questions/1413337/cocoa-textured-window-in-qt)
+
+ - [About close() and hide()](http://lists.trolltech.com/qt-interest/2003-03/thread01019-0.html)
+
+## Dock
+
+ - [Getting Dock widget show/hide events](http://www.qtcentre.org/threads/31169-MAC-Getting-Dock-widget-show-hide-events)
+ 
+ - [Mac OS X - Application icon clicked ?](http://lists.trolltech.com/qt-interest/2007-06/msg00820.html)
+
+## Dock icon
+
+ - [Disable the Dock icon for any Application](http://www.macosxtips.co.uk/index_files/disable-the-dock-icon-for-any-application.html)
+
+ - [QT/C++ on MAC - How do I hide my dock icon?](http://stackoverflow.com/questions/4718668/qt-c-on-mac-how-do-i-hide-my-dock-icon)
+
+ - [QT on OSX: Tray Icon - Icon Dock Problem](http://stackoverflow.com/questions/4997245/qt-on-osx-tray-icon-icon-dock-problem)
+
+ - [How to change Qt applications's dock icon at run-time in MacOS?](http://stackoverflow.com/questions/981147/how-to-change-qt-applicationss-dock-icon-at-run-time-in-macos)
+
+ - [cause the application icon to bounce in the dock](http://doc.qt.nokia.com/latest/qapplication.html#alert)
+
+
+## Dialog
+
+ - [Qt Quarterly - New Ways of Using Dialogs](http://doc.qt.nokia.com/qq/QtQuarterly30.pdf)
+
+
+## Icon
+
+ - [Does Qt Builder have a built-in tool for editing a toolbar?](http://stackoverflow.com/questions/2752259/does-qt-builder-have-a-built-in-tool-for-editing-a-toolbar)
+ 
+
+## Thread
+
+ - [Starting Threads with QThread](http://doc.qt.nokia.com/latest/threads-starting.html)
+
+You have to terminate all threads(create from threading.Thread or QtCore.QThread),
+before application quit, 
+or your application will be freezon, it doesn't show any widgets, not responses for any keyboard/mouse event.
+
+In Activity Monitor, it was mark as 'Python (Not Responding)'.
+
+![alt](quit-in-alive-threads-python-not-responding-20111123.png)
+
+‘It is not safe to use pixmaps outside the GUI thread’
+
+ - [Qt-interest Archive - QPixmap: It is not safe to use pixmaps outside the GUI thread](http://lists.trolltech.com/qt-interest/2008-11/msg00534.html)
+ - [QPixmap: It is not safe to use pixmaps outside the GUI thread](http://www.qtcentre.org/threads/41595-QPixmap-It-is-not-safe-to-use-pixmaps-outside-the-GUI-thread)
+ - [Qt: Threads and QObjects](http://doc.qt.nokia.com/latest/threads-qobject.html)
+
+
+ - [How can I change QT GUI widgets on a QMainWindow from a QThread which is a member?](http://stackoverflow.com/questions/1129587/how-can-i-change-qt-gui-widgets-on-a-qmainwindow-from-a-qthread-which-is-a-member)
+ - [Qt: Background thread refreshing UI thread](http://stackoverflow.com/questions/2376835/qt-background-thread-refreshing-ui-thread)
+
+
+problem:
+
+    QThread: Destroyed while thread is still running
+
+solution:
+
+
+
+## Signals and Slots
+
+### connect multiple slots to one signal
+
+- [Two different slots for the same signal](http://stackoverflow.com/questions/8264107/two-different-slots-for-the-same-signal)
+
+### arguments pass to emit 
+
+    self.emit(QtCore.SIGNAL("recv_msg( QString, QString, QString )"), sender_user_id, sender_uri, msg)
+
+You must convert msg to unicode object
+
+    msg = web.safeunicode(msg)
+
+## Local
+
+http://developer.qt.nokia.com/wiki/QtLocales
+http://doc.qt.nokia.com/latest/qtextstream.html#setLocale
+http://stackoverflow.com/questions/7333442/weird-strtod-behaviour
+
+## Some existing applications
+
+A list of applications that use PyQt as their UI layer
+
+**Programming**
+
+[Eric](http://eric-ide.python-projects.org/index.html) is a full featured Python and Ruby editor and IDE.
+    [source code](http://eric-ide.python-projects.org/eric-code.html).
+
+[A Qt Console for IPython](http://ipython.org/ipython-doc/dev/interactive/qtconsole.html)
+
+**Education**
+
+[Calibre](http://calibre-ebook.com/) is a free and open source e-book library management application developed by users of e-books for users of e-books.
+    [source code](http://manual.calibre-ebook.com/develop.html).
+
+**Utils**
+
+[Safebox](http://safebox.fabulasolutions.com/) encrypts and syncs files with your Dropbox folder. See how it works.
+
+#  USing CSS to custom theme
+
+http://doc.trolltech.com/latest/stylesheet.html
+
+[Qt Reference Documentation - Styles and Style Aware Widgets](http://doc.trolltech.com/latest/style-reference.html)
+
+## Build-in/factory icon
+
+ http://doc.trolltech.com/latest/qstyle.html#StandardPixmap-enum

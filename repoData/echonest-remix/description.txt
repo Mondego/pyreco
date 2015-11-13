@@ -1,0 +1,245 @@
+== capsule.py ==
+
+capsule.py beat matches parts of several songs into a single mp3. Given a transition duration, and an inter-transition duration, the program searches for the best order, the closest transition patterns, and apply beat alignment, time-stretching and crossfading into a single audio stream output. The result is a music collage with smooth transitions acting as the glue. Note that beat alignment is independent of downbeats during pattern search: it is optimal in the sense of timbral pattern matching, which may be perceptually tricky in the case of different styles. Therefore downbeats (first beat of the bar) don't necessarily align. Transitions can start anywhere in the track, and for any duration: it is up to the developer to apply additional constraints on top of the core engine of capsule to create less predictable and more interesting results. 
+
+A version of Capsule powers http://2012.jamodyssey.com/
+
+
+== Usage ==
+
+Usage: capsule.py [options] <list of mp3s>
+
+Options:
+  -h, --help            show this help message and exit
+  -t TRANSITION, --transition=TRANSITION
+                        transition (in seconds) default=8
+  -i INTER, --inter=INTER
+                        section that's not transitioning (in seconds)
+                        default=8
+  -o, --order           automatically order tracks
+  -e, --equalize        automatically adjust volumes
+  -v, --verbose         show results on screen
+  -p PDB, --pdb=PDB     dummy; here for not crashing when using nose
+
+
+== Examples ==
+
+After installing your Echo Nest API Key, try the following in your terminal:
+$ python capsule.py ../music/Raleigh_Moncrief-Guppies.mp3 ../music/Hiiragi_Fukuda-Open_Fields_Blues.mp3
+It'll combine into capsule.mp3, 8 seconds (default) of Guppies with 8 seconds of Open_Fields_Blues via 8 seconds (default) of beat-matched transition.
+
+To change the transition and inter transition paramaters use the options -t and -i, e.g.,
+$ python capsule.py -t 4 -i 20 ../music/Raleigh_Moncrief-Guppies.mp3 ../music/Hiiragi_Fukuda-Open_Fields_Blues.mp3
+makes a quicker 4-second transition with longer 20-second inter-transition excerpts of the tracks.
+Note that every track that doesn't fit the parameter constraints will simply be rejected from the mix.
+
+Option -o allows you to automatically order the tracks, currently by tempo:
+$ python capsule.py -o ../music/Raleigh_Moncrief-Guppies.mp3 ../music/Hiiragi_Fukuda-Open_Fields_Blues.mp3
+plays EverythingIsOnTheOne.mp3 first.
+
+Option -v allows you to see details about what is going on during computation.
+$ python capsule.py -o -v ../music/Raleigh_Moncrief-Guppies.mp3 ../music/Hiiragi_Fukuda-Open_Fields_Blues.mp3
+displays the following time of action, action name, time parameters, duration, and title.
+
+00:00	  Fade in	    100.421	-> 100.671	 (0.250)	Guppies.mp3
+00:00	  Playback	    100.671	-> 108.671	 (8.000)	Guppies.mp3
+00:08	  Crossmatch	108.671	-> 232.107	 (7.502)	Guppies.mp3 -> Open_Fields_Blues.mp3
+00:15	  Playback	    232.107	-> 240.297	 (8.190)	Open_Fields_Blues.mp3
+00:23	  Fade out	    240.297	-> 246.297	 (6.000)	Open_Fields_Blues.mp3
+
+Note that every capsule starts with a 250 ms quick fade in and ends with a 6-second fade out.
+
+With option -e you can equalize the relative volume between tracks.
+$ python capsule.py -o -e -v ../music/Raleigh_Moncrief-Guppies.mp3../music/Hiiragi_Fukuda-Open_Fields_Blues.mp3
+pushes the gain of the first track by 33% and the second track by 10%
+
+Vol = 133%	Raleigh_Moncrief-Guppies.mp3
+Vol = 110%	Hiiragi_Fukuda-Open_Fields_Blues.mp3
+
+== earworm.py ==
+
+earworm.py allows to seamlessly extend and shrink the length of a song without affecting its tempo, by jumping strategically backward or forward into it. It is based on a graph representation of beat-synchronous pattern self-similarities, i.e., "close-enough" structural repetitions. The algorithm is tuned to:
+
+- minimize the numbers of "loops"
+- never loop twice in the same exact location
+- end up as close as possible to the requested duration without any time-stretching or cropping
+- take into account timbre and pitch similarities
+- smooth transparent jumps and transitions
+- efficient graph representation useful for structure visualization, and other song manipulations
+- also find and construct loops of arbitrary lengths for infinite looping
+
+It is up to the developer to modify the algorithm and choose alternative default parameters for other use cases.
+
+
+== Usage ==
+
+Usage: earworm.py [options] <one_single_mp3>
+
+Options:
+  -h, --help            show this help message and exit
+  -d DURATION, --duration=DURATION
+                        target duration (argument in seconds) default=600
+  -m MINIMUM, --minimum=MINIMUM
+                        minimal loop size (in beats) default=8
+  -i, --infinite        generate an infinite loop (wav file)
+  -l, --length          length must be accurate
+  -k, --pickle          output graph as a pickle object
+  -g, --graph           output graph as a gml text file
+  -p, --plot            output graph as png image
+  -f, --force           force (re)computing the graph
+  -S, --shortest        output the shortest loop (wav file)
+  -L, --longest         output the longest loop (wav file)
+  -v, --verbose         show results on screen
+
+
+== Examples ==
+
+After installing your Echo Nest API Key, you can try the script in the terminal, e.g.:
+$ python earworm.py ../music/BillieJean.mp3
+generates a 600 second (default) version of Billie Jean called BillieJean_600.mp3
+
+Option -d allows you to request the length:
+$ python earworm.py -d 1200 ../music/BillieJean.mp3
+generates a close to 20 min long version of Billie Jean: 20 min and 883 milliseconds to be exact.
+
+By adding the option -l:
+$ python earworm.py -d 1200 -l ../music/BillieJean.mp3
+you get the exact 20 min long version of Billie Jean! What happens is that a fade out is started early in order to finish at 20 min worth of audio samples precisely.
+
+The option -m takes an integer parameter: the minimum number of beats, e.g.:
+$ python earworm.py -d 1200 -l -m 16 ../music/BillieJean.mp3
+to eliminate jumps that are shorter than 16 beats in length. That allows to avoid immediate typically more noticeable repetitions. Default is 8 beats.
+
+Note that if you request a short duration, e.g. 30 seconds:
+$ python earworm.py -d 30 ../music/BillieJean.mp3
+the representation may not allow for such a short path from beginning to end, and will output the shortest path found, given the constraints.
+
+Use the option -v to visualize where jumps are created:
+$ python earworm.py -v ../music/BillieJean.mp3
+outputs the following pointers, showing time of action, action name, time parameters, duration, and title:
+
+00:00	  Playback	0.000	-> 99.824	 (99.824)	Billie Jean
+01:39	  Jump		99.824	-> 92.117	 (0.515)	Billie Jean
+01:40	  Playback	92.117	-> 139.847	 (47.730)	Billie Jean
+02:28	  Jump		139.847	-> 33.586	 (0.512)	Billie Jean
+02:28	  Playback	33.586	-> 251.584	 (217.998)	Billie Jean
+06:06	  Jump		251.584	-> 243.896	 (0.510)	Billie Jean
+06:07	  Playback	243.896	-> 271.556	 (27.660)	Billie Jean
+06:34	  Jump		271.556	-> 87.510	 (0.516)	Billie Jean
+06:35	  Playback	87.510	-> 294.452	 (206.941)	Billie Jean
+
+along with a long list of links from a beat marker, to other beat offsets:
+
+0 [4, 120]
+1 [4, 88]
+2 [4]
+3 [4]
+4 [88, 4]
+5 [88]
+...
+527 [-8, -168, -72, -360]
+528 [-8, -168, -360]
+529 [-8, -360, -168]
+530 [-8]
+531 [-8, -80]
+532 [-8, -80]
+
+In this case, beat 0 is structurally similar to 4 beats and 120 beats forward. Beat 532 is similar to 8 beats and 80 beats earlier.
+
+You can cache the graph representation that may take time to compute, with option -k:
+$ python earworm.py -k ../music/BillieJean.mp3
+That'll save a graph pickle file called BillieJean.mp3.graph.gpkl which will be loaded the next time you call this song.
+
+The infinite option -i outputs a loopable wav file (for sample precision) rather than an mp3:
+$ python earworm.py -i ../music/BillieJean.mp3
+generates a close to 600 second long "loop" called BillieJean_600_loop.wav that may be heard from a player with proper "loop mode" capabilities for infinite seamless playing. For that reason, the file doesn't start at the very beginning or finish at the very end of the original file.
+
+For convenience, the shortest or longest single loops can be generated respectively via -S and -L
+$ python earworm.py -S ../music/BillieJean.mp3
+makes an 8 second loopable file called BillieJean_8_shortest.mp3, and
+$ python earworm.py -L ../music/BillieJean.mp3
+makes an 184 second loopable file BillieJean_184_longest.mp3
+
+It is possible to combine -m and -S to find the shortest loop with at least -m beats, e.g.,
+$ python earworm.py -S -m 32 ../music/BillieJean.mp3
+makes a single loop of 16 seconds (32 beats of about 500 ms) BillieJean_16_shortest.mp3
+
+
+# Welcome to Echo Nest Remix
+
+Echo Nest Remix is **the Internet Synthesizer.** 
+Make amazing things from music, automatically.  Turn any music or video into Python, Flash, or Javascript code.  
+
+Want more cowbell? [Remix can do it.](http://www.morecowbell.dj/ "")  
+Want to make it swing? [Remix can do it.](http://swingify.cloudapp.net/ "")  
+Want to turn any track into drum & bass? [Remix can do it.](http://the.wubmachine.com/ "")  
+Want to make new music videos out of old ones? [Remix can do it.](http://www.youtube.com/watch?v=_bW7AkhgQpc/ "")  
+
+## Getting Started
+We've made a shiny new page for getting Remix installed: <http://echonest.github.com/remix/> - if you have any problems, let us know!
+
+![""](https://a248.e.akamai.net/camo.github.com/c7a3810cd59b15375246e5468b46cdecd18edbb9/687474703a2f2f692e696d6775722e636f6d2f57574c596f2e676966 "Head-nodding cat can't believe that he hasn't been remixed yet")
+
+
+Stuff that I am just playing around with
+This is the documentation for the midi package
+==============================================
+
+
+The modules follows the following naming convention:
+
+
+MidiIn<StreamType>.py
+---------------------
+
+The MidiIn modules reads midi content for a specific type of stream. Ie. a file or a midi port. It then generates events and triggers them on a MidiOutStream.
+
+
+MidiOut<StreamType>.py
+----------------------
+
+The MidiOut modules are event handlers, that reacts to events generated by a a Midi in module.
+
+
+MidiInBase.py
+---------------
+
+The base class for input streams.
+
+
+MidiOutBase.py
+----------------
+
+The base class for the output streams.
+
+
+
+
+
+
+Internal modules
+================
+
+
+DataTypeConverters.py
+---------------------
+
+A collection of functions that converts the special data types used in midi files to and from strings.
+
+
+constants.py
+------------
+
+A collection of constants from the midi spec.
+
+
+These files are used for testing the midi package
+=================================================
+
+minimal.mid
+-----------
+
+A minimal working midifile. Plays a one bar "middle C" at 120 bpm. The absolute simplest file I could get to play in midi devices.
+Embarrasingly empty.
+
+Why don't you write some tests?

@@ -1,0 +1,979 @@
+This contains the readme first text.
+
+==================================
+dataset-get experimental framework
+==================================
+
+WARNING: This is a prototype that don't have real datasets
+available. We don't know if we will use it in the future and we don't
+use it. So you are probably better to skip this.
+
+
+This directory contains a prototype of the unified dataset repository
+infrastructure for Theano/PyLearn
+
+
+Manifesto (the short version)
+-----------------------------
+
+- Public/Open Datasets should be always available to the community
+
+- Datasets should be simple to get
+
+- Datasets should be available "forever"
+
+- Datasets should be in platform-independent formats
+
+- Dataset should be curated by the Benevolent Gods of Data in order to make
+  experiments repeatable and standardized
+
+- People should be able to install datasets easily either as normal users
+  or as superusers
+
+- Dataset should be easily usable by usual tools, in our case
+  Theano/PyLearn (while maintaining compatibility with basic tools such as
+  numpy)
+
+
+Manifesto (the slightly longer version)
+---------------------------------------
+
+- It is not enough to have datasets circulated, we must have datasets that
+  are demonstrably from the original source, and not some n-th generation
+  dataset than went through a great number of transcodings/preprocessing.
+
+- Canonical datasets should be gathered in a curated repository, where they
+  can reside for an indefinite amount of time ("forever", as forever goes
+  in this world). The user can just get the dataset from the repository and
+  reinstall *the same dataset* each time, making experiments stable and
+  reproducible. This will be the responsibility of the BGoDs.
+
+- Curating datasets to platform-independent formats is also the
+  responsibility of the BGoDs, but the onus may be devoted to the people
+  submitting a new dataset.
+
+- Configuration should be transparent to the user, letting the tool update,
+  copy, move, configure datasets without having the user manually editing
+  anything. The configuration and datasets have to mesh with the tools we
+  use, whether PyLearn, Theano, or numpy-based applications (possibly, in
+  this case, with helper classes).
+
+
+Key Design Goals of the dataset-get tool
+----------------------------------------
+
+- Everyone can use it. Up to now, we have been relying on the awesome work
+  of the BGoDs of our lab to configure the datasets for everyone to use,
+  but that solution does not scale well to people outside our lab, or
+  people inside our lab but with computers that can be disconnected from
+  the lab's repository---also known as laptops. Furthermore, currently,
+  installation of datasets requires manual interventions (finding a
+  compatible version, downloading it, decompress it in a suitable place,
+  change configuration files by hand, etc.) which really should abstracted
+  and automated by a simple-to-use tool. Therefore, the tool must automate
+  adding (and removing) datasets for the user.
+
+- Privileged/unprivileged user. Being able to operate a tool in user-space
+  is important for user using shared systems on which they have little or
+  no privileges. The dataset-get tool is strongly inspired by Debian's
+  apt-get tool, but it works quite differently whether you invoke it as
+  root or as a normal user (especially that you cannot invoke apt-get as a
+  normal user) [1].
+
+  - Invoked as a super-user, dataset-get affects system-wide configuration
+    files. It will update root-accessible configuration files, but will
+    create readable datasets for all (or as defined by the wanted file
+    creation flags). Root can affect only root configuration, and while
+    root can add or remove datasets, normal users do not need to do
+    anything in particular.
+
+  - As a normal, unprivileged user, dataset-get affects only the user's
+    files. The user will have access to system-wide installed datasets in
+    addition to his own.
+
+  - Super- and normal-user configuration must mesh. The configuration files
+    are this read in the following order: root configuration, user
+    configuration, then configurations at paths specified by the
+    PYLEARN2_DATA_PATH environment variable (which will now become a :- or
+    ;-separated list of paths). Each configuration read may overwrite some
+    of the previously read configuration items. That is, if root has
+    dataset X in location Y, but user has dataset X in location W, then the
+    user only sees the dataset in location W.
+
+  Furthermore, dataset-get should perform OS-specific and OS-friendly
+  configuration. That is, on an OS complying to the Open Desktop
+  initiative, configuration files will be created in places that respect
+  the spirit of the platform. For now, only Open Desktop-like systems are
+  supported (but we will include OS and Windows in future versions).
+
+- Transparent to the programmer. The configuration files created by
+  dataset-get should be transparently used by Theano/PyLearn. In PyLearn,
+  one should use the resolver class to look-up the location of a dataset
+  and use an appropriate dataset object to read it.
+
+The dataset-get tool is still a work in progress, but vows to uphold all of
+the above goals in the long term (some of it is already working as it
+should, some, like Windows and OS support, are missing).
+
+
+TO DO
+-----
+
+This is a work in progress. There are many things still to do:
+
+- Create a stable, long-term repository for the dataset
+
+- Add a configuration for alternate/mirror or even multiple repositories.
+
+- Make an OS/X (and BSD?) version
+
+- Make a Windows 7 version (support for Windows PX and Vista will not
+  happen. Windows 8 should be supported as well)
+
+- Establish a dataset hierarchy or different name spaces. Standard datasets
+  should be found in one place, and paper-related or other specific,
+  non-canonical datasets in other places; c.f. Debian hierarchy of
+  repositories.
+
+
+
+Refs
+----
+
+[1] Francois-Denis Gonthier, Steven Pigeon --- Non Privileged User Package
+Management: Use Cases, Issues, Proposed Solutions --- Pro cs. Linux
+Symposium, 2009, p. 111-122
+
+http://www.stevenpigeon.org/Publications/publications/ols-2009.pdf 
+
+This package has diverged from James Bergstra's original repo.
+
+Some of it has been updated for Windows support, but this refers to parts
+of pylearn2 outside of TheanoLinear so can't be pushed back to the original
+repo.
+
+matrixmul.py has been removed because it adds more ops than just matrix
+multiplication into the graph. It was trying to implicitly do Space conversion.
+pylearn2.linear has a replacement, but this can't really be pushed back to
+the TheanoLinear repo because TheanoLinear doesn't have Spaces.
+
+See unshared_conv/README for notes about modifications to that functionality.
+
+
+Note from IG: James (and/or his collaborator?) have modified the .cu files
+here from Alex's original code, it's not just a wrapper. James doesn't remember
+what they changed, and his commit messages just say things like "mega-commit".
+
+I've made some bug fixes here and haven't bothered to push them back to
+TheanoLinear, so when handling updates from TheanoLinear, merge them carefully.
+This includes:
+1) Removed "border_mode" argument which had no effect
+2) Fixed some unit tests that weren't passing enough arguments
+
+Scripts related to the pylearn2.models.dbm.DBM class
+
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_black_box
+3. Download train.csv and test.csv from the Kaggle contest website and put
+   them in the icml_2013_black_box directory.
+4. Download extra_unsupervised_data.npy and put it in the same directory.
+   For these examples, you don't need extra_unsupervised_data.tgz. That
+   file is the same thing in compressed csv format, for competitors who
+   aren't using python / numpy.
+5. Make sure pylearn2/scripts is in your PATH variable.
+
+
+To run the example baselines for the Kaggle contest, do the following:
+
+You have the choice of running an MLP with no preprocessing, or you can
+run an MLP with ZCA preprocessing.
+
+MULTILAYER PERCEPTRON BASELINE
+===========================
+
+1. Run the following command:
+
+train.py mlp.yaml
+
+This will train the multilayer perceptron (MLP) model, and emit a file called
+mlp_best.pkl, which is the MLP model after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in mlp.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py mlp_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 47%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py mlp_best.pkl mlp_best.csv
+
+This will create a file called mlp_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 51.5% accuracy.
+
+
+ZCA Preprocessing Baseline
+==========================
+
+1. Run
+
+python learn_zca.py
+
+2. Run
+
+train.py zca_mlp.py
+
+3. Run
+
+python make_submission.py zca_mlp_best.py zca_mlp_best.csv
+
+4. If you want, enter it in the Kaggle competition.
+
+
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_emotions 
+3. Download train.csv and test.csv from the Kaggle contest website and put
+   them in the icml_2013_emotions directory.
+4. Make sure pylearn2/scripts is in your PATH variable
+
+To view some examples from the training set, run
+
+show_examples.py emotions_train.yaml
+
+or to view examples from the test set, run
+
+show_examples.py emotions_public_test.yaml
+
+
+To run the example baselines for the Kaggle contest, do the following:
+
+You have the choice of running the cheap and fast softmax regression
+example baseline, or you can run the more computationally
+expensive convolutional network baseline.
+
+SOFTMAX REGRESSION BASELINE
+===========================
+
+1. Run the following command:
+
+train.py softmax.yaml
+
+This will train the softmax regression model, and emit a file called
+softmax_best.pkl, which is the softmax regression model after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in softmax.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py softmax_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 63%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py softmax_best.pkl softmax_best.csv
+
+This will create a file called softmax_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 36.6% accuracy.
+
+CONVOLUTIONAL NETWORK BASELINE
+==============================
+
+
+1. Run the following command:
+
+train.py convolutional_net.yaml
+
+This will train a small convolutional network model, and emit a file called
+convolutional_net_best.pkl, which is the convolutional network after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in convolutional_net.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py convolutional_net_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 49%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py convolutional_net_best.pkl convolutional_net_best.csv
+
+This will create a file called convolutional_net_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 49.6% accuracy.
+
+
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_multimodal 
+3. Download public_test_images.tgz and public_test_options.tgz from the Kaggle
+contest website.
+4. Expand the .tgz files. You should now have directories called:
+   ${PYLEARN2_DATA_PATH}/icml_2013_multimodal/public_test_images 
+   ${PYLEARN2_DATA_PATH}/icml_2013_multimodal/public_test_options
+5. Make sure pylearn2/scripts is in your PATH variable
+6. Create the subdirectory ${PYLEARN2_DATA_PATH}/esp_game 
+7. Download the Small ESP Game dataset from the Kaggle contest site.
+8. Expand the .tgz file. If you are using NFS or AFS this might take a long
+   time.
+
+Take a look at the training data. For every image in the ESPGame100k/originals
+directory, there is a corresponding plain text file with suffix .desc in
+ESPGame100k/labels.
+
+Take a look at the test data. For example, open up public_test_images/0.png
+in a in a standard image viewing program such as eog. Next, open
+public_test_options/0.option_0.desc and public_test_options/0.option_1.desc
+in a standard text editor such as vim. Both of these files contain lists of
+words. One of these lists describes this image and one of them describes a
+different image in the test set. Your program's job is to return a 0 if
+0.option_0.desc describes this image, or a 1 if 0.option_1.desc does.
+
+To run the example baselines for the Kaggle contest, do the following:
+
+1. Preprocess the public test images using local contrast normalization
+   (Pinto et al, 2008), by running this script:
+
+python lcn.py public_test
+
+   It is recommended that you run this on GPU.
+
+2. Download a k-means dictionary that was trained on patches of the ESP Game
+   Dataset after the same local contrast normalization preprocessing. The
+   dictionary is available at this link:
+
+   http://www.iro.umontreal.ca/~lisa/mlc2013/lcn_means.npy
+
+   Save the downloaded file in 'multimodal', the same directory as this
+   README.
+
+3. Extract soft threshold features (Coates and Ng, 2011) from all image patches, then
+   downsample using local max pooling using this script:
+
+   python extract_kmeans_features.py public_test
+    
+   It is recommended that you run this on GPU.
+
+4. Download a k-means dictionary that was trained on patches of these k-means feature
+   maps. The dictionary is available at this link:
+
+   http://www.iro.umontreal.ca/~lisa/mlc2013/l1_means.npy
+
+   Save the downloaded file in 'multimodal', the same directory as this
+   README.
+ 
+5. Extract a second layer of soft threshold features, using global max pooling to
+   make a "bag of visual words" (BOVW) feature vector for each image:
+
+   python extract_layer_2_kmeans_features.py public_test
+
+   It is recommended that you run this on GPU.
+
+6. Run the following script to make a list of the top 4,000 words in the ESP game
+   dataset:
+
+   python make_wordlist.py
+
+   This will generate "wordlist.txt".
+
+7. Download a trained MLP that estimates the probability of each of these 4,000
+   words appearing given the BOVW for each image. The last layer of this MLP was
+   pretrained by training an RBM on the tags in the ESP Game dataset.
+
+   The two files are the same, but one is for CPU and one is for GPU. Download
+   the format for the compute device you prefer to work with and rename it to
+   mlp.pkl:
+
+   http://www.iro.umontreal.ca/~lisa/mlc2013/mlp_gpu.pkl
+   http://www.iro.umontreal.ca/~lisa/mlc2013/mlp_cpu.pkl
+
+8. Run the MLP on the extracted features to make your submission:
+
+   python make_submission.py mlp.pkl public_test
+
+   This creates a file called "submission.csv" which may be uploaded to kaggle.com
+   to be evaluated.
+
+9. Download a collection of 4,000 logistic regression models that do the same task. Choose either the CPU or GPU version and rename it to logreg_best.pkl after downloading.
+
+   http://www.iro.umontreal.ca/~lisa/mlc2013/logreg_best_cpu.pkl
+   http://www.iro.umontreal.ca/~lisa/mlc2013/logreg_best_gpu.pkl
+
+10. Run the logistic regression models on the extracted features to make your submission:
+
+   python make_submission.py logreg_best.pkl public_test
+
+   This overwrites "submission.csv" with the logistic regression output. This updated
+   file may also be scored on kaggle.com.
+
+
+
+The two yaml files in this folder are to reproduce MNIST results of the original dropout paper http://arxiv.org/abs/1207.0580.
+
+mnist_valid.yaml: use some portion of data for validation and reaches 1.08% error rate.
+mnist.yaml uses same hyperparameters as above but uses the whole training set. It will stop at the same epoch that mnist_valid.yaml reaches its best validation error. And results in 1.05% test error.
+
+1.10% is the error reported in original dropout paper.
+1.05% is the error reported in  Nitish Srivastava's master thesis.
+
+Author: Ian Goodfellow <goodfeli@iro.umontreal.ca>
+
+This directory contains scripts for reproducing an experiment from
+"Beyond Spatial Pyramids: Receptive Field Learning For Pooled Image Features"
+by Yangqing Jia and Chang Huang
+presented at the NIPS 2011 Workshop on Deep Learning and Unsupervised Feature Learning
+
+In this experiment, we train a k-means dictionary of 1600 centroids on patches of the
+CIFAR-100 dataset. We then extract features using the triangle code and the random
+pooling procedure described in the paper. The authors obtained a test set accuracy
+of 54.5 % using these features in an SVM.
+
+
+Here is the procedure for reproducing this experiment:
+
+1. Make sure you have a preprocessed version of 8x8 patches from the CIFAR-100 image
+   dataset. If you have not run it already, run
+   pylearn2/scripts/datasets/make_cifar100_patches_8x8.py
+   DO NOT RUN THIS IF THE PREPROCESSED DATA ALREADY EXISTS!!!
+   Different versions of scipy, different machines, different theano flags, etc. will
+   all result in learning a slightly different preprocessor matrix, so if you overwrite
+   the existing data with a new copy you will ruin everyone in the lab's experiments!!!!
+   However, if you do not have a
+   ${PYLEARN2_DATA_PATH}/cifar100/cifar100_patches_8x8/
+   directory you must run this script.
+
+2. Train your k-means dictionary by running
+
+train.py kmeans.yaml
+
+3. Extract features by running
+
+python extract_features.py extract_features.yaml
+
+4. This should have emitted features_A.npy though features_E.npy. Run
+
+python assemble.py
+
+to concatenate them together into features.npy. This step will take a lot
+of RAM! (TODO: how much RAM exactly?)
+
+5. The next step is to cross-validate the best SVM hyperparameters on
+the training features. Unfortunately, you're on your own for this for now.
+I use Adam Coates' SVM implementation from his code demos and it's written
+in matlab so not part of pylearn. I also use a cluster to parallelize the
+cross-validation and my script for that is very specific to the cluster's
+job management system.
+
+If you want to use Adam's matlab implementation like I do, then run
+
+python npy2mat.py features.npy features.mat
+
+to convert the features to matlab format. Note that this will also
+take a lot of RAM (TODO: how much RAM exactly?)
+
+The files in this directory recreate some of the experiments reported in the
+paper
+
+Maxout Networks. Ian J. Goodfellow, David Warde-Farley, Mehdi Mirza, Aaron
+Courville, and Yoshua Bengio. arXiv 2013
+
+If you use the code provided here, please cite that paper.
+
+The experiments reproduced here are as follows:
+
+1) MNIST permutation invariant result
+
+The paper reports obtaining a test set error rate of 0.94%, the best ever
+reported (as of this writing) for a multilayer perceptron with no unsupervised
+pretraining. To reproduce this result, run
+
+train.py mnist_pi.yaml
+train.py mnist_pi_continued.yaml
+print_monitor.py mnist_pi_continued.pkl | grep test_y_misclass
+
+You should get 0.009399999999, i.e., 94 mistakes on the test set.
+
+Note: you probably will want to run the above scripts with
+THEANO_FLAGS="device=gpu,floatX=float32" for optimal speed, but if you don't
+have a GPU it should work without one. I have, however, not tested this case.
+The remaining results all require GPU as they are implemented using Alex Krizvhevsky's
+CUDA convolution library.
+
+2) MNIST result
+
+The paper reports obtaining a test set error rate of 0.45%, the state of the
+art for the MNIST dataset without data augmentation. To reproduce this result,
+run:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py mnist.yaml
+THEANO_FLAGS="device=gpu,floatX=float32" train.py mnist_continued.yaml
+THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py mnist_continued.pkl
+
+The final command should print out some progress messages followed by "0.0045"
+
+3) CIFAR-10 results
+
+There are several maxout results on the CIFAR-10 dataset. To reproduce these
+results, you must first have prepared a version of the CIFAR-10 dataset with
+global contrast normalization and whitening. To do so, run
+pylearn2/scripts/datasets/make_cifar10_gcn_whitened.py.
+(If you are in the LISA lab, don't do this. It has already been made for you)
+
+You may then proceed to reproducing the various results described below:
+
+3a) State of the art on CIFAR-10 without data augmentation
+
+The ICML paper reports a state of the art result on the test set of 11.68%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_no_aug.yaml
+
+This should run for 785 epochs. In our tests, it obtained a test set error
+of 11.62%. This slight improvement in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
+
+The number of epochs was obtained by monitoring the error on the validation
+set when running this script:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_no_aug_valid.yaml
+
+(valid_y_misclass should bottom out at 0.12009999156 on epoch 785, if you run
+on exactly the same platform as I did. Expect small changes if your platform
+is different)
+
+3b) State of the art on CIFAR-10 with data augmentation
+
+The ICML paper reports a state of the art result on the test set of 9.38%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu, floatX=float32" train.py cifar10.yaml
+
+This should run for 474 epochs. In our tests, it obtained a test set error
+of 9.45%. This slight degradation in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
+
+The number of epochs was obtained by monitoring the error on the validation
+set when running this script:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_valid.yaml
+
+(valid_y_misclass should bottom out at 0.094499990344 on epoch 474, if you run
+on exactly the same platform as I did. Expect small changes if your platform
+is different)
+
+3c) An older state of the art on CIFAR-10 without data augmentation, using a
+smaller, faster model.
+
+The February 2013 version of the paper that we originally posted on
+arXiv reports a test set error of 12.93% on the CIFAR-10 dataset,
+which was the state of the art without data augmentation. This result has since
+been beaten by the model described in section 3a, but you may still be interested
+in running the older model because it was smaller and cheaper to run.
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_old_small.yaml
+
+At this point, the model has only been trained on the first 40k examples.
+Run
+THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py cifar10_best.pkl
+
+It should report a test error of around 0.1405 at this point.
+
+If you continue training on the remaining 10k training examples, the test error
+should decrease to around 0.1293.
+
+We have upgraded the ZCA code since these results were obtained, and we haven't
+re-run this yaml file, so the numbers may have changed somewhat.
+
+4) CIFAR-100 result
+
+In the days ahead, we will provide our yaml config files for getting the state of
+the art on CIFAR-100.
+
+5) SVHN
+
+The paper reports a test error of 2.45 on the SVHN dataset, which is the state
+of the art for a single model.
+
+Since the data is large and might not fit into the memory, we use PyTables for storing
+the dataset. For pre-processing the data you need to make a copy of data to a local
+path defined by SVHN_LOCAL_PATH environment variable. The reason behind is that with
+PyTables any change to the data, will result in change to the data on the disk and
+we do not want to modify the original raw data.
+
+export SVHN_LOCAL_PATH=/tmp/SVHN/
+python svhn_preprocessing.py
+
+Afterwards we train our model using the svhn.yaml file
+
+THEANO_FLAGS="device=gpu,floatX=float32" python train.py svhn.yaml
+
+This should give the best validation error of 3.08% which corresponds to
+test error of 2.50% at epoch 142.
+
+Afterwards using the trick from this paper:
+
+On the importance of momentum and initialization in deep learning,
+Ilya Sutskever, James Martens, George Dahl, and Geoffery Hinton, ICML 2013
+
+We can re-run the model from the previous best point by using smaller
+learning rate which will result in best validation error of 3.07% and
+test error of 2.47% after 9 more epochs.
+
+THEANO_FLAGS="device=gpu,floatX=float32" python train.py svhn2.yaml
+
+The scripts in this directory are aimed at reproducing results from published
+papers.
+
+Each subdirectory corresponds to a different paper. Some of these papers were
+originally written using pylearn2, while others were written using different
+libraries and languages but the pylearn2 developers have made an attempt to
+reproduce them here.
+
+The papers partially reproduced so far are:
+
+dbm: Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines. In
+    AISTATS 2009.
+
+jia_huang_wkshp_11: Jia, Yangqing and Huang, Chang. Beyon spatial pyramids:
+    Receptive field learning for pooled image features, 2011. NIPS 2011
+    Workshop on Deep Learning and Unsupervised Feature Learning.
+
+maxout: Goodfellow, I.J., Warde-Farley, D., Mirza, M., Courville, A. and
+    Bengio, Y. Maxout Networks. 2013. arXiv:1302.4389v3
+
+
+This folder contains an IPython notebook that will teach you the basics of how convolutional networks work, and show you how to use multilayer perceptrons in pylearn2.
+
+Guide on how to load IPython notebooks:
+http://deeplearning.net/software/pylearn2/tutorial/notebook_tutorials.html#notebook-tutorials
+
+The yaml files in this folder are yaml file templates that would be loaded inside the notebook. For details on how to load them, read the notebook.
+
+This directory contains examples of how to use pylearn2 DBMs
+
+1. How to train a single layer DBM, aka an RBM
+
+    There is a module called pylearn2.models.rbm, but it is
+    somewhat redundant with pylearn2.models.dbm since an RBM
+    is just a single layer DBM. In the future, maybe the RBM
+    class should be rewritten as a single layer subclass of
+    the DBM.
+
+    For now, you can train an RBM model using either the RBM
+    class or the DBM class. This directory contains an example
+    of how to do the latter. Just run
+
+    python train_dbm.py
+
+    This sets hyperparameters(hyper_params) and then runs the 
+    experiment defined in rbm.yaml with those hyper_parameter values.  
+
+    See rbm.yaml for further comments.
+
+    After you have trained this, you should be able to run some of
+    the scripts in pylearn2/scripts/dbm on it. For example, the
+    show_negative_chains.py script will let you see the last state
+    of the fantasy particles used for the PCD training.
+
+    Some of the more generic scripts in pylearn2/scripts also apply.
+    For example, show_weights.py will let you see the learned filters.
+
+
+pylearn2 tutorial example: "deep_trainer" by Li Yao
+
+This directory contains a simple example to give you a feeling of how you can
+use a few kinds of unsupervised learning to do layerwise pretraining of a
+deep model formed by stacking shallow models.
+
+This is not the best-supported tutorial in pylearn2, in part because most of
+the active pylearn2 developers are no longer researching stacked layerwise
+pretraining.
+
+The recommended usage of pylearn2 is to write YAML configuration files
+describing experiments and pass them to the train.py script. This method is
+described in most of the other tutorials, such as grbm_smd and the .ipynb
+tutorials. This tutorial teaches an alternate method, which is just building
+the experiment in your own .py file and using exclusively python interfaces
+everywhere. This method is not quite as well supported, and this tutorial
+shows you how to make sure the proper steps are taken to make sure datasets
+get their correct YAML description when using this method.
+
+You can also read stacked_autoencoders.ipynb, a tutorial on how to do
+layerwise pretraining using YAML files. That tutorial only covers autoencoder
+pretraining but demonstrates how to use the recommended YAML interface.
+
+usage:
+
+make sure pylearn2 can be found in your PYTHONPATH
+
+to train models on toy dataset: python run_deep_trainer.py -d toy
+
+to train models on cifar10 dataset: python run_deep_trainer.py -d cifar10
+
+to train models on mnist dataset: python run_deep_trainer.py -d mnist
+
+To visualize the first-layer weights trained on, for example, mnist:
+
+show_weights.py grbm.pkl
+
+(Visualization of deeper layer weights is not conceptually straightforward,
+so we do not explore that topic in this tutorial)
+
+You should be able to see number-like filters if you train the first layer
+GaussianRBM for just a few epochs, provided the layer is of a reasonable
+size (say, hundreds of hidden units). Note that by default the hidden layer
+is not set to such a size.
+
+To get good classification error you need to play with number of hidden
+units and MAX_EPOCHS_UNSUPERVISED and MAX_EPOCHS_SUPERVISED. The defaults
+are set to make the code run fast so you can see how all the interfaces
+work without waiting for a long time. To get good accuracy, you'll need
+to edit the code to make the models bigger and train longer.
+
+pylearn2 tutorial example: "grbm_smd" by Ian Goodfellow
+
+This directory contains an example of how to train a model using pylearn2.
+Specifically, we'll train an RBM with Gaussian units ("grbm") with an
+objective function called denoising score matching ("smd").
+
+If you are not working from the LISA lab, you'll need to setup
+the dataset yourself.
+Be sure to follow the "Download and Installation" instructions at
+http://deeplearning.net/software/pylearn2/ to set up your
+PYLEARN2_DATA_PATH directory.
+
+
+Step 0: Download the CIFAR-10 dataset
+------------------------------------
+People working from the LISA lab can skip this step.
+
+To download the CIFAR-10 dataset and put it in the right place, you can call
+
+pylearn2/scripts/datasets/download_cifar10.sh
+
+from this directory. It will get the python dataset from
+http://www.cs.utoronto.ca/~kriz/cifar.html and extract it into
+${PYLEARN2_DATA_PATH}/cifar10/cifar-10-batches-py
+
+
+Once you have the data, there are three steps to do in pylearn2.
+
+First, we create a preprocessed dataset and save it
+to the filesystem. Then we train a model on that dataset using
+the train.py script. Finally we can inspect the model to see
+how the learning experiment went.
+
+
+Step 1: Create the dataset
+----------------------------
+From this directory, run
+
+python make_dataset.py
+
+This will take a while.
+
+You should read through make_dataset.py to understand what it is doing.
+The file is heavily commented and is basically a small tutorial on
+pylearn2 datasets.
+
+As a brief summary, this script will load the CIFAR10 database of
+32x32 color images. It will extract 8x8 pixel patches from them,
+run a regularized version of contrast normalization and whitening
+on them, then save the preprocessing parameters to
+cifar10_preprocessed_train.pkl and the preprocessed database to
+train_design.npy.
+
+
+Step 2: Train the model
+-----------------------
+You should have pylearn2/scripts in your PATH enviroment variable.
+pylearn2/scripts/train.py should have executable permissions.
+
+From this directory, run
+
+train.py cifar_grbm_smd.yaml
+
+This will also take a while.
+
+You should read the yaml file for more information. It is heavily
+commented and is basically a tutorial on yaml files and training
+models.
+
+As a high level summary, it will create a file called
+cifar_grbm_smd.pkl. This file will contain a gaussian binary
+RBM trained using denoising score matching.
+
+
+Step 3: Inspect the model
+-------------------------
+pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
+should have executable permissions.
+
+From this directory, run
+
+show_weights.py cifar_grbm_smd.pkl
+
+A window containing the filters learned by the RBM will appear.
+They should mostly be colorless gabor filters, though some
+will be color patches.
+
+Note that the filters are still a bit grainy. This is because
+the example script doesn't train for very long. You can modify
+cifar_grbm_smd.yaml to train for longer if you would like to
+see prettier filters.
+
+Now close that window.
+
+Run
+
+plot_monitor.py cifar_grbm_smd.pkl
+
+This will display a plot of the objective function over time, so you
+can see what happened during training.
+
+This folder contains an IPython notebook that will teach you the basics of how multilayer perceptrons work, and show you how to use multilayer perceptrons in pylearn2.
+
+Guide on how to load IPython notebooks:
+http://deeplearning.net/software/pylearn2/tutorial/notebook_tutorials.html#notebook-tutorials
+
+The yaml files in this folder are yaml file templates that would be loaded inside the notebook. For details on how to load them, read the notebook.
+
+There are two kinds of tutorials in this directory.
+
+Some tutorials are just subdirectories containing python scripts and yaml
+files. To work through these tutorials, just cd into the subdirectory,
+and open the README.
+
+Some tutorials are ipython notebooks. These tutorials are single files with
+extension .ipynb. Run these tutorials using ipython, e.g.
+
+ipython notebook softmax_regression.ipnb
+
+If you get an error message that looks like:
+WARNING:root:500 GET /notebooks/b4261b8b-9d9a-477c-b370-b57f6143ea27?_=1363474284017 (127.0.0.1): Unreadable JSON notebook.
+ERROR:root:500 GET /notebooks/b4261b8b-9d9a-477c-b370-b57f6143ea27?_=1363474284017 (127.0.0.1) 67.73ms
+
+You are using too old of a version of ipython.
+These notebooks require version 0.13 to work.
+
+
+This folder contains an IPython notebook that will teach you the basics of how softmax regression works, and show you how to do softmax regression in pylearn2.
+
+Guide on how to load IPython notebooks:
+http://deeplearning.net/software/pylearn2/tutorial/notebook_tutorials.html#notebook-tutorials
+
+The yaml files in this folder are yaml file templates that would be loaded inside the notebook. For details on how to load them, read the notebook.
+
+This folder contains an IPython notebook that will teach you how to do layer-wise pre-training using denoising auto-encoders and then stack them together to form a MLP and do supervised fine-tuning on it.
+
+Guide on how to load IPython notebooks:
+http://deeplearning.net/software/pylearn2/tutorial/notebook_tutorials.html#notebook-tutorials
+
+The yaml files in this folder are yaml file templates that would be loaded inside the notebook. For details on how to load them, read the notebook.
+
+==============================
+Pylearn2: A machine learning research library
+==============================
+
+Pylearn2 is a library designed to make machine learning research easy.
+
+Pylearn2 has online `documentation <http://deeplearning.net/software/pylearn2/>`_.
+If you want to build a local copy of the documentation, run
+
+    python ./doc/scripts/docgen.py
+
+More documentation is available in the form of commented examples scripts
+and ipython notebooks in the "pylearn2/scripts/tutorials" directory.
+
+Pylearn2 was initially developed by David
+Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter
+2011 offering of `IFT6266 <http://www.iro.umontreal.ca/~pift6266/>`_, and
+is now developed by the LISA lab.
+
+
+Quick start and basic design rules
+------------------
+- Installation instructions are available `here <http://deeplearning.net/software/pylearn2/#download-and-installation>`_.
+- Subscribe to the `pylearn-users Google group
+  <http://groups.google.com/group/pylearn-users>`_ for important updates. Please write
+  to this list for general inquiries and support questions.
+- Subscribe to the `pylearn-dev Google group
+  <http://groups.google.com/group/pylearn-dev>`_ for important development updates. Please write
+  to this list if you find any bug or want to contribute to the project.
+- Read through the documentation and examples mentioned above.
+- Pylearn2 should not force users to commit to the whole library. If someone just wants
+  to implement a Model, they should be able to do that and not need to implement
+  a TrainingAlgorithm. Try not to write library features that force users to buy into
+  the whole library.
+- When writing reference implementations to go in the library, maximize code re-usability
+  by decomposing your algorithm into a TrainingAlgorithm that trains a Model on a Dataset.
+  It will probably do this by minimizing a Cost. In fact, you can probably use an existing
+  TrainingAlgorithm.
+
+Highlights
+------------------
+- Pylearn2 was used to set the state of the art on MNIST, CIFAR-10, CIFAR-100, and SVHN.
+  See pylearn2.models.maxout or pylearn2/scripts/papers/maxout
+- Pylearn2 provides a wrapper around Alex Krizhevsky's extremely efficient GPU convolutional
+  network library. This wrapper lets you use Theano's symbolic differentiation and other
+  capabilities with minimal overhead. See pylearn2.sandbox.cuda_convnet.
+
+License and Citations
+---------------------
+Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
+The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
+work we encourage you to cite this article:
+
+- Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin,
+  Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, and
+  Yoshua Bengio.
+  `"Pylearn2: a machine learning research library"
+  <http://arxiv.org/abs/1308.4214>`_.
+  *arXiv preprint arXiv:1308.4214* (`BibTeX
+  <http://www.iro.umontreal.ca/~lisa/publications2/index.php/export/publication/594/bibtex>`_)
+

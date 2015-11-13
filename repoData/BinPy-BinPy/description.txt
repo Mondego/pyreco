@@ -1,0 +1,683 @@
+<h3>Usage of the IC class to create your own Base_NOOFPINS class</h3>
+<br>
+<br>
+__1. IC class is the super most base class for all other IC's__
+
+
+The IC class contains the following methods :
+<br>
+<br>
+
+* `setIC(self, param_dict)` Method to set the pins of IC's to the respective logic states.<br>
+It can handle both IC's defined via Pin class and those not defined via the Pin class.
+
+Usage:<br>
+```
+ic = IC_ICNO()
+p = {1:0,2:1,3:1,4:1}
+```
+Note that partial initialization is permitted. The other pins will be having the configuration as defined
+at the time of coding. Or the last assigned value ( if assigned earlier using `setIC()` method
+```
+ic.setIC(p)
+```
+
+
+
+For an IC using `Pin` class the parameter dictionary *can* (the above initialization will work for both types of IC's though )
+be more elaborately defined as:
+
+```
+d = {   1 : {'value':1, desc':'Q1 : Output of AND gate 1'},
+        2 : {'value':1, 'desc':'A1 : Input 1 of AND gate 1'},
+        3 : {'value':0, 'desc':'B1 : Input 2 of AND gate 1'},
+        4 : {'value':1, 'desc':'C1 : Input 3 of AND gate 1'},
+        5 : {'value':0, 'desc':'D1 : Input 4 of AND gate 1'},
+        6 : {'value':0, 'desc':'NC '},
+        7 : {'value':0, 'desc':'GND'},
+        8 : {'value':0, 'desc':'NC '},
+        9 : {'value':1, 'desc':'D2 : Input 4 of AND gate 2'},
+        10: {'value':1, 'desc':'C2 : Input 3 of AND gate 2'},
+        11: {'value':0, 'desc':'B2 : Input 2 of AND gate 2'},
+        12: {'value':0, 'desc':'A2 : Input 1 of AND gate 2'},
+        13: {'value':0, 'desc':'Q2 : Output of AND gate 2'},
+        14: {'value':1, 'desc':'VCC'}
+    }
+```
+
+The above parameter dictionary when passed will define the pin tags of the IC.
+<br><br><br>
+
+
+* `drawIC()` method: Which draws the current configuration of an IC:
+
+Usage:
+```
+#Using a non pin class IC
+ic = IC_7400()
+ic.drawIC()
+```
+Output:
+```
+               _________ ________  
+              |         U       |
+              |                 |
+     [0]   ---|  1           14 |---   [0]    
+              |                 |
+              |                 |
+     [0]   ---|  2     7     13 |---   [0]    
+              |                 |
+              |                 |
+     [Z]   ---|  3     4     12 |---   [0]    
+              |                 |
+              |                 |
+     [0]   ---|  4     0     11 |---   [Z]    
+              |                 |
+              |                 |
+     [0]   ---|  5     0     10 |---   [0]    
+              |                 |
+              |                 |
+     [Z]   ---|  6            9 |---   [0]    
+              |                 |
+              |                 |
+     [0]   ---|  7            8 |---   [Z]    
+              |                 |
+              |_________________|  
+
+```
+
+Z - Is for the 3rd state of Tristated Pins [ The disconnected state or High impedance state ] This is shown when the pin value is `None`
+
+For Pin class IC's with `pin_tag` defined for all the pins, the pin_tags are shown besides each pin.
+
+Usage:
+```
+ic = IC_4082
+ic.drawIC()
+```
+
+Output:
+```
+               _________ ________  
+              |         U       |
+              |                 |
+ Q1  [Z]   ---|  1           14 |---   [1] VCC
+              |                 |
+              |                 |
+ A1  [0]   ---|  2     4     13 |---   [0] Q2 
+              |                 |
+              |                 |
+ B1  [0]   ---|  3     0     12 |---   [0] A2 
+              |                 |
+              |                 |
+ C1  [0]   ---|  4     8     11 |---   [Z] B2 
+              |                 |
+              |                 |
+ D1  [0]   ---|  5     2     10 |---   [Z] C2 
+              |                 |
+              |                 |
+ NC  [0]   ---|  6            9 |---   [0] D2 
+              |                 |
+              |                 |
+ GND [0]   ---|  7            8 |---   [0] NC 
+              |                 |
+              |_________________|  
+
+```
+<br><br>
+
+__2. Use this IC class to derive other classes of IC's Such as `Base_14pin`:__
+
+```
+class Base_14pin(IC):
+    """
+    Some doc string
+    """
+    total_pins = 14
+```
+Set the uses_pincls to false to maintain compatibility with non pin class IC's
+```
+    uses_pincls = False
+```
+
+Define a setPin method accepting individual Pin_nos and its values as parameters:
+
+```
+    def setPin(self, pin_no, pin_value):
+```
+Handle unexpected inputs
+```
+        if pin_no<1 or pin_no>14:
+            raise Exception("ERROR: There are only 14 pins in this IC")
+```
+Finally define how the pins will be updated when the uses_pincls is True and also when it is not.
+* When the IC uses Pin class:
+```
+        if not self.uses_pincls:
+            self.pins[pin_no] = pin_value
+```
+* When the IC does not use pin class:
+Pass the pin value ( which could be a parameter dictionary ) to the `setPinParam()` method of the particular pin no ( `self.pins[pin_no]` )
+```
+        else:
+            self.pins[pin_no].setPinParam(pin_value)
+```
+* Define a method to To set Pin Parameters if Pin class is used:
+```
+    def setPinParam(self,pin_no,parm_dict):
+        if pin_no<1 or pin_no>14:
+            raise Exception("ERROR: There are only 14 pins in this IC")
+        if uses_pincls:
+            self.pins[pin_no].setPinParam(parm_dict)
+        else:
+            raise Exception("ERROR: IC Does not use Pinset class")
+```
+
+
+
+
+<h3>Working of logic class</h3>
+
+<br><br>
+```
+In [10]: logicval = logic()
+```
+`logicval` contains an `logic` class instance initialize by default to `0`
+
+```
+In [11]: logicval2 = logic(1)
+```
+`logicval2` contains an `logic` class instance initialized by explicitly passing parameter `1`
+
+Logical operation between any two (or more logic instances ) returns a logic instance
+```
+In [12]: logicval ^ logicval2
+Out[12]: <BinPy.ic.base.logic instance at 0x2a0fb00>
+```
+
+Logic instance when called returns its value:
+```
+In [13]: ans = logicval ^ logicval2
+In [14]: ans()
+Out[14]: 1
+```
+
+
+<h3>BASIC Gates Using `logic` class:</h3>
+<br><br>
+
+* __EXOR-GATE__
+
+```
+In [0]: ( logic(1) ^ logic(0) ) ()
+Out[0]: 1
+```
+* __EXNOR-GATE__
+
+```
+In [2]: ( ~( logic(1) ^ logic(0) )) ()
+Out[2]: 0
+```
+* __OR-GATE__
+
+```
+In [9]: ( logic(1) | logic(0) ) ()
+Out[9]: 1
+```
+* __NOR-GATE__
+
+```
+In [10]: (~( logic(1) | logic(0) )) ()
+Out[10]: 1
+```
+
+* __AND-GATE__
+
+```
+In [11]: ( logic(1) & logic(0) ) ()
+Out[11]: 0
+```
+
+* __NAND-GATE__
+
+```
+In [12]: (~( logic(1) & logic(0) )) ()
+Out[12]: 1
+```
+
+* __NOT-GATE__
+
+```
+In [10]: ~( logic(1) ) ()
+Out[10]: 0
+```
+
+* __Random Equation__
+
+```
+In [27]: ( ( logic(1) | logic(0) ) & ( logic(1) | logic(1) ) ) ()
+Out[27]: 1
+```
+
+__To Show how Pin class works__
+
+* __Quick Summary:__
+
+Initializing a Pin:
+
+```
+BinPy:3> pin_of_an_ic = Pin(1,{'value':0})
+BinPy:4> d = {'value':1,'desc':'RST: Reset - Active High Resets the IC'}
+BinPy:5> pin_of_an_ic.setPinParam(d)
+```
+
+Only currently supported attibutes can be set for a pin instance:
+```
+BinPy:6> pin_of_an_ic.setPinParam({'foo':'bar'})
+ERROR: Unknown Parameters passed
+```
+
+* __Building an IC using Pin class:__
+
+```
+class IC_ICNO(Base_14pin):
+    """
+    Some docstring
+    """
+    
+    def __init__(self):
+        
+```
+Set the initial values of pins as a list. Do not use the zeroth element.
+```
+        self.pins = [None,0,0,None,None,0,0,0,0,0,None,None,0,0,1]
+```
+To quickly convert this list to a list of pin instances use the `pinlist_quick()` method:
+
+```
+        #Example of quick conversion from list of pins to list of pin instances
+        self.pins = pinlist_quick(self.pins)
+```
+Set the `uses_pincls` attribute to `True`
+
+```
+        self.uses_pincls = True
+```
+To extensively use all the functionalities of the Pin class especially the pin_tag part:
+
+Make a dictionary with the format { pin_no: dictionary_of_pin_attributes }
+The dictionary_of_pin_attributes should contain:
+
+`value`(if you have not specified it earlier) and `desc`
+
+The description is of the format:
+
+"ABC: Blah blah blah"
+
+Where ABC is a 3 letter Pin Tag.
+
+If you do not want any Pin Tag. Leave 3 spaces instead.
+
+See The below example:
+
+```
+
+        d = {   1 : {'desc':'Q1 : Output of AND gate 1'},
+                2 : {'desc':'A1 : Input 1 of AND gate 1'},
+                3 : {'desc':'B1 : Input 2 of AND gate 1'},
+                4 : {'desc':'C1 : Input 3 of AND gate 1'},
+                5 : {'desc':'D1 : Input 4 of AND gate 1'},
+                6 : {'desc':'NC '},
+                7 : {'desc':'GND'},
+                8 : {'desc':'NC '},
+                9 : {'desc':'D2 : Input 4 of AND gate 2'},
+                10: {'desc':'C2 : Input 3 of AND gate 2'},
+                11: {'desc':'B2 : Input 2 of AND gate 2'},
+                12: {'desc':'A2 : Input 1 of AND gate 2'},
+                13: {'desc':'Q2 : Output of AND gate 2'},
+                14: {'desc':'VCC'}
+            }
+```
+Then invoke `self.setIC() method with the parameter d:
+```
+        self.setIC(d)
+```
+
+
+Define a `run` method for the IC
+``` 
+    def run(self):
+```
+Create an empty output dictionary
+
+```
+        output = {}
+```
+Define the output equations for the output pins using overloaded operators of logic instance
+
+Note that the pin instance ( say `self.pins[i]` ) retuns a logic instance initiated with its value:
+
+i.e `self.pins[1]()` retuns a logic instance equivalent to `logic(self.pins[1].value)`
+
+i.e if `self.pins[1]` has a `value` of `1`, it returns `logic(1)`
+
+```
+        output[3]  =  (  self.pins[1]()  & self.pins[2]()    )()
+        output[4]  =  (  self.pins[5]()  & self.pins[6]()    )()
+        output[10] =  (  self.pins[9]()  & self.pins[3]()    )()
+        output[11] =  (  self.pins[12]() & self.pins[13]()   )()
+```
+Now this `output` is a dict of logic values of each pin.
+
+Now set the Pins of the ic based on the current output :
+```
+        self.setIC(output)
+```
+If you want to draw the current configuration of the IC use the `drawIC()` method:
+
+```
+        self.drawIC()
+```
+
+Write some error handling codes to take care of erroneous inputs to an IC:
+
+```
+        if self.pins[7].value == 0 and self.pins[14].value == 1:
+            return output
+        else:
+            print "Ground and VCC pins have not been configured correctly."
+```
+
+Voila! Your very own IC is configured using pin class.
+Solar theme for Python Sphinx
+=============================
+Solar is an attempt to create a theme for Sphinx based on the `Solarized <http://ethanschoonover.com/solarized>`_ color scheme.
+
+Preview
+-------
+http://vimalkumar.in/sphinx-themes/solar
+
+Download
+--------
+Released versions are available from http://github.com/vkvn/sphinx-themes/downloads
+
+Installation
+------------
+#. Extract the archive.
+#. Modify ``conf.py`` of an existing Sphinx project or create new project using ``sphinx-quickstart``.
+#. Change the ``html_theme`` parameter to ``solar``.
+#. Change the ``html_theme_path`` to the location containing the extracted archive.
+
+License
+-------
+`GNU General Public License <http://www.gnu.org/licenses/gpl.html>`_.
+
+Credits
+-------
+Modified from the default Sphinx theme -- Sphinxdoc
+
+Background pattern from http://subtlepatterns.com.
+
+# [BinPy](http://binpy.github.io/)
+
+[![Build Status](https://travis-ci.org/BinPy/BinPy.png?branch=develop)](https://travis-ci.org/BinPy/BinPy) [![Version](https://pypip.in/v/BinPy/badge.png)](https://pypi.python.org/pypi/BinPy/0.3) [![Downloads](https://pypip.in/d/BinPy/badge.png)](https://pypi.python.org/pypi/BinPy/0.3)
+
+ * [About](#about)
+ * [Installation](#installation)
+ * [Documentation](#documentation)
+ * [Contribute](#contribute)
+
+
+<a id="about"></a>
+What is BinPy?
+---------------
+It is a library which will serve as a base to develop circuit based applications and educational software on top of it. BinPy is a clear representation of fundamentals. Everything has been written from scratch such as gates, logical operations, etc. This package does not depend on any external library other than pure Python. It aims to extend the hardware programming concepts to Python.
+
+How to use
+----------
+
+Here's an example of SR latch constructed from a pair of cross-coupled NOR gates
+![SR latch | Source: Wikipedia](https://upload.wikimedia.org/wikipedia/commons/c/c6/R-S_mk2.gif)
+
+```python
+
+from BinPy import *
+
+# Connector for connecting output of second NOR gate with input of first NOR gate
+con1 = Connector()
+# Connector for connecting output of first NOR gate with input of second NOR gate
+con2 = Connector()
+
+R = 0 # Reset input for the SR-Latch
+S = 0 # Set input for the SR-Lacth
+
+NOR1 = NOR(con1, R)  #First NOR gate
+NOR1.setOutput(con2) # Set output for NOR gate
+
+NOR2 = NOR(con2, S)  #Second NOR gate
+NOR2.setOutput(con1) # Set output for NOR gate
+
+
+NOR1.setInput(1, 1); NOR2.setInput(1, 0) #Set state
+print 'Q: ',NOR2.output(), '\t','Q\': ',NOR1.output()
+
+
+NOR1.setInput(1, 0); NOR2.setInput(1, 1) #Reset state
+print 'Q: ',NOR2.output(), '\t','Q\': ',NOR1.output()
+
+
+NOR1.setInput(1, 0); NOR2.setInput(1, 0) #Hold state
+print 'Q: ',NOR2.output(), '\t','Q\': ',NOR1.output()
+
+
+NOR1.setInput(1, 1); NOR2.setInput(1, 1) #Invalid state
+print 'Q: ',NOR2.output(), '\t','Q\': ',NOR1.output()
+
+
+```
+<strong>Output</strong>
+```python
+Q:  True 	Q':  False
+Q:  False 	Q':  True
+Q:  False 	Q':  True
+Q:  False 	Q':  False	#Invalid State
+```
+
+<strong>Operations, Combinatonal Logic and Algorithms</strong>
+
+```python
+from BinPy import *
+
+# Operations
+operator = Operations()
+operator.ADD(1011,11)
+operator.SUB(1011,11)
+operator.COMP('0011',1) #Second argument chooses betweem 1's or 2's Compliment
+
+
+# Combinational Logic
+m = MUX(1,1,0,1)
+m.selectLines(0,1)
+print "MUX Out: ", m.output()
+
+d = DEMUX()
+d.selectLines(0,1)
+print "DEMUX Out: ", d.output()
+
+d = Decoder(0,1)
+print "Decoder Out: ", d.output()
+
+e = Encoder(0,1,0,0)
+print "Encoder Out: ", e.output()
+
+# Sequential Circuits
+a = DFlipFlop(1,0)
+print "DFlipFlop Out: ", a.output()
+
+# IC
+myIC = IC_7400()
+p = {1:1,2:0,4:0,5:0,7:0,10:1,9:1,13:0,12:0,14:1}
+myIC.setIC(p)
+print "IC_7400 Out: ", myIC.run()
+
+myIC1 = IC_7401()
+p = {2:0,3:1,5:0,6:0,7:0,8:1,9:1,11:0,12:0,14:1}
+myIC1.setIC(p)
+print "IC_7401 Out: ", myIC1.run()
+
+# Algorithms
+# Includes the Quine-McCluskey algorithm for solving K-Maps
+FinalEquation = QM(['A','B'])
+print "Minimized Boolean Equation : " , FinalEquation.get_function(qm.solve([0,1,2],[])[1])
+```
+
+<strong>Output</strong><br/>
+```python
+{'carry': 0, 'sum': [1, 1, 1, 0]}
+{'carry': 1, 'difference': [1, 0, 0, 0]}
+MUX Out: 1
+DEMUX Out: [0, 0, 0, 0]
+Decoder Out:  [0, 1, 0, 0]
+Encoder Out: [0, 1]
+DFlipFlop Out: [1,0]
+IC_7400 Out:  {8: 0, 11: 1, 3: 1, 6: 1}
+IC_7401 Out:  {1: 1, 10: 0, 4: 1, 13: 1}
+Minimized Boolean Equation : ((NOT B) OR (NOT A))
+```
+BinPy also comes with a console that is a simple  wrapper around the classic python console from which you can directly use the BinPy Resources.
+
+To start it, simply issue ```$ binpy``` if BinPy is installed in your path.
+
+<a id="documentation"></a>
+Documentation
+-------------
+Auto-generated documentation is available for reference at [BinPy docs](http://docs.binpy.org)
+
+<a id="wiki"></a>
+Wiki
+----
+Check out the BinPy [Wiki page](http://github.com/BinPy/BinPy/wiki) for a complete summary of BinPy, [The Development workflow](https://github.com/BinPy/BinPy/wiki/Development-workflow), [Downloading and Installation guide](https://github.com/BinPy/BinPy/wiki/Download-Installation), [Tutorials](https://github.com/BinPy/BinPy/wiki/tutorial), [Technical References](https://github.com/BinPy/BinPy/wiki/Technical-References) and Much more.
+
+<a id="installation"></a>
+Installation
+------------
+
+## Linux
+
+###Install with pip
+
+#####Python2
+
+######PIP and setuptools
+
+```sh
+sudo apt-get install python-pip
+sudo pip install --upgrade setuptools
+```
+
+######BinPy
+
+```sh
+sudo pip install https://github.com/BinPy/BinPy/zipball/master
+```
+
+######IPython Notebook
+
+```sh
+sudo pip install --upgrade ipython[all]
+```
+
+#####Python3
+
+######PIP and setuptools
+
+```sh
+sudo apt-get install python3-pip
+sudo pip3 install --upgrade setuptools
+```
+
+######BinPy
+
+```sh
+sudo pip3 install https://github.com/BinPy/BinPy/zipball/master
+```
+
+######IPython Notebook
+
+```sh
+sudo pip3 install --upgrade ipython[all]
+```
+
+#####Install `autopep8` Tool to ensure your contributions pass the `pep8` test.
+
+```sh
+sudo pip install --upgrade autopep8
+```
+
+###Install BinPy using git
+
+#####Python2
+
+```sh
+sudo apt-get install git setuptools
+git clone https://github.com/BinPy/BinPy.git
+cd BinPy/
+sudo python setup.py install
+```
+
+#####Python3
+
+```sh
+sudo apt-get install git python3-pip
+sudo pip3 install --upgrade setuptools
+git clone https://github.com/BinPy/BinPy.git
+cd BinPy/
+sudo python3 setup.py install
+```
+
+####
+
+Future Work
+------------
+
+* Introduction of all ICs
+* Introduction of problem solving algorithms
+* Addition of Microprocessors and Analog Devices
+* Graphical representation of the circuit
+
+
+Visit our [roadmap](https://github.com/BinPy/BinPy/wiki/roadmap) and [ideas page](https://github.com/BinPy/BinPy/wiki/ideas) in [Wiki](http://github.com/BinPy/BinPy/wiki) to know more.
+
+<a id="contribute"></a>
+
+How To Contribute
+-----------------
+
+For a detailed summary of all the coding guidelines and [development workflow](https://github.com/BinPy/BinPy/wiki/Development-workflow), visit our [Wiki page](http://github.com/BinPy/BinPy/wiki).
+
+ - [Report Bugs and Issues](https://github.com/BinPy/BinPy/issues)
+ - [Solve Bugs and Issues](https://github.com/BinPy/BinPy/issues?page=1&state=open)
+ - Write Tutorials, Examples and Documentation
+
+__DEV NOTE:__
+
+ - It is expected that your code must follow [pep8](https://www.google.co.in/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0CCkQFjAA&url=https%3A%2F%2Fwww.python.org%2Fdev%2Fpeps%2Fpep-0008&ei=4SxIU4LWJ4mzrAfEyoHgBg&usg=AFQjCNGUTp-Bavhz439Hr22L2HoxWDeNGg&sig2=dep_DZ8B918mWzzvX8KUYQ) standards. To conform to the same please install `autopep8` tool following the instructions in the [installation section](#installation).
+ 
+ - After installation is complete. Make the necessary changes and commit your changes. After Committing your changes, `cd` to the BinPy root directory and issue the following command
+
+   `autopep8 -r -i -a -a -v .`
+   
+   To learn more about the `autopep8` tool visit [here](https://www.google.co.in/url?sa=t&rct=j&q=&esrc=s&source=web&cd=1&cad=rja&uact=8&ved=0CCkQFjAA&url=https%3A%2F%2Fpypi.python.org%2Fpypi%2Fautopep8%2F&ei=SjFIU7jkIcWKrQfE5oDgBQ&usg=AFQjCNGP0o38e1Ia6S7_TfsDIJrvgdGAug&sig2=Yp4VZe9UepdYtoCF_mcBFg).
+
+ - Ensure that all the tests pass by running `nosetests; nosetests3` in `BinPy\BinPy\tests` directory.
+
+ - To check for the pep8 indentation status issue the following command
+ 
+   `pep8 ./ --ignore=E501`
+
+If all the tests pass successfully push your repo to the origin/branch and send us a Pull Request. We'll be happy to review the same and merge it with our codebase.
+
+
+[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/mrsud/binpy/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
+
+

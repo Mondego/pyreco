@@ -1,0 +1,299 @@
+
+                          ___         _    _           ____
+                     __ _| _ \___  __| |__| |___ _ _  |__ /
+                    / _` |  _/ _ \/ _` / _` / -_) '_|  |_ \
+                    \__, |_| \___/\__,_\__,_\___|_|   |___/
+                    |___/
+                          Media aggregator and podcast client
+
+  ............................................................................
+
+             Copyright  2005-2014 Thomas Perl and the gPodder Team
+
+
+ [ LICENSE ]
+
+    gPodder is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 3 of the License, or
+    (at your option) any later version.
+
+    gPodder is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program. If not, see <http://www.gnu.org/licenses/>.
+
+
+
+ [ DEPENDENCIES ]
+
+    - Python 2.6 or newer              http://python.org/
+    - "sqlite3" Python module          (usually included with Python)
+    - Feedparser 5.1.2 or newer        http://code.google.com/p/feedparser/
+    - mygpoclient 1.7 or newer         http://thp.io/2010/mygpoclient/
+    - Python D-Bus bindings
+
+    gPodder might still work with Python 2.5, but you may need to
+    install the json module ("simplejson") manually. We reserve the
+    right to drop support for Python 2.5 in future point releases.
+
+    As an alternative to python-dbus on Mac OS X and Windows, you can use
+    the dummy (no-op) D-Bus module provided in "tools/fake-dbus-module/".
+
+    For quick testing, you can use the script tools/localdepends.py to
+    install local copies of feedparser and mygpoclient into "src/" from
+    PyPI. With this, you get a self-contained gPodder CLI/WebUI codebase.
+
+
+ [ GTK UI - ADDITIONAL DEPENDENCIES ]
+
+    - PyGTK 2.16 or newer              http://pygtk.org/
+
+
+ [ QML UI - ADDITIONAL DEPENDENCIES ]
+
+    - Qt 4.7.1 or newer                http://qt.nokia.com/
+    - PySide 1.0.8 or newer            http://www.pyside.org/
+    - Qt Mobility 1.2 or newer         http://qt.gitorious.org/qt-mobility
+    - Qt Quick Components              http://qt.gitorious.org/qt-components
+    - Sailfish Silica Components       https://sailfishos.org/sailfish-silica/
+
+    The QML UI depends on the QtMultimediaKit QML bindings for playing
+    back audio (libdeclarative-multimedia in Debian) and on the WebKit QML
+    bindings for Flattr integration (libqtwebkit-qmlwebkitplugin in Debian).
+
+    The QML UI now also depends on Qt Quick Components. On MeeGo 1.2 Harmattan,
+    these components are pre-installed. You can install them on your Desktop by
+    checking out the code from the qt-components Git repository and running the
+    "./configure" script with the "-meego" parameter (+ the usual make install).
+
+    You might also need to copy the theme from /usr/share/themes/blanco/ on a
+    MeeGo 1.2 Harmattan device to your development machine in order for all UI
+    elements to be displayed correctly. Alternatively, you can use the free
+    "darko" theme from: https://github.com/jpavelek/meego-handset-theme-darko
+
+    For running gPodder on Sailfish OS using Sailfish Silica Components, you
+    need to have Sailfish Silica installed. Right now, gPodder still depends on
+    qt-components even on Sailfish, but this is going to change soon once a
+    more mature version of Sailfish Silica is out.
+
+
+ [ OPTIONAL DEPENDENCIES ]
+
+    - Bluetooth file sending: gnome-obex-send or bluetooth-sendto
+    - HTML shownotes: python-webkit
+    - Flattr integration: python-webkit
+    - Size detection on Windows: PyWin32
+    - Native OS X support: ige-mac-integration
+    - MP3 Player Sync Support: python-eyed3 (0.7 or newer)
+    - iPod Sync Support: python-gpod
+
+
+ [ BUILD DEPENDENCIES ]
+
+    - help2man
+    - intltool
+
+
+ [ TEST DEPENDENCIES ]
+
+    - python-minimock
+    - python-coverage
+
+ [ TESTING ]
+
+    To run tests, use...
+        make unittest
+
+    To set a specific python binary set PYTHON:
+        PYTHON=python2 make unittest
+
+    Tests in gPodder are written in two different ways:
+
+       - doctests (see http://docs.python.org/2/library/doctest.html)
+       - unittests (see http://docs.python.org/2/library/unittest.html)
+
+    If you want to add doctests, simply write the doctest and make sure that
+    the module appears in "doctest_modules" in src/gpodder/unittests.py. For
+    example, the doctests in src/gpodder/util.py are added as 'util' (the
+    "gpodder" prefix must not be specified there).
+
+    If you want to add unit tests for a specific module (ex: gpodder.model),
+    you should add the tests as gpodder.test.model, or in other words:
+
+        The file       src/gpodder/model.py
+        is tested by   src/gpodder/test/model.py
+
+    After you've added the test, make sure that the module appears in
+    "test_modules" in src/gpodder/unittests.py - for the example above, the
+    unittests in src/gpodder/test/model.py are added as 'model'. For unit
+    tests, coverage reporting happens for the tested module (that's why the
+    test module name should mirror the module to be tested).
+
+
+ [ RUNNING AND INSTALLATION ]
+
+    To run gPodder from source, use..
+
+        bin/gpodder              for the Gtk+ UI
+        bin/gpodder --qml        for the QML UI
+        bin/gpo                  for the command-line interface
+
+    To install gPodder system-wide, use "make install". By default, this
+    will install *all* UIs and all translations. The following environment
+    variables are processed by setup.py:
+
+        LINGUAS                  space-separated list of languages to install
+        GPODDER_INSTALL_UIS      space-separated list of UIs to install
+        GPODDER_MANPATH_NO_SHARE if set, install manpages to $PREFIX/man/man1
+
+    See setup.py for a list of recognized UIs.
+
+    Example: Install the CLI and Gtk UI with German and Dutch translations:
+
+        export LINGUAS="de nl"
+        export GPODDER_INSTALL_UIS="cli gtk"
+        make install
+
+    The "make install" target also supports DESTDIR and PREFIX for installing
+    into an alternative root (default /) and prefix (default /usr):
+
+        make install DESTDIR=tmp/ PREFIX=/usr/local/
+
+
+ [ PYTHON 3 SUPPORT ]
+
+    The CLI version of gPodder (bin/gpo) and the QML UI are compatible with
+    Python 3 after converting the codebase with the 2to3 utility:
+
+      2to3 -w bin/* src share/gpodder/extensions
+
+    You will also need a copy of "mygpoclient" converted using 2to3 and
+    a copy of "feedparser" converted using 2to3 (see the feedparser README
+    for details on how to get it set up on Python 3, including sgmllib).
+
+    Please note that the Gtk UI is not compatible with Python 3 (it will
+    be once we migrate the codebase to Gtk3/GObject Introspection).
+
+    The QML UI has been tested with PySide (Git revision a90f3bc) and
+    Python 3.2.2 - you can use the PySide buildscripts to build PySide:
+
+        http://github.com/PySide/BuildScripts
+
+    As of February 2012, Python 3 support is still experimental. Please
+    report any bugs that you find to the gPodder bug tracker (see below).
+
+
+ [ PORTABLE MODE / ROAMING PROFILES ]
+
+    The run-time environment variable GPODDER_HOME is used to set
+    the location for storing the database and downloaded files.
+
+    This can be used for multiple configurations or to store the
+    download directory directly on a MP3 player or USB disk:
+
+        export GPODDER_HOME=/media/usbdisk/gpodder-data/
+
+
+ [ CHANGING THE DOWNLOAD DIRECTORY ]
+
+    The run-time environment variable GPODDER_DOWNLOAD_DIR is used to
+    set the location for storing the downloads only (independent of the
+    data directory GPODDER_HOME):
+
+        export GPODDER_DOWNLOAD_DIR=/media/BigDisk/Podcasts/
+
+    In this case, the database and settings will be stored in the default
+    location, with the downloads stored in /media/BigDisk/Podcasts/.
+
+    Another example would be to set both environment variables:
+
+        export GPODDER_HOME=~/.config/gpodder/
+        export GPODDER_DOWNLOAD_DIR=~/Podcasts/
+
+    This will store the database and settings files in ~/.config/gpodder/
+    and the downloads in ~/Podcasts/. If GPODDER_DOWNLOAD_DIR is not set,
+    $GPODDER_HOME/Downloads/ will be used if it is set.
+
+
+ [ LOGGING ]
+
+    By default, gPodder writes log files to $GPODDER_HOME/Logs/ and removes
+    them after a certain amount of times. To avoid this behavior, you can set
+    the environment variable GPODDER_WRITE_LOGS to "no", e.g:
+
+        export GPODDER_WRITE_LOGS=no
+
+
+ [ EXTENSIONS ]
+
+    Extensions are normally loaded from gPodder's "extensions/" folder (in
+    share/gpodder/extensions/) and from $GPODDER_HOME/Extensions/ - you can
+    override this by setting an environment variable:
+
+        export GPODDER_EXTENSIONS="/path/to/extension1.py extension2.py"
+
+    In addition to that, if you want to disable loading of all extensions,
+    you can do this by setting the following environment variable to a non-
+    empty value:
+
+        export GPODDER_DISABLE_EXTENSIONS=yes
+
+    If you want to report a bug, please try to disable all extensions and
+    check if the bug still appears to see if an extension causes the bug.
+
+
+ [ TRANSLATIONS ]
+
+    These instructions are mostly useful for the maintainer, but they are
+    documented here in case you want to update translations yourself:
+
+    To upload a changed translation template:
+
+        make messages       # update translations from source
+        make clean          # remove temporary files after "make messages"
+        tx push --source    # upload po/messages.pot to transifex.net
+
+    To download a translation that has been updated:
+
+        tx pull -l XX -f    # download po/XX.po from transifex.net
+
+    To generate Git commit commands for the translation updates:
+
+        python tools/i18n/generate_commits.py
+
+    The "tx" command is provided by the Transifex client (transifex-client
+    in Debian/Ubuntu) which can be obtained from:
+
+        http://help.transifex.com/features/client/
+
+
+
+ [ MORE INFORMATION ]
+
+    - Homepage                         http://gpodder.org/
+    - Bug tracker                      http://bugs.gpodder.org/
+    - Mailing list                     http://freelists.org/list/gpodder
+    - IRC channel                      #gpodder on irc.freenode.net
+
+  ............................................................................
+             Last updated: 2013-02-12 by Thomas Perl <thp.io/about>
+
+
+gPodder "tres" draft implementation / prototype code
+
+This directory contains a dummy "dbus" module for use with gPodder on platforms
+where D-Bus is not available. The dummy "dbus" module will do nothing, but still
+allow gPodder to run successfully without the need for the real D-Bus module.
+
+
+These files are used by the Mac OS X (MacPorts) port of gPodder.
+
+For details, see bug 942 <http://gpodder.org/bug/942>.
+
+For questions, please contact Eric Le Lay <elelay@macports.org>.
+
+

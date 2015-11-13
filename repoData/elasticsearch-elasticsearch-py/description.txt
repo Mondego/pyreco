@@ -1,0 +1,232 @@
+If you have a bugfix or new feature that you would like to contribute to
+elasticsearch-py, please find or open an issue about it first. Talk about what
+you would like to do. It may be that somebody is already working on it, or that
+there are particular issues that you should know about before implementing the
+change.
+
+We enjoy working with contributors to get their code accepted. There are many
+approaches to fixing a problem and it is important to find the best approach
+before writing too much code.
+
+The process for contributing to any of the Elasticsearch repositories is similar.
+
+1. Please make sure you have signed the [Contributor License
+   Agreement](http://www.elasticsearch.org/contributor-agreement/). We are not
+   asking you to assign copyright to us, but to give us the right to distribute
+   your code without restriction. We ask this of all contributors in order to
+   assure our users of the origin and continuing existence of the code. You only
+   need to sign the CLA once.
+
+2. Run the test suite to ensure your changes do not break existing code:
+
+    ````
+    python setup.py test
+    ````
+
+   See the README file in `test_elasticsearch` dirctory for more information on
+   running the test suite.
+
+3. Rebase your changes.
+   Update your local repository with the most recent code from the main
+   elasticsearch-py repository, and rebase your branch on top of the latest master
+   branch. We prefer your changes to be squashed into a single commit.
+
+4. Submit a pull request. Push your local changes to your forked copy of the
+   repository and submit a pull request. In the pull request, describe what your
+   changes do and mention the number of the issue where discussion has taken
+   place, eg “Closes #123″.  Please consider adding or modifying tests related to
+   your changes.
+
+Then sit back and wait. There will probably be discussion about the pull
+request and, if any changes are needed, we would love to work with you to get
+your pull request merged into elasticsearch-py.
+
+
+Example code for `elasticsearch-py`
+===================================
+
+This example code demonstrates the features and use patterns for the Python client.
+
+To run this example make sure you have elasticsearch running on port 9200,
+install additional dependencies (on top of `elasticsearch-py`)::
+
+    pip install python-dateutil GitPython
+
+And now you can load the index (the index will be called `git`)::
+
+    python load.py
+
+This will create an index with mappings and parse the git information of this
+repository and load all the commits into it. You can run some sample queries by
+running::
+
+    python queries.py
+
+Look at the `queries.py` file for querying example and `load.py` on examples on
+loading data into elasticsearch. Both `load` and `queries` set up logging so in
+`/tmp/es_trace.log` you will have a transcript of the commands being run in the
+curl format.
+
+
+README.rst
+Python Elasticsearch Client
+===========================
+
+Official low-level client for Elasticsearch. It's goal is to provide common
+ground for all Elasticsearch-related code in Python; because of this it tries
+to be opinion-free and very extendable.
+
+Compatibility
+-------------
+
+The library is compatible with both Elasticsearch 1.x and 0.90.x but you
+**have to use a matching version**.
+
+For **Elasticsearch 1.0** and later, use the major version 1 (``1.x.y``) of the
+library.
+
+For **Elasticsearch 0.90.x**, use a version from ``0.4.x`` releases of the
+library.
+
+The recommended way to set your requirements in your `setup.py` or
+`requirements.txt` is::
+
+    # Elasticsearch 1.0
+    elasticsearch>=1.0.0,<2.0.0
+
+    # Elasticsearch 0.90
+    elasticsearch<1.0.0
+
+The development is happening on ``master`` and ``0.4`` branches, respectively.
+
+
+Installation
+------------
+
+Install the ``elasticsearch`` package with `pip
+<https://pypi.python.org/pypi/elasticsearch>`_::
+
+    pip install elasticsearch
+
+
+Example use
+-----------
+
+Simple use-case::
+
+    >>> from datetime import datetime
+    >>> from elasticsearch import Elasticsearch
+
+    # by default we connect to localhost:9200
+    >>> es = Elasticsearch()
+
+    # create an index in elasticsearch, ignore status code 400 (index already exists)
+    >>> es.indices.create(index='my-index', ignore=400)
+    {u'acknowledged': True}
+
+    # datetimes will be serialized
+    >>> es.index(index="my-index", doc_type="test-type", id=42, body={"any": "data", "timestamp": datetime.now()})
+    {u'_id': u'42', u'_index': u'my-index', u'_type': u'test-type', u'_version': 1, u'ok': True}
+
+    # but not deserialized
+    >>> es.get(index="my-index", doc_type="test-type", id=42)['_source']
+    {u'any': u'data', u'timestamp': u'2013-05-12T19:45:31.804229'}
+
+`Full documentation`_.
+
+.. _Full documentation: http://elasticsearch-py.rtfd.org/
+
+
+Features
+--------
+
+The client's features include:
+
+ * translating basic Python data types to and from json (datetimes are not
+   decoded for performance reasons)
+ * configurable automatic discovery of cluster nodes
+ * persistent connections
+ * load balancing (with pluggable selection strategy) across all availible nodes
+ * failed connection penalization (time based - failed connections won't be
+   retried until a timeout is reached)
+ * thread safety
+ * pluggable architecture
+
+
+License
+-------
+
+Copyright 2013 Elasticsearch
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Build status
+------------
+
+.. image:: https://secure.travis-ci.org/elasticsearch/elasticsearch-py.png
+   :target: http://travis-ci.org/#!/elasticsearch/elasticsearch-py
+
+
+elasticsearch-py test suite
+===========================
+
+Warning - by default the tests will try and connect to `localhost:9200` and
+will destroy all contents of given cluster! The tests also rely on a checkout
+of `elasticsearch` repository existing on the same level as the
+`elasticsearch-py` clone. Before running the tests we will, by default, pull
+latest changes for that repo and perform `git reset --hard` to the exact
+version that was used to build the server we are running against.
+
+Running the tests
+-----------------
+
+To simply run the tests just execute the `run_tests.py` script or invoke
+`python setup.py test`. The behavior is driven by environmental variables:
+
+ * `TEST_ES_SERVER` - can contain "hostname[:port]" of running es cluster
+
+ * `TEST_ES_CONNECTION` - name of the connection class to use from
+    `elasticsearch.connection` module. If you want to run completely with your
+    own see section on customizing tests.
+
+ * `TEST_ES_YAML_DIR` - path to the yaml test suite contained in the
+    elasticsearch repo. Defaults to `$TEST_ES_REPO/rest-api-spec/test`
+
+ * `TEST_ES_REPO` - path to the elasticsearch repo, by default it will look in
+    the same directory as `elasticsearch-py` is in. It will not be used if
+    `TEST_ES_YAML_DIR` is specified directly.
+ 
+ * `TEST_ES_NOFETCH` - controls if we should fetch new updates to elasticsearch
+   repo and reset it's version to the sha used to build the current es server.
+   Defaults to `False` which means we will fetch the elasticsearch repo and
+   `git reset --hard` the sha used to build the server.
+
+Alternatively, if you wish to control what you are doing you have several additional options:
+
+ * `run_tests.py` will pass any parameters specified to `nosetests`
+
+ * you can just run your favorite runner in the `test_elasticsearch` directory
+   (verified to work with nose and py.test) and bypass the fetch logic entirely.
+
+Customizing the tests
+---------------------
+
+You can create a `local.py` file in the `test_elasticsearch` directory which
+should contain a `get_client` function.
+
+If this file exists the function will be used instead of
+`elasticsearch.helpers.test.get_test_client` to construct the client used for
+any integration tests. You can use this to make sure your plugins and
+extensions work with `elasticsearch-py`.
+
+

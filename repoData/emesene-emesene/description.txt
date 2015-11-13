@@ -1,0 +1,479 @@
+A simple package to deal with ISO 8601 date time formats.
+
+ISO 8601 defines a neutral, unambiguous date string format, which also
+has the property of sorting naturally.
+
+e.g. YYYY-MM-DDTHH:MM:SSZ or 2007-01-25T12:00:00Z
+
+Currently this covers only the most common date formats encountered, not
+all of ISO 8601 is handled.
+
+Currently the following formats are handled:
+
+* 2006-01-01T00:00:00Z
+* 2006-01-01T00:00:00[+-]00:00
+
+I'll add more as I encounter them in my day to day life. Patches with 
+new formats and tests will be gratefully accepted of course :)
+
+References:
+
+* http://www.cl.cam.ac.uk/~mgk25/iso-time.html - simple overview
+
+* http://hydracen.com/dx/iso8601.htm - more detailed enumeration of
+  valid formats.
+
+See the LICENSE file for the license this package is released under.
+
+papyon - Python MSN client library
+=================================
+
+Homepage: http://www.freedesktop.org/wiki/Software/papyon
+
+papyon is an MSN client library, that tries to abstract the MSN protocol
+gory details. papyon is a fork of the unmaintained library pymsn
+(http://telepathy.freedesktop.org/wiki/Pymsn).
+
+Dependencies
+============
+python (>= 2.5)
+python-gobject (>= 2.10)
+pyOpenSSL (>= 0.6)
+gst-python (>= 0.10)
+python-farsight
+pycrypto
+
+NOTICE
+============
+WARNING: This version diverges from upstream papyon.
+You can find all the changes/contribute here:
+https://github.com/emesene/papyon
+
+# Pyfb - A Python Interface to the facebook Graph API
+
+-------------------------------------------------------------------
+
+### This is an Easy to Use Python Interface to the Facebook Graph API
+
+It gives you methods to access your data on facebook and
+provides objects instead of json dictionaries!
+
+-------------------------------------------------------------------
+
+Here's a little example to access your facebook profile data
+
+
+```python
+
+from pyfb import Pyfb
+
+#Your APP ID. You Need to register the application on facebook
+#http://developers.facebook.com/
+FACEBOOK_APP_ID = 'YOUR_APP_ID'
+
+facebook = Pyfb(FACEBOOK_APP_ID)
+
+#Opens a new browser tab instance and authenticates with the facebook API
+#It redirects to an url like http://www.facebook.com/connect/login_success.html#access_token=[access_token]&expires_in=0
+facebook.authenticate()
+
+#Copy the [access_token] and enter it below
+token = raw_input("Enter the access_token\n")
+
+#Sets the authentication token
+facebook.set_access_token(token)
+
+#Gets info about myself 
+me = facebook.get_myself()
+
+print "-" * 40
+print "Name: %s" % me.name
+print "From: %s" % me.hometown.name
+print 
+
+print "Speaks:"
+for language in me.languages:
+    print "- %s" % language.name
+    
+print     
+print "Worked at:"
+for work in me.work:
+    print "- %s" % work.employer.name
+
+print "-" * 40
+
+```
+
+## Django Facebook Integration Using Pyfb
+
+-----------------------------------------------------------------
+
+It's easy to integrate pyfb with Django. Just see the following example:
+
+### settings.py
+
+```python
+
+# Facebook related Settings
+FACEBOOK_APP_ID = 'YOUR_APP_ID'
+FACEBOOK_SECRET_KEY = 'YOUR_APP_SECRET_CODE'
+FACEBOOK_REDIRECT_URL = 'http://www.YOUR_DOMAIN.com/facebook_login_success'
+
+```
+
+### views.py
+
+```python
+
+from pyfb import Pyfb
+from django.http import HttpResponse, HttpResponseRedirect
+
+from settings import FACEBOOK_APP_ID, FACEBOOK_SECRET_KEY, FACEBOOK_REDIRECT_URL
+
+def index(request):
+    return HttpResponse("""<button onclick="location.href='/facebook_login'">Facebook Login</button>""")
+
+#This view redirects the user to facebook in order to get the code that allows
+#pyfb to obtain the access_token in the facebook_login_success view
+def facebook_login(request):
+
+    facebook = Pyfb(FACEBOOK_APP_ID)
+    return HttpResponseRedirect(facebook.get_auth_code_url(redirect_uri=FACEBOOK_REDIRECT_URL))
+
+#This view must be refered in your FACEBOOK_REDIRECT_URL. For example: http://www.mywebsite.com/facebook_login_success/
+def facebook_login_success(request):
+
+    code = request.GET.get('code')    
+
+    facebook = Pyfb(FACEBOOK_APP_ID)
+    facebook.get_access_token(FACEBOOK_SECRET_KEY, code, redirect_uri=FACEBOOK_REDIRECT_URL)
+    me = facebook.get_myself()
+
+    welcome = "Welcome <b>%s</b>. Your Facebook login has been completed successfully!"
+    return HttpResponse(welcome % me.name)
+
+```
+
+### urls.py
+
+```python
+
+urlpatterns = patterns('',
+
+    (r'^$', 'djangoapp.django_pyfb.views.index'),
+    (r'^facebook_login/$', 'djangoapp.django_pyfb.views.facebook_login'),
+    (r'^facebook_login_success/$', 'djangoapp.django_pyfb.views.facebook_login_success'),
+)
+
+```
+
+SleekXMPP
+#########
+
+SleekXMPP is an MIT licensed XMPP library for Python 2.6/3.1+,
+and is featured in examples in
+`XMPP: The Definitive Guide <http://oreilly.com/catalog/9780596521271>`_ 
+by Kevin Smith, Remko Tronçon, and Peter Saint-Andre. If you've arrived
+here from reading the Definitive Guide, please see the notes on updating
+the examples to the latest version of SleekXMPP.
+
+SleekXMPP's design goals and philosphy are:
+
+**Low number of dependencies**
+    Installing and using SleekXMPP should be as simple as possible, without
+    having to deal with long dependency chains.
+
+    As part of reducing the number of dependencies, some third party
+    modules are included with SleekXMPP in the ``thirdparty`` directory.
+    Imports from this module first try to import an existing installed
+    version before loading the packaged version, when possible.
+
+**Every XEP as a plugin**
+    Following Python's "batteries included" approach, the goal is to
+    provide support for all currently active XEPs (final and draft). Since
+    adding XEP support is done through easy to create plugins, the hope is
+    to also provide a solid base for implementing and creating experimental
+    XEPs.
+
+**Rewarding to work with**
+    As much as possible, SleekXMPP should allow things to "just work" using
+    sensible defaults and appropriate abstractions. XML can be ugly to work
+    with, but it doesn't have to be that way.
+
+
+Get the Code
+------------
+
+Get the latest stable version from PyPI::
+
+    pip install sleekxmpp
+
+The latest source code for SleekXMPP may be found on `Github
+<http://github.com/fritzy/SleekXMPP>`_. Releases can be found in the
+``master`` branch, while the latest development version is in the
+``develop`` branch.
+
+**Latest Release**
+    - `1.1.10 <http://github.com/fritzy/SleekXMPP/zipball/1.1.10>`_
+
+**Develop Releases**
+    - `Latest Develop Version <http://github.com/fritzy/SleekXMPP/zipball/develop>`_
+
+
+Installing DNSPython
+---------------------
+If you are using Python3 and wish to use dnspython, you will have to checkout and
+install the ``python3`` branch::
+
+    git clone http://github.com/rthalley/dnspython
+    cd dnspython
+    git checkout python3
+    python3 setup.py install
+
+Discussion
+----------
+A mailing list and XMPP chat room are available for discussing and getting
+help with SleekXMPP.
+
+**Mailing List**
+    `SleekXMPP Discussion on Google Groups <http://groups.google.com/group/sleekxmpp-discussion>`_
+
+**Chat**
+    `sleek@conference.jabber.org <xmpp:sleek@conference.jabber.org?join>`_
+
+
+Documentation and Testing
+-------------------------
+Documentation can be found both inline in the code, and as a Sphinx project in ``/docs``.
+To generate the Sphinx documentation, follow the commands below. The HTML output will
+be in ``docs/_build/html``::
+
+    cd docs
+    make html
+    open _build/html/index.html
+
+To run the test suite for SleekXMPP::
+
+    python testall.py
+
+
+The SleekXMPP Boilerplate
+-------------------------
+Projects using SleekXMPP tend to follow a basic pattern for setting up client/component
+connections and configuration. Here is the gist of the boilerplate needed for a SleekXMPP
+based project. See the documetation or examples directory for more detailed archetypes for
+SleekXMPP projects::
+
+    import logging
+
+    from sleekxmpp import ClientXMPP
+    from sleekxmpp.exceptions import IqError, IqTimeout
+
+
+    class EchoBot(ClientXMPP):
+
+        def __init__(self, jid, password):
+            ClientXMPP.__init__(self, jid, password)
+
+            self.add_event_handler("session_start", self.session_start)
+            self.add_event_handler("message", self.message)
+
+            # If you wanted more functionality, here's how to register plugins:
+            # self.register_plugin('xep_0030') # Service Discovery
+            # self.register_plugin('xep_0199') # XMPP Ping
+
+            # Here's how to access plugins once you've registered them:
+            # self['xep_0030'].add_feature('echo_demo')
+
+            # If you are working with an OpenFire server, you will
+            # need to use a different SSL version:
+            # import ssl
+            # self.ssl_version = ssl.PROTOCOL_SSLv3
+
+        def session_start(self, event):
+            self.send_presence()
+            self.get_roster()
+
+            # Most get_*/set_* methods from plugins use Iq stanzas, which
+            # can generate IqError and IqTimeout exceptions
+            #
+            # try:
+            #     self.get_roster()
+            # except IqError as err:
+            #     logging.error('There was an error getting the roster')
+            #     logging.error(err.iq['error']['condition'])
+            #     self.disconnect()
+            # except IqTimeout:
+            #     logging.error('Server is taking too long to respond')
+            #     self.disconnect()
+
+        def message(self, msg):
+            if msg['type'] in ('chat', 'normal'):
+                msg.reply("Thanks for sending\n%(body)s" % msg).send()
+
+
+    if __name__ == '__main__':
+        # Ideally use optparse or argparse to get JID, 
+        # password, and log level.
+
+        logging.basicConfig(level=logging.DEBUG,
+                            format='%(levelname)-8s %(message)s')
+
+        xmpp = EchoBot('somejid@example.com', 'use_getpass')
+        xmpp.connect()
+        xmpp.process(block=True)
+
+
+Credits
+-------
+**Main Author:** Nathan Fritz
+    `fritzy@netflint.net <xmpp:fritzy@netflint.net?message>`_, 
+    `@fritzy <http://twitter.com/fritzy>`_
+
+    Nathan is also the author of XMPPHP and `Seesmic-AS3-XMPP
+    <http://code.google.com/p/seesmic-as3-xmpp/>`_, and a former member of 
+    the XMPP Council.
+
+**Co-Author:** Lance Stout
+    `lancestout@gmail.com <xmpp:lancestout@gmail.com?message>`_, 
+    `@lancestout <http://twitter.com/lancestout>`_
+
+**Contributors:**
+    - Brian Beggs (`macdiesel <http://github.com/macdiesel>`_)
+    - Dann Martens (`dannmartens <http://github.com/dannmartens>`_)
+    - Florent Le Coz (`louiz <http://github.com/louiz>`_)
+    - Kevin Smith (`Kev <http://github.com/Kev>`_, http://kismith.co.uk)
+    - Remko Tronçon (`remko <http://github.com/remko>`_, http://el-tramo.be)
+    - Te-jé Rogers (`te-je <http://github.com/te-je>`_)
+    - Thom Nichols (`tomstrummer <http://github.com/tomstrummer>`_)
+
+Suelta - A pure-Python SASL client library
+
+Suelta is a SASL library, providing you with authentication and in some cases
+security layers.
+
+It supports a wide range of typical SASL mechanisms, including the MTI for
+all known protocols.
+
+
+# Building emesene on OS X
+
+## Requirements and Information
+
+* [gtk binary](http://www.mediafire.com/download.php?6vl96yienoiofsm) (Prebuilt binary)
+* [Platypus](http://sveinbjorn.org/files/software/platypus.zip) (Once downloaded go to Prefs and click the "Install" button at the bottom to install the command line tool)
+* [git](http://git-scm.com/downloads)
+
+Before continuing, make sure the gtk binary folder is located in the emesene/osx directory
+
+Please note emesene.app will only work if it is in /Applications!
+
+## Building the latest version in the repo
+
+```
+git clone https://github.com/emesene/emesene.git
+cd emesene/osx
+sh build_osx.sh
+```
+
+This will create emesene.app in the emesene/dist directory
+
+## Building a specific version
+
+Using emesene version 2.12.9 as an example, change this to the version you want.
+
+```
+git clone https://github.com/emesene/emesene.git
+cd emesene
+git checkout v2.12.9
+cd osx
+sh build_osx.sh
+```
+
+This will create emesene.app in the emesene/dist directory
+
+### Special Cases
+
+If your building a version prior to 2.12.9 you will need to run these commands after git checkout:
+
+```
+git checkout master osx
+```
+
+Some earlier versions of emesene use submodules. If this is the case you will need to run these commands after git checkout:
+
+```
+git submodule init
+git submodule update
+```
+
+You should end up with an emesene.app in the ../dist folder
+
+### Releasing
+
+If you are planning to release emesene run:
+
+```
+sh build_osx.sh dorelease
+```
+
+This will create a DMG for you and mount it in Finder, you can then move the icons and set the DMG background. Once that is done go back to the script and press enter. A compressed DMG will then be built in the emesene/dist folder.
+
+### Known Issues
+
+* Icons on the DMG have to be set manually
+* How to create/update a pot (translation template) file:
+xgettext emesene/*.py emesene/e3/base/*.py emesene/e3/common/*.py emesene/e3/papylib/*.py emesene/gui/base/*.py emesene/gui/gtkui/*.py emesene/gui/common/*.py -o emesene.pot
+
+The translations are located at: https://translations.launchpad.net/emesene/trunk
+
+* How to easily upload a file to sf.net (deprecated):
+Assuming you have the proper rights on sf.net, just type (example) 
+scp emesene1.6.3-install.exe c10ud,emesene@frs.sourceforge.net:/home/frs/project/e/em/emesene/emesene-1.6.3/
+otherwise try with the web ui.
+
+* How to check which people contributed (git commits) ordered by number of commits:
+Currently we are adding to the about box people with commits >= 50 
+until someone provides better metrics or different reasons or we can load
+CONTRIBUTORS at runtime (we must find a way to get it packaged)
+git log --all --format='%aN <%aE>' | sort | uniq -c -i -d | sort -n -r
+or in emesene/ just run the python script (that will update CONTRIBUTORS):
+python codestats.py
+
+* How to tag a release with git:
+See http://learn.github.com/p/tagging.html - tl;dr:
+git tag -s v2.xx.y -m 'emesene 2.xx.y'
+git push --tags
+You will automagically have a https://github.com/emesene/emesene/{tar,zip}ball/v2.xx.y link pointing to the {tar,zip} archive with the tagged code
+
+* How to change release versions in emesene:
+Look in emesene/Info.py
+
+* How to handle people in CONTRIBUTORS that show twice or more with different addresses:
+Just add them to the .mailmap file following the standard
+
+# emesene
+
+emesene is an instant messenger capable of connecting to various networks
+and utilizing different graphical toolkits.
+Currently msn and xmpp (jabber) are supported through papyon and SleekXMPP,
+which allows emesene to connect to various IM services such as
+Windows Live Messenger, GTalk, Facebook Chat, etc.
+
+## Useful links
+
+* [Main repository](http://github.com/emesene/emesene) (fork this one)
+* [Wiki](http://wiki.github.com/emesene/emesene)
+* [Issue tracker](http://github.com/emesene/emesene/issues)
+
+## Upstream libraries repositories
+
+emesene embeds in its codebase a number of python libraries for the different
+service it supports. We embed them instead of using git submodules so we can
+make packagers' life better and hotfix eventual bugs.
+
+* [papyon] (https://github.com/emesene/papyon)
+* [SleekXMPP] (https://github.com/fritzy/SleekXMPP)
+* [pyfb] (https://github.com/jmg/pyfb)
+* [libwebqq](https://github.com/linuxqq/libwebqq)
+

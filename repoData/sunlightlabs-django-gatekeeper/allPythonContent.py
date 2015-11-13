@@ -1,0 +1,115 @@
+__FILENAME__ = admin
+from django.contrib import admin
+from gatekeeper.models import ModeratedObject
+
+class ModeratedObjectAdmin(admin.ModelAdmin):
+    list_display = ('object_name', 'timestamp', 'moderation_status', 'flagged')
+    list_editable = ('moderation_status','flagged')
+    list_filter = ['moderation_status','flagged','content_type']
+
+    def object_name(self, obj):
+        return "%s" % obj
+
+admin.site.register(ModeratedObject, ModeratedObjectAdmin)
+
+########NEW FILE########
+__FILENAME__ = middleware
+try:
+    from threading import local
+except ImportError:
+    from django.utils._threading_local import local
+
+_thread_locals = local()
+
+def get_current_user():
+    return getattr(_thread_locals, 'gatekeeper_user', None)
+
+class GatekeeperMiddleware(object):
+    def process_request(self, request):
+        _thread_locals.gatekeeper_user = getattr(request, 'user', None)
+########NEW FILE########
+__FILENAME__ = models
+from django.conf import settings
+from django.db import models
+from django.contrib.auth.models import User
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes import generic
+import datetime
+import gatekeeper
+
+STATUS_CHOICES = (
+    (1, "Approved"),
+    (0, "Pending"),
+    (-1, "Rejected"),
+)
+
+STATUS_ON_FLAG = getattr(settings, "GATEKEEPER_STATUS_ON_FLAG", None)
+
+class ModeratedObjectManager(models.Manager):
+
+    def get_for_instance(self, obj):
+        ct = ContentType.objects.get_for_model(obj.__class__)
+        try:
+            mo = ModeratedObject.objects.get(content_type=ct, object_id=obj.pk)
+            return mo
+        except ModeratedObject.DoesNotExist:
+            pass
+
+class ModeratedObject(models.Model):
+
+    objects = ModeratedObjectManager()
+
+    timestamp = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+
+    moderation_status = models.IntegerField(choices=STATUS_CHOICES)
+    moderation_status_by = models.ForeignKey(User, blank=True, null=True)
+    moderation_status_date = models.DateTimeField(blank=True, null=True)
+    moderation_reason = models.CharField(max_length=100, blank=True)
+
+    flagged = models.BooleanField(default=False)
+    flagged_by = models.ForeignKey(User, blank=True, null=True,
+                                   related_name='flagged_objects')
+    flagged_date = models.DateTimeField(blank=True, null=True)
+
+    content_type = models.ForeignKey(ContentType)
+    object_id = models.PositiveIntegerField()
+    content_object = generic.GenericForeignKey('content_type', 'object_id')
+
+    class Meta:
+        ordering = ['timestamp']
+
+    def __unicode__(self):
+        return "[%s] %s" % (self.get_moderation_status_display(), 
+                            self.content_object)
+
+    def get_absolute_url(self):
+        if hasattr(self.content_object, "get_absolute_url"):
+            return self.content_object.get_absolute_url()
+
+    def _moderate(self, status, user, reason=None):
+        self.moderation_status = status
+        self.moderation_status_by = user
+        self.moderation_status_date = datetime.datetime.now()
+        self.moderation_reason = reason
+        self.save()
+        gatekeeper.post_moderation.send(sender=ModeratedObject, instance=self)
+
+    def flag(self, user):
+        self.flagged = True
+        self.flagged_by = user
+        self.flagged_date = datetime.datetime.now()
+        if STATUS_ON_FLAG:
+            self.moderation_status = STATUS_ON_FLAG
+            self.moderation_status_by = user
+            self.moderation_status_date = self.flagged_date
+            gatekeeper.post_moderation.send(sender=ModeratedObject, instance=self)
+        self.save()
+        gatekeeper.post_flag.send(sender=ModeratedObject, instance=self)
+
+    def approve(self, user, reason=''):
+        self._moderate(1, user, reason)
+
+    def reject(self, user, reason=''):
+        self._moderate(-1, user, reason)
+
+########NEW FILE########

@@ -1,0 +1,324 @@
+python Cookbook CHANGELOG
+=========================
+This file is used to list changes made in each version of the python cookbook.
+
+v1.4.6
+------
+
+- **[#61](https://github.com/poise/python/pull/61)** – Python packages specified for Fedora platform.
+- **[#62](https://github.com/poise/python/pull/62)** – Use tgz archive instead of tbz2 as new releases no longer offer tb2
+- **[#72](https://github.com/poise/python/pull/72)** – Set $HOME in virtualenv provider
+- **[#74](https://github.com/poise/python/pull/74)** – Allow setting of virtualenv version
+- **[#78](https://github.com/poise/python/pull/78)** – AFix the pip version_check_cmd to use the virtualenv pip when applicable
+- **[#79](https://github.com/poise/python/pull/79)** – Add ability in pip lwrp to send custom env vars
+- **[#80](https://github.com/poise/python/pull/80)** – Update to yum3 yum-epel cookbook
+- Remove ez_setup.py usage and upgrade get-pip.py to 1.5.2.
+
+v1.4.4
+------
+[COOK-3816] - Including ez_setup script with cookbook instead of downloading from the internet
+
+
+v1.4.2
+------
+### Bug
+- **[COOK-3796](https://tickets.opscode.com/browse/COOK-3796)** - Virtualenv can fail
+
+### Improvement
+- **[COOK-3719](https://tickets.opscode.com/browse/COOK-3719)** - Allow alternative install python, update pip location
+- **[COOK-3703](https://tickets.opscode.com/browse/COOK-3703)** - Create symlink for source built python [python3 support]
+
+
+v1.4.0
+------
+### New Feature
+- **[COOK-3248](https://tickets.opscode.com/browse/COOK-3248)** - Improve testing suite
+
+### Improvement
+- **[COOK-3125](https://tickets.opscode.com/browse/COOK-3125)** - Don't use `normal` attributes
+
+### Bug
+- **[COOK-3084](https://tickets.opscode.com/browse/COOK-3084)** - Fix `python_virtualenv` on EL 5
+
+v1.3.6
+------
+### Bug
+- [COOK-3305]: distribute merged back into setuptools
+
+### New Feature
+- [COOK-3248]: Improve testing suite in the python cookbook
+
+v1.3.4
+------
+### Bug
+- [COOK-3137]: `python_pip` LWRP cannot have differnent name and `package_name`
+
+v1.3.2
+------
+### Bug
+- [COOK-2917]: python::source fails on CentOS 6.3 minimal (make: command not found)
+- [COOK-3077]: Python - pip fails to install when `['python']['install_method'] == 'source'`
+
+v1.3.0
+------
+### Bug
+- [COOK-2376]: Python pip default action
+- [COOK-2468]: python cookbook - Chef 11 compat fixes
+- [COOK-2882]: Python source recipe fails on Ubuntu 12.10 because of unavailable libdb4.8-dev package
+- [COOK-3009]: fix build time dependencies and gcc flags for python source on newer ubuntus
+
+### New Feature
+- [COOK-2449]: Make the distribute download location an attribute
+- [COOK-3008]: Update python::source to install 2.7.5
+
+### Sub-task
+- [COOK-2866]: python::source checks existence of a directory that already exists
+
+v1.2.2
+------
+- [COOK-2297] - more gracefully handle pip packages from VCS and source archives
+
+v1.2.0
+------
+- [COOK-1866] - /usr/bin is not a pip binary location in source installs on RHEL
+- [COOK-1925] - add smartos support
+
+v1.1.0
+------
+- [COOK-1715] - Add user and group to python_pip
+- [COOK-1727] - Python cookbook cannot install `pip` on CentOS versions < 6
+
+v1.0.8
+------
+- [COOK-1016] - python package needs separate names for centos/rhel 5.x vs 6.x
+- [COOK-1048] - installation of pip does not honor selected python version
+- [COOK-1282] - catch Chef::Exceptions::ShellCommandFailed for chef 0.10.8 compatibility
+- [COOK-1311] - virtualenv should have options attribute
+- [COOK-1320] - pip provider doesn't catch correct exception
+- [COOK-1415] - use plain 'python' binary instead of versioned one for default interpreter
+
+v1.0.6
+------
+- [COOK-1036] - correctly grep for python-module version
+- [COOK-1046] - run pip inside the virtualenv
+
+v1.0.4
+------
+- [COOK-960] - add timeout to python_pip
+- [COOK-651] - 'install_path' not correctly resolved when using python::source
+- [COOK-650] - Add ability to specify version when installing distribute.
+- [COOK-553] - FreeBSD support in the python cookbook
+
+python Cookbook
+===============
+
+[![Build Status](https://travis-ci.org/poise/python.png?branch=master)](https://travis-ci.org/poise/python)
+
+Installs and configures Python.  Also includes LWRPs for managing python packages with `pip` and `virtualenv` isolated Python environments.
+
+
+Requirements
+------------
+### Platforms
+- Debian, Ubuntu
+- CentOS, Red Hat, Fedora
+
+### Cookbooks
+- build-essential
+- yum
+
+NOTE: The `yum` cookbook is a dependency of the cookbook, and will be used to install [EPEL](http://fedoraproject.org/wiki/EPEL) on RedHet/CentOS 5.x systems to provide the Python 2.6 packages.
+
+
+Attributes
+----------
+See `attributes/default.rb` for default values.
+
+- `node["python"]["install_method"]` - method to install python with, default `package`.
+
+The file also contains the following attributes:
+
+- platform specific locations and settings
+- source installation settings
+
+
+Resource/Provider
+-----------------
+This cookbook includes LWRPs for managing:
+
+- pip packages
+- virtualenv isolated Python environments
+
+### python_pip
+Install packages using the new hotness in Python package management...[`pip`](http://pypi.python.org/pypi/pip).  Yo dawg...easy_install is so 2009, you better ask your local Pythonista if you don't know! The usage semantics are like that of any normal package provider.
+
+#### Actions
+
+- :install: Install a pip package - if version is provided, install that specific version (default)
+- :upgrade: Upgrade a pip package - if version is provided, upgrade to that specific version
+- :remove: Remove a pip package
+- :user: User to run pip as, for using with virtualenv
+- :group: Group to run pip as, for using with virtualenv
+- :purge: Purge a pip package (this usually entails removing configuration files as well as the package itself).  With pip packages this behaves the same as `:remove`
+
+#### Attribute Parameters
+
+- package_name: name attribute. The name of the pip package to install
+- version: the version of the package to install/upgrade.  If no version is given latest is assumed.
+- virtualenv: virtualenv environment to install pip package into
+- options: Add additional options to the underlying pip package command
+- timeout: timeout in seconds for the command to execute. Useful for pip packages that may take a long time to install. Default 900 seconds.
+
+#### Examples
+
+```ruby
+# install latest gunicorn into system path
+python_pip "gunicorn"
+
+# target a virtualenv
+python_pip "gunicorn" do
+  virtualenv "/home/ubunut/my_ve"
+end
+```
+
+```ruby
+# install Django 1.1.4
+python_pip "django" do
+  version "1.1.4"
+end
+```
+
+```ruby
+# use this provider with the core package resource
+package "django" do
+  provider Chef::Provider::PythonPip
+end
+```
+
+### python_virtualenv
+[`virtualenv`](http://pypi.python.org/pypi/virtualenv) is a great tool that creates isolated python environments.  Think of it as RVM without all those hipsters and tight jeans.
+
+#### Actions
+- :create: creates a new virtualenv
+- :delete: deletes an existing virtualenv
+
+#### Attribute Parameters
+- path: name attribute. The path where the virtualenv will be created
+- interpreter: The Python interpreter to use. default is null (i.e. use whatever python the virtualenv command is using).
+- owner: The owner for the virtualenv
+- group: The group owner of the file (string or id)
+- options : Command line options (string)
+
+#### Examples
+
+```ruby
+# create a 2.6 virtualenv owned by ubuntu user
+python_virtualenv "/home/ubuntu/my_cool_ve" do
+  owner "ubuntu"
+  group "ubuntu"
+  action :create
+end
+```
+
+```ruby
+# create a Python 2.4 virtualenv
+python_virtualenv "/home/ubuntu/my_old_ve" do
+  interpreter "python2.4"
+  owner "ubuntu"
+  group "ubuntu"
+  action :create
+end
+```
+
+```ruby
+# create a Python 2.6 virtualenv with access to the global packages owned by ubuntu user
+python_virtualenv "/home/ubuntu/my_old_ve" do
+  owner "ubuntu"
+  group "ubuntu"
+  options "--system-site-packages"
+  action :create
+end
+```
+
+
+Usage
+-----
+### default
+Include default recipe in a run list, to get `python`, `pip` and `virtualenv`. Installs python by package or source depending on the platform.
+
+### package
+Installs Python from packages.
+
+### source
+Installs Python from source.
+
+### pip
+Installs `pip` from source.
+
+### virtualenv
+
+Installs virtualenv using the `python_pip` resource.
+
+
+License & Authors
+-----------------
+- Author:: Seth Chisamore (<schisamo@opscode.com>)
+
+```text
+Copyright:: 2011, Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+python_test Cookbook
+====================
+
+This cookbook tests the pip and virtualenv providers
+
+Requirements
+------------
+
+#### packages
+- `python` - Version *2.5* or higher
+
+License and Authors
+-------------------
+Authors: Scott Likens <scott@mopub.com>
+		 Sean Porter <portertech@gmail.com>
+
+This cookbook includes support for running tests via Test Kitchen (1.0). This has some requirements.
+
+1. You must be using the Git repository, rather than the downloaded cookbook from the Chef Community Site.
+2. You must have Vagrant 1.1 installed.
+3. You must have a "sane" Ruby 1.9.3 environment.
+
+Once the above requirements are met, install the additional requirements:
+
+Install the berkshelf plugin for vagrant, and berkshelf to your local Ruby environment.
+
+    vagrant plugin install vagrant-berkshelf
+    gem install berkshelf
+
+Install Test Kitchen 1.0 (unreleased yet, use the alpha / prerelease version).
+
+    gem install test-kitchen --pre
+
+Install the Vagrant driver for Test Kitchen.
+
+    gem install kitchen-vagrant
+
+Once the above are installed, you should be able to run Test Kitchen:
+
+    kitchen list
+    kitchen test
+

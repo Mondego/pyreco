@@ -1,0 +1,175 @@
+# Ensembl biomart download: 
+# Ensembl gene version: Ensembl 75
+############################################################
+1) Retrieve all gene ids: query1.pl -> mart_export1
+2) Retrieve CDS length: query2.pl -> mart_export2
+3) Extract entrez gene ids: query3.pl -> mart_export3
+
+###################################################
+# HGNC download for gene synonyms
+# the connectors can be, ensembl gene id, HGNC id
+###################################################
+
+1) hgnc.query.pl -> HGNC_download
+
+##########################################
+#processing to add None for blank columns
+##########################################
+
+a) cat mart_export1 | awk -F'\t' '{ OFS = "\t" }; {for(n=1; n<=NF; n++) sub(/^$/, "None", $n); print $0}' > ensembl75_1
+b) cat mart_export2 | awk -F'\t' '{ OFS = "\t" }; {for(n=1; n<=NF; n++) sub(/^$/, "None", $n); print $0}' > ensembl75_2
+c) cat mart_export3 | awk -F'\t' '{ OFS = "\t" }; {for(n=1; n<=NF; n++) sub(/^$/, "None", $n); print $0}' > ensembl75_3
+d) cat HGNC_download | awk -F'\t' '{ OFS = "\t" }; {for(n=1; n<=NF; n++) sub(/^$/, "None", $n); print $0}' > hgnc_file
+e) cat HMD_HumanPhenotype.rpt | awk -F'\t' '{ OFS = "\t" }; {for(n=1; n<=NF; n++) sub(/^$/, "None", $n); print $0}' > HMD_HumanPhenotype
+###########################################################################
+# Linking CDS length to gene ids (i.e. joining on a & b)
+# Connector for both these files is the ensembl transcript id
+###########################################################################
+
+python ensembl.py (outfile: ensembl_format)
+
+"""
+Note: The CCDS length is used to calculate the protein length as (CDS length/3 -1 . Thats how Ensembl protein lengths 
+are reported. For transcripts that have an incomplete CDS, e.g. ENST00000435543, our calculation of protein length would 
+vary from that reported in ensembl.
+
+"""
+
+######################################################################
+# Linking synonyms from HGNC to the above table
+# table columns: ("Chromosome","HGNC_symbol","Ensembl_gene_id",
+                  "Ensembl_transcript_id","Biotype","Transcript_status",
+                  "CCDS_id","HGNC_id","CDS_length","Protein_length",
+				  "transcript_start","transcript_end","strand",
+                  "Previous_symbol","Synonymous")
+
+python synonym.py (outfile: gene_table)
+
+###############################################################
+# Map file c to gene_table (connector - ensembl transcript id)
+###############################################################
+python map_entrez.py (output: raw_gene_table)
+
+
+###############################################################
+# GENE SUMMARY & GENE DETAILED TABLES
+###############################################################
+
+"""
+A second pass at raw_gene_table to have a summary_gene_table and a detailed_gene_table.
+For each line in the table (HGNC symbol + previous symbol + synonym) is a gene list.
+Each member of the gene list is  represented as a key gene (2nd column )and the synonym column 
+is a difference of the two. This means if we have (1 HGNC symbol + 2 previous names + 1 synonym) 
+there would be 4 lines instead of 1 and these lines would be repeated with the number of transcripts 
+available for the gene.
+Includes RVIS percentile scores mapped by their HGNC symbol, and added to synonym lines
+Includes MP ontology descriptions derived from mouse database at MGI (mapped by entrez gene ids)
+
+
+--------------------- About RVIS --------------------
+RVIS percentiles were obtained from dataset 2 supp material from this below reference 
+Petrovski S., Wang Q., Heinzen E.L., Allen A.S., Goldstein D.B. (2013). Genic Intolerance to Functional 
+Variation and the Interpretation of Personal Genomes. PLOS Genetics, doi: 10.1371/journal.pgen.1003709).
+  
+
+---------------------- About MP ontology --------------
+
+The Mammalian Phenotype Ontology (http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2801442/) has been
+applied to mouse phenotype descriptions in the Mouse Genome Informatics Database at
+MGI, http://www.informatics.jax.org/. The following file was used to map the mouse phenotype
+data ftp://ftp.informatics.jax.org/pub/reports/HMD_HumanPhenotype.rpt
+
+Fields: Human Marker Symbol, Human Entrez Gene ID, HomoloGene ID, Mouse Marker Symbol,
+        MGI Marker Accession ID, High-level Mammalian Phenotype ID(space-delimited)
+
+"""
+
+python combined_gene_table.py (outfiles: detailed_gene_table, summary_gene_table)
+
+# detailed_gene_table columns:
+ ("Chromosome","Gene_name","Is_hgnc","Ensembl_gene_id","Ensembl_transcript_id","Biotype","Transcript_status","CCDS_id",
+   "HGNC_id","CDS_length","Protein_length","Transcript_start","Transcript_end","strand","Synonyms", 
+   "Rvis_pct","entrez_gene_id","Phenotype_id")
+
+# summary_gene_table columns:
+ ("Chromosome","gene_name","is_hgnc","Ensembl_gene_id","HGNC_id","synonyms", "rvis_pct","strand","transcript_min_start",
+  "transcript_max_start","Phenotype_id")					 
+
+
+# rm gene_table ensembl_75* ensembl_format hgnc_file HMD_HumanPhenotype
+
+
+GEMINI - integrative exploration of genetic variation and genome annotations.
+=============================================================================
+
+Overview
+========
+The intent of ``GEMINI`` (GEnome MINIing) is to provide a simple, flexible, and 
+powerful framework for exploring genetic variation for personal and medical genetics.
+GEMINI is unique in that it integrates genetic variation (from VCF files) with
+a wealth of genome annotations into a unified database framework. Using this
+integrated database as the analysis framework, we aim to leverage the expressive 
+power of SQL for data analysis, while attempting to overcome the fundamental 
+challenges associated with using databases for very large
+(e.g. 1,000,000 variants times 1,000 samples yields one billion genotypes)
+datasets. In addition, by defining sample relationships with a PED file, GEMINI allows
+one to explore and test for variants that meet specific inheritance models (e.g., 
+recessive, dominant, etc.).
+
+Documentation
+================
+The official documentation is here: http://gemini.readthedocs.org/en/latest/
+
+The following is a video of a high-level talk from SciPy 2013 describing GEMINI.
+
+http://www.youtube.com/watch?v=p-UWmDG6yj4
+
+
+Citation
+================
+If you use GEMINI in your research, please cite the following manuscript:
+
+Paila U, Chapman BA, Kirchner R, Quinlan AR (2013) 
+GEMINI: Integrative Exploration of Genetic Variation and Genome Annotations. 
+PLoS Comput Biol 9(7): e1003153. doi:10.1371/journal.pcbi.1003153
+
+[Manuscript](http://www.ploscompbiol.org/article/info%3Adoi%2F10.1371%2Fjournal.pcbi.1003153)
+
+
+Mailing List
+================
+Questions and discussion should be directed to the following discussion list:
+
+https://groups.google.com/forum/?fromgroups#!forum/gemini-variation
+
+
+Acknowledgements
+================
+GEMINI is being developed in the Quinlan lab (quinlanlab.org) at the University
+of Virginia and is led by Uma Paila and Aaron Quinlan.  Substantial contributions 
+to the code base have also been made by Brad Chapman (@chapmanb) and
+Rory Kirchner (@roryk) at the Harvard School of Public Health.
+
+
+Installation
+============
+Install ``GEMINI`` using the automated installation script, `gemini_install.py`. This
+script installs GEMINI along with required python libraries, third party tools and data 
+files used for variant annotation. The installation documentation contains additional 
+details on installed files and tools.
+
+http://gemini.readthedocs.org/en/latest/content/installation.html
+
+License
+================
+`GEMINI` is freely available under the MIT [license](https://github.com/arq5x/gemini/blob/master/LICENSE).
+
+
+Others
+=========
+`GEMINI` includes `CADD` scores (PMID: 24487276) for annotating variants.
+
+CADD scores (http://cadd.gs.washington.edu/) are Copyright 2013 University of Washington and 
+Hudson-Alpha Institute for Biotechnology (all rights reserved) but are freely available for 
+all academic, non-commercial applications. For commercial licensing information contact 
+Jennifer McCullar (mccullaj@uw.edu).

@@ -1,0 +1,1255 @@
+Command reference
+--------------------
+
+#### mongoctl
+
+```
+Usage: mongoctl [<options>] <command> [<command-args>]
+
+A utility that simplifies the management of MongoDB servers and replica set clusters.
+
+Options:
+  -h, --help            show this help message and exit
+  -v, --verbose         make mongoctl more verbose
+  -n, --noninteractive  bypass prompting for user interaction
+  --yes                 auto yes to all yes/no prompts
+  --no                  auto no to all yes/no prompts
+  --config-root CONFIGROOT
+                        path to mongoctl config root; defaults to ~/.mongoctl
+
+Commands:
+  Admin Commands:
+    install-mongodb           - install MongoDB
+    uninstall-mongodb         - uninstall MongoDB
+    list-versions             - list all available MongoDB installations on this machine
+
+  Client Commands:
+    connect                   - open a mongo shell connection to a server
+    dump                      - Export MongoDB data to BSON files (using mongodump)
+    restore                   - Restore MongoDB (using mongorestore)
+
+  Server Commands:
+    start                     - start a server
+    stop                      - stop a server
+    restart                   - restart a server
+    status                    - retrieve status of server
+    list-servers              - show list of configured servers
+    show-server               - show server's configuration
+    tail-log                  - tails a server's log file
+    resync-secondary          - Resyncs a secondary member
+
+  Cluster Commands:
+    configure-cluster         - initiate or reconfigure a cluster
+    list-clusters             - show list of configured clusters
+    show-cluster              - show cluster's configuration
+
+  Miscellaneous:
+    print-uri                 - prints connection URI for a server or cluster
+
+See 'mongoctl <command> --help' for more help on a specific command.
+```
+
+Admin commands
+---------------
+
+##### install-mongodb
+```
+Usage: install-mongodb <version>
+
+Install the specified version of MongoDB
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### uninstall-mongodb
+```
+Usage: uninstall <version>
+
+Uninstall the specified version of MongoDB
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### list-versions
+```
+Usage: list-versions 
+
+List all available MongoDB installations on this machine
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+Client commands
+-----------------
+
+#### connect 
+
+```
+Usage: connect [<options>] <db-address> [<js-files>]
+
+Opens a mongo shell connection to the specified database. If a
+cluster is specified command will connect to the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)
+   (b) <server-id>/<db>
+   (c) <cluster-id>/<db> (not yet supported)
+
+Options:
+  -h, --help     show this help message and exit
+  -u USERNAME    username
+  -p PASSWORD    password
+  --shell        run the shell after executing files
+  --norc         will not run the ".mongorc.js" file on start up
+  --quiet        be less chatty
+  --eval EVAL    evaluate javascript
+  --verbose      increase verbosity
+  --ipv6         enable IPv6 support (disabled by default)
+```
+
+#### dump
+
+```
+Usage: dump [<options>] TARGET
+
+Runs a mongodump  to the specified database address or dbpath. If a
+cluster is specified command will run the dump against the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])
+   (b) <server-id>[/<db>]
+   (c) <cluster-id>[/<db>]
+
+
+Arguments:
+  TARGET  database addresse or dbpath. Check docs for more details.
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME           username
+  -p [PASSWORD]         password
+  -v, --verbose         increase verbosity
+  --directoryperdb      if dbpath specified, each db is in a separate
+                        directory
+  --journal             enable journaling
+  -c COLLECTION, --collection COLLECTION
+                        collection to use (some commands)
+  -o DIR, --out DIR     output directory or '-' for stdout
+  -q QUERY, --query QUERY
+                        json query
+  --oplog               Use oplog for point-in-time snapshotting
+  --repair              try to recover a crashed database
+  --forceTableScan      force a table scan (do not use $snapshot)
+  --ipv6                enable IPv6 support (disabled by default)
+```
+
+##### restore
+
+```
+Usage: restore [<options>] DESTINATION SOURCE
+
+Runs a mongorestore from specified file or directory to database address or dbpath. If a
+cluster is specified command will restore against the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017[/mydb])
+   (b) <server-id>[/<db>]
+   (c) <cluster-id>[/<db>]
+
+
+Arguments:
+  DESTINATION  database address or dbpath. Check docs for more details.
+  SOURCE       directory or filename to restore from
+
+Options:
+  -h, --help            show this help message and exit
+  -u USERNAME           username
+  -p [PASSWORD]         password
+  -v, --verbose         increase verbosity
+  --directoryperdb      if dbpath specified, each db is in a separate
+                        directory
+  --journal             enable journaling
+  -c COLLECTION, --collection COLLECTION
+                        collection to use (some commands)
+  --objectcheck         validate object before inserting
+  --filter FILTER       filter to apply before inserting
+  --drop                drop each collection before import
+  --oplogReplay         replay oplog for point-in-time restore
+  --keepIndexVersion    don't upgrade indexes to newest version
+  --ipv6                enable IPv6 support (disabled by default)
+```
+
+Server commands
+-----------------
+
+##### start
+
+The ```start``` command calls ```mongod``` with arguments and options
+based on the configuration of the specified server document and its
+configured ```cmdOptions```.  You can see the generated ```mongod```
+command-line string by calling ```start``` with the dry run 
+option (```-n``` or ```--dry-run```).
+
+```start``` allows you to override all ```cmdOptions``` defined in the
+specified server configuration via options specified at the
+command-line. This is useful for one-off situations (i.e. running 
+a ```--repair```). In general, ```start``` supports all of the command-line
+options of ```mongod```.
+
+```
+Usage: start [<options>] <server>
+
+Start a server
+
+Options:
+  -h, --help            show this help message and exit
+  --version VERSION     show version information
+  -n, --dry-run         prints the mongod command to execute without executing
+                        it
+  --rs-add              Automatically add server to replicaset conf if its not
+                        added yet
+  -u USERNAME           admin username
+  -p [PASSWORD]         admin password
+
+  -v, --verbose         be more verbose (include multiple times for more
+                        verbosity e.g. -vvvvv)
+  --quiet               quieter output
+  --port PORT           specify port number
+  --bind_ip BIND_IP     comma separated list of ip addresses to listen on- all
+                        local ips by default
+  --maxConns MAXCONNS   max number of simultaneous connections
+  --objcheck            inspect client data for validity on receipt
+  --logpath LOGPATH     log file to send write to instead of stdout - has to
+                        be a file, not directory. mongoctl defaults that to
+                        dbpath/mongodb.log
+  --logappend LOGAPPEND
+                        append to logpath instead of over-writing
+  --pidfilepath PIDFILEPATH
+                        full path to pidfile (if not set, no pidfile is
+                        created). mongoctl defaults that to dbpath/pid.txt
+  --keyFile KEYFILE     private key for cluster authentication (only for
+                        replica sets)
+  --nounixsocket        disable listening on unix sockets
+  --unixSocketPrefix UNIXSOCKETPREFIX
+                        alternative directory for UNIX domain sockets
+                        (defaults to /tmp)
+  --fork                forks the mongod. mongoctl defaults that to True
+  --auth                run with security
+  --cpu                 periodically show cpu and iowait utilization
+  --dbpath DBPATH       directory for datafiles
+  --diaglog DIAGLOG     0=off 1=W 2=R 3=both 7=W+some reads
+  --directoryperdb      each database will be stored in a separate directory
+  --journal             enable journaling
+  --journalOptions JOURNALOPTIONS
+                        journal diagnostic options
+  --journalCommitInterval JOURNALCOMMITINTERVAL
+                        how often to group/batch commit (ms)
+  --ipv6                enable IPv6 support (disabled by default)
+  --jsonp               allow JSONP access via http (has security
+                        implications)
+  --noauth              run without security
+  --nohttpinterface     disable http interface
+  --nojournal           disable journaling (journaling is on by default for 64
+                        bit)
+  --noprealloc          disable data file preallocation - will often hurt
+                        performance
+  --notablescan         do not allow table scans
+  --nssize NSSIZE       .ns file size (in MB) for new databases
+  --profile PROFILE     0=off 1=slow, 2=all
+  --quota               limits each database to a certain number of files (8
+                        default)
+  --quotaFiles QUOTAFILES
+                        number of files allower per db, requires --quota
+  --rest REST           turn on simple rest api
+  --repair              run repair on all dbs
+  --repairpath REPAIRPATH
+                        root directory for repair files - defaults to dbpath
+  --slowms SLOWMS       value of slow for profile and console log
+  --smallfiles          use a smaller default file size
+  --syncdelay SYNCDELAY
+                        seconds between disk syncs (0=never, but not
+                        recommended)
+  --sysinfo             print some diagnostic system information
+  --upgrade             upgrade db if needed
+  --fastsync            indicate that this instance is starting from a dbpath
+                        snapshot of the repl peer
+  --oplogSize           size limit (in MB) for op log
+  --master              master mode
+  --slave               slave mode
+  --source SOURCE       when slave: specify master as <server:port>
+  --only ONLY           when slave: specify a single database to replicate
+  --slavedelay SLAVEDELAY
+                        specify delay (in seconds) to be used when applying
+                        master ops to slave
+  --autoresync          automatically resync if slave data is stale
+  --replSet REPLSET     arg is <setname>[/<optionalseedhostlist>]
+  --configsvr           declare this is a config db of a cluster; default port
+                        27019; default dir /data/configdb
+  --shardsvr            declare this is a shard db of a cluster; default port
+                        27018
+  --noMoveParanoia      turn off paranoid saving of data for moveChunk. this
+                        is on by default for now, but default will switch
+```
+
+##### stop
+
+```
+Usage: stop [<options>] <server>
+
+Stop a server
+
+Options:
+  -h, --help   show this help message and exit
+  -f, --force  force stop if needed via kill
+  --user USER     pass in a user config using the format 'database:user:password'
+  -u USERNAME     admin username
+  -p [PASSWORD]   admin password
+```
+
+```mongoctl stop``` will first attempt to stop a server by sending a ```{"shutdown" : 1}``` command to the server.
+If this fails, ```mongoctl``` will then prompt you asking if it can kill the process via ```kill``` and then 
+```kill -9```.
+
+```mongoctl stop``` must be executed local to the machine running the server. 
+
+##### restart
+
+```
+Usage: restart <server>
+
+Restart a server
+
+Options:
+  -h, --help  show this help message and exit
+  -u USERNAME     admin username
+  -p [PASSWORD]   admin password
+```
+
+##### status
+
+```
+Usage: status [<options>] <server>
+
+Retrieve status of a server
+
+Options:
+  -h, --help     show this help message and exit
+  -v, --verbose  include more information in status
+  -u USERNAME    admin username
+  -p [PASSWORD]  admin password
+```
+
+##### list-servers
+
+```
+Usage: list-servers  
+
+List all server configurations
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### show-server
+
+```
+Usage: show-server <server>
+
+Show specified server configuration
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### tail-log
+
+```
+Usage: tail-log [<options>] SERVER_ID
+
+Tails server's log file. Works only on local host
+
+Arguments:
+  SERVER_ID  a valid server id
+
+Options:
+  -h, --help      show this help message and exit
+  --assume-local  Assumes that the server is running on local host. This will
+                  skip local address/dns check
+```
+
+##### resync-secondary
+
+```
+Usage: resync-secondary [<options>] SERVER_ID
+
+Resyncs a secondary member
+
+Arguments:
+  SERVER_ID  a valid server id
+
+Options:
+  -h, --help      show this help message and exit
+  --assume-local  Assumes that the server is running on local host. This will
+                  skip local address/dns check
+  -u USERNAME     admin username
+  -p [PASSWORD]   admin password
+```
+
+Cluster commands
+-----------------
+
+##### list-clusters
+
+```
+Usage: list-clusters  
+
+List all cluster configurations
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### show-cluster
+
+```
+Usage: show-cluster <cluster>  
+
+Show specified cluster configuration
+
+Options:
+  -h, --help  show this help message and exit
+```
+
+##### configure-cluster
+
+```
+Usage: configure-cluster [<options>] <cluster>
+
+Configure specified mongodb cluster. This command can be
+used both to initiate the cluster for the first time
+and to reconfigure the cluster.
+
+Options:
+  -h, --help     show this help message and exit
+  -n, --dry-run  prints configure cluster db command to execute without
+                 executing it
+  -f SERVER, --force SERVER
+                 force member to become primary
+  -u USERNAME    admin username
+  -p [PASSWORD]  admin password
+```
+
+Miscellaneous commands
+-----------------
+
+##### print-uri
+```
+Usage: print-uri [<options>] SERVER or CLUSTER ID
+
+Prints MongoDB connection URI of the specified server or clurter
+
+Arguments:
+  SERVER or CLUSTER ID  Server or cluster id
+
+Options:
+  -h, --help      show this help message and exit
+  -d DB, --db DB  database name
+```
+Configuring mongoctl
+---------------
+
+The main configuration file for ```mongoctl``` is
+```~/.mongoctl/mongoctl.config```. This configuration file allows you
+to control all of the configurable aspects of ```mongoctl```'s
+behavior.
+
+Below is the default configuration generated via the installation:
+
+```
+{
+   "mongoDBInstallationsDirectory": "~/mongodb",
+
+   "fileRepository": {
+      "servers": "servers.config", // servers file name
+      "clusters": "clusters.config" // clusters file name
+    },
+
+/**
+   "databaseRepository": {
+     "databaseURI": "mongodb://localhost:27017", 
+     "servers": "servers", // servers collection name
+     "clusters": "clusters" // clusters collection name
+   },
+ **/   
+}
+```
+
+Configuration options
+---------------------
+
+The ```mongoctl.config``` config file supports the following:
+
+* ```mongoDBInstallationsDirectory```: Directory where ```mongoctl``` will manage MongoDB installations. ```mongoctl install``` will download MongoDB installations to this directory.
+* ```fileRepository``` : If not null, this object tells ```mongoctl```
+where to look for configuration files defining servers and clusters. These can be defined as local filesystem paths, 'file:', or 'http:' URLs. 
+* ```databaseRepository``` : If not null, this configures
+```mongoctl``` with a database endpoint for finding server and cluster 
+configurations
+
+#### ```_id``` resolution
+
+When ```_id```s designating servers or clusters are passed to
+```mongoctl``` commands they are first resolved against the
+configurations defined in the ```fileRepository``` (if configured),
+and if not found then looked-up in the ```databaseRepository```.
+
+This presents a few basic strategies for managing your server and
+cluster configurations:
+
+* Keep your configurations in files (which can be version controlled and distributed to db host machines)
+* Serve your files from a web server, potentially fronting a version control system such as Github 
+* Keep your configurations in a central MongoDB configuration database that is accessible by all database hosts
+
+#### Using a fileRepository
+
+To define your configurations via flat files, create one file to hold
+all server definitions and another to hold all cluster definitions. By
+default, servers are defined in ```~/.mongoctl/servers.config``` and
+clusters in ```~/.mongoctl/clusters.config```. Each file should contain
+an JSON array of objects. If you wish to place these files somewhere
+else simply configure the ```fileRepository``` property in
+```mongoctl.config``` appropriately. These files can reside on the local
+filesystem of each database host machine or they can be served by a 
+web server and specified via 'http:' URLs in ```mongoctl.config```.
+
+#### Using a databaseRepository
+
+You may also store your configurations in a MongoDB database. This is
+a conventient way of sharing configurations amongst disperate
+machines. When storting configurations in a database, we suggest you
+have a good document editor to make editing server and cluster objects
+easy, or maintaining the data as files and importing them into the
+configuration database using ```mongoimport```.
+
+
+Connecting to servers with the mongo shell
+------------------------------------------
+
+The [```mongoctl connect```](command-reference.md#connect) command is a convenience wrapper 
+around the ```mongo``` shell. The main conveniences are the ability to pass server or 
+cluster ```_id```s to the ```connect``` command (e.g. ```mongoctl connect MyServer```), and
+support for standard MongoDB URIs as a way of specifying connection addresses. 
+
+```
+Usage: connect [<options>] <db-address> [file names (ending in .js)]
+
+Opens a mongo shell connection to the specified database. If a
+cluster is specified command will connect to the primary server.
+
+<db-address> can be one of:
+   (a) a mongodb URI (e.g. mongodb://localhost:27017/mydb)
+   (b) <server-id>/<db>
+   (c) <cluster-id>/<db> (will find and connect to primary)
+
+Arguments:
+  <db-address>          database addresses supported by mongoctl. Check docs
+                        for more details.
+  [file names (ending in .js)]
+                        file names: a list of files to run. files have to end
+                        in .js and will exit after unless --shell is specified
+
+Options:
+  -h, --help     show this help message and exit
+  -u USERNAME    username
+  -p [PASSWORD]  password
+  --shell        run the shell after executing files
+  --norc         will not run the ".mongorc.js" file on start up
+  --quiet        be less chatty
+  --eval EVAL    evaluate javascript
+  --verbose      increase verbosity
+  --ipv6         enable IPv6 support (disabled by default)
+```
+
+Installing pip
+--------------
+
+```pip``` is a common python package installer and is used to install ```mongoctl```. There are two ways to 
+install ```pip```:
+
+#### Download                                                                                                                                                     
+
+* Download: http://pypi.python.org/pypi/pip#downloads
+* Operating instructions: http://www.pip-installer.org/en/latest/index.html                                                                                                                               
+* Installation instructions: http://www.pip-installer.org/en/latest/index.html                                                                                                                            
+
+#### Install from git
+
+```                                                                                                                                                                                                          
+% git clone https://github.com/pypa/pip.git
+% cd pip                                   
+% python setup.py install # may need to be root or need to use sudo 
+```                                                         
+
+Managing clusters
+--------------------
+
+Cluster configurations are managed in a configuration repository, which can be either a 
+[FileRepository](configuring-mongoctl.md#using-a-filerepository) or a 
+[DatabaseRepository](configuring-mongoctl.md#using-a-databaserepository),
+and are managed by ```mongoctl```s [set of cluster commands](command-reference.md#cluster-commands).
+
+#### Configuration
+
+All cluster definitions have the following schema:
+
+```
+{
+    "_id": <id>,
+
+    ["description" : <string>,]
+    
+    ["replKey": "<secret-keyphrase>",]
+
+    "members": [
+        {
+            ("server": {"$ref": "servers", "$id": <id>}, |
+             "host" : "<host>:<port>", )
+            ["arbiterOnly" : <boolean>,]
+            ["buildIndexes" : <boolean>,]
+            ["hidden" : <boolean>,]
+            ["priority" : <int>,]
+            ["tags" : <tag>*,]
+            ["slaveDelay" : <int>,]
+            ["votes" : <int>,]
+        },
+        .
+        .
+        .
+    ]
+}
+```
+
+For each member declaration there are two ways to refer to the corresponding server:
+
+* ```server```: A dbref to the server configuration that defines the server
+* ```host```: An address-based reference of the form ```<host>:<port>```
+
+One of these two fields must be present in every member definition.
+
+### Starting a cluster for the first time
+
+To start a cluster for the first time:
+
+* Start each server in the cluster by issuing a ```mongoctl start
+<server>``` from each server's respective host. You will be prompted each time to
+choose if you would like to add that server to the cluster. If you choose 'y' for each, 
+you're done.
+
+* If you declined to add one of the servers to the cluster you can later initialize the entire cluster via 
+the ```mongoctl configure-cluster <cluster>``` command. 
+
+For a detailed example of starting a cluster see the [quick start guide](quick-start.md#replica-set-cluster-example).
+
+### Reconfiguring a cluster
+
+To reconfigure a cluster:
+
+* Modify the cluster configuration
+* Execute the ```mongoctl configure-cluster <cluster>``` command. This will reconfigure
+the cluster based on the new configurations.
+
+
+
+Managing MongoDB installations
+--------------------
+
+```mongoctl``` allows you to manage multiple versions of MongoDB. You can install (and uninstall) different versions using the 
+[```mongoctl install-mongodb```](command-reference.md#install-mongodb) and
+[```mongoctl uninstall-mongodb```](command-reference.md#uninstall-mongodb) commands respecively. At any time you can see what versions
+of MongoDB are currently installed using [```mongoctl list-versions```](command-reference.md#list-versions).
+
+#### Configuring the location of MongoDB installations
+
+You can configure the directory where ```mongoctl``` manages MongoDB instalations in ```mongoctl.config``` 
+(see [Configuring mongoctl](configuring-mongoctl.md)). The default location is ```~/mongodb```. 
+
+#### Example
+
+```
+% mongoctl list-versions                   
+
+--------------------------------------------------------------------------------
+VERSION              LOCATION
+--------------------------------------------------------------------------------
+2.0.4                /Users/abdul/mongodb/mongodb-osx-x86_64-2.0.4
+```
+
+```
+% mongoctl install-mongodb 2.0.5
+
+Running install for osx 64bit to mongoDBInstallations=/Users/abdul/mongodb
+Downloading http://fastdl.mongodb.org/osx/mongodb-osx-x86_64-2.0.5.tgz ...
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 40.9M  100 40.9M    0     0   581k      0  0:01:12  0:01:12 --:--:--  515k
+
+Extracting mongodb-osx-x86_64-2.0.5.tgz ...
+x mongodb-osx-x86_64-2.0.5/
+x mongodb-osx-x86_64-2.0.5/bin/
+x mongodb-osx-x86_64-2.0.5/bin/bsondump
+x mongodb-osx-x86_64-2.0.5/bin/mongo
+x mongodb-osx-x86_64-2.0.5/bin/mongod
+x mongodb-osx-x86_64-2.0.5/bin/mongodump
+x mongodb-osx-x86_64-2.0.5/bin/mongoexport
+x mongodb-osx-x86_64-2.0.5/bin/mongofiles
+x mongodb-osx-x86_64-2.0.5/bin/mongoimport
+x mongodb-osx-x86_64-2.0.5/bin/mongorestore
+x mongodb-osx-x86_64-2.0.5/bin/mongos
+x mongodb-osx-x86_64-2.0.5/bin/mongosniff
+x mongodb-osx-x86_64-2.0.5/bin/mongostat
+x mongodb-osx-x86_64-2.0.5/bin/mongotop
+x mongodb-osx-x86_64-2.0.5/GNU-AGPL-3.0
+x mongodb-osx-x86_64-2.0.5/README
+x mongodb-osx-x86_64-2.0.5/THIRD-PARTY-NOTICES
+
+Moving extracted folder to /Users/abdul/mongodb
+Deleting archive mongodb-osx-x86_64-2.0.5.tgz
+MongoDB 2.0.5 installed successfully!
+```
+
+```
+% mongoctl list-versions                   
+
+--------------------------------------------------------------------------------
+VERSION              LOCATION
+--------------------------------------------------------------------------------
+2.0.4                /Users/abdul/mongodb/mongodb-osx-x86_64-2.0.4
+2.0.5                /Users/abdul/mongodb/mongodb-osx-x86_64-2.0.5
+```
+
+```
+% mongoctl uninstall-mongodb 2.0.4
+
+Found MongoDB '2.0.4' in '/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.4'
+Proceed uninstall? [y/n] y
+ Deleting '/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.4'
+MongoDB '2.0.4' Uninstalled successfully!
+```
+
+```
+% mongoctl list-versions                   
+
+--------------------------------------------------------------------------------
+VERSION              LOCATION
+--------------------------------------------------------------------------------
+2.0.5                /Users/abdul/mongodb/mongodb-osx-x86_64-2.0.5
+```
+Configuring and managing servers
+-------------------
+
+Server configurations, which define ```mongod``` processes, are managed in a configuration repository, which can 
+be either a [FileRepository](configuring-mongoctl.md#using-a-filerepository) or a 
+[DatabaseRepository](configuring-mongoctl.md#using-a-databaserepository),
+and are managed by ```mongoctl```s [set of server commands](command-reference.md#server-commands).
+
+#### Configuration
+
+All server definitions have the following schema:
+
+```
+{
+    "_id" : <string>,
+
+    ["description" : <string>,]
+    
+    ["mongoVersion" : <string>,]
+    
+    ["address" : <host>[:<port>],]
+
+    "cmdOptions" : {
+        ["port" : <int>,]
+        ["dbpath": <string>,]
+        ["directoryperdb" : <boolean>,]
+        ["logpath" : <string>,]
+        ["logappend" : <string>,]
+        ["auth": <boolean>,]
+        ["journal": <boolean>,]
+        ["journalOptions": <string>,]
+        ["journalCommitInterval": <int>,]
+        ["quota": <boolean>,]
+        ["quotaFiles": <int>,]
+        ["maxConns" : <int>,]
+        ["objcheck" : <boolean>,]
+        ["pidfilepath" : <string>,]
+        ["keyFile" : <string>,]
+        ["verbose" : <string>,]
+        ["quiet" : <boolean>,]
+        ["nounixsocket" : <boolean>,]
+        ["unixSocketPrefix" : <string>,]
+        ["cpu" : <boolean>,]
+        ["bind_ip" : <string>,]
+        ["diaglog" : <string>,]
+        ["ipv6" : <string>,]
+        ["jsonp" : <boolean>,]
+        ["noauth" : <boolean>,]
+        ["nohttpinterface" : <boolean>,]
+        ["nojournal" : <boolean>,]
+        ["noprealloc" : <boolean>,]
+        ["notablescan" : <boolean>,]
+        ["nssize" : <int>,]
+        ["profile" : <string>,]
+        ["rest" : <boolean>,]
+        ["repair" : <boolean>,]
+        ["repairPath" : <string>,]
+        ["slowms" : <int>,]
+        ["smallfiles" : <boolean>,]
+        ["syncdelay" : <int>,]
+        ["sysinfo" : <boolean>,]
+        ["upgrade" : <boolean>,]
+        ["fastsync" : <boolean>,]
+        ["oplogSize" : <int>,]
+        ["master" : <boolean>,]
+        ["slave" : <boolean>,]
+        ["source" : <string>,]
+        ["only" : <string>,]
+        ["slavedelay" : <int>,]
+        ["autoresync" : <boolean>,]
+        ["replSet" : <string>,]
+        ["configsvr" : <boolean>,]
+        ["shardsvr" : <boolean>,]
+        ["noMOveParanoia" : <string>,]
+    },
+    
+    "seedUsers": {
+        "<dbname>": [
+            {
+                "username": <string>,
+                ["password": <string>]
+            }
+            ...
+        ],
+        ...
+    }
+
+}
+```
+
+The set of ```cmdOptions``` very closely mirrors the set of command-line options of the ```mongod``` command 
+([see detailed documentation here](http://www.mongodb.org/display/DOCS/Command+Line+Parameters)).
+
+#### Paths
+
+Path values for ```cmdOptions``` such as ```dbpath``` and ```logpath``` can be assigned values relative to the current
+user's home directory with ```~/<path>``` and ```$HOME/<path>```. 
+
+#### Seeding database users
+
+The ```seedUsers``` field on server configurations allow you to define, per database, a set of users for ```mongoctl``` to create
+for you the first time the server is started. ```mongoctl start``` will first check to see if a user already exists before adding it. For any user
+for which there is no ```password``` defined, the operator will be prompted at startup to provide one.  
+
+Quick start guide
+-----------------
+
+```mongoctl``` comes packaged with sample configurations of servers and clusters that allow you to get going quickly.
+These samples are in ```~/.mongoctl/servers.config``` and ```~/.mongoctl/clusters.config```. Core configuration of 
+```mongoctl``` is defined in ```~/.mongoctl/mongoctl.config```.
+
+Install MongoDB
+----------------
+
+The first time you use ```mongoctl``` you will want to download MongoDB. To get the latest stable version:
+
+```
+% mongoctl install
+```
+
+You can also specify a specific version:
+
+```
+% mongoctl install 2.0.2
+```
+
+Simple server example
+------------------------
+
+Let's start with a very simple single-server example. To see the set of servers currently 
+defined we use the ```list-servers``` command:
+
+```
+% mongoctl list-servers
+
+--------------------------------------------------------------------------------
+_id                        address                   description
+--------------------------------------------------------------------------------
+MyClusterServer1       localhost:28017           My cluster member
+MyClusterServer2       localhost:28027           My cluster member
+MyClusterArbiter       localhost:28037           My cluster arbiter
+MyServer               localhost:27017           My server (single mongod)
+```
+
+You can look at the details of the server configuration for ```MyServer``` like this:
+
+```
+% mongoctl show-server MyServer
+
+Configuration for server 'MyServer':
+{
+    "_id": "MyServer"
+    "cmdOptions": {
+        "port": 27017, 
+        "dbpath": "~/mongodb-data/my-server"
+    }
+}
+```
+
+#### Start the server
+
+```
+% mongoctl start MyServer             
+
+Checking to see if server 'MyServer' is already running before starting it...
+Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
+Starting server 'MyServer' for the first time...
+
+Executing command:
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/mongodb-data/my-server --logpath /Users/abdul/mongodb-data/my-server/mongodb.log --pidfilepath /Users/abdul/mongodb-data/my-server/pid.txt --port 27017
+
+<lots of stuff>
+
+Server 'MyServer' started successfully! (pid=50877)
+
+Preparing server 'MyServer' for use as configured...
+Checking if there are any users that need to be added for server 'MyServer'...
+No users configured for admin DB...
+Did not add any new users.
+```
+
+#### Check the status
+
+```
+% mongoctl status MyServer
+
+Status for server 'MyServer':
+{
+    "connection": true, 
+    "serverStatusSummary": {
+        "host": "My-MacBook-Pro.local", 
+        "version": "2.0.6"
+    }
+}
+```
+
+#### Connect 
+
+```
+% mongoctl connect MyServer    
+
+Connecting to server 'MyServer'...
+Using mongo at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongo'...
+MongoDB shell version: 2.0.5
+connecting to: 127.0.0.1:27017/test
+> 
+```
+
+### Stop the server
+
+```
+% mongoctl stop MyServer              
+
+Checking to see if server 'MyServer' is actually running before stopping it...
+Stopping server 'MyServer' (PID=50877) ...
+
+Sending the following command to 127.0.0.1:27017:
+{
+    "shutdown": 1, 
+    "force": false
+}
+
+Will now wait for server 'MyServer' to stop.
+-- waiting --
+Server 'MyServer' has stopped.
+```
+
+Replica-set cluster example
+----------------------------
+
+Here we show how you configure and start a replica-set cluster. 
+
+```
+% mongoctl list-clusters
+
+-------------------------------------------------------------------------------------------------------------
+_id             members                                                           description            
+-------------------------------------------------------------------------------------------------------------
+MyCluster   [ MyClusterServer1, MyClusterServer2, MyClusterArbiter ]     A 2 + arbiter replica-set
+```
+
+```
+% mongoctl show-cluster MyCluster
+
+{
+    "_id": "MyCluster", 
+    
+    "description" : "A 2 + arbiter replica-set",
+    
+    "members": [
+        {
+            "server": {
+                "$ref": "servers", 
+                "$id": "MyClusterServer1"
+            }
+        }, 
+        {
+            "server": {
+                "$ref": "servers", 
+                "$id": "MyClusterServer2"
+            }
+        }, 
+        {
+            "arbiterOnly": true, 
+            "server": {
+                "$ref": "servers", 
+                "$id": "MyClusterArbiter"
+            }
+        }
+    ]
+}
+```
+
+#### Start the primary
+
+Let's start the server we wish to be the primary. You will be prompted on startup by ```mongoctl``` asking if you 
+would like to initialize the replica-set with this server. You can say no, but here we will say 'y'. 
+
+
+```
+% mongoctl start MyClusterServer1
+
+Checking to see if server 'MyClusterServer1' is already running before starting it...
+Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
+Validating cluster 'MyCluster'...
+Starting server 'MyClusterServer1' for the first time...
+
+Executing command:
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-server1 --directoryperdb --logpath /Users/abdul/my-cluster-server1/mongodb.log --pidfilepath /Users/abdul/my-cluster-server1/pid.txt --port 28017 --replSet MyCluster
+
+<lots of stuff>
+
+Server 'MyClusterServer1' started successfully! (pid=50908)
+
+Replica set cluster 'MyCluster' has not been initialized yet.
+Do you want to initialize replica set cluster 'MyCluster' using server 'MyClusterServer1'? [y/n] y
+
+<lots of stuff>
+```
+
+Now we have a running replica-set with one node: 
+
+```
+% mongoctl status MyClusterServer1 
+
+Status for server 'MyClusterServer1':
+{
+    "connection": true, 
+    "serverStatusSummary": {
+        "host": "My-MacBook-Pro.local:37017", 
+        "version": "2.0.6", 
+        "repl": {
+            "ismaster": true
+        }
+    }, 
+    "selfReplicaSetStatusSummary": {
+        "stateStr": "PRIMARY", 
+        "name": "localhost:37017"
+    }
+}
+```
+
+#### Start the secondary
+
+Next we start the second server and add it to the replica-set when prompted:
+
+```
+% mongoctl start MyClusterServer2
+
+Checking to see if server 'MyClusterServer2' is already running before starting it...
+Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
+Validating cluster 'MyCluster'...
+Starting server 'MyClusterServer2' for the first time...
+
+Executing command:
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-server2 --directoryperdb --logpath /Users/abdul/my-cluster-server2/mongodb.log --pidfilepath /Users/abdul/my-cluster-server2/pid.txt --port 28027 --replSet MyCluster
+
+<lots of stuff>
+
+Server 'MyClusterServer2' started successfully! (pid=50913)
+
+Do you want to add server 'MyClusterServer2' to replica set cluster 'MyCluster'? [y/n] y
+
+<lots of stuff>
+```
+
+#### Start the arbiter
+
+Finally, we add the arbiter. 
+
+```
+% mongoctl start MyClusterArbiter       
+
+Checking to see if server 'MyClusterArbiter' is already running before starting it...
+Using mongod at '/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod'...
+Validating cluster 'MyCluster'...
+Starting server 'MyClusterArbiter' for the first time...
+
+Executing command:
+/Users/abdul/mongodb-installs/mongodb-osx-x86_64-2.0.5/bin/mongod --dbpath /Users/abdul/my-cluster-arbiter --directoryperdb --logpath /Users/abdul/my-cluster-arbiter/mongodb.log --pidfilepath /Users/abdul/my-cluster-arbiter/pid.txt --port 28037 --replSet MyCluster
+
+<lots of stuff>
+
+Server 'MyClusterArbiter' started successfully! (pid=50918)
+
+Do you want to add server 'MyClusterArbiter' to replica set cluster 'MyCluster'? [y/n] y
+ 
+<lots of stuff>
+```
+
+You now have a fully operational replica-set cluster you can connect to:
+
+```
+% mongoctl connect MyClusterServer1
+
+Using mongo at '/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.6/bin/mongo'...
+Executing command: 
+/Users/abdul/mongodb/mongodb-osx-x86_64-2.0.6/bin/mongo 127.0.0.1:37017/admin
+MongoDB shell version: 2.0.6
+connecting to: 127.0.0.1:37017/admin
+PRIMARY> 
+```
+
+Overview
+--------
+
+```mongoctl``` is a lightweight command line utility that simplifies the
+installation of MongoDB and management of MongoDB servers and replica set clusters. It is
+particularly useful if you maintain many MongoDB environments with
+lots of configurations to manage.
+
+The core philosophy behind ```mongoctl``` is that all server and
+cluster configuration be defined declaratively as data, rather than
+procedurally as code or scripts. So, instead of typing shell commands
+with lots of options that you can never remember, or
+writing a bunch of shell scripts hard-coded with hosts, port numbers,
+and file-system paths, you simply define the universe of servers and
+clusters with JSON objects and pass them to ```mongoctl``` commands.
+Server and cluster definitions can reside in flat-files, behind a web-server 
+(like Github for instance), or in a MongoDB database. 
+
+#### Usage
+
+```
+Usage: mongoctl [<options>] <command> [<command-args>]
+
+A utility that simplifies the management of MongoDB servers and replica set clusters.
+
+Options:
+  -h, --help            show this help message and exit
+  -v, --verbose         make mongoctl more verbose
+  -n, --noninteractive  bypass prompting for user interaction
+  --yes                 auto yes to all yes/no prompts
+  --no                  auto no to all yes/no prompts
+  --config-root CONFIGROOT
+                        path to mongoctl config root; defaults to ~/.mongoctl
+
+Commands:
+  Admin Commands:
+    install-mongodb           - install MongoDB
+    uninstall-mongodb         - uninstall MongoDB
+    list-versions             - list all available MongoDB installations on this machine
+
+  Client Commands:
+    connect                   - open a mongo shell connection to a server
+    dump                      - export MongoDB data to BSON files (using mongodump)
+    restore                   - restore MongoDB (using mongorestore)
+
+  Server Commands:
+    start                     - start a server
+    stop                      - stop a server
+    restart                   - restart a server
+    status                    - retrieve status of server
+    list-servers              - show list of configured servers
+    show-server               - show server's configuration
+    tail-log                  - tails a server's log file
+    resync-secondary          - Resyncs a secondary member
+
+  Cluster Commands:
+    configure-cluster         - initiate or reconfigure a cluster
+    list-clusters             - show list of configured clusters
+    show-cluster              - show cluster's configuration
+
+  Miscellaneous:
+    print-uri                 - prints connection URI for a server or cluster
+
+See 'mongoctl <command> --help' for more help on a specific command.
+```
+
+Installation
+------------------------------
+
+#### Requirements
+
+* Linux or MacOSX (```mongoctl``` does not currently support Windows) 
+* Python >= 2.6
+* pip >= 1.0.2 ([instructions on installing pip](docs/installing-pip.md))
+
+#### Supported MongoDB versions
+```mongoctl``` supports MongoDB versions >= 1.8.
+
+#### Installing mongoctl
+
+```mongoctl``` is registered in the Python package index pypi.
+
+
+```
+% sudo pip install mongoctl
+```
+
+To update:
+
+```
+% sudo pip install --upgrade mongoctl
+```
+
+To uninstall:
+
+```
+% sudo pip uninstall mongoctl
+```
+
+#### Running mongoctl's test suite
+
+To run mongoctl's test suite, execute the following command:
+
+```
+% python -m mongoctl.tests.test_suite
+```
+
+Documentation
+----------
+
+* [Quick-start guide](docs/quick-start.md)
+* [Configuring mongoctl](docs/configuring-mongoctl.md)
+* [Managing MongoDB installations](docs/managing-installations.md)
+* [Managing servers](docs/managing-servers.md)
+* [Managing clusters](docs/managing-clusters.md)
+* [Connecting to servers with the mongo shell](docs/connecting.md)
+* [Command reference](docs/command-reference.md)
+
+
+
+
+
+

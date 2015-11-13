@@ -1,0 +1,453 @@
+#!/usr/bin/env python
+# Copyright (c) 2006-2008 Mitch Garnaat http://garnaat.org/
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish, dis-
+# tribute, sublicense, and/or sell copies of the Software, and to permit
+# persons to whom the Software is furnished to do so, subject to the fol-
+# lowing conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABIL-
+# ITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+import sys
+from optparse import OptionParser
+from boto.mapreduce.partitiondb import PartitionDB, Partition, Version
+from boto.exception import SDBPersistenceError
+from boto.sdb.persist import get_manager, get_domain
+
+USAGE = """
+  SYNOPSIS
+    %prog [options]
+  DESCRIPTION
+    List and describe your PartitionDBs.
+    Called with no options, all PartitionDB objects defined in your default
+    domain (as specified in the "default_domain" option in the "[Persist]"
+    section of your boto config file) will be listed.
+    When called with a particular PartitionDB name (using -p option) all
+    Version objects of that PartitionDB object will be listed.
+    When called with the -p option and a particular Version name specified
+    (using the -v option) all Partitions in that Version object will be listed.
+"""
+class Describe:
+
+    def __init__(self):
+        self.parser = OptionParser(usage=USAGE)
+        self.parser.add_option('-d', '--domain-name', action='store', type='string',
+                               help='name of the SimpleDB domain where PDB objects are stored')
+        self.parser.add_option('-n', '--num-entries', action='store', type='int',
+                               help='maximum number of entries to print (default 100)')
+        self.parser.set_defaults(num_entries=100)
+        self.parser.add_option('-p', '--pdb-name', action='store', type='string',
+                               help='name of the PDB to describe')
+        self.parser.add_option('-v', '--version-name', action='store', type='string',
+                               help='name of the PDB Version to describe')
+        self.options, self.args = self.parser.parse_args()
+        self.prog_name = sys.argv[0]
+
+    def describe_all(self):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDBs:'
+        rs = PartitionDB.list()
+        i = 0
+        for pdb in rs:
+            print '%s\t%s\t%s' % (pdb.id, pdb.name, pdb.bucket_name)
+            i += 1
+            if i == self.options.num_entries:
+                break
+
+    def describe_pdb(self, pdb_name):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDB: %s' % pdb_name
+        print 'Versions:'
+        try:
+            pdb = PartitionDB.get(name=pdb_name)
+            i = 0
+            for v in pdb.versions:
+                if v.date:
+                    ds = v.date.isoformat()
+                else:
+                    ds = 'unknown'
+                print '%s\t%s\t%s' % (v.id, v.name, ds)
+                i += 1
+                if i == self.options.num_entries:
+                    break
+            cv = pdb.current_version()
+            if cv:
+                print 'Current Version: %s' % cv.name
+            else:
+                print 'Current Version: None'
+        except SDBPersistenceError:
+            self.parser.error('pdb_name (%s) unknown' % pdb_name)
+
+    def describe_version(self, pdb_name, version_name):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDB: %s' % pdb_name
+        print 'Version: %s' % version_name
+        print 'Partitions:'
+        try:
+            pdb = PartitionDB.get(name=pdb_name)
+            for v in pdb.versions:
+                if v.name == version_name:
+                    i = 0
+                    for p in v.partitions():
+                        print '%s\t%s' % (p.id, p.name)
+                        i += 1
+                        if i == self.options.num_entries:
+                            break
+        except SDBPersistenceError:
+            self.parser.error('pdb_name (%s) unknown' % pdb_name)
+
+    def main(self):
+        self.options, self.args = self.parser.parse_args()
+        self.manager = get_manager(self.options.domain_name)
+            
+        if self.options.pdb_name:
+            if self.options.version_name:
+                self.describe_version(self.options.pdb_name, self.options.version_name)
+            else:
+                self.describe_pdb(self.options.pdb_name)
+        else:
+            self.describe_all()
+            
+if __name__ == "__main__":
+    describe = Describe()
+    describe.main()
+
+The main SQS implementation now uses the 2008-01-01 API verson.  To use the older API version
+(2007-05-01) you need to edit your /etc/boto.cfg or ~/.boto file to add the following line:
+
+boto.sqs_extend = 20070501
+
+This will allow the code in the boto.sqs.20070501 module to override the code in boto.sqs.
+
+Indextank API Version 1.0
+-------------------------
+
+Each IndexTank account has its own domain which can be found in the account's dashboard.
+This domain looks like this:
+  http://<public_api_key>.api.indextank.com/
+We'll call this PUBLIC_DOMAIN
+
+This public domain can be authenticated via Basic auth:
+  http://:<private_api_key>@<public_api_key>.api.indextank.com/
+We'll call this AUTHENTICATED_DOMAIN
+
+Calls to the AUTHENTICATED_DOMAIN will return 401 if the authentication fails.
+
+Available methods
+-----------------
+
+GET http://api.indextank.com/v1                         
+    Returns this README file
+
+GET <PRIVATE_DOMAIN>/v1/indexes                         
+    Returns a JSON map from index_name to their metadata
+
+PUT <PRIVATE_DOMAIN>/v1/indexes/<index-name>            
+    Creates an index for the given name. 
+    201: It has been created and returns a JSON string with the new index code
+    204: There already existed and index for that name
+    409: The max number of indexes has been reached for the account
+                                                        
+GET <PRIVATE_DOMAIN>/v1/indexes/<index-name>            
+    Returns JSON metadata for that index 
+    404: if it doesn't exist
+                                                        
+DELETE <PRIVATE_DOMAIN>/v1/indexes/<index-name>
+    Deletes the index for the given name
+    204: if it didn't exist
+
+PUT <PRIVATE_DOMAIN>/v1/indexes/<index-name>/docs
+    Expects the following arguments in the JSON body
+     - docid: a string with the document identifier
+     - fields: map from field names to their content
+     - variables: <optional> map from variable index to their float value  
+    Indexes the given document in <index-name> using the given docid and fields
+    
+DELETE <PRIVATE_DOMAIN>/v1/indexes/<index-name>/docs
+    Expects the following arguments in the JSON body
+     - docid: a string with the document identifier
+    Removes the document from the index.
+    
+PUT <PRIVATE_DOMAIN>/v1/indexes/<index-name>/docs/variables
+    Expects the following parameters in the JSON body
+     - docid: a string with the document identifier
+     - variables: map from variable index to their float value  
+    Update the variables of the document.
+    
+GET <PRIVATE_DOMAIN>/v1/indexes/<index-name>/search
+    Searches the given query in that index
+    Required parameters in querystring:
+     - q: the query to perform
+    Optional parameters in querystring:
+     - start: integer with the first result to return (default is 0)
+     - len: integer with the number of results to return (default is 10)
+     - function: index of the relevance function to be used
+     - snippet: comma separated list of field names for which to return snippets (requires snipettinng feature)
+     - fetch: comma separated list of field names for which to return the full content (requires snipettinng feature)
+    400: if the query is invalid
+     
+PUT <PRIVATE_DOMAIN>/v1/indexes/<index-name>/promote
+    Expects the following parameters in the JSON body
+     - docid: a string with the document identifier
+     - query: the query for which to promote the document  
+    Promotes the document to the top of the given
+    
+GET <PRIVATE_DOMAIN>/v1/indexes/<index-name>/search/<query>/functions
+    Returns a list of the relevance function indexes and their definitions
+    
+PUT <PRIVATE_DOMAIN>/v1/indexes/<index-name>/search/<query>/functions/<num>
+    Expects a JSON string with the function definition in the body
+    Updates the <num> function to the given definition
+    400: if the definition is invalid
+
+DELETE <PRIVATE_DOMAIN>/v1/indexes/<index-name>/search/<query>/functions/<num>
+    Removes the definition of the <num> function
+
+GET <PRIVATE_DOMAIN>/v1/indexes/<index-name>/stats
+    Returns usage stats for the given index
+
+GET <PRIVATE_DOMAIN>/v1/indexes/<index-name>/query_log
+    Returns a portion of the query log for the given index
+    
+GET <PUBLIC_DOMAIN>/v1/indexes/<name>/autocomplete
+    Required parameters in querystring:
+     - fragment: the fragment for which to provide autocomplete suggestions
+    Optional parameters in querystring:
+     - callback: the name of the callback function. This causes the output to
+                 be JSONP
+    Returns a JSON with the suggested queries for the given fragment
+    Intended to be used with AJAX.
+    NOTE: this request in unauthenticated since it needs to be made public
+          to function. if an authenticated request is made it will be
+          rejected to prevent private key exposition. If you suspect your
+          key has been expose please regenerate it in your dashboard and
+          update your clients accordingly.
+ 
+About IndexTank Service
+=======================
+
+IndexTank Service (http://indextank.com) contains the source code for implementing the Search-as-a-Service platform. It contains the components that allow managing user accounts, server instances (worker) and index instances (deploy); it depends on IndexTank Engine (https://github.com/linkedin/indextank-engine) binary.
+
+### Homepage:
+
+Find out more about at: TBD
+
+### License:
+
+Apache Public License (APL) 2.0
+
+### Components:
+
+1. API
+2. Backoffice
+3. Storefront
+4. Nebu
+
+### Dependencies:
+
+* Django 1.2.x ( tested with 1.2.7, not compatible with 1.3.x )
+* Python tested with 2.6.6
+* Java(TM) SE Runtime Environment tested with build 1.6.0_24-b07
+* nginx
+* uWSGI (http://projects.unbit.it/uwsgi/)
+* MySQL
+* daemontools (http://cr.yp.to/daemontools.html)
+* Thrift library (generated sources with version 0.5.0 are provided) source definition: https://github.com/linkedin/indextank-engine/blob/master/thrift/document.thrift
+
+### Getting started:
+
+1. Create the database schema (python manage.py syncdb).
+2. Create an account.
+3. Start an index instance (IndexTank Engine).
+4. Start API.
+
+## API
+
+Django application implementing the REST JSON API, enables index management per account, indexing functions and search. Interacts via Thrift with specific index instances (deploy).
+
+## Backoffice
+
+Django application that allows manual administration.
+
+## Storefront
+
+Django application with the service web, contains the user registration form (allows creating accounts).
+
+## Nebu
+
+Index, deploy & worker manager. A worker (server instance) may contain a deploy (index instance) or many. 
+
+
+About Storage
+=============
+
+The Storage component is intended to guarantee the durability of the indexes data. It works as a binary log for your indexes keeping track of all operations. This allows for you to regenerate indexes from scratch (this is what the Nebulizer component does when it 'moves' an index).
+
+For more detailed info check https://github.com/linkedin/indextank-service/wiki/Log-Storage
+
+### Components 
+
+The Storage component comprises 2 servers:
+
+* Indexes. The IndexesServer fulfills different functionalities:
+
+  * Serves the records to the IndexRecoverer (Reader)
+
+  * Takes records from the raw files and deals them to the different indexes files (Dealer)
+
+  * Optimizes log files. Merges all mergable operations (Optimizer) 
+
+* Writer
+
+  * The writer gets the call from the API when a new doc is added. It writes down the log storage raw files.
+
+### Running
+
+There are bash scripts in the storage folder for running both components (start_indexes, start_writer). In order for them to work you need to copy the engine jar with dependencies (indextank-engine-1.0.0-jar-with-dependencies.jar) in the lib folder. 
+
+
+
+
+#!/usr/bin/env python
+# Copyright (c) 2006-2008 Mitch Garnaat http://garnaat.org/
+#
+# Permission is hereby granted, free of charge, to any person obtaining a
+# copy of this software and associated documentation files (the
+# "Software"), to deal in the Software without restriction, including
+# without limitation the rights to use, copy, modify, merge, publish, dis-
+# tribute, sublicense, and/or sell copies of the Software, and to permit
+# persons to whom the Software is furnished to do so, subject to the fol-
+# lowing conditions:
+#
+# The above copyright notice and this permission notice shall be included
+# in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
+# OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABIL-
+# ITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT
+# SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
+# IN THE SOFTWARE.
+import sys
+from optparse import OptionParser
+from boto.mapreduce.partitiondb import PartitionDB, Partition, Version
+from boto.exception import SDBPersistenceError
+from boto.sdb.persist import get_manager, get_domain
+
+USAGE = """
+  SYNOPSIS
+    %prog [options]
+  DESCRIPTION
+    List and describe your PartitionDBs.
+    Called with no options, all PartitionDB objects defined in your default
+    domain (as specified in the "default_domain" option in the "[Persist]"
+    section of your boto config file) will be listed.
+    When called with a particular PartitionDB name (using -p option) all
+    Version objects of that PartitionDB object will be listed.
+    When called with the -p option and a particular Version name specified
+    (using the -v option) all Partitions in that Version object will be listed.
+"""
+class Describe:
+
+    def __init__(self):
+        self.parser = OptionParser(usage=USAGE)
+        self.parser.add_option('-d', '--domain-name', action='store', type='string',
+                               help='name of the SimpleDB domain where PDB objects are stored')
+        self.parser.add_option('-n', '--num-entries', action='store', type='int',
+                               help='maximum number of entries to print (default 100)')
+        self.parser.set_defaults(num_entries=100)
+        self.parser.add_option('-p', '--pdb-name', action='store', type='string',
+                               help='name of the PDB to describe')
+        self.parser.add_option('-v', '--version-name', action='store', type='string',
+                               help='name of the PDB Version to describe')
+        self.options, self.args = self.parser.parse_args()
+        self.prog_name = sys.argv[0]
+
+    def describe_all(self):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDBs:'
+        rs = PartitionDB.list()
+        i = 0
+        for pdb in rs:
+            print '%s\t%s\t%s' % (pdb.id, pdb.name, pdb.bucket_name)
+            i += 1
+            if i == self.options.num_entries:
+                break
+
+    def describe_pdb(self, pdb_name):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDB: %s' % pdb_name
+        print 'Versions:'
+        try:
+            pdb = PartitionDB.get(name=pdb_name)
+            i = 0
+            for v in pdb.versions:
+                if v.date:
+                    ds = v.date.isoformat()
+                else:
+                    ds = 'unknown'
+                print '%s\t%s\t%s' % (v.id, v.name, ds)
+                i += 1
+                if i == self.options.num_entries:
+                    break
+            cv = pdb.current_version()
+            if cv:
+                print 'Current Version: %s' % cv.name
+            else:
+                print 'Current Version: None'
+        except SDBPersistenceError:
+            self.parser.error('pdb_name (%s) unknown' % pdb_name)
+
+    def describe_version(self, pdb_name, version_name):
+        print 'Using SimpleDB Domain: %s' % get_domain()
+        print 'PDB: %s' % pdb_name
+        print 'Version: %s' % version_name
+        print 'Partitions:'
+        try:
+            pdb = PartitionDB.get(name=pdb_name)
+            for v in pdb.versions:
+                if v.name == version_name:
+                    i = 0
+                    for p in v.partitions():
+                        print '%s\t%s' % (p.id, p.name)
+                        i += 1
+                        if i == self.options.num_entries:
+                            break
+        except SDBPersistenceError:
+            self.parser.error('pdb_name (%s) unknown' % pdb_name)
+
+    def main(self):
+        self.options, self.args = self.parser.parse_args()
+        self.manager = get_manager(self.options.domain_name)
+            
+        if self.options.pdb_name:
+            if self.options.version_name:
+                self.describe_version(self.options.pdb_name, self.options.version_name)
+            else:
+                self.describe_pdb(self.options.pdb_name)
+        else:
+            self.describe_all()
+            
+if __name__ == "__main__":
+    describe = Describe()
+    describe.main()
+
+The main SQS implementation now uses the 2008-01-01 API verson.  To use the older API version
+(2007-05-01) you need to edit your /etc/boto.cfg or ~/.boto file to add the following line:
+
+boto.sqs_extend = 20070501
+
+This will allow the code in the boto.sqs.20070501 module to override the code in boto.sqs.
+

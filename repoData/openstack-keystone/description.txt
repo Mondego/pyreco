@@ -1,0 +1,129 @@
+Building Docs
+=============
+
+Developer documentation is generated using Sphinx. To build this documentation,
+run the following from the root of the repository::
+
+  $ tox -e docs
+
+The documentation will be built at ``doc/build/``.
+
+Documentation how to set up Keystone to run with Apache HTTPD is in
+doc/source/apache-httpd.rst
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+openstack-common
+----------------
+
+A number of modules from openstack-common are imported into this project.
+
+These modules are "incubating" in openstack-common and are kept in sync
+with the help of openstack-common's update.py script. See:
+
+  https://wiki.openstack.org/wiki/Oslo#Syncing_Code_from_Incubator
+
+The copy of the code should never be directly modified here. Please
+always update openstack-common first and then run the script to copy
+the changes across.
+
+This directory contains rally benchmark scenarios to be run by OpenStack CI.
+
+
+* more about rally: https://wiki.openstack.org/wiki/Rally
+* how to add rally-gates: https://wiki.openstack.org/wiki/Rally/RallyGates
+
+==================
+OpenStack Keystone
+==================
+
+Keystone provides authentication, authorization and service discovery
+mechanisms via HTTP primarily for use by projects in the OpenStack family. It
+is most commonly deployed as an HTTP interface to existing identity systems,
+such as LDAP.
+
+Developer documentation, the source of which is in ``doc/source/``, is
+published at:
+
+    http://keystone.openstack.org/
+
+The API specification is available at:
+
+    https://github.com/openstack/identity-api
+
+The API documentation is available at:
+
+    http://api.openstack.org/api-ref-identity.html
+
+The canonical client library is available at:
+
+    https://github.com/openstack/python-keystoneclient
+
+Documentation for cloud administrators is available at:
+
+    http://docs.openstack.org/
+
+The source of documentation for cloud administrators is available at:
+
+    https://github.com/openstack/openstack-manuals
+
+Information about our team meeting is available at:
+
+    https://wiki.openstack.org/wiki/Meetings/KeystoneMeeting
+
+Bugs and feature requests are tracked on Launchpad at:
+
+    https://bugs.launchpad.net/keystone
+
+Future design work is tracked at:
+
+    https://blueprints.launchpad.net/keystone
+
+Contributors are encouraged to join IRC (``#openstack-keystone`` on freenode):
+
+    https://wiki.openstack.org/wiki/IRC
+
+For information on contributing to Keystone, see ``CONTRIBUTING.rst``.
+
+This generate_sample.sh tool is used to generate sample config files
+from OpenStack project source trees.
+
+Run it by passing the base directory and package name i.e.
+
+  $> generate_sample.sh --base-dir /opt/stack/nova --package-name nova \
+                        --output-dir /opt/stack/nova/etc
+  $> generate_sample.sh -b /opt/stack/neutron -p nova -o /opt/stack/neutron/etc
+
+Optionally, include libraries that register entry points for option
+discovery, such as oslo.messaging:
+
+  $> generate_sample.sh -b /opt/stack/ceilometer -p ceilometer \
+                        -o /opt/stack/ceilometer/etc -l oslo.messaging
+
+Watch out for warnings about modules like libvirt, qpid and zmq not
+being found - these warnings are significant because they result
+in options not appearing in the generated config file.
+
+
+
+This check_uptodate.sh tool is used to ensure that the generated sample
+config file in the OpenStack project source tree is continually kept up
+to date with the code itself.
+
+This can be done by adding a hook to tox.ini. For example, if a project
+already had flake8 enabled in a section like this:
+
+  [testenv.pep8]
+  commands =
+    flake8 {posargs}
+
+This section would be changed to:
+
+  [testenv.pep8]
+  commands =
+    flake8 {posargs}
+    {toxinidir}/tools/config/check_uptodate.sh
+

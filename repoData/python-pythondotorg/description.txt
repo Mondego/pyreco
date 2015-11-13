@@ -1,0 +1,2574 @@
+## v1.7.0:
+
+* [COOK-2082] - add "arch" parameter to apt_repository LWRP
+
+## v1.6.0:
+
+* [COOK-1893] - `apt_preference` use "`package_name`" resource instead of "name"
+* [COOK-1894] - change filename for sources.list.d files
+* [COOK-1914] - Wrong dir permissions for /etc/apt/preferences.d/
+* [COOK-1942] - README.md has wrong name for the keyserver attribute
+* [COOK-2019] - create 01proxy before any other apt-get updates get executed
+
+## v1.5.2:
+
+* [COOK-1682] - use template instead of file resource in apt::cacher-client
+* [COOK-1875] - cacher-client should be Environment-aware
+
+## V1.5.0:
+
+* [COOK-1500] - Avoid triggering apt-get update
+* [COOK-1548] - Add execute commands for autoclean and autoremove
+* [COOK-1591] - Setting up the apt proxy should leave https
+  connections direct
+* [COOK-1596] - execute[apt-get-update-periodic] never runs
+* [COOK-1762] - create /etc/apt/preferences.d directory
+* [COOK-1776] - apt key check isn't idempotent
+
+## v1.4.8:
+
+* Adds test-kitchen support
+* [COOK-1435] - repository lwrp is not idempotent with http key
+
+## v1.4.6:
+
+* [COOK-1530] - apt_repository isn't aware of update-success-stamp
+  file (also reverts COOK-1382 patch).
+
+## v1.4.4:
+
+* [COOK-1229] - Allow cacher IP to be set manually in non-Chef Solo
+  environments
+* [COOK-1530] - Immediately update apt-cache when sources.list file is dropped off
+
+## v1.4.2:
+
+* [COOK-1155] - LWRP for apt pinning
+
+## v1.4.0:
+
+* [COOK-889] - overwrite existing repo source files
+* [COOK-921] - optionally use cookbook\_file or remote\_file for key
+* [COOK-1032] - fixes problem with apt repository key installation
+
+Description
+===========
+
+This cookbook includes recipes to execute apt-get update to ensure the
+local APT package cache is up to date. There are recipes for managing
+the apt-cacher-ng caching proxy and proxy clients. It also includes a
+LWRP for managing APT repositories in /etc/apt/sources.list.d as well as
+an LWRP for pinning packages via /etc/apt/preferences.d.
+
+Recipes
+=======
+
+default
+-------
+
+This recipe installs the `update-notifier-common` package to provide
+the timestamp file used to only run `apt-get update` if the cache is
+more than one day old.
+
+This recipe should appear first in the run list of Debian or Ubuntu
+nodes to ensure that the package cache is up to date before managing
+any `package` resources with Chef.
+
+This recipe also sets up a local cache directory for preseeding packages.
+
+cacher-ng
+---------
+
+Installs the `apt-cacher-ng` package and service so the system can
+provide APT caching. You can check the usage report at
+http://{hostname}:3142/acng-report.html. The `cacher-ng` recipe
+includes the `cacher-client` recipe, so it helps seed itself.
+
+cacher-client
+-------------
+Configures the node to use the `apt-cacher-ng` server as a client. If you
+want to restrict your node to using the `apt-cacher-ng` server in your
+Environment, set `['apt']['cacher-client']['restrict_environment']` to `true`.
+
+Resources/Providers
+===================
+
+Managing repositories
+---------------------
+
+This LWRP provides an easy way to manage additional APT repositories.
+Adding a new repository will notify running the `execute[apt-get-update]`
+resource immediately.
+
+# Actions
+
+- :add: creates a repository file and builds the repository listing
+- :remove: removes the repository file
+
+# Attribute Parameters
+
+- repo_name: name attribute. The name of the channel to discover
+- uri: the base of the Debian distribution
+- distribution: this is usually your release's codename...ie something
+  like `karmic`, `lucid` or `maverick`
+- components: package groupings..when it doubt use `main`
+- arch: constrain package to a particular arch like `i386`, `amd64` or
+  even `armhf` or `powerpc`. Defaults to nil.
+- deb_src: whether or not to add the repository as a source repo as
+  well - value can be `true` or `false`, default `false`.
+- keyserver: the GPG keyserver where the key for the repo should be retrieved
+- key: if a `keyserver` is provided, this is assumed to be the
+  fingerprint, otherwise it can be either the URI to the GPG key for
+  the repo, or a cookbook_file.
+- cookbook: if key should be a cookbook_file, specify a cookbook where
+  the key is located for files/default. Defaults to nil, so it will
+  use the cookbook where the resource is used.
+
+# Examples
+
+    # add the Zenoss repo
+    apt_repository "zenoss" do
+      uri "http://dev.zenoss.org/deb"
+      components ["main","stable"]
+    end
+
+    # add the Nginx PPA; grab key from keyserver
+    apt_repository "nginx-php" do
+      uri "http://ppa.launchpad.net/nginx/php5/ubuntu"
+      distribution node['lsb']['codename']
+      components ["main"]
+      keyserver "keyserver.ubuntu.com"
+      key "C300EE8C"
+    end
+
+    # add the Nginx PPA; grab key from keyserver, also add source repo
+    apt_repository "nginx-php" do
+      uri "http://ppa.launchpad.net/nginx/php5/ubuntu"
+      distribution node['lsb']['codename']
+      components ["main"]
+      keyserver "keyserver.ubuntu.com"
+      key "C300EE8C"
+      deb_src true
+    end
+
+    # add the Cloudkick Repo
+    apt_repository "cloudkick" do
+      uri "http://packages.cloudkick.com/ubuntu"
+      distribution node['lsb']['codename']
+      components ["main"]
+      key "http://packages.cloudkick.com/cloudkick.packages.key"
+    end
+
+    # add the Cloudkick Repo with the key downloaded in the cookbook
+    apt_repository "cloudkick" do
+      uri "http://packages.cloudkick.com/ubuntu"
+      distribution node['lsb']['codename']
+      components ["main"]
+      key "cloudkick.packages.key"
+    end
+
+    # add the Cloudera Repo of CDH4 packages for Ubuntu 12.04 on AMD64
+    apt_repository "cloudera" do
+      uri "http://archive.cloudera.com/cdh4/ubuntu/precise/amd64/cdh"
+      arch "amd64"
+      distribution "precise-cdh4"
+      components ["contrib"]
+      key "http://archive.cloudera.com/debian/archive.key"
+    end
+
+    # remove Zenoss repo
+    apt_repository "zenoss" do
+      action :remove
+    end
+
+Pinning packages
+----------------
+
+This LWRP provides an easy way to pin packages in /etc/apt/preferences.d.
+Although apt-pinning is quite helpful from time to time please note that Debian
+does not encourage its use without thorough consideration.
+
+Further information regarding apt-pinning is available via
+http://wiki.debian.org/AptPreferences.
+
+# Actions
+
+- :add: creates a preferences file under /etc/apt/preferences.d
+- :remove: Removes the file, therefore unpin the package
+
+# Attribute Parameters
+
+- package_name: name attribute. The name of the package
+- pin: The package version/repository to pin
+- pin_priority: The pinning priority aka "the highest package version wins"
+
+# Examples
+
+    # Pin libmysqlclient16 to version 5.1.49-3
+    apt_preference "libmysqlclient16" do
+      pin "version 5.1.49-3"
+      pin_priority "700"
+    end
+
+    # Unpin libmysqlclient16
+    apt_preference "libmysqlclient16" do
+      action :remove
+    end
+
+Usage
+=====
+
+Put `recipe[apt]` first in the run list. If you have other recipes
+that you want to use to configure how apt behaves, like new sources,
+notify the execute resource to run, e.g.:
+
+    template "/etc/apt/sources.list.d/my_apt_sources.list" do
+      notifies :run, resources(:execute => "apt-get update"), :immediately
+    end
+
+The above will run during execution phase since it is a normal
+template resource, and should appear before other package resources
+that need the sources in the template.
+
+Put `recipe[apt::cacher-ng]` in the run_list for a server to provide
+APT caching and add `recipe[apt::cacher-client]` on the rest of the
+Debian-based nodes to take advantage of the caching server.
+
+If you want to cleanup unused packages, there is also the `apt-get autoclean`
+and `apt-get autoremove` resources provided for automated cleanup.
+
+License and Author
+==================
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+Author:: Matt Ray (<matt@opscode.com>)
+Author:: Seth Chisamore (<schisamo@opscode.com>)
+
+Copyright 2009-2012 Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+DESCRIPTION
+===========
+
+Installs packages required for compiling C software from source.
+
+LICENSE AND AUTHOR
+==================
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+Author:: Seth Chisamore (<schisamo@opscode.com>)
+
+Copyright 2009-2011, Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+database Cookbook CHANGELOG
+=======================
+This file is used to list changes made in each version of the database cookbook.
+
+
+v2.0.0 (2014-02-25)
+-------------------
+[COOK-3441] database_user password argument should not be required
+
+
+v1.6.0
+------
+### New Feature
+- **[COOK-4009](https://tickets.opscode.com/browse/COOK-4009)** - Add PostgreSQL SCHEMA management capability
+
+### Improvement
+- **[COOK-3862](https://tickets.opscode.com/browse/COOK-3862)** - Improve database cookbook documentation
+
+
+v1.5.2
+------
+### Improvement
+- **[COOK-3716](https://tickets.opscode.com/browse/COOK-3716)** - Add ALTER SQL Server user roles
+
+
+v1.5.0
+------
+### Improvement
+- **[COOK-3546](https://tickets.opscode.com/browse/COOK-3546)** - Add connection parameters `:socket`
+- **[COOK-1709](https://tickets.opscode.com/browse/COOK-1709)** - Add 'grant_option' parameter
+
+v1.4.0
+-------
+### Bug
+- [COOK-2074]: Regex in exists? check in `sql_server_database` resource should match for start and end of line
+- [COOK-2561]: `mysql_database_user` can't set global grants
+
+### Improvement
+
+- [COOK-2075]: Support the collation attribute in the `database_sql_server` provider
+
+v1.3.12
+-------
+- [COOK-850] - `postgresql_database_user` doesn't have example
+
+v1.3.10
+-------
+- [COOK-2117] - undefined variable `grant_statement` in mysql user provider
+
+v1.3.8
+------
+- [COOK-1896] - Escape command
+- [COOK-2047] - Chef::Provider::Database::MysqlUser action :grant improperly quotes `username`@`host` string
+- [COOK-2060] - Mysql::Error: Table '*.*' doesn't exist when privileges include SELECT and database/table attributes are nil
+- [COOK-2062] - Remove backticks from database name when using wildcard
+
+v1.3.6
+------
+- [COOK-1688] - fix typo in readme and add amazon linux to supported platforms
+
+v1.3.4
+------
+- [COOK-1561] - depend on mysql 1.3.0+ explicitly
+- depend on postgresql 1.0.0 explicitly
+
+v1.3.2
+------
+- Update the version for release (oops)
+
+v1.3.0
+------
+- [COOK-932] - Add mysql recipe to conveniently include mysql::ruby
+- [COOK-1228] - database resource should be able to execute scripts on disk
+- [COOK-1291] - make the snapshot retention policy less confusing
+- [COOK-1401] - Allow to specify the collation of new databases
+- [COOK-1534] - Add postgresql recipe to conveniently include postgresql::ruby
+
+v1.2.0
+------
+- [COOK-970] - workaround for disk [re]naming on ubuntu 11.04+
+- [COOK-1085] - check RUBY_VERSION and act accordingly for role
+- [COOK-749] - localhost should be a string in snapshot recipe
+
+v1.1.4
+------
+- [COOK-1062] - Databases: Postgres exists should close connection
+
+v1.1.2
+------
+- [COOK-975] - Change arg='DEFAULT' to arg=nil, :default => 'DEFAULT'
+- [COOK-964] - Add parentheses around connection hash in example
+
+v1.1.0
+------
+- [COOK-716] - providers for PostgreSQL
+
+v1.0.0
+------
+- [COOK-683] - added `database` and `database_user` resources
+- [COOK-684] - MySQL providers
+- [COOK-685] - SQL Server providers
+- refactored - `database::master` and `database::snapshot` recipes to leverage new resources
+
+v0.99.1
+-------
+- Use Chef 0.10's `node.chef_environment` instead of `node['app_environment']`.
+
+Database Cookbook
+=================
+The main highlight of this cookbook is the `database` and `database_user` resources for managing databases and database users in a RDBMS. Providers for MySQL, PostgreSQL and SQL Server are also provided, see usage documentation below.
+
+This cookbook also contains recipes to configure mysql database masters and slaves and uses EBS for storage, integrating together with the application cookbook utilizing data bags for application related information. These recipes are written primarily to use MySQL and the Opscode mysql cookbook. Other RDBMS may be supported at a later date. This cookbook does not automatically restore database dumps, but does install tools to help with that.
+
+
+Requirements
+------------
+Chef version 0.10.10+.
+
+### Platforms
+* Debian, Ubuntu
+* Red Hat, CentOS, Scientific, Fedora, Amazon
+
+### Cookbooks
+The following Opscode cookbooks are dependencies:
+
+* mysql
+* postgresql
+* xfs
+* aws
+
+
+Resources/Providers
+-------------------
+These resources aim to expose an abstraction layer for interacting with different RDBMS in a general way. Currently the cookbook ships with providers for MySQL, PostgreSQL and SQL Server. Please see specific usage in the __Example__ sections below. The providers use specific Ruby gems installed under Chef's Ruby environment to execute commands and carry out actions. These gems will need to be installed before the providers can operate correctly. Specific notes for each RDBS flavor:
+
+- MySQL: leverages the `mysql` gem which is installed as part of the `mysql::ruby` recipe. You must declare `include_recipe "database::mysql"` to include this in your recipe.
+- PostgreSQL: leverages the `pg` gem which is installed as part of the `postgresql::ruby` recipe. You must declare `include_recipe "database::postgresql"` to include this. 
+- SQL Server: leverages the `tiny_tds` gem which is installed as part of the `sql_server::client` recipe.
+
+This cookbook is not in charge of installing the Database Management System itself. Therefore, if you want to install MySQL, for instance, you should add `include_recipe "mysql::server"` in your recipe, or include `mysql::server` in the node run_list.
+
+### database
+Manage databases in a RDBMS. Use the proper shortcut resource depending on your RDBMS: `mysql_database`, `postgresql_database` or `sql_server_database`.
+
+#### Actions
+- :create: create a named database
+- :drop: drop a named database
+- :query: execute an arbitrary query against a named database
+
+#### Attribute Parameters
+- database_name: name attribute. Name of the database to interact with
+- connection: hash of connection info. valid keys include :host, :port, :username, :password and :socket (only for MySQL DB*)
+- sql: string of sql or a block that executes to a string of sql, which will be executed against the database. used by :query action only
+
+\* The database cookbook uses the `mysql` gem, which uses the `real_connect()` function from mysql API to connect to the server.
+
+> "The value of host may be either a host name or an IP address. If host is NULL or the string "localhost", a connection to the local host is assumed. For Windows, the client connects using a shared-memory connection, if the server has shared-memory connections enabled. Otherwise, TCP/IP is used. For Unix, the client connects using a Unix socket file. For local connections, you can also influence the type of connection to use with the MYSQL_OPT_PROTOCOL or MYSQL_OPT_NAMED_PIPE options to mysql_options(). The type of connection must be supported by the server. For a host value of "." on Windows, the client connects using a named pipe, if the server has named-pipe connections enabled. If named-pipe connections are not enabled, an error occurs."
+
+If you set the `:host` key to "localhost" or if you leave it blank, a socket will be used. By default `real_connect()` function will look for socket in `/var/lib/mysql/mysql.sock`. If your socket file in non-default location - you can use :socket key to specify that location.
+
+#### Providers
+- `Chef::Provider::Database::Mysql`: shortcut resource `mysql_database`
+- `Chef::Provider::Database::Postgresql`: shortcut resource `postgresql_database`
+- `Chef::Provider::Database::SqlServer`: shortcut resource `sql_server_database`
+
+#### Examples
+```ruby
+# Create a mysql database
+mysql_database 'oracle_rules' do
+  connection(
+    :host     => 'localhost',
+    :username => 'root',
+    :password => node['mysql']['server_root_password']
+  )
+  action :create
+end
+```
+
+```ruby
+# Create a sql server database
+sql_server_database 'mr_softie' do
+  connection(
+    :host     => '127.0.0.1',
+    :port     => node['sql_server']['port'],
+    :username => 'sa',
+    :password => node['sql_server']['server_sa_password']
+  )
+  action :create
+end
+```
+
+```ruby
+# create a postgresql database
+postgresql_database 'mr_softie' do
+  connection(
+    :host      => '127.0.0.1'
+    :port      => 5432,
+    :username  => 'postgres',
+    :password  => node['postgresql']['password']['postgres']
+  )
+  action :create
+end
+```
+
+```ruby
+# create a postgresql database with additional parameters
+postgresql_database 'mr_softie' do
+  connection(
+    :host     => '127.0.0.1',
+    :port     => 5432,
+    :username => 'postgres',
+    :password => node['postgresql']['password']['postgres']
+  )
+  template 'DEFAULT'
+  encoding 'DEFAULT'
+  tablespace 'DEFAULT'
+  connection_limit '-1'
+  owner 'postgres'
+  action :create
+end
+```
+
+```ruby
+# Externalize conection info in a ruby hash
+mysql_connection_info = {
+  :host     => 'localhost',
+  :username => 'root',
+  :password => node['mysql']['server_root_password']
+}
+
+sql_server_connection_info = {
+  :host     => 'localhost',
+  :port     => node['sql_server']['port'],
+  :username => 'sa',
+  :password => node['sql_server']['server_sa_password']
+}
+
+postgresql_connection_info = {
+  :host     => '127.0.0.1',
+  :port     => node['postgresql']['config']['port'],
+  :username => 'postgres',
+  :password => node['postgresql']['password']['postgres']
+}
+
+
+
+# Same create commands, connection info as an external hash
+mysql_database 'foo' do
+  connection mysql_connection_info
+  action :create
+end
+
+sql_server_database 'foo' do
+  connection sql_server_connection_info
+  action     :create
+end
+
+postgresql_database 'foo' do
+  connection postgresql_connection_info
+  action     :create
+end
+
+
+
+# Create database, set provider in resource parameter
+database 'bar' do
+  connection mysql_connection_info
+  provider   Chef::Provider::Database::Mysql
+  action     :create
+end
+
+database 'bar' do
+  connection sql_server_connection_info
+  provider   Chef::Provider::Database::SqlServer
+  action     :create
+end
+
+database 'bar' do
+  connection postgresql_connection_info
+  provider   Chef::Provider::Database::Postgresql
+  action     :create
+end
+
+
+
+# Drop a database
+mysql_database 'baz' do
+  connection mysql_connection_info
+  action    :drop
+end
+
+
+
+# Query a database
+mysql_database 'flush the privileges' do
+  connection mysql_connection_info
+  sql        'flush privileges'
+  action     :query
+end
+
+
+
+# Query a database from a sql script on disk
+mysql_database 'run script' do
+  connection mysql_connection_info
+  sql { ::File.open('/path/to/sql_script.sql').read }
+  action :query
+end
+
+
+
+# Vacuum a postgres database
+postgresql_database 'vacuum databases' do
+  connection      postgresql_connection_info
+  database_table 'template1'
+  sql 'VACUUM FULL VERBOSE ANALYZE'
+  action :query
+end
+```
+
+### database_user
+Manage users and user privileges in a RDBMS. Use the proper shortcut resource depending on your RDBMS: `mysql_database_user`, `postgresql_database_user`, or `sql_server_database_user`.
+
+#### Actions
+- :create: create a user
+- :drop: drop a user
+- :grant: manipulate user privileges on database objects
+
+#### Attribute Parameters
+- username: name attribute. Name of the database user
+- password: password for the user account
+- database_name: Name of the database to interact with
+- connection: hash of connection info. valid keys include :host, :port, :username, :password
+- privileges: array of database privileges to grant user. used by the :grant action. default is :all
+- grant_option: appends 'WITH GRANT OPTION' to grant statement. used by MySQL provider only. default is 'false'
+- host: host where user connections are allowed from. used by MySQL provider only. default is 'localhost'
+- table: table to grant privileges on. used by :grant action and MySQL provider only. default is '*' (all tables)
+
+#### Providers
+- `Chef::Provider::Database::MysqlUser`: shortcut resource `mysql_database_user`
+- `Chef::Provider::Database::PostgresqlUser`: shortcut resource `postgresql_database_user`
+- `Chef::Provider::Database::SqlServerUser`: shortcut resource`sql_server_database_user`
+
+#### Examples
+
+```ruby
+# create connection info as an external ruby hash
+mysql_connection_info = {
+  :host     => 'localhost',
+  :username => 'root',
+  :password => node['mysql']['server_root_password']
+}
+
+postgresql_connection_info = {
+  :host     => 'localhost',
+  :port     => node['postgresql']['config']['port'],
+  :username => 'postgres',
+  :password => node['postgresql']['password']['postgres']
+}
+
+sql_server_connection_info = {
+  :host     => 'localhost',
+  :port     => node['sql_server']['port'],
+  :username => 'sa',
+  :password => node['sql_server']['server_sa_password']
+}
+
+
+
+# Create a mysql user but grant no privileges
+mysql_database_user 'disenfranchised' do
+  connection mysql_connection_info
+  password   'super_secret'
+  action     :create
+end
+
+
+
+# Do the same but pass the provider to the database resource
+database_user 'disenfranchised' do
+  connection mysql_connection_info
+  password   'super_secret'
+  provider   Chef::Provider::Database::MysqlUser
+  action     :create
+end
+
+
+
+# Create a postgresql user but grant no privileges
+postgresql_database_user 'disenfranchised' do
+  connection postgresql_connection_info
+  password   'super_secret'
+  action     :create
+end
+
+
+
+# Do the same but pass the provider to the database resource
+database_user 'disenfranchised' do
+  connection postgresql_connection_info
+  password   'super_secret'
+  provider   Chef::Provider::Database::PostgresqlUser
+  action     :create
+end
+
+
+
+# Create a sql server user but grant no privileges
+sql_server_database_user 'disenfranchised' do
+  connection sql_server_connection_info
+  password   'super_secret'
+  action     :create
+end
+
+
+
+# Drop a mysql user
+mysql_database_user 'foo_user' do
+  connection mysql_connection_info
+  action     :drop
+end
+
+
+
+# Bulk drop sql server users
+%w(disenfranchised foo_user).each do |user|
+  sql_server_database_user user do
+    connection sql_server_connection_info
+    action     :drop
+  end
+end
+
+
+
+# Grant SELECT, UPDATE, and INSERT privileges to all tables in foo db from all hosts
+mysql_database_user 'foo_user' do
+  connection    mysql_connection_info
+  password      'super_secret'
+  database_name 'foo'
+  host          '%'
+  privileges    [:select,:update,:insert]
+  action        :grant
+end
+
+
+
+# Grant all privileges on all databases/tables from localhost
+mysql_database_user 'super_user' do
+  connection mysql_connection_info
+  password   'super_secret'
+  action     :grant
+end
+
+
+
+# Grant all privileges on all tables in foo db
+postgresql_database_user 'foo_user' do
+  connection    postgresql_connection_info
+  database_name 'foo'
+  privileges    [:all]
+  action        :grant
+end
+
+# grant select,update,insert privileges to all tables in foo db
+sql_server_database_user 'foo_user' do
+  connection    sql_server_connection_info
+  password      'super_secret'
+  database_name 'foo'
+  privileges    [:select,:update,:insert]
+  action        :grant
+end
+```
+
+
+Recipes
+-------
+### ebs_volume
+*Note*: This recipe does not currently work on RHEL platforms due to the xfs cookbook not supporting RHEL yet.
+
+Loads the aws information from the data bag. Searches the applications data bag for the database master or slave role and checks that role is applied to the node. Loads the EBS information and the master information from data bags. Uses the aws cookbook LWRP, `aws_ebs_volume` to manage the volume.
+
+On a master node:
+- if we have an ebs volume already as stored in a data bag, attach it
+- if we don't have the ebs information then create a new one and attach it
+- store the volume information in a data bag via a ruby block
+
+On a slave node:
+- use the master volume information to generate a snapshot
+- create the new volume from the snapshot and attach it
+
+Also on a master node, generate some configuration for running a snapshot via `chef-solo` from cron.
+
+On a new filesystem volume, create as XFS, then mount it in `/mnt`, and also bind-mount it to the mysql data directory (default `/var/lib/mysql`).
+
+### master
+This recipe no longer loads AWS specific information, and the database position for replication is no longer stored in a databag because the client might not have permission to write to the databag item. This may be handled in a different way at a future date.
+
+Searches the apps databag for applications, and for each one it will check that the specified database master role is set in both the databag and applied to the node's run list. Then, retrieves the passwords for `root`, `repl` and `debian` users and saves them to the node attributes. If the passwords are not found in the databag, it prints a message that they'll be generated by the mysql cookbook.
+
+Then it adds the application databag database settings to a hash, to use later.
+
+Then it will iterate over the databases and create them with the `mysql_database` resource while adding privileges for application specific database users using the `mysql_database_user` resource.
+
+### slave
+_TODO_: Retrieve the master status from a data bag, then start replication using a ruby block. The replication status needs to be handled in some other way for now since the master recipe above doesn't actually set it in the databag anymore.
+
+### snapshot
+Run via Chef Solo. Retrieves the db snapshot configuration from the specified JSON file. Uses the `mysql_database` resource to lock and unlock tables, and does a filesystem freeze and EBS snapshot.
+
+
+Deprecated Recipes
+------------------
+The following recipe is considered deprecated. It is kept for reference purposes.
+
+### ebs_backup
+Older style of doing mysql snapshot and replication using Adam Jacob's [ec2_mysql](http://github.com/adamhjk/ec2_mysql) script and library.
+
+
+Data Bags
+---------
+This cookbook uses the apps data bag item for the specified application; see the `application` cookbook's README.md. It also creates data bag items in a bag named 'aws' for storing volume information. In order to interact with EC2, it expects aws to have a main item:
+
+```javascript
+{
+  "id": "main",
+  "ec2_private_key": "private key as a string",
+  "ec2_cert": "certificate as a string",
+  "aws_account_id": "",
+  "aws_secret_access_key": "",
+  "aws_access_key_id": ""
+}
+```
+
+Note: with the Open Source Chef Server, the server using the database recipes must be an admin client or it will not be able to create data bag items. You can modify whether the client is admin by editing it with knife.
+
+    knife client edit <client_name>
+    {
+      ...
+      "admin": true
+      ...
+    }
+
+This is not required if the Chef Server is Opscode Hosted Chef, instead use the ACL feature to modify access for the node to be able to update the data bag.
+
+
+Usage
+-----
+Aside from the application data bag (see the README in the application cookbook), create a role for the database master. Use a `role.rb` in your chef-repo, or create the role directly with knife.
+
+```javascript
+{
+  "name": "my_app_database_master",
+  "chef_type": "role",
+  "json_class": "Chef::Role",
+  "default_attributes": {},
+  "description": "",
+  "run_list": [
+    "recipe[mysql::server]",
+    "recipe[database::master]"
+  ],
+  "override_attributes": {}
+}
+```
+
+Create a `production` environment. This is also used in the `application` cookbook.
+
+```javascript
+{
+  "name": "production",
+  "description": "",
+  "cookbook_versions": {},
+  "json_class": "Chef::Environment",
+  "chef_type": "environment",
+  "default_attributes": {},
+  "override_attributes": {}
+}
+```
+
+The cookbook `my_app_database` is recommended to set up any application specific database resources such as configuration templates, trending monitors, etc. It is not required, but you would need to create it separately in `site-cookbooks`. Add it to the `my_app_database_master` role.
+
+License & Authors
+-----------------
+- Author:: Adam Jacob (<adam@opscode.com>)
+- Author:: Joshua Timberman (<joshua@opscode.com>)
+- Author:: AJ Christensen (<aj@opscode.com>)
+- Author:: Seth Chisamore (<schisamo@opscode.com>)
+- Author:: Lamont Granquist (<lamont@opscode.com>)
+
+```text
+Copyright 2009-2013, Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+Description
+===========
+
+Installs git and optionally sets up a git server as a daemon under runit.
+
+Changes
+=======
+
+## v0.10.0:
+
+* [COOK-853] - Git client installation on CentOS
+
+## v0.9.0:
+
+* Current public release.
+
+Requirements
+============
+
+## Platform:
+
+* Debian/Ubuntu
+* ArchLinux
+
+## Cookbooks:
+
+* runit
+
+Usage
+=====
+
+This cookbook primarily installs git core packages. It can also be
+used to serve git repositories.
+
+    include_recipe "git::server"
+
+This creates the directory /srv/git and starts a git daemon, exporting
+all repositories found. Repositories need to be added manually, but
+will be available once they are created.
+
+License and Author
+==================
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+
+Copyright:: 2009, Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## v1.1.4:
+
+* [COOK-2278] - Install mercurial using pip
+* [COOK-2279] - typo in README.md
+
+## v1.1.2:
+
+* [COOK-2033] - only set recursive permissions if mode is used in
+  mercurial resource
+
+## v1.1.0:
+
+* [COOK-1945] - cleanup provider
+* [COOK-1946] - windows support
+
+## v1.0.0:
+
+* [COOK-1373] - README example correction
+* [COOK-1179] - LWRP for repo management
+
+For further discussion about possible changes to the LWRP, see
+COOK-879, whereby it may become a fully fledged provider for chef's
+built in scm_repo resource.
+
+## v0.7.1:
+
+* Current public release
+
+Description
+===========
+
+Installs mercurial
+
+Requirements
+============
+
+Cookbooks
+---------
+
+* python
+
+Attributes
+==========
+
+* `node["hg"]["install_method"]` - method to install mercurial with, you can choose from "package" and "pip". default `package`.
+
+Usage
+=====
+
+default
+-------
+
+Install mercurial to make sure it is available to check out code from
+mercurial repositories.
+method to install mercurial should be changed with `node["hg"]["install_method"]`.
+
+package
+-------
+
+Installs mercurial from packages.
+
+A package named "mercurial" must exist in the platform package
+management system.
+
+pip
+---
+
+Installs mercurial from pip.
+
+Resource/Provider
+=================
+
+This cookbook includes LWRPs for managing: mercurial
+
+mercurial
+---------
+
+### Actions
+
+- :clone - this will simply issue a clone of the repository at the revision specified (default tip).
+- :sync -  this will issue a clone of the repository if there is nothing at the path specified, otherwise a pull and update will be issued to bring the directory up-to-date.
+
+### Parameter Attributes
+
+- `path` - **Name attribute** path where the repository is checked
+  out.
+- `repository` - Repository to check out
+- `reference` - Reference in the repository
+- `key` - a private key on disk to use, for private repositories, must
+  already exist.
+- `owner` - local user that the clone is run as
+- `group` - local group that the clone is run as
+- `mode` - permissions of the cloned repository
+
+### Example
+
+    mercurial "/home/site/checkouts/www" do
+      repository "ssh://hg@bitbucket.org/niallsco/chef-hg"
+      reference "tip"
+      key "/home/site/.ssh/keyname"
+      action :sync
+    end
+
+License and Author
+==================
+
+Author:: Joshua Timberman <joshua@opscode.com>
+
+Copyright:: 2009, Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Description
+===========
+
+Installs and configures MySQL client or server.
+
+Requirements
+============
+
+Platform
+--------
+
+* Debian, Ubuntu
+* CentOS, Red Hat, Fedora
+
+Tested on:
+
+* Debian 5.0
+* Ubuntu 10.04
+* CentOS 5.5
+
+Cookbooks
+---------
+
+Requires Opscode's openssl cookbook for secure password generation.
+
+Requires a C compiler and Ruby development package in order to build mysql gem with native extensions. On Debian and Ubuntu systems this is satisfied by installing the "build-essential" and "ruby-dev" packages before running Chef. See USAGE below for information on how to handle this during a Chef run.
+
+Resources and Providers
+=======================
+
+The LWRP that used to ship as part of this cookbook has been refactored into the [database](https://github.com/opscode/cookbooks/tree/master/database) cookbook.  Please see the README for details on updated usage.
+
+Attributes
+==========
+
+* `mysql['server_root_password']` - Set the server's root password with this, default is a randomly generated password with `OpenSSL::Random.random_bytes`.
+* `mysql['server_repl_password']` - Set the replication user 'repl' password with this, default is a randomly generated password with `OpenSSL::Random.random_bytes`.
+* `mysql['server_debian_password']` - Set the debian-sys-maint user password with this, default is a randomly generated password with `OpenSSL::Random.random_bytes`.
+* `mysql['bind_address']` - Listen address for MySQLd, default is node's ipaddress.
+* `mysql['data_dir']` - Location for mysql data directory, default is "/var/lib/mysql"
+* `mysql['conf_dir']` - Location for mysql conf directory, default is "/etc/mysql"
+* `mysql['ec2_path']` - location of mysql data_dir on EC2 nodes, default "/mnt/mysql"
+
+Performance tuning attributes, each corresponds to the same-named parameter in my.cnf; default values listed
+
+* `mysql['tunable']['key_buffer']`          = "250M"
+* `mysql['tunable']['max_connections']`     = "800"
+* `mysql['tunable']['wait_timeout']`        = "180"
+* `mysql['tunable']['net_write_timeout']`   = "30"
+* `mysql['tunable']['net_write_timeout']`   = "30"
+* `mysql['tunable']['back_log']`            = "128"
+* `mysql['tunable']['table_cache']`         = "128"
+* `mysql['tunable']['max_heap_table_size']` = "32M"
+* `mysql['tunable']['expire_logs_days']`    = "10"
+* `mysql['tunable']['max_binlog_size']`     = "100M"
+
+Usage
+=====
+
+On client nodes,
+
+    include_recipe "mysql::client"
+
+This will install the MySQL client libraries and development headers on the system. It will also install the Ruby Gem `mysql`, so that the cookbook's LWRP (above) can be used. This is done during the compile-phase of the Chef run. On platforms that are known to have a native package (currently Debian, Ubuntu, Red hat, Centos, Fedora and SUSE), the package will be installed. Other platforms will use the RubyGem.
+
+This creates a resource object for the package and does the installation before other recipes are parsed. You'll need to have the C compiler and such (ie, build-essential on Ubuntu) before running the recipes, but we already do that when installing Chef :-). 
+
+On server nodes,
+
+    include_recipe "mysql::server"
+
+On Debian and Ubuntu, this will preseed the mysql-server package with the randomly generated root password from the attributes file. On other platforms, it simply installs the required packages. It will also create an SQL file, /etc/mysql/grants.sql, that will be used to set up grants for the root, repl and debian-sys-maint users.
+
+On EC2 nodes,
+
+    include_recipe "mysql::server_ec2"
+
+When the `ec2_path` doesn't exist we look for a mounted filesystem (eg, EBS) and move the data_dir there.
+
+The client recipe is already included by server and 'default' recipes.
+
+For more infromation on the compile vs execution phase of a Chef run:
+
+* http://wiki.opscode.com/display/chef/Anatomy+of+a+Chef+Run
+
+Changes/Roadmap
+===============
+
+### v1.2.2
+
+* [COOK-826] mysql::server recipe doesn't quote password string
+* [COOK-834] Add 'scientific' and 'amazon' platforms to mysql cookbook
+
+### v1.2.1
+
+* [COOK-644] Mysql client cookbook 'package missing' error message is confusing
+* [COOK-645] RHEL6/CentOS6 - mysql cookbook contains 'skip-federated' directive which is unsupported on MySQL 5.1
+
+### v1.2.0
+
+* [COOK-684] remove mysql_database LWRP
+
+### v1.0.8:
+
+* [COOK-633] ensure "cloud" attribute is available
+
+### v1.0.7:
+
+* [COOK-614] expose all mysql tunable settings in config
+* [COOK-617] bind to private IP if available
+
+### v1.0.6:
+
+* [COOK-605] install mysql-client package on ubuntu/debian
+
+### v1.0.5:
+
+* [COOK-465] allow optional remote root connections to mysql
+* [COOK-455] improve platform version handling
+* externalize conf_dir attribute for easier cross platform support
+* change datadir attribute to data_dir for consistency
+
+### v1.0.4:
+
+* fix regressions on debian platform
+* [COOK-578] wrap root password in quotes
+* [COOK-562] expose all tunables in my.cnf
+
+License and Author
+==================
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+Author:: AJ Christensen (<aj@opscode.com>)
+Author:: Seth Chisamore (<schisamo@opscode.com>)
+
+Copyright:: 2009-2011 Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Description
+====
+
+Provide a library method to generate secure random passwords in recipes.
+
+Requirements
+====
+
+Works on any platform with OpenSSL Ruby bindings installed, which are a requirement for Chef anyway.
+
+Usage
+====
+
+Most often this will be used to generate a secure password for an attribute.
+
+    include Opscode::OpenSSL::Password
+
+    set_unless[:my_password] = secure_password
+
+License and Author
+====
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+
+Copyright:: 2009-2011, Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+postgresql Cookbook CHANGELOG
+=============================
+This file is used to list changes made in each version of the postgresql cookbook.
+
+
+v3.3.4
+------
+Testing
+
+
+v3.3.2
+------
+- Testing maintainer transfer to Heavywater with Opscode as collaborator
+
+
+v3.3.0
+------
+### Bug
+- **[COOK-3851](https://tickets.opscode.com/browse/COOK-3851)** - Postgresql: reload after config change does not pick up certain configuration changes
+- **[COOK-3611](https://tickets.opscode.com/browse/COOK-3611)** - unix_socket_directory does not exists in 9.3
+- **[COOK-2954](https://tickets.opscode.com/browse/COOK-2954)** - PostgreSQL installation ignores version attribute on CentOS >= 6
+
+
+v3.2.0
+------
+- [COOK-3717] Pgdg repositories improvements
+- [COOK-3756] Change postgresql.conf mode from 0600 to 0644
+
+
+v3.1.0
+------
+### Improvement
+- **[COOK-3685](https://tickets.opscode.com/browse/COOK-3685)** - Upgrade Repo Attributes for Postgresql 9.3
+- **[COOK-3597](https://tickets.opscode.com/browse/COOK-3597)** - Fix implementation of `initdb_locale` attribute for RHEL
+- **[COOK-3566](https://tickets.opscode.com/browse/COOK-3566)** - Give the user's rules more priority than the default ones in pg_hba
+- **[COOK-3553](https://tickets.opscode.com/browse/COOK-3553)** - Remove automatic `apt-get update`
+
+### Bug
+- **[COOK-3611](https://tickets.opscode.com/browse/COOK-3611)** - Remove `unix_socket_directory` (it does not exists in 9.3)
+- **[COOK-3599](https://tickets.opscode.com/browse/COOK-3599)** - Automatically add PGDG apt repo dependency on PostgreSQL version
+- **[COOK-3555](https://tickets.opscode.com/browse/COOK-3555)** - Documentation Fix
+- **[COOK-2383](https://tickets.opscode.com/browse/COOK-2383)** - Update Postgres version in attributes
+
+
+v3.0.4
+------
+### Bug
+- **[COOK-3173](https://tickets.opscode.com/browse/COOK-3173)** - Use :reload instead of :restart on conf changes
+- **[COOK-2939](https://tickets.opscode.com/browse/COOK-2939)** - Fix RedHat support
+
+v3.0.2
+------
+### Bug
+- [COOK-3076]: postgresql::ruby recipe error when using pgdg repositories
+
+v3.0.0
+------
+This is a backwards-incompatible release because the Pitti PPA is deprecated and the recipe removed, replaced with the PGDG apt repository.
+
+### Bug
+- [COOK-2571]: Create helper library for pg extension detection
+- [COOK-2797]: Contrib extension contianing '-' fails to load.
+
+### Improvement
+- [COOK-2387]: Pitti Postgresql PPA is deprecated
+
+### Task
+- [COOK-3022]: update baseboxes in .kitchen.yml
+
+v2.4.0
+------
+- [COOK-2163] - Dangerous "assign-postgres-password" in "recipes/server.rb" -- Can lock out dbadmin access
+- [COOK-2390] - Recipes to auto-generate many postgresql.conf settings, following "initdb" and "pgtune"
+- [COOK-2435] - Foodcritic fixes for postgresql cookbook
+- [COOK-2476] - Installation into database of any contrib module extensions listed in a node attribute
+
+v2.2.2
+------
+- [COOK-2232] -Provide PGDG yum repo to install postgresql 9.x on
+  redhat-derived distributions
+
+v2.2.0
+------
+- [COOK-2230] - Careful about Debian minor version numbers
+- [COOK-2231] - Fix support for postgresql 9.x in server_redhat recipe
+- [COOK-2238] - Postgresql recipe error in password check
+- [COOK-2176] - PostgreSQL cookbook in Solo mode can cause "NoMethodError: undefined method `[]' for nil:NilClass"
+- [COOK-2233] - Provide postgresql::contrib recipe to install useful server administration tools
+
+v2.1.0
+------
+- [COOK-1872] - Allow latest PostgreSQL deb packages to be installed
+- [COOK-1961] - Postgresql config file changes with every Chef run
+- [COOK-2041] - Postgres cookbook no longer installs on OpenSuSE 11.4
+
+v2.0.2
+------
+- [COOK-1406] - pg gem compile is unable to find libpq under Chef full stack (omnibus) installation
+
+v2.0.0
+------
+This version is backwards incompatible with previous versions of the cookbook due to use of `platform_family`, and the refactored configuration files using node attributes. See README.md for details on how to modify configuration of PostgreSQL.
+
+- [COOK-1508] - fix mixlib shellout error on SUSE
+- [COOK-1744] - Add service enable & start
+- [COOK-1779] - Don't run apt-get update and others in ruby recipe if pg is installed
+- [COOK-1871] - Attribute driven configuration files for PostgreSQL
+- [COOK-1900] - don't assume ssl on all postgresql 8.4+ installs
+- [COOK-1901] - fail a chef-solo run when the postgres password
+  attribute is not set
+
+v1.0.0
+------
+**Important note for this release**
+
+This version no longer installs Ruby bindings in the client recipe by default. Use the ruby recipe if you'd like the RubyGem. If you'd like packages for your distribution, use them in your application's specific cookbook/recipe, or modify the client packages attribute.
+
+This resolves the following tickets.
+
+- COOK-1011
+- COOK-1534
+
+The following issues are also resolved with this release.
+
+- [COOK-1011] - Don't install postgresql packages during compile phase and remove pg gem installation
+- [COOK-1224] - fix undefined variable on Debian
+- [COOK-1462] - Add attribute for specifying listen address
+
+v0.99.4
+------
+- [COOK-421] - config template is malformed
+- [COOK-956] - add make package on ubuntu/debian
+
+v0.99.2
+------
+- [COOK-916] - use < (with float) for version comparison.
+
+v0.99.0
+------
+- Better support for Red Hat-family platforms
+- Integration with database cookbook
+- Make sure the postgres role is updated with a (secure) password
+
+Description
+===========
+
+Installs and configures PostgreSQL as a client or a server.
+
+Requirements
+============
+
+## Platforms
+
+* Debian, Ubuntu
+* Red Hat/CentOS/Scientific (6.0+ required) - "EL6-family"
+* Fedora
+* SUSE
+
+Tested on:
+
+* Ubuntu 10.04, 11.10, 12.04
+* Red Hat 6.1, Scientific 6.1, CentOS 6.3
+
+## Cookbooks
+
+Requires Opscode's `openssl` cookbook for secure password generation.
+
+Requires a C compiler and development headers in order to build the
+`pg` RubyGem to provide Ruby bindings in the `ruby` recipe.
+
+Opscode's `build-essential` cookbook provides this functionality on
+Debian, Ubuntu, and EL6-family.
+
+While not required, Opscode's `database` cookbook contains resources
+and providers that can interact with a PostgreSQL database. This
+cookbook is a dependency of database.
+
+Attributes
+==========
+
+The following attributes are set based on the platform, see the
+`attributes/default.rb` file for default values.
+
+* `node['postgresql']['version']` - version of postgresql to manage
+* `node['postgresql']['dir']` - home directory of where postgresql
+  data and configuration lives.
+
+* `node['postgresql']['client']['packages']` - An array of package names
+  that should be installed on "client" systems.
+* `node['postgresql']['server']['packages']` - An array of package names
+  that should be installed on "server" systems.
+* `node['postgresql']['server']['config_change_notify']` - Type of
+  notification triggered when a config file changes.
+* `node['postgresql']['contrib']['packages']` - An array of package names
+  that could be installed on "server" systems for useful sysadmin tools.
+
+* `node['postgresql']['enable_pgdg_apt']` - Whether to enable the apt repo
+  by the PostgreSQL Global Development Group, which contains newer versions
+  of PostgreSQL.
+
+* `node['postgresql']['enable_pgdg_yum']` - Whether to enable the yum repo
+  by the PostgreSQL Global Development Group, which contains newer versions
+  of PostgreSQL.
+
+* `node['postgresql']['initdb_locale']` - Sets the default locale for the
+  database cluster. If this attribute is not specified, the locale is
+  inherited from the environment that initdb runs in. Sometimes you must
+  have a system locale that is not what you want for your database cluster,
+  and this attribute addresses that scenario. Valid only for EL-family
+  distros (RedHat/Centos/etc.).
+
+The following attributes are generated in
+`recipe[postgresql::server]`.
+
+* `node['postgresql']['password']['postgres']` - randomly generated
+  password by the `openssl` cookbook's library.
+  (TODO: This is broken, as it disables the password.)
+
+Configuration
+-------------
+
+The `postgresql.conf` and `pg_hba.conf` files are dynamically
+generated from attributes. Each key in `node['postgresql']['config']`
+is a postgresql configuration directive, and will be rendered in the
+config file. For example, the attribute:
+
+    node['postgresql']['config']['listen_addresses'] = 'localhost'
+
+Will result in the following line in the `postgresql.conf` file:
+
+    listen_addresses = 'localhost'
+
+The attributes file contains default values for Debian and RHEL
+platform families (per the `node['platform_family']`). These defaults
+have disparity between the platforms because they were originally
+extracted from the postgresql.conf files in the previous version of
+this cookbook, which differed in their default config. The resulting
+configuration files will be the same as before, but the content will
+be dynamically rendered from the attributes. The helpful commentary
+will no longer be present. You should consult the PostgreSQL
+documentation for specific configuration details.
+
+See __Recipes__ `config_initdb` and `config_pgtune` below to
+auto-generate many postgresql.conf settings.
+
+For values that are "on" or "off", they should be specified as literal
+`true` or `false`. String values will be used with single quotes. Any
+configuration option set to the literal `nil` will be skipped
+entirely. All other values (e.g., numeric literals) will be used as
+is. So for example:
+
+    node.default['postgresql']['config']['logging_collector'] = true
+    node.default['postgresql']['config']['datestyle'] = 'iso, mdy'
+    node.default['postgresql']['config']['ident_file'] = nil
+    node.default['postgresql']['config']['port] = 5432
+
+Will result in the following config lines:
+
+    logging_collector = 'on'
+    datestyle = 'iso,mdy'
+    port = 5432
+
+(no line printed for `ident_file` as it is `nil`)
+
+Note that the `unix_socket_directory` configuration was renamed to
+`unix_socket_directories` in Postgres 9.3 so make sure to use the
+`node['postgresql']['unix_socket_directories']` attribute instead of
+`node['postgresql']['unix_socket_directory']`.
+
+The `pg_hba.conf` file is dynamically generated from the
+`node['postgresql']['pg_hba']` attribute. This attribute must be an
+array of hashes, each hash containing the authorization data. As it is
+an array, you can append to it in your own recipes. The hash keys in
+the array must be symbols. Each hash will be written as a line in
+`pg_hba.conf`. For example, this entry from
+`node['postgresql']['pg_hba']`:
+
+    {:comment => '# Optional comment',
+    :type => 'local', :db => 'all', :user => 'postgres', :addr => nil, :method => 'md5'}
+
+Will result in the following line in `pg_hba.conf`:
+
+    # Optional comment
+    local   all             postgres                                md5
+
+Use `nil` if the CIDR-ADDRESS should be empty (as above).
+Don't provide a comment if none is desired in the `pg_hba.conf` file.
+
+Note that the following authorization rule is supplied automatically by
+the cookbook template. The cookbook needs this to execute SQL in the
+PostgreSQL server without supplying the clear-text password (which isn't
+known by the cookbook). Therefore, your `node['postgresql']['pg_hba']`
+attributes don't need to specify this authorization rule:
+
+    # "local" is for Unix domain socket connections only
+    local   all             all                                     ident
+
+(By the way, the template uses `peer` instead of `ident` for PostgreSQL-9.1
+and above, which has the same effect.)
+
+Recipes
+=======
+
+default
+-------
+
+Includes the client recipe.
+
+client
+------
+
+Installs the packages defined in the
+`node['postgresql']['client']['packages']` attribute.
+
+ruby
+----
+
+**NOTE** This recipe may not currently work when installing Chef with
+  the
+  ["Omnibus" full stack installer](http://opscode.com/chef/install) on
+  some platforms due to an incompatibility with OpenSSL. See
+  [COOK-1406](http://tickets.opscode.com/browse/COOK-1406). You can
+  build from source into the Chef omnibus installation to work around
+  this issue.
+
+Install the `pg` gem under Chef's Ruby environment so it can be used
+in other recipes. The build-essential packages and postgresql client
+packages will be installed during the compile phase, so that the
+native extensions of `pg` can be compiled.
+
+server
+------
+
+Includes the `server_debian` or `server_redhat` recipe to get the
+appropriate server packages installed and service managed. Also
+manages the configuration for the server:
+
+* generates a strong default password (via `openssl`) for `postgres`
+  (TODO: This is broken, as it disables the password.)
+* sets the password for postgres
+* manages the `postgresql.conf` file.
+* manages the `pg_hba.conf` file.
+
+server\_debian
+--------------
+
+Installs the postgresql server packages and sets up the service. You
+should include the `postgresql::server` recipe, which will include
+this on Debian platforms.
+
+server\_redhat
+--------------
+
+Manages the postgres user and group (with UID/GID 26, per RHEL package
+conventions), installs the postgresql server packages, initializes the
+database, and manages the postgresql service. You should include the
+`postgresql::server` recipe, which will include this on RHEL/Fedora
+platforms.
+
+config\_initdb
+--------------
+
+Takes locale and timezone settings from the system configuration.
+This recipe creates `node.default['postgresql']['config']` attributes
+that conform to the system's locale and timezone. In addition, this
+recipe creates the same error reporting and logging settings that
+`initdb` provided: a rotation of 7 days of log files named
+postgresql-Mon.log, etc.
+
+The default attributes created by this recipe are easy to override with
+normal attributes because of Chef attribute precedence. For example,
+suppose a DBA wanted to keep log files indefinitely, rolling over daily
+or when growing to 10MB. The Chef installation could include the
+`postgresql::config_initdb` recipe for the locale and timezone settings,
+but customize the logging settings with these node JSON attributes:
+
+    "postgresql": {
+      "config": {
+        "log_rotation_age": "1d",
+        "log_rotation_size": "10MB",
+        "log_filename": "postgresql-%Y-%m-%d_%H%M%S.log"
+      }
+    }
+
+Credits: This `postgresql::config_initdb` recipe is based on algorithms
+in the [source code](http://doxygen.postgresql.org/initdb_8c_source.html)
+for the PostgreSQL `initdb` utility.
+
+config\_pgtune
+--------------
+
+Performance tuning.
+Takes the wimpy default postgresql.conf and expands the database server
+to be as powerful as the hardware it's being deployed on. This recipe
+creates a baseline configuration of `node.default['postgresql']['config']`
+attributes in the right general range for a dedicated Postgresql system.
+Most installations won't need additional performance tuning.
+
+The only decision you need to make is to choose a `db_type` from the
+following database workloads. (See the recipe code comments for more
+detailed descriptions.)
+
+ * "dw" -- Data Warehouse
+ * "oltp" -- Online Transaction Processing
+ * "web" -- Web Application
+ * "mixed" -- Mixed DW and OLTP characteristics
+ * "desktop" -- Not a dedicated database
+
+This recipe uses a performance model with three input parameters.
+These node attributes are completely optional, but it is obviously
+important to choose the `db_type` correctly:
+
+ * `node['postgresql']['config_pgtune']['db_type']` --
+   Specifies database type from the list of five choices above.
+   If not specified, the default is "mixed".
+
+ * `node['postgresql']['config_pgtune']['max_connections']` --
+   Specifies maximum number of connections expected.
+   If not specified, it depends on database type:
+   "web":200, "oltp":300, "dw":20, "mixed":80, "desktop":5
+
+ * `node['postgresql']['config_pgtune']['total_memory']` --
+   Specifies total system memory in kB. (E.g., "49416564kB".)
+   If not specified, it will be taken from Ohai automatic attributes.
+   This could be used to tune a system that isn't a dedicated database.
+
+The default attributes created by this recipe are easy to override with
+normal attributes because of Chef attribute precedence. For example, if
+you are running application benchmarks to try different buffer cache
+sizes, you would experiment with this node JSON attribute:
+
+    "postgresql": {
+      "config": {
+        "shared_buffers": "3GB"
+      }
+    }
+
+Note that the recipe uses `max_connections` in its computations. If
+you want to override that setting, you should specify
+`node['postgresql']['config_pgtune']['max_connections']` instead of
+`node['postgresql']['config']['max_connections']`.
+
+Credits: This `postgresql::config_pgtune` recipe is based on the
+[pgtune python script](https://github.com/gregs1104/pgtune)
+developed by
+[Greg Smith](http://notemagnet.blogspot.com/2008/11/automating-initial-postgresqlconf.html)
+and
+[other pgsql-hackers](http://www.postgresql.org/message-id/491C6CDC.8090506@agliodbs.com).
+
+contrib
+-------
+
+Installs the packages defined in the
+`node['postgresql']['contrib']['packages']` attribute. The contrib
+directory of the PostgreSQL distribution includes porting tools,
+analysis utilities, and plug-in features that database engineers often
+require. Some (like `pgbench`) are executable. Others (like
+`pg_buffercache`) would need to be installed into the database.
+
+Also installs any contrib module extensions defined in the
+`node['postgresql']['contrib']['extensions']` attribute. These will be
+available in any subsequently created databases in the cluster, because
+they will be installed into the `template1` database using the
+`CREATE EXTENSION` command. For example, it is often necessary/helpful
+for problem troubleshooting and maintenance planning to install the
+views and functions in these [standard instrumentation extensions]
+(http://www.postgresql.org/message-id/flat/4DC32600.6080900@pgexperts.com#4DD3D6C6.5060006@2ndquadrant.com):
+
+    node['postgresql']['contrib']['extensions'] = [
+      "pageinspect",
+      "pg_buffercache",
+      "pg_freespacemap",
+      "pgrowlocks",
+      "pg_stat_statements",
+      "pgstattuple"
+    ]
+
+Note that the `pg_stat_statements` view only works if `postgresql.conf`
+loads its shared library, which can be done with this node attribute:
+
+    node['postgresql']['config']['shared_preload_libraries'] = 'pg_stat_statements'
+
+apt\_pgdg\_postgresql
+----------------------
+
+Enables the PostgreSQL Global Development Group yum repository
+maintained by Devrim G&#252;nd&#252;z for updated PostgreSQL packages.
+(The PGDG is the groups that develops PostgreSQL.)
+Automatically included if the `node['postgresql']['enable_pgdg_apt']`
+attribute is true. Also set the
+`node['postgresql']['client']['packages']` and
+`node['postgresql']['server]['packages']` to the list of packages to
+use from this repository, and set the `node['postgresql']['version']`
+attribute to the version to use (e.g., "9.2").
+
+yum\_pgdg\_postgresql
+---------------------
+
+Enables the PostgreSQL Global Development Group yum repository
+maintained by Devrim G&#252;nd&#252;z for updated PostgreSQL packages.
+(The PGDG is the groups that develops PostgreSQL.)
+Automatically included if the `node['postgresql']['enable_pgdg_yum']`
+attribute is true. Also use `override_attributes` to set a number of
+values that will need to have embedded version numbers. For example:
+
+    node['postgresql']['enable_pgdg_yum'] = true
+    node['postgresql']['version'] = "9.2"
+    node['postgresql']['dir'] = "/var/lib/pgsql/9.2/data"
+    node['postgresql']['client']['packages'] = ["postgresql92", "postgresql92-devel"]
+    node['postgresql']['server']['packages'] = ["postgresql92-server"]
+    node['postgresql']['server']['service_name'] = "postgresql-9.2"
+    node['postgresql']['contrib']['packages'] = ["postgresql92-contrib"]
+
+You may set `node['postgresql']['pgdg']['repo_rpm_url']` attributes
+to pick up recent [PGDG repo packages](http://yum.postgresql.org/repopackages.php).
+
+Resources/Providers
+===================
+
+See the [database](http://community.opscode.com/cookbooks/database)
+for resources and providers that can be used for managing PostgreSQL
+users and databases.
+
+Usage
+=====
+
+On systems that need to connect to a PostgreSQL database, add to a run
+list `recipe[postgresql]` or `recipe[postgresql::client]`.
+
+On systems that should be PostgreSQL servers, use
+`recipe[postgresql::server]` on a run list. This recipe does set a
+password for the `postgres` user.
+If you're using `chef server`, if the attribute
+`node['postgresql']['password']['postgres']` is not found,
+the recipe generates a random password and performs a node.save.
+(TODO: This is broken, as it disables the password.)
+If you're using `chef-solo`, you'll need
+to set the attribute `node['postgresql']['password']['postgres']` in
+your node's `json_attribs` file or in a role.
+
+On Debian family systems, SSL will be enabled, as the packages on
+Debian/Ubuntu also generate the SSL certificates. If you use another
+platform and wish to use SSL in postgresql, then generate your SSL
+certificates and distribute them in your own cookbook, and set the
+`node['postgresql']['config']['ssl']` attribute to true in your
+role/cookboook/node.
+
+On server systems, the postgres server is restarted when a configuration
+file changes.  This can be changed to reload only by setting the
+following attribute:
+
+    node['postgresql']['server']['config_change_notify'] = :reload
+
+Chef Solo Note
+==============
+
+The following node attribute is stored on the Chef Server when using
+`chef-client`. Because `chef-solo` does not connect to a server or
+save the node object at all, to have the password persist across
+`chef-solo` runs, you must specify them in the `json_attribs` file
+used. For Example:
+
+    {
+      "postgresql": {
+        "password": {
+          "postgres": "iloverandompasswordsbutthiswilldo"
+        }
+      },
+      "run_list": ["recipe[postgresql::server]"]
+    }
+
+That should actually be the "encrypted password" instead of cleartext,
+so you should generate it as an md5 hash using the PostgreSQL algorithm.
+
+* You could copy the md5-hashed password from an existing postgres
+database if you have `postgres` access and want to use the same password:<br>
+`select * from pg_shadow where usename='postgres';`
+* You can run this from any postgres database session to use a new password:<br>
+`select 'md5'||md5('iloverandompasswordsbutthiswilldo'||'postgres');`
+* You can run this from a linux commandline:<br>
+`echo -n 'iloverandompasswordsbutthiswilldo''postgres' | openssl md5 | sed -e 's/.* /md5/'`
+
+License and Author
+==================
+
+- Author:: Joshua Timberman (<joshua@opscode.com>)
+- Author:: Lamont Granquist (<lamont@opscode.com>)
+- Author:: Chris Roberts (<chrisroberts.code@gmail.com>)
+- Author:: David Crane (<davidc@donorschoose.org>)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+python Cookbook CHANGELOG
+=========================
+This file is used to list changes made in each version of the python cookbook.
+
+
+v1.4.4
+------
+[COOK-3816] - Including ez_setup script with cookbook instead of downloading from the internet
+
+
+v1.4.2
+------
+### Bug
+- **[COOK-3796](https://tickets.opscode.com/browse/COOK-3796)** - Virtualenv can fail
+
+### Improvement
+- **[COOK-3719](https://tickets.opscode.com/browse/COOK-3719)** - Allow alternative install python, update pip location
+- **[COOK-3703](https://tickets.opscode.com/browse/COOK-3703)** - Create symlink for source built python [python3 support]
+
+
+v1.4.0
+------
+### New Feature
+- **[COOK-3248](https://tickets.opscode.com/browse/COOK-3248)** - Improve testing suite
+
+### Improvement
+- **[COOK-3125](https://tickets.opscode.com/browse/COOK-3125)** - Don't use `normal` attributes
+
+### Bug
+- **[COOK-3084](https://tickets.opscode.com/browse/COOK-3084)** - Fix `python_virtualenv` on EL 5
+
+v1.3.6
+------
+### Bug
+- [COOK-3305]: distribute merged back into setuptools
+
+### New Feature
+- [COOK-3248]: Improve testing suite in the python cookbook
+
+v1.3.4
+------
+### Bug
+- [COOK-3137]: `python_pip` LWRP cannot have differnent name and `package_name`
+
+v1.3.2
+------
+### Bug
+- [COOK-2917]: python::source fails on CentOS 6.3 minimal (make: command not found)
+- [COOK-3077]: Python - pip fails to install when `['python']['install_method'] == 'source'`
+
+v1.3.0
+------
+### Bug
+- [COOK-2376]: Python pip default action
+- [COOK-2468]: python cookbook - Chef 11 compat fixes
+- [COOK-2882]: Python source recipe fails on Ubuntu 12.10 because of unavailable libdb4.8-dev package
+- [COOK-3009]: fix build time dependencies and gcc flags for python source on newer ubuntus
+
+### New Feature
+- [COOK-2449]: Make the distribute download location an attribute
+- [COOK-3008]: Update python::source to install 2.7.5
+
+### Sub-task
+- [COOK-2866]: python::source checks existence of a directory that already exists
+
+v1.2.2
+------
+- [COOK-2297] - more gracefully handle pip packages from VCS and source archives
+
+v1.2.0
+------
+- [COOK-1866] - /usr/bin is not a pip binary location in source installs on RHEL
+- [COOK-1925] - add smartos support
+
+v1.1.0
+------
+- [COOK-1715] - Add user and group to python_pip
+- [COOK-1727] - Python cookbook cannot install `pip` on CentOS versions < 6
+
+v1.0.8
+------
+- [COOK-1016] - python package needs separate names for centos/rhel 5.x vs 6.x
+- [COOK-1048] - installation of pip does not honor selected python version
+- [COOK-1282] - catch Chef::Exceptions::ShellCommandFailed for chef 0.10.8 compatibility
+- [COOK-1311] - virtualenv should have options attribute
+- [COOK-1320] - pip provider doesn't catch correct exception
+- [COOK-1415] - use plain 'python' binary instead of versioned one for default interpreter
+
+v1.0.6
+------
+- [COOK-1036] - correctly grep for python-module version
+- [COOK-1046] - run pip inside the virtualenv
+
+v1.0.4
+------
+- [COOK-960] - add timeout to python_pip
+- [COOK-651] - 'install_path' not correctly resolved when using python::source
+- [COOK-650] - Add ability to specify version when installing distribute.
+- [COOK-553] - FreeBSD support in the python cookbook
+
+python Cookbook
+===============
+Installs and configures Python.  Also includes LWRPs for managing python packages with `pip` and `virtualenv` isolated Python environments.
+
+
+Requirements
+------------
+### Platforms
+- Debian, Ubuntu
+- CentOS, Red Hat, Fedora
+
+### Cookbooks
+- build-essential
+- yum
+
+NOTE: The `yum` cookbook is a dependency of the cookbook, and will be used to install [EPEL](http://fedoraproject.org/wiki/EPEL) on RedHet/CentOS 5.x systems to provide the Python 2.6 packages.
+
+
+Attributes
+----------
+See `attributes/default.rb` for default values.
+
+- `node["python"]["install_method"]` - method to install python with, default `package`.
+
+The file also contains the following attributes:
+
+- platform specific locations and settings
+- source installation settings
+
+
+Resource/Provider
+-----------------
+This cookbook includes LWRPs for managing:
+
+- pip packages
+- virtualenv isolated Python environments
+
+### `python_pip`
+Install packages using the new hotness in Python package management...[`pip`](http://pypi.python.org/pypi/pip).  Yo dawg...easy_install is so 2009, you better ask your local Pythonista if you don't know! The usage semantics are like that of any normal package provider.
+
+#### Actions
+- :install: Install a pip package - if version is provided, install that specific version (default)
+- :upgrade: Upgrade a pip package - if version is provided, upgrade to that specific version
+- :remove: Remove a pip package
+- :user: User to run pip as, for using with virtualenv
+- :group: Group to run pip as, for using with virtualenv
+- :purge: Purge a pip package (this usually entails removing configuration files as well as the package itself).  With pip packages this behaves the same as `:remove`
+
+#### Attribute Parameters
+- package_name: name attribute. The name of the pip package to install
+- version: the version of the package to install/upgrade.  If no version is given latest is assumed.
+- virtualenv: virtualenv environment to install pip package into
+- options: Add additional options to the underlying pip package command
+- timeout: timeout in seconds for the command to execute. Useful for pip packages that may take a long time to install. Default 900 seconds.
+
+#### Examples
+```ruby
+# install latest gunicorn into system path
+python_pip "gunicorn"
+
+# target a virtualenv
+python_pip "gunicorn" do
+  virtualenv "/home/ubunut/my_ve"
+end
+```
+
+```ruby
+# install Django 1.1.4
+python_pip "django" do
+  version "1.1.4"
+end
+```
+
+```ruby
+# use this provider with the core package resource
+package "django" do
+  provider Chef::Provider::PythonPip
+end
+```
+
+### `python_virtualenv`
+[`virtualenv`](http://pypi.python.org/pypi/virtualenv) is a great tool that creates isolated python environments.  Think of it as RVM without all those hipsters and tight jeans.
+
+#### Actions
+- :create: creates a new virtualenv
+- :delete: deletes an existing virtualenv
+
+#### Attribute Parameters
+- path: name attribute. The path where the virtualenv will be created
+- interpreter: The Python interpreter to use. default is null (i.e. use whatever python the virtualenv command is using).
+- owner: The owner for the virtualenv
+- group: The group owner of the file (string or id)
+- options : Command line options (string)
+
+#### Examples
+```ruby
+# create a 2.6 virtualenv owned by ubuntu user
+python_virtualenv "/home/ubuntu/my_cool_ve" do
+  owner "ubuntu"
+  group "ubuntu"
+  action :create
+end
+```
+
+```ruby
+# create a Python 2.4 virtualenv
+python_virtualenv "/home/ubuntu/my_old_ve" do
+  interpreter "python2.4"
+  owner "ubuntu"
+  group "ubuntu"
+  action :create
+end
+```
+
+```ruby
+# create a Python 2.6 virtualenv with access to the global packages owned by ubuntu user
+python_virtualenv "/home/ubuntu/my_old_ve" do
+  owner "ubuntu"
+  group "ubuntu"
+  options "--system-site-packages"
+  action :create
+end
+```
+
+
+Usage
+-----
+### default
+Include default recipe in a run list, to get `python`, `pip` and `virtualenv`. Installs python by package or source depending on the platform.
+
+### package
+Installs Python from packages.
+
+### source
+Installs Python from source.
+
+### pip
+Installs `pip` from source.
+
+### virtualenv
+
+Installs virtualenv using the `python_pip` resource.
+
+
+License & Authors
+-----------------
+- Author:: Seth Chisamore (<schisamo@opscode.com>)
+
+```text
+Copyright:: 2011, Opscode, Inc
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+```
+
+Description
+===========
+
+Requirements
+============
+
+Attributes
+==========
+
+Usage
+=====
+
+
+
+= DESCRIPTION:
+
+Installs Ruby and related packages.
+
+= REQUIREMENTS:
+
+== Platform:
+
+Tested on Ubuntu 10.04. Debian and Gentoo should also work fully. CentOS, Red Hat, Fedora and Arch are partially supported.
+
+= ATTRIBUTES:
+
+* +languages[:ruby][:default_version]+ - The Ruby version to install with the ruby recipe and create symlinks for with the symlinks recipe.
+
+= USAGE:
+
+Previous versions of this cookbook gave you no control over which version of Ruby would be installed. We are now in the middle of an awkward period where you are equally likely to want 1.8 or 1.9. You may even want both. This is now catered for. To install specific versions side-by-side, use the 1.8, 1.9 or 1.9.1 recipes. The ruby recipe will install the version specified by +languages[:ruby][:default_version]+. If you want to do something other than install these packages, the +ruby_packages+ definition is provided as a wrapper around the package resource. Just specify the version number.
+
+For example, to use the default recipe in a role named "base", use 'ruby' in the run list and set the +languages[:ruby][:default_version]+ attribute:
+
+  {
+    "name": "base",
+    "description": "Base role is applied to all systems",
+    "json_class": "Chef::Role",
+    "default_attributes": {
+    },
+    "override_attributes": {
+      "languages": {
+        "ruby": {
+          "default_version": "1.8"
+        }
+      }
+    },
+    "chef_type": "role",
+    "run_list": [
+      "recipe[ruby]"
+    ]
+  }
+
+Many scripts, including those provided by Rails, don't ask for a particular version of Ruby such as "ruby1.8" and simply look for "ruby" instead. Sometimes a symlink is provided and sometimes the executable is simply called "ruby" in the first place but generally speaking, it is difficult to predict this behaviour, especially when Ruby Gems is thrown into the mix. The symlinks recipe seeks to relieve you of this headache by creating symlinks for the common executables pointing to the Ruby version specified by +languages[:ruby][:default_version]+. This is also available as a definition called +ruby_symlinks+, which is a wrapper around the link resource. As before, just specify the version number. Non-symlinks will not be overwritten unless you set force to true. You can also set a path other than /usr/bin if necessary.
+
+*IMPORTANT!* Only Ubuntu, Debian and Gentoo support installing a specific Ruby version at all. yum-based distributions install 1.8 by default but require you to give the full package version otherwise. Maybe some magic could be added to Chef? Arch installs 1.9.2 by default but 1.8 is only available from AUR. Additionally, Ubuntu and Debian group 1.9.2 with 1.9.1 while Gentoo lumps all 1.9 releases together.
+
+= LICENSE and AUTHOR:
+
+Author:: Joshua Timberman (<joshua@opscode.com>), James Le Cuirot (<developers@findsyou.com>)
+
+Copyright:: 2009-2010, Opscode, Inc; 2010, FindsYou Limited
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+DESCRIPTION
+===========
+
+This cookbook installs sudo and configures the /etc/sudoers file.
+
+REQUIREMENTS
+============
+
+Requires that the platform has a package named sudo and the sudoers file is /etc/sudoers.
+
+ATTRIBUTES
+==========
+
+The following attributes are set to blank arrays:
+
+    node['authorization']['sudo']['groups']
+    node['authorization']['sudo']['users']
+
+They are passed into the sudoers template which iterates over the values to add sudo permission to the specified users and groups.
+
+If you prefer to use passwordless sudo just set the following attribute to true:
+
+    node['authorization']['sudo']['passwordless']
+
+USAGE
+=====
+
+To use this cookbook, set the attributes above on the node via a role or the node object itself. In a role.rb:
+
+    "authorization" => {
+      "sudo" => {
+        "groups" => ["admin", "wheel", "sysadmin"],
+        "users" => ["jerry", "greg"],
+        "passwordless" => true
+      }
+    }
+
+In JSON (role.json or on the node object):
+
+    "authorization": {
+      "sudo": {
+        "groups": [
+          "admin",
+          "wheel",
+          "sysadmin"
+        ],
+        "users": [
+          "jerry",
+          "greg"
+        ],
+        "passwordless": true
+      }
+    }
+
+Note that the template for the sudoers file has the group "sysadmin" with ALL:ALL permission, though the group by default does not exist.
+
+LICENSE AND AUTHOR
+==================
+
+Author:: Adam Jacob <adam@opscode.com>
+Author:: Seth Chisamore <schisamo@opscode.com>
+
+Copyright 2009-2011, Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Description
+===========
+
+Configures various YUM components on Red Hat-like systems.  Includes LWRP for managing repositories and their GPG keys.
+
+Based on the work done by Eric Wolfe and Charles Duffy on the yumrepo cookbook. http://github.com/atomic-penguin/cookbooks/tree/yumrepo/yumrepo
+
+Changes
+=======
+
+## v0.5.2:
+
+* [COOK-825] - epel and ius `remote_file` should notify the `rpm_package` to install
+
+## v0.5.0:
+
+* [COOK-675] - add recipe for handling EPEL repository
+* [COOK-722] - add recipe for handling IUS repository
+
+## v.0.1.2:
+
+* Remove yum update in default recipe, that doesn't update caches, it updates packages installed.
+
+Requirements
+============
+RHEL, CentOS or Scientific Linux 5.x or newer. It has not been tested on other platforms or earlier versions. RHEL 6 support is untested (testing and patches are welcome).
+
+Attributes
+==========
+
+* `node['yum']['epel_release']` - Set the epel release version based on `node['platform_version']`.
+* `node['yum']['ius_release']` - Set the IUS release to install.
+
+Recipes
+=======
+
+default
+-------
+The default recipe runs `yum update` during the Compile Phase of the Chef run to ensure that the system's package cache is updated with the latest. It is recommended that this recipe appear first in a node's run list (directly or through a role) to ensure that when installing packages, Chef will be able to download the latest version available on the remote YUM repository.
+
+yum
+---
+Manages the configuration of the `/etc/yum.conf` via attributes.
+
+epel
+----
+
+Installs the EPEL repository via RPM. Uses the `node['yum']['epel_release']` attribute to select the right version of the repository package to install. Also uses the node's platform version (as an integer) for the major release of EL.
+
+ius
+----
+
+Installs the [IUS Community repositories](http://iuscommunity.org/Repos) via RPM. Uses the `node['yum']['ius_release']` attribute to select the right versino of the package to install.
+
+The IUS repository requires EPEL, and the recipe includes `yum::epel` to install this.
+
+Resources/Providers
+===================
+
+key
+---
+This LWRP handles importing GPG keys for YUM repositories. Keys can be imported by the `url` parameter or placed in `/etc/pki/rpm-gpg/` by a recipe and then installed with the LWRP without passing the URL.
+
+# Actions
+- :add: installs the GPG key into `/etc/pki/rpm-gpg/`
+- :remove: removes the GPG key from `/etc/pki/rpm-gpg/`
+
+# Attribute Parameters
+
+- key: name attribute. The name of the GPG key to install.
+- url: if the key needs to be downloaded, the URL providing the download.
+
+# Example
+
+``` ruby
+# add the Zenoss GPG key
+yum_key "RPM-GPG-KEY-zenoss" do
+  url "http://dev.zenoss.com/yum/RPM-GPG-KEY-zenoss"
+  action :add
+end
+    
+# remove Zenoss GPG key
+yum_key "RPM-GPG-KEY-zenoss" do
+  action :remove
+end
+```
+
+repository
+----------
+This LWRP provides an easy way to manage additional YUM repositories. GPG keys can be managed with the `key` LWRP.
+
+# Actions
+
+- :add: creates a repository file and builds the repository listing
+- :remove: removes the repository file
+
+# Attribute Parameters
+
+- repo_name: name attribute. The name of the channel to discover
+- description. The description of the repository
+- url: The URL providing the packages
+- mirrorlist: Default is `false`,  if `true` the `url` is considered a list of mirrors
+- key: Optional, the name of the GPG key file installed by the `key` LWRP.
+
+- enabled: Default is `1`, set to `0` if the repository is disabled.
+- type: Optional, alternate type of repository
+- failovermethod: Optional, failovermethod
+- bootstrapurl: Optional, bootstrapurl
+
+# Example
+
+``` ruby
+# add the Zenoss repository
+yum_repository "zenoss" do
+  name "Zenoss Stable repo"
+  url "http://dev.zenoss.com/yum/stable/"
+  key "RPM-GPG-KEY-zenoss"
+  action :add
+end
+    
+# remove Zenoss repo
+yum_repository "zenoss" do
+  action :remove
+end
+```
+
+Usage
+=====
+
+Put `recipe[yum]` first in the run list to ensure `yum update` is run before other recipes. You can manage GPG keys either with cookbook_file in a recipe if you want to package it with a cookbook or use the `url` parameter of the `key` LWRP.
+
+License and Author
+==================
+
+Author:: Eric G. Wolfe
+Author:: Matt Ray (<matt@opscode.com>)
+Author:: Joshua Timberman (<joshua@opscode.com>)
+
+Copyright:: 2010 Tippr Inc.
+Copyright:: 2011 Eric G. Wolfe
+Copyright:: 2011 Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+python.org
+==========
+
+[![Build Status](https://travis-ci.org/python/pythondotorg.png?branch=master)](https://travis-ci.org/python/pythondotorg)
+
+The new python.org!
+
+Getting going
+-------------
+
+Requires :sparkles:Python 3.3!:sparkles: (`brew install python3`)
+
+You'll want a virtualenv. Python 3.3 actually includes virtualenv built-in,
+so you can do:
+
+    $ pyvenv-3.3 <env>
+    $ source <env>/bin/activate
+    (etc)
+
+But you can also use your existing virtualenv/wrapper:
+
+    $ mkvirtualenv --python=python3.3 <env>
+
+And then it's the standard:
+
+    $ pip install -r requirements.txt
+    $ ./manage.py syncdb
+
+You may need to specify the pip version, even with the virtualenv activated:
+
+    $ pip-3.3 install -r requirements.txt
+
+This expects a local database named "python.org". If you need to change it:
+
+    $ export DATABASE_URL=postgres://user:pass@host:port/dbname
+
+To compile and compress static media, you will need compass and yui-compressor:
+
+    $ gem install bundler
+    $ bundle install
+    $ brew install yuicompressor
+
+NOTE: On OSX you may need to adjust your PATH to be able to find the sass binary, etc.
+
+### Python 3.3 and OSX 10.8.2
+
+Homebrew's recipe for python3.3 has some difficulty installing distribute
+and pip in a virtualenv. The [python.org installer for OSX](http://www.python.org/download/)
+may work better, if you're having trouble.
+
+### Using Vagrant
+
+You can ignore the above instructions by using [Vagrant](http://www.vagrantup.com/). After installing:
+
+    $ vagrant up
+    $ vagrant ssh
+
+The box will be provisioned by Chef with Python 3.3, a virtualenv set up with requirements installed, and a database ready to use. The virtualenv is activated upon login. You will need to run `./manage.py createsuperuser` to use the admin.
+
+Running tests
+-------------
+
+    $ pip install -r dev-requirements.txt
+    $ coverage run manage.py test
+    $ coverage report
+
+Generate an HTML report with `coverage html` if you like.
+
+
+------------
+
+
+Cheatsheet for Front End devs that know enough to be dangerous
+-------------
+
+But not really enough to remember all these CLI commands by heart.
+
+### Spinning up a VM
+
+1. Open Terminal.app
+2. `cd ~/github/python`
+3. `source ENV/bin/activate`
+4. Maybe you need to install requirements? `pip install -r requirements.txt`
+5. `export DATABASE_URL="postgres://localhost/python.org"`
+6. `./manage.py runserver 0.0.0.0:8000` (or whatever port you run at)
+
+### Nuke the DB!
+
+1. Do steps 1-4 above.
+2. `export PATH="/Applications/Postgres.app/Contents/MacOS/bin:$PATH"`
+3. `dropdb python.org`
+4. `createdb python.org`
+5. `./manage.py syncdb`
+6. `./manage.py migrate`
+7. Install data below if you like.
+
+### Other Useful Commands
+
+Create a super user (for a new DB):
+`./manage.py createsuperuser`
+
+Install Meeting Minutes:
+`./manage.py import_psf_meeting_notes`
+
+Import calendars:
+`./manage.py import_ics_calendars`
+
+Want to save some data from your DB before nuking it, and then load it back in?
+`./manage.py dumpdata --format=json --indent=4 [app-name] > fixtures/[app-name].json`
+
+Load a specific fixture:
+`./manage.py loaddata fixtures/[name].json`
+
+Load all fixture files:
+`find ./fixtures -name "*.json" -exec ./manage.py loaddata {} \;`
+
+List All the active DBs:
+`psql -U postgres -c '\l'`
+esq from window... `q`
+
+If PostGres can't connect to your localhost DB, put this in `pydotorg/settings/local.py`:
+```
+DATABASES = {
+    'default': dj_database_url.config(default='postgres://localhost:{port#}/{DBName, probably python.org}')
+}
+```
+
+Go into PSQL and dump a DB backup:
+```
+cd /Applications/Postgres.app/Contents/MacOS/bin
+./pg_dump <db_name> > path/to/file.name
+./pg_dump python.org > ~/github/python/development.dump
+```
+
+Reload a DB dump from a file:
+```
+./pg_restore -d <db_name> <path-to-file>
+./pg_restore --clean -d python.org ~/github/python/preview.dump
+```
+
+See here for the `--clean` methods http://www.postgresql.org/docs/9.2/static/app-pgrestore.html
+
+These images are linked from /community/logos/.
+
+These images are from the initial Python.org content import from SVN
+

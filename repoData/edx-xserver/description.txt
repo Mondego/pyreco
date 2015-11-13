@@ -1,0 +1,161 @@
+# Notes on setting up AppArmor:
+
+## First, standard unix users, permissions:
+
+```
+$ sudo bash
+$ addgroup sandbox
+$ adduser --disabled-login sandbox --ingroup sandbox
+```
+
+Create a sandbox group.
+
+
+We'll use a copy of python, because AppArmor restricts permissions per-file-path, and we want the normal python for running our server and such. (http://serverfault.com/questions/290828/creating-a-linux-sandbox-with-apparmor)
+
+```
+$ cp /usr/bin/python2.7 /usr/bin/python-sandbox
+```
+
+Let `makeitso` run python as the sandbox user:
+
+```
+$ visudo -f /etc/sudoers.d/01-sandbox
+```
+
+Content:
+```
+makeitso ALL=(sandbox) NOPASSWD:/usr/bin/python-sandbox
+```
+
+
+## Set up some process limits
+
+Enable them:
+
+In `/etc/pam.d/common-session`, add
+
+```
+session required pam_limits.so
+```
+
+reboot.
+
+
+In `/etc/security/limits.d/sandbox.conf`
+
+```
+sandbox       hard   core  0
+sandbox       hard   data  100000
+sandbox       hard   fsize 10000
+sandbox       hard   memlock 10000
+sandbox       hard   nofile 20
+sandbox       hard   rss    10000
+sandbox       hard   stack  100000
+sandbox       hard   cpu    0
+sandbox       hard   nproc  8
+sandbox       hard   as     32000
+sandbox       hard   maxlogins  1
+sandbox       hard   priority  19
+sandbox       hard   locks     4
+sandbox       hard   sigpending  100
+sandbox       hard   msgqueue  100000
+sandbox       hard   nice     19
+```
+
+(these may not be the right params, but it's a start).  NOTE: `cpu` is specified in minutes, so 1 is 60 seconds, but it appears that setting it to zero makes it 1 second.  Also, in bash, one can do e.g. `ulimit -t 5` to set the timeout to 5 seconds.
+
+
+## Set up apparmor itself
+
+```
+apt-get install apparmor-utils
+```
+
+Making a profile for python-sandbox, in `/etc/apparmor.d/usr.bin.python-sandbox`
+
+```
+#include <tunables/global>
+
+/usr/bin/python-sandbox {
+  #include <abstractions/base>
+
+  /usr/bin/python-sandbox mr,
+  /usr/include/python2.7/** r,
+  /usr/local/lib/python2.7/** r,
+  /usr/lib/python2.7** rix,
+
+  /tmp/** rix,
+}
+```
+
+Start enforcing it:
+```
+aa-enforce /usr/bin/python-sandbox
+```
+
+To see the apparmor config:
+
+```
+apparmor_status 
+```
+
+
+TODO:
+- put code checking tests on a branch of 6.00x.  Deploy.
+- Set it up.  Run mean tests.
+
+Misc:
+
+http://comments.gmane.org/gmane.comp.security.apparmor/990
+
+These are tests that check the sandboxing functionality.  *DO NOT RUN THEM* on a dev machine that doesn't have sandboxing set up!  
+
+
+Part of `edX code`__.
+
+__ http://code.edx.org/
+
+xserver
+=======
+
+XServer accepts student code submissions from the LMS and runs the code
+using courseware graders.  This repo does not include the grader code.
+
+The repo currently contains some scripts used for manual testing in
+`tests/test.py`.  These should be run AFTER setting up a sandbox
+environment (see `AppArmor.md` for details).
+
+**Warning**: Do NOT run `nosetests` within the `xserver` directory. 
+The `tests` and `evil_tests` directories contain scripts that go into
+infinite loops to test sandboxing.  `nosetests` will run these while
+looking for test cases.
+
+License
+-------
+
+The code in this repository is licensed under version 3 of the AGPL unless
+otherwise noted.
+
+Please see ``LICENSE.txt`` for details.
+
+How to Contribute
+-----------------
+
+Contributions are very welcome. The easiest way is to fork this repo, and then
+make a pull request from your fork. The first time you make a pull request, you
+may be asked to sign a Contributor Agreement.
+
+Reporting Security Issues
+-------------------------
+
+Please do not report security issues in public. Please email security@edx.org
+
+Mailing List and IRC Channel
+----------------------------
+
+You can discuss this code on the `edx-code Google Group`__ or in the
+``edx-code`` IRC channel on Freenode.
+
+__ https://groups.google.com/forum/#!forum/edx-code
+

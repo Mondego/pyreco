@@ -1,0 +1,60 @@
+project: apnsagent
+license: BSD
+auth   : jeffkit
+
+apnsagent为多个iOS 应用提供集中式的推送服务，她有以下特点：
+- 接入简单，可以同时服务于多个App
+- 无缝支持开发和生产模式的推送
+- 重用TCP连接，同时使用队列的异步发送，API调用效率高
+- 自动忽略失效的Token
+
+apnsagent的程序包括：
+- 服务程序，它部署在你的Server上，仅运行一个实例，同时服务于多个应用
+- WebServer监控服务器，用一个http后台查看系统运行状态
+- 客户端API，应用的后端程序用来请求服务程序发送推送消息
+
+服务程序配置及运行：
+- 安装并运行redis，使用常规安装可快速开始。
+- 首先，你需要有一个目录用于保存推送的证书和密钥(如何获取app的推送证书与密钥请参考apple的文档)，目录结构如下：
+     - apps
+          - com.toraysoft.yiqi  # 某个应用文件夹，以id命名
+               - production        # 生产环境证书
+                    - cer.pem       # 证书
+                    - key.pem      # 密钥，要求去掉passparse的
+               - develop            # 开发环境证书，下同
+                    - cer.pem     
+                    - key.pem
+- 安装apnsagent:
+  cd $apnsagent-home
+  python setup.py install (或使用pip安装)
+- 运行服务
+  apnsagent-server.py config [options]
+  - config 服务器配置文件，下面是一个Sample，看一下就明白
+  [app]
+  app_dir = /Users/jeff/local/apps/
+
+  [redis]
+  host = 127.0.0.1
+  port = 6379
+  db = 0
+  password = ''
+  使用apnsagent-server.py -h 获得更多帮助。
+
+客户端API使用示例：
+from apnsagent.client import PushClient
+client = PushClient(app_key) # 初始化一个推送客户端。
+client.register_token(token,develop=True) # 可选，注册一个Token，不注册默认发到生产队列当中。
+client.push(token,alert,badge,sound,custom) # 发送一条推送消息。
+
+工程依赖
+- PyAPNs 使用此版本:https://github.com/jeffkit/apnsagent
+- redis-py
+- simplejson
+- flask (for 嵌入式监控web)
+
+监控服务：
+系统运行后，可以打开本地的5555端口，查看系统的运行状态：
+- /login 登录界面，输入用户名和密码登录，用户名和密码在constants.py中配置，默认为用户名apns，密码12345
+- /list 查看各个应用的运行情况
+- /detail/<who> <who>为应用的app_key，可以查看该应用的无效token
+

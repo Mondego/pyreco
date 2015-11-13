@@ -1,0 +1,814 @@
+<!--
+Header:      Content-Location: http://example.com/
+Description: item description relative to Content-Location header
+Expect:      not bozo and entries[0]['description'] == u'<a href="http://example.com/relative/uri">click here</a>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;a href="/relative/uri">click here&lt;/a></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description relative to document URI
+Expect:      not bozo and entries[0]['description'] == u'<a href="http://127.0.0.1:8097/relative/uri">click here</a>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;a href="/relative/uri">click here&lt;/a></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description relative to document URI
+Expect:      not bozo and entries[0]['description'] == u'<a href="http://127.0.0.1:8097/relative/uri">click here</a>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;a href=" /relative/uri ">click here&lt;/a></description>
+</item>
+</channel>
+</rss>
+
+<!--
+Description: CDF channel abstract maps to description
+Expect:      not bozo and feed['description'] == u'Example description'
+-->
+<CHANNEL>
+  <ABSTRACT>Example description</ABSTRACT>
+</CHANNEL>
+<!--
+Description: CDF item abstract maps to description
+Expect:      not bozo and entries[0]['description'] == u'Example description'
+-->
+<CHANNEL>
+<ITEM>
+  <ABSTRACT>Example description</ABSTRACT>
+</ITEM>
+</CHANNEL>
+<!--
+Description: channel description
+Expect:      not bozo and feed['description'] == u'Example description'
+-->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+<channel rdf:about="http://example.com/index.rdf">
+  <description>Example description</description>
+</channel>
+</rdf:RDF>
+<!--
+Description: item description
+Expect:      not bozo and entries[0]['description'] == u'Example description'
+-->
+<rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns="http://purl.org/rss/1.0/">
+<channel rdf:about="http://example.com/index.rdf">
+  <items>
+    <rdf:Seq>
+      <rdf:li resource="http://example.com/1"/>
+    </rdf:Seq>
+  </items>
+</channel>
+<item rdf:about="http://example.com/1">
+  <description>Example description</description>
+</item>
+</rdf:RDF>
+<!--
+Description: normal description
+Expect:      not bozo and feed['description'] == u'Example description'
+-->
+<rss version="2.0">
+<channel>
+<description>Example description</description>
+</channel>
+</rss>
+<!--
+Description: escaped markup in description
+Expect:      not bozo and feed['description'] == u'<p>Example description</p>'
+-->
+<rss version="2.0">
+<channel>
+<description>&lt;p&gt;Example description&lt;/p&gt;</description>
+</channel>
+</rss>
+<!--
+Description: channel description is mapped to tagline
+Expect:      not bozo and feed['tagline'] == u'Example description'
+-->
+<rss version="2.0">
+<channel>
+<description>Example description</description>
+</channel>
+</rss>
+<!--
+Description: naked markup in description
+Expect:      not bozo and feed['description'] == u'<p>Example description</p>'
+-->
+<rss version="2.0">
+<channel>
+<description><p>Example description</p></description>
+</channel>
+</rss>
+<!--
+Description: description shorttag and link following
+Expect:      not bozo and feed['description'] == u'' and feed['link'] == u'http://example.com/'
+-->
+<rss version="2.0">
+<channel>
+<description/>
+<link>http://example.com/</link>
+</channel>
+</rss>
+<!--
+Description: image description
+Expect:      not bozo and feed['image']['description'] == u'Available in Netscape RSS 0.91'
+-->
+<rss version="0.91">
+<channel>
+<image>
+<title>Sample image</title>
+<url>http://example.org/url</url>
+<link>http://example.org/link</link>
+<width>80</width>
+<height>15</height>
+<description>Available in Netscape RSS 0.91</description>
+</image>
+</channel>
+</rss>
+<!--
+Description: textInput description
+Expect:      not bozo and feed['textinput']['description'] == u'textInput description'
+-->
+<rss version="2.0">
+<channel>
+<title>Real title</title>
+<description>Real description</description>
+<textInput>
+<title>textInput title</title>
+<description>textInput description</description>
+</textInput>
+</channel>
+</rss>
+<!--
+Description: textInput description does not conflict with channel description
+Expect:      not bozo and feed['description'] == u'Real description'
+-->
+<rss version="2.0">
+<channel>
+<description>Real description</description>
+<textInput>
+<description>textInput description</description>
+</textInput>
+</channel>
+</rss>
+<!--
+Description: item dc:description
+Expect:      not bozo and entries[0]['description'] == u'Example description'
+-->
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+<channel>
+<item>
+<dc:description>Example description</dc:description>
+</item>
+</channel>
+</rss>
+
+<!--
+Description: item description
+Expect:      not bozo and entries[0]['description'] == u'Example description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>Example description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item contains both description and summary elements
+Expect:      not bozo and entries[0]['description'] == u'Example description' and entries[0]['content'][0]['value'] == u'Example summary'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>Example description</description>
+<summary>Example summary</summary>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains both <br/> and <br />
+Expect:      not bozo and entries[0]['description'] == u'article title<br /><br /> article byline<br /><br />text of article'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description><![CDATA[article title<br /><br /> article byline<br/><br/>text of article]]></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description ends with <br />
+Expect:      not bozo and entries[0]['description'] == u'<b>x</b><br />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<link>http://www.example.com/</link>
+<description>&lt;b&gt;x&lt;/b&gt;&lt;br/&gt;</description>
+</item>
+</channel>
+</rss>
+
+<!--
+Description: item description contains <code> with <br />
+Expect:      not bozo and entries[0]['description'] == u'<code>&lt;br /></code>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<link>http://www.example.com/</link>
+<description><![CDATA[<code>&lt;br /></code>]]></description>
+</item>
+</channel>
+</rss>
+
+<!--
+Description: escaped markup in item description
+Expect:      not bozo and entries[0]['description'] == u'<p>Example description</p>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;p&gt;Example description&lt;/p&gt;</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description is mapped to summary
+Expect:      not bozo and entries[0]['summary'] == u'Example description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>Example description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: naked markup in item description
+Expect:      not bozo and entries[0]['description'] == u'<p>Example description</p>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description><p>Example description</p></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description is not a DOCTYPE (but HTML parser thinks it is)
+Expect:      not bozo and entries[0]['description'] == """&lt;!' <a href="foo">"""
+-->
+<rss>
+<item>
+<description>&lt;!' &lt;a href="foo"&gt;</description>
+</item>
+</rss>
+<!--
+Description: item description is not a DOCTYPE (but HTML parser thinks it is)
+Expect:      not bozo and entries[0]['description'] == "<!DOCTYPE"
+-->
+<rss>
+<item>
+<description><![CDATA[ <!DOCTYPE ]]></description>
+</item>
+</rss>
+
+<!--
+Description: item contains both summary and description elements
+Expect:      not bozo and entries[0]['summary'] == u'Example summary' and entries[0]['content'][0]['value'] == u'Example description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<summary>Example summary</summary>
+<description>Example description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: entry summary contains script (maps to description)
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<feed version="0.3" xmlns="http://purl.org/atom/ns#">
+<entry>
+<summary type="text/html" mode="escaped">safe&lt;script type="text/javascript">location.href='http:/'+'/example.com/';&lt;/script> description</summary>
+</entry>
+</feed>
+<!--
+Description: feed tagline contains script (maps to description)
+Expect:      not bozo and feed['description'] == u'safe description'
+-->
+<feed version="0.3" xmlns="http://purl.org/atom/ns#">
+<tagline type="text/html" mode="escaped">safe&lt;script type="text/javascript">location.href='http:/'+'/example.com/';&lt;/script> description</tagline>
+</feed>
+<!--
+Description: item description contains applet
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;applet code="foo.class" codebase="http://example.com/">&lt;/applet> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains blink
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;blink>safe&lt;/blink> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description is crazy
+Expect:      not bozo and entries[0]['description'] == u'Crazy HTML -' + u'- Can Your Regex Parse This?\n\n\n\n<!-' + u'- <script> -' + u'->\n\n<!-' + u'- \n\t<script> \n-' + u'->\n\n\n\nfunction executeMe()\n{\n\n\n\n\n/* \n<h1>Did The Javascript Execute?</h1>\n<div>\nI will execute here, too, if you mouse over me\n</div>'
+-->
+<rss version="2.0">
+<channel>
+<title>Crazy RSS</title>
+<description>Contains unsafe script</description>
+<link>http://crazy.example.com/</link>
+<language>en</language>
+<item>
+<description>
+&lt;!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+&lt;html xmlns="http://www.w3.org/1999/xhtml">
+&lt;head>
+&lt;title>Crazy HTML -- Can Your Regex Parse This?&lt;/title>
+
+&lt;/head>
+&lt;body    notRealAttribute="value"onload="executeMe();"foo="bar"
+
+>
+&lt;!-- &lt;script> -->
+
+&lt;!-- 
+	&lt;script> 
+-->
+
+&lt;/script>
+
+
+&lt;script
+
+
+>
+
+function executeMe()
+{
+
+
+
+
+/* &lt;script> 
+function am_i_javascript()
+{
+	var str = "Some innocuously commented out stuff";
+}
+&lt; /script>
+*/
+
+	
+	
+	
+	
+	
+	
+	
+	
+	alert("Executed");
+}
+
+                                   &lt;/script
+
+
+
+>
+&lt;h1>Did The Javascript Execute?&lt;/h1>
+&lt;div notRealAttribute="value
+"onmouseover="
+executeMe();
+"foo="bar">
+I will execute here, too, if you mouse over me
+&lt;/div>
+
+&lt;/body>
+
+&lt;/html>
+</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains embed
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;embed src="http://example.com/"> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains frame
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;frameset rows="*">&lt;frame src="http://example.com/">&lt;/frameset> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains iframe
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;iframe src="http://example.com/"/> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains link
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;link rel="stylesheet" type="text/css" href="http://example.com/evil.css"> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains meta
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;meta http-equiv="Refresh" content="0; URL=http://example.com/"> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains object
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;object classid="clsid:C932BA85-4374-101B-A56C-00AA003668DC"> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onabort
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onabort="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onblur
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onblur="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onchange
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onchange="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onclick
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onclick="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains ondblclick
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" ondblclick="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onerror
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onerror="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onfocus
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onfocus="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onkeydown
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onkeydown="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onkeypress
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onkeypress="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onkeyup
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onkeyup="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onload
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onload="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onmousedown
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onmousedown="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onmouseout
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onmouseout="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onmouseover
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onmouseover="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onmouseup
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onmouseup="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onreset
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onreset="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onresize
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onresize="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onsubmit
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onsubmit="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains onunload
+Expect:      not bozo and entries[0]['description'] == u'<img src="http://www.ragingplatypus.com/i/cam-full.jpg" />'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;img src="http://www.ragingplatypus.com/i/cam-full.jpg" onunload="location.href='http://www.ragingplatypus.com/';" /></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains script
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;script type="text/javascript">location.href='http:/'+'/example.com/';&lt;/script> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains script
+Expect:      not bozo and entries[0]['description'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description><![CDATA[safe<script type="text/javascript">location.href='http:/'+'/example.com/';</script> description]]></description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains script (maps to content)
+Expect:      not bozo and entries[0]['summary'] == u'safe description'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>safe&lt;script type="text/javascript">location.href='http:/'+'/example.com/';&lt;/script> description</description>
+</item>
+</channel>
+</rss>
+<!--
+Description: item description contains style
+Expect:      not bozo and entries[0]['description'] == u'<a href="http://www.ragingplatypus.com/" style="display: block; width: 100%; height: 100%; background-color: black; background-x: center; background-y: center;">never trust your upstream platypus</a>'
+-->
+<rss version="2.0">
+<channel>
+<item>
+<description>&lt;a href="http://www.ragingplatypus.com/" style="display:block; position:absolute; left:0; top:0; width:100%; height:100%; z-index:1; background-color:black; background-image:url(http://www.ragingplatypus.com/i/cam-full.jpg); background-x:center; background-y:center; background-repeat:repeat;">never trust your upstream platypus&lt;/a></description>
+</item>
+</channel>
+</rss>
+feedparser - Parse Atom and RSS feeds in Python.
+
+Copyright (c) 2010-2013 Kurt McKee <contactme@kurtmckee.org>
+Copyright (c) 2002-2008 Mark Pilgrim
+
+feedparser is open source. See the LICENSE file for more information.
+
+
+Installation
+============
+
+Feedparser can be installed using distutils or setuptools by running:
+
+    $ python setup.py install
+
+If you're using Python 3, feedparser will automatically be updated by the 2to3
+tool; installation should be seamless across Python 2 and Python 3.
+
+There's one caveat, however: sgmllib.py was deprecated in Python 2.6 and is no
+longer included in the Python 3 standard library. Because feedparser currently
+relies on sgmllib.py to handle illformed feeds (among other things), it's a
+useful library to have installed.
+
+If your feedparser download included a copy of sgmllib.py, it's probably called
+sgmllib3.py, and you can simply rename the file to sgmllib.py. It will not be
+automatically installed using the command above, so you will have to manually
+copy it to somewhere in your Python path.
+
+If a copy of sgmllib.py was not included in your feedparser download, you can
+grab a copy from the Python 2 standard library (preferably from the Python 2.7
+series) and run the 2to3 tool on it:
+
+    $ 2to3 -w sgmllib.py
+
+If you copied sgmllib.py from a Python 2.6 or 2.7 installation you'll
+additionally need to edit the resulting file to remove the `warnpy3k` lines at
+the top of the file. There should be four lines at the top of the file that you
+can delete.
+
+Because sgmllib.py is a part of the Python codebase, it's licensed under the
+Python Software Foundation License. You can find a copy of that license at
+python.org:
+
+    http://docs.python.org/license.html
+
+
+Documentation
+=============
+
+The feedparser documentation is available on the web at:
+
+    http://packages.python.org/feedparser
+
+It is also included in its source format, ReST, in the docs/ directory. To
+build the documentation you'll need the Sphinx package, which is available at:
+
+    http://sphinx.pocoo.org/
+
+You can then build HTML pages using a command similar to:
+
+    $ sphinx-build -b html docs/ fpdocs
+
+This will produce HTML documentation in the fpdocs/ directory.
+
+
+Testing
+=======
+
+Feedparser has an extensive test suite that has been growing for a decade. If
+you'd like to run the tests yourself, you can run the following command:
+
+    $ python feedparsertest.py
+
+This will spawn an HTTP server that will listen on port 8097. The tests will
+fail if that port is in use.
+

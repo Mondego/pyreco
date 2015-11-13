@@ -1,0 +1,366 @@
+Development Checklist
+===================
+
+When adding a feature to the API, check you have done all necessary steps from the following:
+
+  * updated docstrings for any new functions, classes or modules
+  * updated docstrings for any functions where you changed the parameter list
+  * written unit tests
+  * written loopback tests
+  * published the version of quick2wire-gpio-admin that the API relies upon to dist.quick2wire.com
+  * updated the getting-started documentation.
+
+If you changed gpio-admin, also:
+
+  * updated the usage message
+  * updated the man page
+
+ 
+
+Getting Started
+---------------
+
+ 1. Ensure Python 3 is installed:
+ 
+        sudo apt-get install python3
+
+ 2. Make a Python virtual environment for developing the API itself
+
+        make env
+
+
+Running Tests
+-------------
+
+To run all the tests use the command:
+
+    make check
+
+This will run both unit and loopback tests. To run the loopback tests you must have the appropriate hardware devices connected to the Pi and connected into the expected loopback configuration.
+
+You can run loopback tests for a subset of devices (e.g. if you only have some connected) by running make with the `devices` variable set to a space-separated list of devices.  For example:
+
+    make check devices="mcp23017 gpio"
+
+The devices are:
+
+ * gpio (used to test the GPIO API and the Quick2Wire breakout board via the Pi's SoC GPIO)
+ * mcp23017 (used to test the MCP23017 expander board)
+ * pcf8591 (used to test the PCF8591 AD/DA board)
+
+
+
+Running with a different version of Python
+------------------------------------------
+
+If you want to use a different version of Python, ensure it is installed on the Pi.  Then make a virtual environment for that version.  For example:
+
+    make env python=2.7
+
+Then specify that python version when running make:
+
+    make check python=2.7
+
+
+Getting Started With GPIO
+=========================
+
+
+Before You Start Coding...
+--------------------------
+
+Ensure you have installed gpio-admin and are in the gpio group.  Run
+the `groups` command to list your group membership. For example:
+
+    $ groups
+    pi adm dialout cdrom sudo audio video plugdev games users netdev input indiecity 
+
+If you don't see `gpio` in the list, you can add yourself to the gpio group with the command:
+
+    sudo adduser $USER gpio
+
+You must then log out and in again for Linux to apply the change in
+group membership.
+
+    $ groups
+    pi adm dialout cdrom sudo audio video plugdev games users netdev input indiecity gpio 
+
+
+Now Let's Write Some Code!
+--------------------------
+
+The GPIO pins are controlled by Pin objects, and those Pin objects are
+managed by a "pin bank".  The simplest pin bank to use is called
+`pins` and gives access to the pins labelled P0 to P7 on the
+Quick2Wire interface board (or named GPIO0 to GPIO7 on the Raspberry
+Pi's header number 1).  There's also a bank called pi_header_1 that
+gives access to all the header pins, but we don't need that for this
+example.
+
+Python programs must import the `pins` pin bank from the
+`quick2wire.gpio` module, along with constants to configure the pin:
+
+    from quick2wire.gpio import pins, In, Out
+
+Then you can get a Pin by calling the pin bank's `pin` method. This
+takes two arguments: the pin number and whether the pin is to be used
+for input or output.
+
+    in_pin = pins.pin(0, direction=In)
+    out_pin = pins.pin(1, direction=Out)
+
+You must open a pin before you can read or write its value and close
+the pin when you no longer need it.  The most convenient way to do
+this is to use Python's `with` statement, which will open the pins at
+the start of the statement and close them when the body of the
+statement has finished running, even if the user kills the program or
+failure makes the code throw an exception.
+    
+    with in_pin, out_pin:
+        out_pin.value = 1
+        print(in_pin.value)
+
+A pin has a value of 1 when high, a value of 0 when low.
+
+Putting it all together into a single program:
+
+    from quick2wire.gpio import pins, In, Out
+    
+    in_pin = pins.pin(0, direction=In)
+    out_pin = pins.pin(1, direction=Out)
+    
+    with in_pin, out_pin:
+        out_pin.value = 1
+        print(in_pin.value)
+
+
+Here's a slightly more complicated example that blinks an LED attached to pin 1. This will
+loop forever until the user stops it with a Control-C.
+
+    from time import sleep
+    from quick2wire.gpio import pins, Out
+    
+    with pins.pin(1, direction=Out) as pin:
+        while True:
+            pin.value = 1 - pin.value
+            sleep(1)
+
+Getting Started With I2C
+========================
+
+
+Warning:
+-------
+
+[Revision 2.0](http://www.raspberrypi.org/archives/1929) of the Raspberry Pi swaps the connections to I2C buses 0 and 1.
+
+With a revision 2.0 board, if you connect an I2C device to the appropriate header,
+you will see it when you run `i2cdetect 1` instead of `i2cdetect 0`.
+
+The library now auto-detects whether you are running version 1.0 or 2.0 of the board, so the same code will work on
+either.
+
+The example:
+------------
+
+In this example, we're going to write a program that reads the state
+of the GPIO pins of an MCP23008 port expander connected to the
+Raspberry Pi's I2C bus.
+
+Before You Start Coding...
+--------------------------
+
+By default, i2c is disabled in the raspbian kernel. To enable it, and check out your installation, follow [these
+instructions](http://quick2wire.com/articles/physical-python-part-1/)
+
+Ensure you are in the i2c group.  Run the `groups` command to list
+your group membership. For example:
+
+    $ groups
+    nat fuse i2c gpio
+
+You can add yourself to the i2c group with the command:
+
+    sudo adduser $USER i2c
+
+You must then log out and in again for Linux to apply the change in
+group membership.
+
+Check the MCP23008 is connected to your I2C bus and its address is
+configured as expected.  We can see the device on the bus by running
+the `i2cdetect` command. Remember to replace 0 with 1 if you hav a revision 2 board.
+
+    $ i2cdetect 0
+    WARNING! This program can confuse your I2C bus, cause data loss and worse!
+    I will probe file /dev/i2c-0.
+    I will probe address range 0x03-0x77.
+    Continue? [Y/n] Y
+         0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+    00:          -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    20: 20 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    40: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+    70: -- -- -- -- -- -- -- --                         
+
+The default address of the MCP23008 is 0x20, but it can be changed
+(read the chip's data sheet for information about that).  If the chip
+appears at a different address, change the value of the address
+variable in the code below.
+
+Now Let's Write Some Code!
+--------------------------
+
+To use the Quick2Wire I2C API we must import the quick2wire.i2c
+module.  We'll import it with a shorter name for convenience:
+
+    import quick2wire.i2c as i2c
+
+Let's define variables to represent attributes of the MCP23008:
+
+    address = 0x20
+    iodir_register = 0x00
+    gpio_register = 0x09
+
+To communicate with the chip we need to create an I2CMaster object.  The
+I2CMaster class supports the context manager protocol, meaning we can use
+the `with` statement to automatically close the bus when the user
+quits our program by pressing Control-C.
+
+    with i2c.I2CMaster() as bus:
+        ...
+
+Now we can communicate with the chip.  First we'll set all the GPIO
+pins be inputs by writing to the chip's IODIR register. Setting a bit
+in the register to 1 switches the corresponding pin to be an input, so
+setting the byte to 255 (or 0xFF in hex) switches all pins to input.
+To write to the register we perform an I2C transaction containing a
+single write operation that writes two bytes: the register to
+write to and the value of the register.
+
+        bus.transaction(
+            i2c.writing_bytes(address, iodir_register, 0xFF))
+
+Then we'll read the value of the chip's GPIO register by performing a
+transaction containing two operations: a write operation that tells
+the chip which register we want to read, and a read operation that
+reads a single byte from that register.
+
+        read_results = bus.transaction(
+            i2c.writing_bytes(address, gpio_register),
+            i2c.reading(address, 1))
+
+The I2CMaster' transaction method returns a list of byte sequences, one
+for each read operation performed.  Each result is an array of bytes
+read from the device.  So the state of the GPIO pins is the first and
+only byte of the first and only byte sequence returned.
+
+        gpio_state = read_results[0][0]
+
+We finally print that in hexadecimal:
+
+        print("%02x" % gpio_state)
+
+Putting it all together:
+
+    #!/usr/bin/env python3
+    
+    import quick2wire.i2c as i2c
+    
+    address = 0x20
+    iodir_register = 0x00
+    gpio_register = 0x09
+    
+    with i2c.I2CMaster() as bus:    
+        bus.transaction(
+            i2c.writing_bytes(address, iodir_register, 0xFF))
+        
+        read_results = bus.transaction(
+            i2c.writing_bytes(address, gpio_register),
+            i2c.reading(address, 1))
+        
+        gpio_state = read_results[0][0]
+        
+        print("%02x" % gpio_state)
+
+You may use this library under the terms of either the MIT License or the GNU Lesser General Public License (LGPL) Version 3
+
+The MIT License is recommended for most projects. It is simple and easy to understand and it places almost no restrictions on what you can do with the library.
+
+If the LGPL suits your project better you are also free to use the library under that license.
+
+You don’t have to do anything special to choose one license or the other and you don’t have to notify anyone which license you are using. You are free to use this library in commercial projects as long as the copyright header is left intact.
+
+Licenses
+
+[MIT License](MIT_LICENSE.txt) ([More Information](http://en.wikipedia.org/wiki/MIT_License))
+
+[LGPL](LGPL.txt) ([More Information](http://en.wikipedia.org/wiki/GNU_Lesser_General_Public_License))
+
+Since the LGPL extends the [GPL](GPL.txt), that license has been also included in this distribution.
+Quick2Wire Python API
+=====================
+
+A Python library for controlling the hardware attached to the
+Raspberry Pi's header pins, [without running as the root user](http://quick2wire.com/articles/working-safely-with-your-pi/).
+
+
+Dependencies
+------------
+
+The library depends on Python 3. To install Python 3 run this command from an administrator account, such as `pi`:
+
+    sudo apt-get install python3
+
+You'll also find the python tools
+[virtualenv](http://www.virtualenv.org/en/latest/index.html) and
+[pip](http://www.pip-installer.org/en/latest/index.html) useful:
+
+    sudo apt-get install python-pip
+    sudo apt-get install python-virtualenv
+
+
+The GPIO API depends on Quick2Wire GPIO Admin.  To install Quick2Wire
+GPIO Admin, follow the instructions at
+http://github.com/quick2wire/quick2wire-gpio-admin
+
+The I2C and SPI API depend on support in the kernel. Recent raspbian kernels should be fine.
+
+
+Installation
+------------
+
+The library is currently under active development, so we do not
+recommend installing it into the system-wide Python libraries.
+Instead, you can either use it without installation or install it into
+an isolated Python development environment created with
+[`virtualenv`](http://www.virtualenv.org/).
+
+To use the library without installation, add the full path of the
+source tree to the `PYTHONPATH` environment variable. For example:
+
+    export QUICK2WIRE_API_HOME=[the directory cloned from Git or unpacked from the source archive]
+    export PYTHONPATH=$PYTHONPATH:$QUICK2WIRE_API_HOME
+
+If you're using virtualenv, make your virtualenv
+[active](http://www.virtualenv.org/en/latest/index.html#activate-script),
+and then run:
+
+    python3 setup.py install
+
+Getting Started
+---------------
+
+ * [Getting Started with GPIO](http://github.com/quick2wire/quick2wire-python-api/blob/master/doc/getting-started-with-gpio.md)
+ * [Getting Started with I2C](http://github.com/quick2wire/quick2wire-python-api/blob/master/doc/getting-started-with-i2c.md)
+
+
+Help and Support
+----------------
+
+There is a [discussion group](https://groups.google.com/group/quick2wire-users) in which you can ask questions about the library.
+
+If you have discovered a bug or would like to request a feature, raise an issue in the [issue tracker](https://github.com/quick2wire/quick2wire-python-api/issues).
+

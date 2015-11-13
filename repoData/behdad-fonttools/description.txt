@@ -1,0 +1,181 @@
+This folder is a subpackage of ttLib. Each module here is a 
+specialized TT/OT table converter: they can convert raw data 
+to Python objects and vice versa. Usually you don't need to 
+use the modules directly: they are imported and used 
+automatically when needed by ttLib.
+
+If you are writing you own table converter the following is 
+important.
+
+The modules here have pretty strange names: this is due to the 
+fact that we need to map TT table tags (which are case sensitive) 
+to filenames (which on Mac and Win aren't case sensitive) as well 
+as to Python identifiers. The latter means it can only contain 
+[A-Za-z0-9_] and cannot start with a number. 
+
+ttLib provides functions to expand a tag into the format used here:
+
+>>> from fontTools import ttLib
+>>> ttLib.tagToIdentifier("FOO ")
+'F_O_O_'
+>>> ttLib.tagToIdentifier("cvt ")
+'_c_v_t'
+>>> ttLib.tagToIdentifier("OS/2")
+'O_S_2f_2'
+>>> ttLib.tagToIdentifier("glyf")
+'_g_l_y_f'
+>>> 
+
+And vice versa:
+
+>>> ttLib.identifierToTag("F_O_O_")
+'FOO '
+>>> ttLib.identifierToTag("_c_v_t")
+'cvt '
+>>> ttLib.identifierToTag("O_S_2f_2")
+'OS/2'
+>>> ttLib.identifierToTag("_g_l_y_f")
+'glyf'
+>>> 
+
+Eg. the 'glyf' table converter lives in a Python file called:
+
+	_g_l_y_f.py
+
+The converter itself is a class, named "table_" + expandedtag. Eg:
+
+	class table__g_l_y_f:
+		etc.
+
+Note that if you _do_ need to use such modules or classes manually, 
+there are two convenient API functions that let you find them by tag:
+
+>>> ttLib.getTableModule('glyf')
+<module 'ttLib.tables._g_l_y_f'>
+>>> ttLib.getTableClass('glyf')
+<class ttLib.tables._g_l_y_f.table__g_l_y_f at 645f400>
+>>> 
+
+You must subclass from DefaultTable.DefaultTable. It provides some default
+behavior, as well as a constructor method (__init__) that you don't need to 
+override.
+
+Your converter should minimally provide two methods:
+
+class table_F_O_O_(DefaultTable.DefaultTable): # converter for table 'FOO '
+	
+	def decompile(self, data, ttFont):
+		# 'data' is the raw table data. Unpack it into a
+		# Python data structure.
+		# 'ttFont' is a ttLib.TTfile instance, enabling you to
+		# refer to other tables. Do ***not*** keep a reference to
+		# it: it will cause a circular reference (ttFont saves 
+		# a reference to us), and that means we'll be leaking 
+		# memory. If you need to use it in other methods, just 
+		# pass it around as a method argument.
+	
+	def compile(self, ttFont):
+		# Return the raw data, as converted from the Python
+		# data structure. 
+		# Again, 'ttFont' is there so you can access other tables.
+		# Same warning applies.
+
+If you want to support TTX import/export as well, you need to provide two
+additional methods:
+
+	def toXML(self, writer, ttFont):
+		# XXX
+	
+	def fromXML(self, (name, attrs, content), ttFont):
+		# XXX
+
+
+### What it is ?
+
+Quoting from [TTX/FontTools Sourceforge Project](http://sourceforge.net/projects/fonttools/) 
+> a tool to convert OpenType and TrueType fonts to and from XML. FontTools is a library for manipulating fonts, written in Python. It supports TrueType, OpenType, AFM and to an extent Type 1 and some Mac-specific formats.   
+
+### Quick start
+
+```python setup.py install```
+
+From your command line type the above command to get fontools installed on your system.
+
+### Installation
+
+See [install.txt](https://github.com/behdad/fonttools/blob/master/Doc/install.txt) in the 'Doc' subdirectory for instructions on how to build and install TTX/FontTools from the sources.
+
+
+### Documentation
+
+#### What is TTX ?
+
+See [documentation.html](https://github.com/behdad/fonttools/blob/master/Doc/documentation.html) in the "Doc" subdirectory for TTX usage instructions and information about the TTX file format.
+
+### Community
+* https://groups.google.com/d/forum/fonttools
+
+### License
+
+See "LICENSE.txt" for licensing information.
+
+
+
+Have fun!
+
+Just van Rossum <just@letterror.com>
+
+
+TTX 2.0 for Windows
+-------------------------
+
+Creating a Windows (9x/ME/NT/2000/XP) setup executable for TTX
+This file has been created by Adam Twardoch <list.adam@twardoch.com>
+December 14, 2004
+
+Pre-compiled versions are hosted at http://www.font.org/software/ttx/
+
+APPROACH I: Using py2exe and InnoSetup
+
+1. Install Python 2.3 for Windows: http://www.python.org/
+2. Install py2exe: http://starship.python.net/crew/theller/py2exe/
+3. Install InnoSetup 4: http://www.jrsoftware.org/
+4. Download the latest released source code of TTX/FontTools at
+   http://sourceforge.net/projects/fonttools/
+   Or alternatively grab the sources from the VCS:
+   http://fonttools.sourceforge.net/
+5. Unzip the source code of TTX/FontTools into a folder.
+6. In the folder where you unzipped TTX/FontTools, type:
+   python setup.py py2exe --icon Windows\ttx.ico --packages encodings
+7. Run Inno Setup and open Windows\fonttools-win-setup.iss
+8. In Inno Setup, select File/Compile, then Run/Run.
+
+APPROACH II: Using McMillan Installer and InnoSetup
+
+1. Install Python 2.3 for Windows: http://www.python.org/
+2. Download and unpack McMillan installer: 
+   http://py.vaults.ca/apyllo2.py/22208368
+   and put the Installer folder into your Python folder, 
+   e.g. C:\Python23\Installer
+3. Install InnoSetup 4: http://www.jrsoftware.org/
+4. Install Microsoft Visual C++ Toolkit 2003: 
+   http://msdn.microsoft.com/visualc/vctoolkit2003/
+5. Put UPX somewhere within your PATH: http://upx.sourceforge.net/
+6. Download the latest released source code of TTX/FontTools at
+   http://sourceforge.net/projects/fonttools/
+   Or alternatively grab the sources from the VCS:
+   http://fonttools.sourceforge.net/
+7. Unzip the source code of TTX/FontTools into a folder.
+8. In the folder where you unzipped TTX/FontTools, type:
+   python setup.py install -f 
+9. Edit mcmillan.bat so the paths in the file correspond to the paths in your system, 
+   and run it. 
+10.Run Inno Setup and open Windows\fonttools-win-setup.iss
+11.In Inno Setup, select File/Compile, then Run/Run.
+
+The distributable TTX Windows setup executable has been saved
+in the Output subfolder of the FontTools\Windows folder.
+
+For information on running TTX on Windows, see fonttools-win-setup.txt in this folder. 
+
+

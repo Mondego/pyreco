@@ -1,0 +1,1523 @@
+<a class="github" href="views.py"></a>
+
+# Base Views
+
+The base views provide a simple set of generic views for working with Django querysets and model instances.
+
+They replicate the functionality of Django's existing `TemplateView` and `FormView` but present a simpler API and implementation.  Django's standard `RedirectView` is also included for completeness.
+
+	View --+-------------------- RedirectView
+	       |
+	       +-- GenericView --+-- TemplateView
+	                         |
+	                         +-- FormView
+
+---
+
+## GenericView
+
+The `GenericView` class is used as the base class for both `TemplateView` and `FormView`, and provides methods allowing for a default set of simple template and form actions.
+
+### Attributes
+
+#### form_class
+
+The form class that should be used for edit views.  If you are using `FormView`, or your own custom view that calls `get_form()`, then you should either set this attribute, or override one of the form generation methods.  Defaults to `None`.
+
+#### template_name
+
+A string representing the template name that should be used when rendering the response content.  You should either set this attribute or override one of the methods controlling how responses are rendered.  Defaults to `None`.
+
+### Methods
+
+#### get_form_class(self)
+
+This method returns the class that should be used for generating forms.
+
+The default behavior for this method is:
+
+* If `form_class` is specified on the view then use that.
+* Otherwise raise a configuration error.
+
+You can customize how the form class for the view is determined by overriding this method.  For example:
+
+    def get_form_class(self):
+        is self.request.user.is_staff():
+            return AccountForm
+        return BasicAccountForm
+
+#### get_form(self, data=None, files=None, **kwargs)
+
+The method instantiates and returns the form instance that should be used for the view.
+
+By default this method simply calls `get_form_class()`, and then instantiates the class with the parameters that have been passed to it.
+
+You can customize this method in order to supply additional arguments to the form class, add initial data, or other customizations.  For example:
+
+    def get_form(self, data=None, files=None, **kwargs):
+        kwargs['user'] = self.request.user
+        return AccountForm(data, files, **kwargs) 
+
+#### get_context_data(self, **kwargs)
+
+This method takes a set of keyword arguments supplied by the view and returns a dictionary to use as context when rendering the response template.
+
+The default behavior of this method is to return a dictionary populated with the following keys:
+
+* `view` - A reference to the view instance.
+* Any additional keyword arguments supplied to the method.  In particular, `FormView` includes the `form` context key. 
+
+You can override the method either to add additional context data:
+
+    def get_context_data(self, **kwargs):
+		context = super(MyView, self).get_context_data(**kwargs)
+        context['is_admin'] = self.request.user.is_admin
+        return context
+
+Or to specify the complete set of context data explicitly:
+
+    def get_context_data(self, **kwargs):
+        kwargs['view'] = self
+        kwargs['is_admin'] = self.request.user.is_admin
+        kwargs['account'] = self.object
+        return kwargs
+
+#### get_template_names(self)
+
+Returns a list of strings that should be used for determining the template name when rendering the response.
+
+The default behavior for this method is:
+
+* If `template_name` is specified on the view then use that.
+* Otherwise raise a configuration error.
+
+#### render_to_response(self, context)
+
+Generates the response that should be returned by the view.  Takes a single argument which should be a dictionary of context data to use when rendering the response template.
+
+The default behaviour of this method is to return an instance of Django's standard `TemplateResponse`.
+
+You can override this method if you need to customize how the response is generated.  For example, to return a response with the `text/plain` content type instead of the standard `text/html`, you could write something like this:
+
+    def render_to_response(context):
+    	template = self.get_template_names()
+        return TemplateResponse(self.request, template, context, content_type='text/plain')
+
+You can also override this class in order to use a subclass of Django's standard `HttpResponse` or `TemplateResponse`.  For example, if you had a written a custom `JSONResponse` class, you might override the method like this:
+
+    def render_to_response(context):
+        return JSONResponse(self.request, context)
+
+---
+
+## RedirectView
+
+For completeness, Django's standard `RedirectView` is included in the `django-vanilla-views` package.  The class does not have any implementation or API differences from Django's implementation.
+
+You should [refer to the Django documentation][redirect-view-docs] for further information.
+
+---
+
+## TemplateView
+
+A page which simply returns a template response.
+
+The context passed to the response template will be:
+
+* `view` - The view instance.
+
+---
+
+## FormView
+
+A page which allows the user to preview and submit a form.
+
+The context passed to the response template will be:
+
+* `view` - The view instance.
+* `form` - The form instance.
+
+#### success_url
+
+The URL that should be used when redirecting after a successful form submission.
+
+#### form_valid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to return a redirect response as determined by calling `get_success_url()`.
+
+#### form_invalid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to return a `TemplateResponse` which renders the form errors.
+
+
+#### get_success_url()
+
+Returns the URL that should be used when redirecting after a successful form submission.  Defaults to returning the value of the `success_url` attribute.
+
+**Note**: If you are customizing the view behavior, we'd typically recommend overriding the `form_valid()` method directly rather than overriding `get_success_url()`, as it will result in simpler, more obvious flow control.
+
+[redirect-view-docs]: https://docs.djangoproject.com/en/dev/ref/class-based-views/base/#redirectview
+
+<a class="github" href="model_views.py"></a>
+
+# Model Views
+
+The model views provide a simple set of generic views for working with Django querysets and model instances.
+
+They replicate the functionality of Django's existing `ListView`, `DetailView`, `CreateView`, `UpdateView` and `DeleteView`, but present a simpler API and implementation.
+
+	View -- GenericModelView --+-- ListView
+	                           |
+	                           +-- DetailView
+	                           |
+	                           +-- CreateView
+	                           |
+	                           +-- UpdateView
+	                           |
+	                           +-- DeleteView
+
+---
+
+## GenericModelView
+
+The `GenericModelView` class is used as the base class for all of the model views, and provides methods allowing for a default set of viewing, listing and editing actions.
+
+### Attributes
+
+#### model
+
+The model class that the view operates on.  This is used as a shortcut to provide default behavior for the view.  The default behaviour may be overridden by setting more specific attributes, or by overriding methods on the view.
+
+#### queryset
+
+The base queryset that should be used for list views, or used when performing object lookups for detail views.  If set to `None` then a default queryset will be used based on the `model` attribute.  Defaults to `None`.
+
+#### lookup_field
+
+The name of the model field that should be used for object lookups.  Defaults to `'pk'`.
+
+#### lookup_url_kwarg
+
+The name of the URLconf keyword argument that should be used for object lookups.  If unset this defaults to the same value as `lookup_field`.
+
+#### form_class
+
+The form class that should be used for create or update views.  If set to `None` then a default form class will be used based on the `model` and `fields` attributes.  Defaults to `None`.
+
+#### fields
+
+A list of strings, representing the fields that should be displayed by the form.  This may be used along with the `model` attribute, as a shortcut to setting the `form_class` attribute.  Defaults to `None`.
+
+#### paginate_by
+
+The number of items to return in each page.  Set to a positive integer value to enable pagination.  If set to `None` then pagination is disabled.  Defaults to `None`.
+
+#### page_kwarg
+
+The name of the URL query parameter that is used to select the active page in a paginated list.  For example: `http://example.com/widget_list?page=6`.  Defaults to `'page'`.
+
+#### template_name
+
+A string representing the template name that should be used when rendering the response content.  If set to `None`, then the template name will be automatically generated based on the `model` attribute.  Defaults to `None`.
+
+#### template_name_suffix
+
+A suffix that should be appended when automatically generating template names based on the `model` attribute.  Defaults to `None`, but is set to an appropriate value of either `'_detail'`, `'_list'` or `'_form'` by each of the model view subclasses.
+
+#### context_object_name
+
+A key to use when passing the queryset or instance as context to the response.  If set to `None` then the context object name will be automatically generated based on the `model` attribute.  Defaults to `None`.
+
+---
+
+### Methods
+
+#### get_queryset(self)
+
+This method should return a queryset representing the set of instances that the view should operate on.
+
+The default behavior of this method is:
+
+* If the `queryset` attribute is set, then return that.
+* Otherwise fallback to returning the default queryset for the model class as determined by the `model` atttibute.
+* If neither the `queryset` or `model` attributes are set then a configuration error will be raised.
+
+You can customize how the querysets for the view are determined by overriding this method.  For example:
+
+    def get_queryset(self):
+        """
+        Custom queryset that only returns book instances owned by the logged-in user.
+        """
+        return Book.objects.filter(owner=self.request.user)
+
+#### get_object(self)
+
+This method should return a single model instance that the view should operate on, and is used by `DetailView`, `UpdateView` and `DeleteView`.
+
+The default behavior for this method is:
+
+* Call `get_queryset()` to determine the base queryset to use for the lookup.
+* Perform the object lookup based on the `lookup_field` and  `lookup_url_kwarg` attributes.
+* Raise an `HTTP 404 Not Found` response if the instance does not exist.
+
+You can perform custom object lookups by overriding this method.  For example:
+
+    def get_object(self):
+        """
+        Custom object lookup that returns an instance based on both the
+        'account' and 'slug' as provided in the URL keyword arguments.
+        """
+        queryset = self.get_queryset()
+        account = self.kwargs['account']
+        slug = self.kwargs['slug']
+        return get_object_or_404(queryset, account=account, slug=slug)
+
+#### get_form_class(self)
+
+This method returns the class that should be used for generating forms.
+
+The default behavior of this method is:
+
+* If the `form_class` attribute is set, then return that.
+* Otherwise fallback to returning an automatically generated form class based on the `model` attribute.
+* If neither the `form_class` or `model` attributes are set then a configuration error will be raised.
+
+You can customize how the form class for the view is determined by overriding this method.  For example:
+
+    def get_form_class(self):
+        is self.request.user.is_staff():
+            return AccountForm
+        return BasicAccountForm
+
+#### get_form(self, data=None, files=None, **kwargs)
+
+The method instantiates and returns the form instance that should be used for the view.
+
+By default this method simply calls `get_form_class`, and then instantiates the class with the parameters that have been passed to it.
+
+You can customize this method in order to supply additional arguments to the form class, add initial data, or other customizations.  For example:
+
+    def get_form(self, data=None, files=None, **kwargs):
+        kwargs['user'] = self.request.user
+        return AccountForm(data, files, **kwargs)
+
+#### get_paginate_by(self)
+
+Returns an integer representing the number of items to display on each page of a paginated list.  Returns `None` if pagination is not enabled.
+
+By default this method simply returns value of the `paginate_by` attribute.
+
+You can override this method to provide more complex behavior.  For example, to allow the user to override the default pagination size using a query parameter in the URL, you might write something like this:
+
+    def get_paginate_by(self):
+        try:
+            return int(self.request.GET('page_size', self.paginate_by))
+        except ValueError:
+            return None
+
+#### get_paginator(self, queryset, page_size)
+
+Given a queryset and a page size, returns a paginator instance to use for a paginated list view.
+
+By default this method simply instantiates Django's standard `Paginator` class with the arugments passed.
+
+If you need to customize how the paginator is instantiated you can override this method.  For example to ensure that the final page must always contain more than a single item, you could write something like this:
+
+    def get_paginator(self, queryset, page_size):
+        return Paginator(queryset, page_size, orphans=2)
+
+#### paginate_queryset(self, queryset, page_size)
+
+Given a queryset and a page size, this method should return a `page` instance representing the current page that should be displayed in a paginated list view.  You can override this method if you need to customize how the page object is determined, but the default behavior should typically be sufficient.
+
+#### get_context_object_name(self, is_list=False)
+
+This method returns a descriptive name that should be used when passing the object or object list as context to the template.  The name is used *in addition* to the default `'object'` or `'object_list'` context name.
+
+The method takes a single parameter `is_list`, which is a boolean indicating if the context object should be named as representing a list of data, or if it should be named as representing a single object.
+
+The default behavior of this method is:
+
+* If the `context_object_name` attribute is set, then use that.
+* Otherwise fallback to automatically using `<model_name>` or `<model_name>_list` based on the `model` attribute.
+* If neither the `context_object_name` or `model` attributes are set, then only the standard `'object'` or `'object_list'` key will be used.  
+
+#### get_context_data(self, **kwargs)
+
+This method takes a set of keyword arguments supplied by the view and returns a dictionary to use as context when rendering the response template.
+
+The default behavior of this method is to return a dictionary populated with the following keys:
+
+* `view` - A reference to the view instance.
+* `object` or `object_list` - The instance or queryset being operated on by the view.
+* `<context_object_name>` - A more descriptive name for the instance or queryset as returned by `get_context_object_name`.
+* Any additional keyword arguments supplied to the method.  In particular, the model editing views include the `form` context key. 
+
+You can override the method either to add additional context data:
+
+    def get_context_data(self, **kwargs):
+		context = super(MyView, self).get_context_data(**kwargs)
+        context['is_admin'] = self.request.user.is_admin
+        return context
+
+Or to specify the complete set of context data explicitly:
+
+    def get_context_data(self, **kwargs):
+        kwargs['view'] = self
+        kwargs['is_admin'] = self.request.user.is_admin
+        kwargs['account'] = self.object
+        return kwargs
+
+#### get_template_names(self)
+
+Returns a list of strings that should be used for determining the template name when rendering the response.
+
+The default behavior for this method is:
+
+* If `template_name` is specified on the view then use that.
+* Otherwise fallback to automatically generating a template name as `{app_label}/{model_name}{suffix}.html`, using the `model` attribute as set on the view.
+* If neither of `template_name` or `model` attributes are set then raise a configuration error.
+
+#### render_to_response(self, context)
+
+Generates the response that should be returned by the view.  Takes a single argument which should be a dictionary of context data to use when rendering the response template.
+
+The default behaviour of this method is to return an instance of Django's standard `TemplateResponse`.
+
+You can override this method if you need to customize how the response is generated.  For example, to return a response with the `text/plain` content type instead of the standard `text/html`, you could write something like this:
+
+    def render_to_response(context):
+    	template = self.get_template_names()
+        return TemplateResponse(self.request, template, context, content_type='text/plain')
+
+You can also override this class in order to use a subclass of Django's standard `HttpResponse` or `TemplateResponse`.  For example, if you had a written a custom `JSONResponse` class, you might override the method like this:
+
+    def render_to_response(context):
+        return JSONResponse(self.request, context)
+
+---
+
+## ListView
+
+A page representing a list of objects.  Optionally this may represent a paginated view onto the list.
+
+The `object_list` attribute will be set on this view, and will typically be a queryset instance.
+
+#### allow_empty
+
+A boolean indicating if empty lists may be returned using the standard page template, or if they should cause an `HTTP 404 Not Found` response to be returned.  Defaults to `True`, indicating that empty pages should be allowed.
+
+---
+
+## DetailView
+
+A page representing a single object.
+
+The `object` attribute will be set on this view, and will typically be a model instance.
+
+---
+
+## CreateView
+
+A page which allows the user to create objects.
+
+If successfully created, then the `object` attribute will be set on this view.
+
+#### success_url
+
+The URL that should be used when redirecting after a successful form submission.
+
+#### form_valid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to return a redirect response as determined by calling `get_success_url()`.
+
+#### form_invalid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to return a `TemplateResponse` which renders the form errors.
+
+#### get_success_url()
+
+Returns the URL that should be used when redirecting after a successful form submission.  Defaults to returning the value of the `success_url` attribute if it is set, or will be the return value of calling `get_absolute_url()` on the object instance.
+
+**Note**: If you are customizing the view behavior, we'd typically recommend overriding the `form_valid()` method directly rather than overriding `get_success_url()`, as it will result in simpler, more obvious flow control.
+
+---
+
+## UpdateView
+
+A page which allows the user to update an existing object.
+
+The `object` attribute will be set on this view.
+
+#### success_url
+
+The URL that should be used when redirecting after a successful form submission.
+
+#### form_valid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to save the updated object instance and then return a redirect response as determined by calling `get_success_url()`.
+
+#### form_invalid(self, form)
+
+This method will be run when a valid form submission occurs, and should return a response object.  The default behavior is to return a `TemplateResponse` which renders the form errors.
+
+#### get_success_url()
+
+Returns the URL that should be used when redirecting after a successful form submission.  Defaults to returning the value of the `success_url` attribute if it is set, or will be the return value of calling `get_absolute_url()` on the object instance.
+
+**Note**: If you are customizing the view behavior, we'd typically recommend overriding the `form_valid()` method directly rather than overriding `get_success_url()`, as it will result in simpler, more obvious flow control.
+
+---
+
+## DeleteView
+
+The `object` attribute will be set on this view.
+
+#### success_url
+
+The URL that should be used when redirecting after a successful form submission.
+
+#### get_success_url()
+
+Returns the URL that should be used when redirecting after a successful form submission.  Defaults to returning the value of the `success_url` attribute.
+
+**Note**: If you are customizing the view behavior, we'd typically recommend overriding the `post()` methhod directly rather than overriding `get_success_url()`, as it will result in simpler, more obvious flow control.
+
+<p class="badges">
+<iframe src="http://ghbtns.com/github-btn.html?user=tomchristie&amp;repo=django-vanilla-views&amp;type=watch&amp;count=true" class="github-star-button" allowtransparency="true" frameborder="0" scrolling="0" width="110px" height="20px"></iframe>
+
+<a href="https://twitter.com/share" class="twitter-share-button" data-url="django-vanilla-views.org" data-text="Django Vanilla Views... http://django-vanilla-views.org" data-count="none"></a>
+<script>!function(d,s,id){var js,fjs=d.getElementsByTagName(s)[0];if(!d.getElementById(id)){js=d.createElement(s);js.id=id;js.src="http://platform.twitter.com/widgets.js";fjs.parentNode.insertBefore(js,fjs);}}(document,"script","twitter-wjs");</script>
+</p>
+
+# Django Vanilla Views
+
+**Beautifully simple class-based views.**
+
+**Author:** Tom Christie. Follow me on Twitter, [here][twitter].
+
+[![Build Status](https://travis-ci.org/tomchristie/django-vanilla-views.png?branch=master)](https://travis-ci.org/tomchristie/django-vanilla-views) [![Coverage Status](https://coveralls.io/repos/tomchristie/django-vanilla-views/badge.png?branch=master)](https://coveralls.io/r/tomchristie/django-vanilla-views?branch=master) [![PyPI version](https://badge.fury.io/py/django-vanilla-views.png)](http://badge.fury.io/py/django-vanilla-views)
+
+    View --+------------------------- RedirectView
+           |
+           +-- GenericView -------+-- TemplateView
+           |                      |
+           |                      +-- FormView
+           |
+           +-- GenericModelView --+-- ListView
+                                  |
+                                  +-- DetailView
+                                  |
+                                  +-- CreateView
+                                  |
+                                  +-- UpdateView
+                                  |
+                                  +-- DeleteView
+
+Django's generic class-based view implementation is unneccesarily complicated.
+
+Django vanilla views gives you **exactly the same functionality**, in a vastly simplified, easier-to-use package, including:
+
+* No mixin classes.
+* No calls to `super()`.
+* A sane class hierarchy.
+* A stripped down API.
+* Simpler method implementations, with less magical behavior.
+
+Remember, even though the API has been greatly simplified, everything you're able to do with Django's existing implementation is also supported in `django-vanilla-views`.  Although note that the package does not yet include the date based generic views.
+
+If you believe you've found some behavior in Django's generic class-based views that can't also be trivially achieved in `django-vanilla-views`, then please [open a ticket][tickets], and we'll treat it as a bug.  To review the full set of API differences between the two implementations, please see the migration guide for the [base views][base-views-migration], and the [model views][model-views-migration].
+
+For further background, the original release announcement for `django-vanilla-views` is [available here][release-announcement].  There are also slides to a talk ['Design by minimalism'][design-by-minimalism] which introduces `django-vanilla-views` and was presented at the Django User Group, London.  You can also view the Django class hierarchy for the same set of views that `django-vanilla-views` provides, [here][django-cbv-hierarchy].
+
+## Helping you to code smarter
+
+Django Vanilla Views isn't just easier to use.  I'd contest that because it presents fewer points of API to override, you'll also end up writing better, more maintainable code as a result.  You'll be working from a smaller set of repeated patterns throughout your projects, and with a much more obvious flow control in your views.
+
+As an example, a custom view implemented against Django's `CreateView` class might typically look something like this:
+
+    from django.views.generic import CreateView
+
+	class AccountCreateView(CreateView):
+	    model = Account
+
+	    def get_success_url(self):
+	        return self.object.account_activated_url()
+
+		def get_form_class(self):
+		    if self.request.user.is_staff:
+		        return AdminAccountForm
+		    return AccountForm
+
+	    def get_form_kwargs(self):
+	        kwargs = super(AccountCreateView, self).get_form_kwargs()
+	        kwargs['owner'] = self.request.user
+	        return kwargs
+ 
+	    def form_valid(self, form):
+	        send_activation_email(self.request.user)
+	        return super(AccountCreateView, self).form_valid(form)
+
+Writing the same code with `django-vanilla-views`, you'd instead arrive at a simpler, more concise, and more direct style:
+
+    from vanilla import CreateView
+	from django.http import HttpResponseRedirect
+
+	class AccountCreateView(CreateView):
+	    model = Account
+
+	    def get_form(self, data=None, files=None, **kwargs):
+	        user = self.request.user	        
+	        if user.is_staff:
+	            return AdminAccountForm(data, files, owner=user, **kwargs)
+	        return AccountForm(data, files, owner=user, **kwargs)
+
+	    def form_valid(self, form):
+	        send_activation_email(self.request.user)
+	        account = form.save()
+	        return HttpResponseRedirect(account.account_activated_url())
+
+## Requirements
+
+* **Django**: 1.3, 1.4, 1.5, 1.6
+* **Python**: 2.6, 2.7, 3.2, 3.3
+
+## Installation
+
+Install using pip.
+
+    pip install django-vanilla-views
+
+## Usage
+
+Import and use the views.
+
+    from vanilla import ListView, DetailView
+
+For example:
+
+	from django.core.urlresolvers import reverse_lazy
+	from example.notes.models import Note
+	from vanilla import CreateView, DeleteView, ListView, UpdateView
+	
+	class ListNotes(ListView):
+	    model = Note
+	
+	
+	class CreateNote(CreateView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+	
+	
+	class EditNote(UpdateView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+	
+	
+	class DeleteNote(DeleteView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+
+
+## Compare and contrast
+
+To help give you an idea of the relative complexity of `django-vanilla-views` against Django's existing implementations, let's compare the two.
+
+#### Inheritance hierachy, Vanilla style.
+
+The inheritance hierarchy of the views in `django-vanilla-views` is trivial, making it easy to figure out the control flow in the view.
+
+    CreateView --> GenericModelView --> View
+
+**Total number of source files**: 1 ([model_views.py][model_views.py])
+
+#### Inheritance hierachy, Django style.
+
+Here's the corresponding inheritance hiearchy in Django's implementation of `CreateView`.
+
+                 +--> SingleObjectTemplateResponseMixin --> TemplateResponseMixin
+                 |
+    CreateView --+                     +--> ProcessFormView --> View
+                 |                     |                                       
+                 +--> BaseCreateView --+
+                                       |                     +--> FormMixin ----------+
+                                       +--> ModelFormMixin --+                        +--> ContextMixin
+                                                             +--> SingleObjectMixin --+
+
+**Total number of source files**: 3 ([edit.py][edit.py], [detail.py][detail.py], [base.py][base.py])
+
+---
+
+#### Calling hierarchy, Vanilla style.
+
+Let's take a look at the calling hierarchy when making an HTTP `GET` request to `CreateView`.
+
+	CreateView.get()
+	|
+	+--> GenericModelView.get_form()
+	|    |
+	|    +--> GenericModelView.get_form_class()
+	|
+	+--> GenericModelView.get_context_data()
+	|    |
+	|    +--> GenericModelView.get_context_object_name()
+	|
+	+--> GenericModelView.render_to_response()
+	     |
+	     +--> GenericModelView.get_template_names()
+
+**Total number of code statements covered**: ~40
+
+#### Calling hierarchy, Django style.
+
+Here's the equivalent calling hierarchy in Django's `CreateView` implementation.
+
+	BaseCreateView.get()
+	|
+	+--> ProcessFormView.get()
+	     |
+	     +--> ModelFormMixin.get_form_class()
+	     |    |
+	     |    +--> SingleObjectMixin.get_queryset()
+	     |
+	     +--> FormMixin.get_form()
+	     |    |
+	     |    +--> ModelFormMixin.get_form_kwargs()
+	     |    |    |
+	     |    |    +--> FormMixin.get_form_kwargs()
+	     |    |
+	     |    +--> FormMixin.get_prefix()
+	     |    |
+	     |    +--> FormMixin.get_initial()
+	     |
+ 	     +--> ModelFormMixin.get_context_data()
+	     |    |
+	     |    +--> SingleObjectMixin.get_context_object_name()
+	     |    |
+	     |    +--> SingleObjectMixin.get_context_data()
+	     |         |
+	     |         +--> SingleObjectMixin.get_context_object_name()
+	     |         |
+	     |         +--> ContextMixin.get_context_data()
+	     |
+	     +--> TemplateResponseMixin.render_to_response()
+	          |
+	          +--> SingleObjectTemplateResponseMixin.get_template_names()
+	          |
+	          +--> TemplateResponseMixin.get_template_names()
+
+**Total number of code statements covered**: ~70
+
+## Example project
+
+This repository includes an example project in the [example][example] directory.
+
+You can run the example locally by following these steps:
+
+    git clone git://github.com/tomchristie/django-vanilla-views.git
+    cd django-vanilla-views/example
+
+    # Create a clean virtualenv environment and install Django
+    virtualenv env
+    source env/bin/activate
+    pip install -r requirements.txt
+
+    # Ensure the local copy of the 'vanilla' pacakge is on our path
+    export PYTHONPATH=..:. 
+
+    # Run the project
+    python ./manage.py syncdb --noinput
+    python ./manage.py runserver
+
+Open a browser and navigate to `http://127.0.0.1:8000`.
+
+Once you've added a few notes you should see something like the following:
+
+![image](img/example.png)
+
+---
+
+## License
+
+Copyright © Tom Christie.
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without 
+modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this 
+list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this 
+list of conditions and the following disclaimer in the documentation and/or 
+other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+[twitter]: http://twitter.com/_tomchristie
+[tickets]: https://github.com/tomchristie/django-vanilla-views/issues
+[base-views-migration]: migration/base-views.md
+[model-views-migration]: migration/model-views.md
+[release-announcement]: http://dabapps.com/blog/fixing-djangos-generic-class-based-views/
+[design-by-minimalism]: http://slid.es/tomchristie/design-by-minimalism
+[django-cbv-hierarchy]: img/djangocbv.png
+[model_views.py]: https://github.com/tomchristie/django-vanilla-views/tree/master/vanilla/model_views.py
+[base.py]: https://github.com/django/django/tree/master/django/views/generic/base.py
+[detail.py]: https://github.com/django/django/tree/master/django/views/generic/detail.py
+[edit.py]: https://github.com/django/django/tree/master/django/views/generic/edit.py
+[example]: https://github.com/tomchristie/django-vanilla-views/tree/master/example
+
+# Migration Guide
+
+## Base Views
+
+This document provides the complete set of API changes between Django's existing basic generic views and the corresponding `django-vanilla-views` implementations.
+
+It covers `RedirectView`, `TemplateView` and `FormView`.  For the model views please [see here][model-views].
+
+Wherever API points have been removed, we provide examples of what you should be using instead.
+
+Although a large amount of API has been removed, the functionality that the views provide should be identical to Django's existing views.  If you believe you've found some behavior in Django's generic class based views that can't also be trivially achieved in `django-vanilla-views`, then please [open a ticket][tickets], and we'll treat it as a bug.
+
+---
+
+#### `initial`, `prefix`, `get_initial()`, `get_prefix()`, `get_form_kwargs()`
+
+---
+
+**These are all removed**.  If you need to override how the form is intialized, just override `get_form()`.
+
+For example, instead of this:
+
+	def get_form_kwargs(self):
+	    kwargs = super(AccountEditView, self).get_form_kwargs
+	    kwargs['user'] = self.request.user
+	    return kwargs
+
+You should write this:
+
+    def get_form(self, data, files, **kwargs):
+    	kwargs['user'] = self.request.user
+        return AccountForm(data, files, **kwargs)
+
+---
+
+#### `content_type`, `response_cls`
+
+---
+
+**These are removed**.  If you need to customize how responses are rendered, you should override `render_to_response()`.
+
+    def render_to_response(context):
+        return JSONResponse(self.request, context)
+
+If you needed to override the content type, you might write:
+
+    def render_to_response(context):
+    	template = self.get_template_names()
+        return TemplateResponse(self.request, template, context, content_type='text/plain')
+
+---
+
+#### `get_form()`
+
+---
+
+**This is refactored**, instead of taking a single `form_class` argument it instead takes the form `data` and `files` arguments, plus optional extra keyword arguments.  This results in a simpler, more direct control flow in the implementation.
+
+Instead of this in your views:
+
+    form_cls = self.get_form_class()
+    form = self.get_form(form_cls)
+
+You should write this:
+
+    form = self.get_form(request.DATA, request.FILES)
+
+[model-views]: model-views.md
+[tickets]: https://github.com/tomchristie/django-vanilla-views/issues
+
+# Migration Guide
+
+## Model Views
+
+This document provides the complete set of API changes between Django's existing model views and the corresponding `django-vanilla-views` implementations.
+
+It covers `ListView`, `DetailView`, `CreateView`, `UpdateView` and `DeleteView`.  For the base views please [see here][base-views].
+
+Wherever API points have been removed, we provide examples of what you should be using instead.
+
+This scope of this migration guide may appear intimidating at first if you're intending to port your existing views accross to using `django-vanilla-views`, but you should be able to approach refactorings in a fairly simple step-by-step manner, working through each item in the list one at a time.
+
+Although a large amount of API has been removed, the functionality that the views provide should be identical to Django's existing views.  If you believe you've found some behavior in Django's generic class based views that can't also be trivially achieved in `django-vanilla-views`, then please [open a ticket][tickets], and we'll treat it as a bug.
+
+---
+
+#### `pk_url_field`, `slug_url_field`, `slug_url_kwarg`, `get_slug_field()`
+
+---
+
+**These have been replaced** with a simpler style using `lookup_field` and `lookup_url_kwarg`.
+
+If you need non-pk based lookup, specify `lookup_field` on the view:
+
+    class AccountListView(ListView):
+        model = Account
+        lookup_field = 'slug'
+
+If you need a differing URL kwarg from the model field name, you should also set `lookup_url_kwarg`.
+
+    class AccountListView(ListView):
+        model = Account
+        lookup_field = 'slug'
+        lookup_url_kwarg = 'account_name'
+
+For more complex lookups, override `get_object()`, like so:
+
+    class AccountListView(ListView):
+		def get_object(self):
+		    queryset = self.get_queryset()
+		    return get_object_or_404(queryset, slug=self.kwargs['slug'], owner=self.request.user)
+
+---
+
+#### `initial`, `prefix`, `get_initial()`, `get_prefix()`, `get_form_kwargs()`
+
+---
+
+**These are all removed**.  If you need to override how the form is intialized, just override `get_form()`.
+
+For example, instead of this:
+
+	def get_form_kwargs(self):
+	    kwargs = super(AccountEditView, self).get_form_kwargs
+	    kwargs['user'] = self.request.user
+	    return kwargs
+
+You should write this:
+
+    def get_form(self, data, files, **kwargs):
+        kwargs['user'] = self.request.user
+        return AccountForm(data, files, **kwargs)
+
+---
+
+#### `template_name_field`
+
+---
+
+**This is removed**.  If you need to dynamically determine template names, you should override `get_template_names()`.
+
+    def get_template_names(self):
+        return [self.object.template]
+
+---
+
+#### `content_type`, `response_cls`
+
+---
+
+**These are removed**.  If you need to customize how responses are rendered, you should override `render_to_response()`.
+
+    def render_to_response(context):
+        return JSONResponse(self.request, context)
+
+If you needed to override the content type, you might write:
+
+    def render_to_response(context):
+    	template = self.get_template_names()
+        return TemplateResponse(self.request, template, context, content_type='text/plain')
+
+---
+
+#### `paginator_cls`, `paginate_orphans`, `get_paginate_orphans()`
+
+---
+
+**These are removed**.  If you need to customize how the paginator is instantiated, you should override `get_paginator()`.
+
+    def get_paginator(self, queryset, page_size):
+        return CustomPaginator(queryset, page_size, orphans=3)
+
+---
+
+#### `paginate_queryset()`
+
+---
+
+The **return value has been simplified**.  Instead of returning a 4-tuple it now simply returns a page object.  Instead of this:
+
+	(page, paginator, queryset, is_paginated) = self.paginate_queryset(queryset, page_size)
+
+You should write this:
+
+    page = self.paginate_queryset(queryset, page_size)
+
+The page object contains a `paginator` attribute, an `object_list` attribute, and a `has_other_pages()` method, so you still have access to the same set of information that is available in the 4-tuple return style.
+
+---
+
+#### `get_object()`
+
+---
+
+The **call signature has been simplified**.  The `get_object()` method no longer takes an optional `queryset` parameter.
+
+---
+
+#### `get_form_class()`
+
+---
+
+The behavior has been **refactored to use less magical behavior**.  In the regular Django implementation, if neither `model` or `form_class` is specified on the view, then `get_form_class()` will fallback to attempting to automatically generate a form class based on either the object currently being operated on, or failing that to generate a form class by calling `get_queryset` and determining a default model form class from that.  Failing both of those it'll raise a configuration error.
+
+In `django-vanilla-views`, if neither the `model` or `form_class` is specified, it'll raise a configuration error.  If you need any more complex behavior that that, you should override `get_form_class()`.
+
+---
+
+#### `get_template_names()`
+
+---
+
+The behavior has been **refactored to use less magical behavior**.  In the regular Django implementation if `template_name` has been defined that will be the preferred option.  Failing that, if `template_name_field` is defined, and `object` is set on the view, then a template name given by a field on the object will be the next most preferred option.  Next, if `object` is set on the view then `{app}/{model_name}{suffix}.html` will be used based on the class of the object.  Finally if `model` is set on the view then  `{app}/{model_name}{suffix}.html` will be used.
+
+In `django-vanilla-views`, if `template_name` is defined that will be used, otherwise if `model` is defined it'll use `{app}/{model_name}{suffix}.html`.  If neither is defined it'll raise a configuration error.  If you need any more complex behavior that that, you should override `get_template_names()`.
+
+---
+
+#### `get_form()`
+
+---
+
+**This is refactored**, instead of taking a single `form_class` argument it instead takes the form `data` and `files` arguments, plus optional extra keyword arguments.  This results in a simpler, more direct control flow in the implementation.
+
+Instead of this in your views:
+
+    form_cls = self.get_form_class()
+    form = self.get_form(form_cls)
+
+You should write this:
+
+    form = self.get_form(request.DATA, request.FILES, instance=self.object)
+
+[base-views]: base-views.md
+[tickets]: https://github.com/tomchristie/django-vanilla-views/issues
+
+# Django Braces compatibility
+
+The `django-vanilla-views` package is almost completely compatible with the mixin classes provided by the popular [`django-braces`][django-braces] package.
+
+The full set of mixins is listed below.  If you believe any of these entries to be incorrect, or if new mixins are added that are not listed here, then please [open an issue on GitHub][issues] so we can keep the information up to date.
+
+## Access Mixins
+
+<table border=1>
+<tr><th>Mixin class</th><th>API compatible</th></tr>
+<tr><td>LoginRequiredMixin</td><td>Yes</td></tr>
+<tr><td>PermissionRequiredMixin</td><td>Yes</td></tr>
+<tr><td>MultiplePermissionsRequiredMixin</td><td>Yes</td></tr>
+<tr><td>GroupRequiredMixin</td><td>Yes</td></tr>
+<tr><td>SuperuserRequiredMixin</td><td>Yes</td></tr>
+<tr><td>StaffuserRequiredMixin</td><td>Yes</td></tr>
+</table>
+
+## Form Mixins
+
+<table border=1>
+<tr><th>Mixin class</th><th>API compatible</th></tr>
+<tr><td>CsrfExemptMixin</td><td>Yes</td></tr>
+<tr><td>UserFormKwargsMixin</td><td>No (*)</td></tr>
+<tr><td>UserKwargModelFormMixin</td><td>Yes</td></tr>
+<tr><td>SuccessURLRedirectListMixin</td><td>Yes</td></tr>
+<tr><td>FormValidMessageMixin</td><td>Yes</td></tr>
+<tr><td>FormInvalidMessageMixin</td><td>Yes</td></tr>
+<tr><td>FormMessagesMixin</td><td>Yes</td></tr>
+</table>
+
+(*) The `UserFormKwargsMixin` class is not compatible because it overrides the `get_form_kwargs()` method, which does not exist in `django-vanilla-views`.
+
+You can instead write a `django-vanilla-views` compatible mixin, like this:
+
+    class UserFormKwargsMixin(object):
+        def get_form(self, data=None, files=None, **kwargs):
+            kwargs['user'] = self.request.user
+            return super(UserFormKwargsMixin, self).get_form(data=data, files=files, **kwargs)
+
+## Other Mixins
+
+<table border=1>
+<tr><th>Mixin class</th><th>API compatible</th></tr>
+<tr><td>SetHeadlineMixin</td><td>Yes</td></tr>
+<tr><td>SelectRelatedMixin</td><td>Yes</td></tr>
+<tr><td>PrefetchRelatedMixin</td><td>Yes</td></tr>
+<tr><td>JSONResponseMixin</td><td>Yes</td></tr>
+<tr><td>JsonRequestResponseMixin</td><td>Yes</td></tr>
+<tr><td>AjaxResponseMixin</td><td>Yes</td></tr>
+<tr><td>OrderableListMixin</td><td>Yes</td></tr>
+<tr><td>CanonicalSlugDetailMixin</td><td>Yes (*)</td></tr>
+</table>
+
+(*) The `CanonicalSlugDetailMixin` is not compatible in the current `1.2.2` PyPI release, but is compatible in the current `master` branch, and should be compatible in the next upcoming PyPI release.
+
+Note that if using `CanonicalSlugDetailMixin` you **must** also set a `slug_url_kwarg` on the view.
+
+[django-braces]: https://github.com/brack3t/django-braces
+[issues]: https://github.com/tomchristie/django-vanilla-views/issues
+
+# Django Extra Views Compatibility
+
+You can use the views in `django-vanilla-views` alongside the additional views that are supplied by [`django-extra-views`][django-extra-views] just fine, although it will mean that you'll be working with Django's mixin style for some of your views, and the Vanilla style for other views.
+
+A good candidate for a future PyPI package would be a version of [`django-extra-views`][django-extra-views], that uses the `django-vanilla-views` views as the base and is implemented in a more vanilla-like style.
+
+There are also a couple of stand-alone mixin classes provided by [`django-extra-views`][django-extra-views], both of which are fully API compatible with `django-vanilla-views`.  The mixins are listed below.  If you believe either of these entries to be incorrect, or if new mixins are added that are not listed here, then please [open an issue on GitHub][issues] so we can keep the information up to date.
+
+## Mixin classes
+
+<table border=1>
+<tr><th>Mixin class</th><th>API compatible</th></tr>
+<tr><td>SortableListMixin</td><td>Yes</td></tr>
+<tr><td>SearchableListMixin</td><td>Yes</td></tr>
+</table>
+
+[django-extra-views]: https://github.com/andrewingram/django-extra-views
+[issues]: https://github.com/tomchristie/django-vanilla-views/issues
+
+# Frequently Asked Questions
+
+## Usage
+
+### Won't I lose functionality or flexiblity?
+
+No.  Everything you can do with Django's standard class based views you can also do with `django-vanilla-views`.  The migration guides cover all the bits of API that have been removed, and explain how you can easily achieve the same functionality with vanilla views.
+
+### Can I still use mixin classes?
+
+Sure.  The `django-vanilla-views` package doesn't happen to use mixin classes, but there's no reason you shouldn't do so in your own code.  Overuse of mixin classes can make for poor style, but when used in moderation they're a powerful and useful tool.
+
+### Can I use decorators with Vanilla views?
+
+Yes.  Using decorators with `django-vanilla-view` is *exactly* the same as using decorators with Django's regular class-based view.  You can [wrap the decorator in the URL conf][urlconf-decorators], like so:
+
+    urlpatterns = patterns('',
+        (r'^create-report/', login_required(CreateReportView.as_view())),
+    )
+
+Alternatively you can apply a decorator to a view class itself, by [wrapping the dispatch method][dispatch-decorators]:
+
+    class CreateReportView(CreateView):
+        model = Report
+
+        @method_decorator(login_required)
+        def dispatch(self, *args, **kwargs):
+            return super(CreateReportView, self).dispatch(*args, **kwargs)
+
+
+### I've already learnt Django's GCBVs, is this worth my time?
+
+Absolutely.  The API presented by `django-vanilla-views` is pretty simple so it shouldn't take you long to get up and running with it.  The generic class based views are the bread and butter of our web sites, and the small investment in time you'll make learning `django-vanilla-views` should pay of quickly as you'll be using simpler, more obvious views throughout.
+
+### Is it stable?
+
+The `django-vanilla-views` package has issued a 1.0 release and now has a [formal deprecation policy][deprecation-policy].  You should be free to use it knowing that package upgrades will be fully documented and will not break API compatibility between releases.  We also have 100% code coverage and fully intend to quickly deal with any issues reported.
+
+---
+
+## Design
+
+### Isn't a mixin-less style less DRY?
+
+Actually not really.  The base views and the model views do share some common implementation, but there's only a very small amount of duplication.
+
+It's also worth noting that Django's existing class based views also include duplication despite being implemented using a mixin style.  For example, both `SingleObjectMixin` and `MultipleObjectMixin` implement a functionally identical `get_queryset()` method.
+
+### What about seperation of concerns?
+
+The base classes used by vanilla views include a small core set of functionality.  In the author's opinion there's no real practical issue introduced here, and the design trade-off should favor simplicity of implementation.
+
+It's also worth noting that Django's existing class based views also include unused methods in base classes despite being implemented using a mixin style.  For example, `CreateView` inherits from `SingleObjectMixin` and includes `get_object()` which is never used.
+
+[urlconf-decorators]: https://docs.djangoproject.com/en/dev/topics/class-based-views/intro/#decorating-in-urlconf
+[dispatch-decorators]: https://docs.djangoproject.com/en/dev/topics/class-based-views/intro/#decorating-the-class
+[deprecation-policy]: release-notes.md
+
+# Release Notes
+
+The `django-vanilla-views` package is not expected to change rapidly, as it's feature set is intended to remain in lock-step with Django's releases.
+
+## Deprecation policy
+
+The `django-vanilla-views` package follows a formal deprecation policy, which is in line with [Django's deprecation policy][django-deprecation-policy].
+
+The timeline for deprecation of a feature present in version 1.0 would work as follows:
+
+* Version 1.1 would remain **fully backwards compatible** with 1.0, but would raise `PendingDeprecationWarning` warnings if you use the feature that are due to be deprecated.  These warnings are **silent by default**, but can be explicitly enabled when you're ready to start migrating any required changes.  For example if you start running your tests using `python -Wd manage.py test`, you'll be warned of any API changes you need to make.
+
+* Version 1.2 would escalate these warnings to `DeprecationWarning`, which is loud by default.
+
+* Version 1.3 would remove the deprecated bits of API entirely.
+
+## Upgrading
+
+To upgrade `django-vanilla-views` to the latest version, use pip:
+
+    pip install -U django-vanilla-views
+
+You can determine your currently installed version using `pip freeze`:
+
+    pip freeze | grep django-vanilla-views
+
+---
+
+## 1.0.3
+
+**Released**: 22nd April 2014
+
+* Add missing `*args`, `**kwargs` to `FormView.post()`
+
+## 1.0.2
+
+**Released**: 28th September 2013
+
+* Resolve PyPI packaging issue.
+
+## 1.0.1
+
+**Released**: 24th September 2013
+
+* Fix `DeleteView.template_name_suffix` by changing it to `'_confirm_delete'`.
+
+## 1.0.0
+
+**Released**: 23rd September 2013
+
+* Introduced `get_success_url()` for easier mixin overriding of view behavior.
+* Introduced `**kwargs` arguments to `get_form` to kee API identicatal between base and model views, and for easier mixin overriding.
+* Introduced 1.6's behavior of pending deprecation for `.fields` not specified when auto-generating model forms.
+
+## 0.2.1
+
+**Released**: 10th September 2013
+
+* **Beta release.**
+* Fix method names to match Django's.
+
+## 0.2.0
+
+**Released**: 9th September 2013
+
+* Fix some messaging.
+* Python 3 compatiblity.
+* Use Django's `RedirectView`.
+
+## 0.1.2
+
+**Released**: 7th September 2013
+
+* Simple module names.
+* Refactored pagination.
+
+## 0.1.1
+
+**Released**: 2nd September 2013
+
+* Fix missing arguments.
+
+## 0.1.0
+
+**Released**: 2nd September 2013
+
+* **Alpha release.**
+
+[django-deprecation-policy]: https://docs.djangoproject.com/en/dev/internals/release-process/#internal-release-deprecation-policy
+
+# [Django Vanilla Views][docs]
+
+**Beautifully simple class-based views.**
+
+**Documentation**: [django-vanilla-views.org][docs].
+
+**Author:** Tom Christie. Follow me on Twitter, [here][twitter].
+
+[![Build Status](https://travis-ci.org/tomchristie/django-vanilla-views.png?branch=master)](https://travis-ci.org/tomchristie/django-vanilla-views) [![Coverage Status](https://coveralls.io/repos/tomchristie/django-vanilla-views/badge.png?branch=master)](https://coveralls.io/r/tomchristie/django-vanilla-views?branch=master) [![PyPI version](https://badge.fury.io/py/django-vanilla-views.png)](http://badge.fury.io/py/django-vanilla-views)
+
+    View --+------------------------- RedirectView
+           |
+           +-- GenericView -------+-- TemplateView
+           |                      |
+           |                      +-- FormView
+           |
+           +-- GenericModelView --+-- ListView
+                                  |
+                                  +-- DetailView
+                                  |
+                                  +-- CreateView
+                                  |
+                                  +-- UpdateView
+                                  |
+                                  +-- DeleteView
+
+Django's generic class-based view implementation is unneccesarily complicated.
+
+Django vanilla views gives you all the same functionality, in a vastly simplified, easier-to-use package, including:
+
+* No mixin classes.
+* No calls to `super()`.
+* A sane class hierarchy.
+* A stripped down API.
+* Simpler method implementations, with less magical behavior.
+
+Remember, even though the API has been greatly simplified, everything you're able to do with Django's existing implementation is also supported in `django-vanilla-views`.  Although note that the package does not yet include the date based generic views.
+
+If you believe you've found some behavior in Django's generic class-based views that can't also be trivially achieved in `django-vanilla-views`, then please [open a ticket][tickets], and we'll treat it as a bug.  To review the full set of API differences between the two implementations, please see the migration guide for the [base views][base-views-migration], and the [model views][model-views-migration].
+
+For further background, the original release announcement for `django-vanilla-views` is [available here][release-announcement].
+
+## Helping you to code smarter
+
+Django Vanilla Views isn't just easier to use.  I'd contest that because it presents fewer points of API to override, you'll also end up writing better, more maintainable code as a result.  You'll be working from a smaller set of repeated patterns throughout your projects, and with a much more obvious flow control in your views.
+
+As an example, a custom view implemented against Django's `CreateView` class might typically look something like this:
+
+    from django.views.generic import CreateView
+
+	class AccountCreateView(CreateView):
+	    model = Account
+
+	    def get_success_url(self):
+	        return self.object.account_activated_url()
+
+		def get_form_class(self):
+		    if self.request.user.is_staff:
+		        return AdminAccountForm
+		    return AccountForm
+
+	    def get_form_kwargs(self):
+	        kwargs = super(AccountCreateView, self).get_form_kwargs()
+	        kwargs['owner'] = self.request.user
+	        return kwargs
+ 
+	    def form_valid(self, form):
+	        send_activation_email(self.request.user)
+	        return super(AccountCreateView, self).form_valid(form)
+
+Writing the same code with `django-vanilla-views`, you'd instead arrive at a simpler, more concise, and more direct style:
+
+    from vanilla import CreateView
+	from django.http import HttpResponseRedirect
+
+	class AccountCreateView(CreateView):
+	    model = Account
+
+	    def get_form(self, data=None, files=None, **kwargs):
+	        user = self.request.user	        
+	        if user.is_staff:
+	            return AdminAccountForm(data, files, owner=user, **kwargs)
+	        return AccountForm(data, files, owner=user, **kwargs)
+
+	    def form_valid(self, form):
+	        send_activation_email(self.request.user)
+	        account = form.save()
+	        return HttpResponseRedirect(account.account_activated_url())
+
+## Requirements
+
+* **Django**: 1.3, 1.4, 1.5, 1.6
+* **Python**: 2.6, 2.7, 3.2, 3.3
+
+## Installation
+
+Install using pip.
+
+    pip install django-vanilla-views
+
+## Usage
+
+Import and use the views.
+
+    from vanilla import ListView, DetailView
+
+For example:
+
+	from django.core.urlresolvers import reverse_lazy
+	from example.notes.models import Note
+	from vanilla import CreateView, DeleteView, ListView, UpdateView
+	
+	class ListNotes(ListView):
+	    model = Note
+	
+	
+	class CreateNote(CreateView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+	
+	
+	class EditNote(UpdateView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+	
+	
+	class DeleteNote(DeleteView):
+	    model = Note
+	    success_url = reverse_lazy('list_notes')
+
+
+## Compare and contrast
+
+To help give you an idea of the relative complexity of `django-vanilla-views` against Django's existing implementations, let's compare the two.
+
+#### Inheritance hierachy, Vanilla style.
+
+The inheritance hierarchy of the views in `django-vanilla-views` is trivial, making it easy to figure out the control flow in the view.
+
+    CreateView --> GenericModelView --> View
+
+**Total number of source files**: 1 ([model_views.py][model_views.py])
+
+#### Inheritance hierachy, Django style.
+
+Here's the corresponding inheritance hiearchy in Django's implementation of `CreateView`.
+
+                 +--> SingleObjectTemplateResponseMixin --> TemplateResponseMixin
+                 |
+    CreateView --+                     +--> ProcessFormView --> View
+                 |                     |                                       
+                 +--> BaseCreateView --+
+                                       |                     +--> FormMixin ----------+
+                                       +--> ModelFormMixin --+                        +--> ContextMixin
+                                                             +--> SingleObjectMixin --+
+
+**Total number of source files**: 3 ([edit.py][edit.py], [detail.py][detail.py], [base.py][base.py])
+
+---
+
+#### Calling hierarchy, Vanilla style.
+
+Let's take a look at the calling hierarchy when making an HTTP `GET` request to `CreateView`.
+
+	CreateView.get()
+	|
+	+--> GenericModelView.get_form()
+	|    |
+	|    +--> GenericModelView.get_form_class()
+	|
+	+--> GenericModelView.get_context_data()
+	|    |
+	|    +--> GenericModelView.get_context_object_name()
+	|
+	+--> GenericModelView.render_to_response()
+	     |
+	     +--> GenericModelView.get_template_names()
+
+**Total number of code statements covered**: ~40
+
+#### Calling hierarchy, Django style.
+
+Here's the equivelent calling hierarchy in Django's `CreateView` implmentation.
+
+	CreateView.get()
+	|
+	+--> ProcessFormView.get()
+	     |
+	     +--> ModelFormMixin.get_form_class()
+	     |    |
+	     |    +--> SingleObjectMixin.get_queryset()
+	     |
+	     +--> FormMixin.get_form()
+	     |    |
+	     |    +--> ModelFormMixin.get_form_kwargs()
+	     |    |    |
+	     |    |    +--> FormMixin.get_form_kwargs()
+	     |    |
+	     |    +--> FormMixin.get_initial()
+	     |
+ 	     +--> ModelFormMixin.get_context_data()
+	     |    |
+	     |    +--> SingleObjectMixin.get_context_object_name()
+	     |    |
+	     |    +--> SingleObjectMixin.get_context_data()
+	     |         |
+	     |         +--> SingleObjectMixin.get_context_object_name()
+	     |         |
+	     |         +--> ContextMixin.get_context_data()
+	     |
+	     +--> TemplateResponseMixin.render_to_response()
+	          |
+	          +--> SingleObjectTemplateResponseMixin.get_template_names()
+	          |
+	          +--> TemplateResponseMixin.get_template_names()
+
+**Total number of code statements covered**: ~70
+
+## Example project
+
+This repository includes an example project in the [example][example] directory.
+
+You can run the example locally by following these steps:
+
+    git clone git://github.com/tomchristie/django-vanilla-views.git
+    cd django-vanilla-views/example
+    
+    # Create a clean virtualenv environment and install Django
+    virtualenv env
+    source env/bin/activate
+    pip install -r requirements.txt
+    
+    # Ensure local copy of 'vanilla' is in our path
+    export PYTHONPATH=..:. 
+    
+    # Run the project
+    python ./manage.py syncdb --noinput
+    python ./manage.py runserver
+
+#### Screenshot from the example project...
+
+![image](example.png)
+
+---
+
+## License
+
+Copyright © 2013-2014 Tom Christie.
+
+All rights reserved.
+
+Redistribution and use in source and binary forms, with or without 
+modification, are permitted provided that the following conditions are met:
+
+Redistributions of source code must retain the above copyright notice, this 
+list of conditions and the following disclaimer.
+Redistributions in binary form must reproduce the above copyright notice, this 
+list of conditions and the following disclaimer in the documentation and/or 
+other materials provided with the distribution.
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED 
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE 
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE 
+FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL 
+DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR 
+SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER 
+CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, 
+OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE 
+OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+[docs]: http://django-vanilla-views.org
+[twitter]: http://twitter.com/_tomchristie
+[tickets]: https://github.com/tomchristie/django-vanilla-views/issues
+[base-views-migration]: http://django-vanilla-views.org/migration/base-views
+[model-views-migration]: http://django-vanilla-views.org/migration/model-views
+[release-announcement]: http://dabapps.com/blog/fixing-djangos-generic-class-based-views/
+[model_views.py]: https://github.com/tomchristie/django-vanilla-views/tree/master/vanilla/model_views.py
+[base.py]: https://github.com/django/django/tree/master/django/views/generic/base.py
+[detail.py]: https://github.com/django/django/tree/master/django/views/generic/detail.py
+[edit.py]: https://github.com/django/django/tree/master/django/views/generic/edit.py
+[example]: https://github.com/tomchristie/django-vanilla-views/tree/master/example
+

@@ -1,0 +1,300 @@
+We've decided to use "Gerrit" for our code review system, making it
+easier for all of us to contribute with code and comments.
+
+  1. Visit http://review.couchbase.org and "Register" for an account
+  2. Review http://review.couchbase.org/static/individual_agreement.html
+  3. Agree to agreement by visiting http://review.couchbase.org/#/settings/agreements
+  4. If you do not receive an email, please contact us
+  5. Check out the Python SDK area http://review.couchbase.org/#/q/status:open+project:couchbase-python-client,n,z
+  6. Join us on IRC at #libcouchbase on Freenode :-)
+
+We normally don't go looking for stuff in gerrit, so you should add at
+least me (volker.mische@gmail.com) as a reviewer for your patch (and
+I'll know who else to add and add them for you).
+
+
+## Contributing Using Repo Tool
+
+If you haven't done so already you should
+download the repo from http://code.google.com/p/git-repo/downloads/list
+and put it in your path.
+
+All you should need to set up your development environment should be:
+
+    ~$ mkdir sdk
+    ~$ cd sdk
+    ~/sdk$ repo init -u git://github.com/vmx/manifest.git -m sdks/python.xml
+    ~/sdk$ repo sync
+    ~/sdk$ repo start my-branch-name --all
+    ~/sdk$ cd python
+    ~/sdk/python$ python setup.py build_ext --inplace
+
+You can work in the branch just as in any other git branch. Once you
+are happy with your changes commit them as usual. Every commit will
+show up as separate change within Gerrit, so you might want to squash
+your commits into a single one before you upload them to gerrit with
+the following command:
+
+    ~/sdk/python$ repo upload
+
+You might experience a problem trying to upload the patches if you've
+selected a different login name at review.couchbase.org than your login
+name. Don't worry, all you need to do is to add the following to your
+~/.gitconfig file:
+
+    [review "review.couchbase.org"]
+            username = your-gerrit-username
+
+
+## Contributing Using Plain Git
+
+If you not so familiar with repo tool and its workflow there is an
+alternative way to do the same job. Just complete the Gerrit
+registration steps above and clone the source repository
+(remember the repository on github.com is just a mirror):
+
+    ~/sdk$ git clone ssh://YOURNAME@review.couchbase.org:29418/couchbase-python-client.git
+
+Install [`commit-msg` hook][1]:
+
+    ~/sdk$ cd couchbase-python-client
+    ~/sdk/couchbase-python-client$ scp -p -P 29418 YOURNAME@review.couchbase.org:hooks/commit-msg .git/hooks/
+
+Make your changes and upload them for review:
+
+    ~/sdk/couchbase-python-client$ git commit
+    ~/sdk/couchbase-python-client$ git push origin HEAD:refs/for/master
+
+If you need to fix or add something to your patch, do it and re-upload
+the changes (all you need is to keep `Change-Id:` line the same to
+allow gerrit to track the patch.
+
+    ~/couchbase-python-client % git commit --amend
+    ~/couchbase-python-client % git push origin HEAD:refs/for/master
+
+Happy hacking!
+
+
+[1]: http://review.couchbase.org/Documentation/user-changeid.html
+
+=======================
+Couchbase Python Client
+=======================
+
+Client for Couchbase_.
+
+.. image:: https://travis-ci.org/couchbase/couchbase-python-client.png
+    :target: https://travis-ci.org/couchbase/couchbase-python-client
+
+-----------------------
+Building and Installing
+-----------------------
+
+This only applies to building from source. If you are using a Windows
+installer then everything (other than the server) is already included.
+See below for windows snapshot releases.
+
+Also note that these instructions apply to building from source.
+You can always get the latest supported release version from
+`PyPi <http://pypi.python.org/pypi/couchbase>`_
+
+~~~~~~~~~~~~~
+Prerequisites
+~~~~~~~~~~~~~
+
+- Couchbase Server (http://couchbase.com/download)
+- libcouchbase_. version 2.1.0 or greater (Bundled in Windows installer)
+- libcouchbase development files.
+- Python development files
+- A C compiler.
+
+~~~~~~~~
+Building
+~~~~~~~~
+
+.. code-block:: sh
+
+    python setup.py build_ext --inplace
+
+
+If your libcouchbase install is in an alternate location (for example,
+`/opt/local/libcouchbase`), you may add extra directives, like so
+
+.. code-block:: sh
+
+    python setup.py build_ext --inplace \
+        --library-dir /opt/local/libcouchbase/lib \
+        --include-dir /opt/local/libcouchbase/include
+
+Or you can modify the environment ``CFLAGS`` and ``LDFLAGS`` variables.
+
+.. _windowsbuilds:
+
+~~~~~~~~~~~~~~~~~
+Windows Snapshots
+~~~~~~~~~~~~~~~~~
+
+A list of recent snapshot builds for Windows may be found
+`here <http://packages.couchbase.com/clients/python/snapshots>`.
+
+You can always get release binaries from PyPi (as above).
+
+-----
+Using
+-----
+
+Here's an example code snippet which sets a key and then reads it
+
+.. code-block:: pycon
+
+    >>> from couchbase import Couchbase
+    >>> c = Couchbase.connect(bucket='default')
+    >>> c
+    <couchbase.connection.Connection bucket=default, nodes=['127.0.0.1:8091'] at 0xb21a50>
+    >>> c.set("key", "value")
+    OperationResult<RC=0x0, Key=key, CAS=0x31c0e3f3fc4b0000>
+    >>> res = c.get("key")
+    >>> res
+    ValueResult<RC=0x0, Key=key, Value=u'value', CAS=0x31c0e3f3fc4b0000, Flags=0x0>
+    >>> res.value
+    u'value'
+    >>>
+
+You can also use views
+
+.. code-block:: pycon
+
+    >>> from couchbase import Couchbase
+    >>> c = Couchbase.connect(bucket='beer-sample')
+    >>> resultset = c.query("beer", "brewery_beers", limit=5)
+    >>> resultset
+    View<Design=beer, View=brewery_beers, Query=Query:'limit=5', Rows Fetched=0>
+    >>> for row in resultset: print row.key
+    ...
+    [u'21st_amendment_brewery_cafe']
+    [u'21st_amendment_brewery_cafe', u'21st_amendment_brewery_cafe-21a_ipa']
+    [u'21st_amendment_brewery_cafe', u'21st_amendment_brewery_cafe-563_stout']
+    [u'21st_amendment_brewery_cafe', u'21st_amendment_brewery_cafe-amendment_pale_ale']
+    [u'21st_amendment_brewery_cafe', u'21st_amendment_brewery_cafe-bitter_american']
+
+~~~~~~~~~~~
+Twisted API
+~~~~~~~~~~~
+
+The Python client now has support for the Twisted async network framework.
+To use with Twisted, simply import ``txcouchbase.connection`` instead of
+``couchbase.Couchbase``
+
+.. code-block:: python
+
+    from twisted.internet import reactor
+    from txcouchbase.connection import Connection as TxCouchbase
+
+    cb = TxCouchbase(bucket='default')
+    def on_set(ret):
+        print "Set key. Result", ret
+
+    def on_get(ret):
+        print "Got key. Result", ret
+        reactor.stop()
+
+    cb.set("key", "value").addCallback(on_set)
+    cb.get("key").addCallback(on_get)
+    reactor.run()
+
+    # Output:
+    # Set key. Result OperationResult<RC=0x0, Key=key, CAS=0x9a78cf56c08c0500>
+    # Got key. Result ValueResult<RC=0x0, Key=key, Value=u'value', CAS=0x9a78cf56c08c0500, Flags=0x0>
+
+
+The ``txcouchbase`` API is identical to the ``couchbase`` API, except that where
+the synchronous API will block until it receives a result, the async API will
+return a `Deferred` which will be called later with the result or an appropriate
+error.
+
+~~~~~~~~~~
+GEvent API
+~~~~~~~~~~
+
+The `experimental_gevent_support` constructor flag has now been removed. Instead,
+you can import the `gcouchbase.connection` package and use the `GConnection`
+class like so:
+
+.. code-block:: python
+
+    from gcouchbase.connection import GCouchbase
+    conn = GCouchbase(bucket='default')
+    print conn.set("foo", "bar")
+    print conn.get("foo")
+
+The API functions exactly like the normal Connection API, except that the
+implementation is significantly different.
+
+Note that the new `GCouchbase` class does *not* use the same implementation
+as the experimental support featured in 1.1.0
+
+~~~~~~~~~~~~~~
+Other Examples
+~~~~~~~~~~~~~~
+
+There are other examples in the `examples` directory.
+
+---------------------
+Building documentaion
+---------------------
+
+
+The documentation is using Sphinx and also needs the numpydoc Sphinx extension.
+To build the documentation, go into the `docs` directory and run
+
+.. code-block:: sh
+
+    make html
+
+The HTML output can be found in `docs/build/html/`.
+
+-------
+Testing
+-------
+
+For running the tests, you need the standard `unittest` module, shipped
+with Python. Additionally, the `testresources` package is required.
+
+To run them, use either `py.test`, `unittest` or `trial`.
+
+The tests need a running Couchbase instance. For this, a `tests.ini`
+file must be present, containing various connection parameters.
+An example of this file may be found in `tests.ini.sample`.
+You may copy this file to `tests.ini` and modify the values as needed.
+
+The simplest way to run the tests is to declare a `bucket_prefix` in
+the `tests.ini` file and run the `setup_tests.py` script to create
+them for you.
+
+.. code-block:: sh
+
+    python setup_tests.py
+
+To run the tests::
+
+    nosetests
+
+-------
+Support
+-------
+
+If you found an issue, please file it in our JIRA_. You may also ask in the
+`#libcouchbase` IRC channel at freenode_. (which is where the author(s)
+of this module may be found).
+
+-------
+License
+-------
+
+The Couchbase Python SDK is licensed under the Apache License 2.0.
+
+.. _Couchbase: http://couchbase.com
+.. _libcouchbase: http://couchbase.com/develop/c/current
+.. _JIRA: http://couchbase.com/issues/browse/pycbc
+.. _freenode: http://freenode.net/irc_servers.shtml
+

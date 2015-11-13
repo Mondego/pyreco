@@ -1,0 +1,799 @@
+========
+ README
+========
+
+Requirements
+============
+
+You must build the documentation on a valid gtk-x11 platform.  This
+means that platform-specific documentation is for gtk-x11.
+
+You must be able to build Miro on gtk-x11.  This means you'll need to
+have all the requirements to run ``run.sh`` in ``tv/platform/gtk-x11/``.
+
+You must have the Sphinx documentation tools installed.  On Ubuntu,
+this is usually as easy as::
+
+    sudo apt-get install python-sphinx
+
+
+Building the docs
+=================
+
+To build the docs, run::
+
+    make html
+
+If documentation building is successful, then it will be in the
+``./_build/html/`` directory.
+
+To clean everything::
+
+    make clean
+
+========
+ README
+========
+
+This repository holds source code for several components of Miro, the
+open and free Internet TV platform.  For more information about Miro,
+see:
+
+* http://www.getmiro.com/
+* http://participatoryculture.org/
+
+For the development site for the projects tracked here, including bug
+tracking, the developer documentation wiki, mailing lists, and more,
+go to:
+
+* https://develop.participatoryculture.org/
+
+
+What's here
+===========
+
+Miro
+----
+
+* ``tv``
+
+  The centerpiece of the Miro platform, Miro is a desktop application
+  that aims to make Internet TV an enjoyable experience for even the
+  least technically sophisticated user.  Miro can view channels
+  created with Broadcast Machine as well as a wide variety of other
+  video sources on the Internet.  It also integrates with the remaining
+  two components of the Miro platform: Channel Guide for promoting
+  channels and Video Bomb for easy end-user republishing and social
+  promotion of individual videos.
+
+* ``docs``
+
+  Developer documentation for Miro.
+
+* ``resources``
+
+  Scripts, packaging files, and a bunch of other stuff that helps
+  us doing development on Miro and related projects.
+
+========
+ README
+========
+
+This directory holds core extensions for Miro.
+
+For documentation on extensions and how they're implemented, see
+`ExtensionSystem`_.
+
+.. ExtensionSystem: http://develop.participatoryculture.org/index.php/ExtensionSystem
+
+==========
+CLI README
+==========
+
+Summary
+=======
+
+The cli frontend is a toy frontend.  It's main purpose is to show how to
+create an alternate frontend.  It might be a little bit useful if you want to
+manipulate miro without X11, however it's functionality is quite limited.
+
+Tab completion is fairly good, try it out.
+
+It's possible to answer dialog boxes.  But it's really a complete hack to do
+it with a CLI.
+
+
+Commands
+========
+
+Here are the supported commands:
+
+help -- lists commands and syntax
+
+feeds -- list all feeds
+playlists -- list all playlists
+
+feed <name> -- select a feed
+playlist <name> -- select a playlist
+downloads -- select downloading items
+
+items -- list the items in the feed/playlist/downloads
+rm <name> -- delete an item
+download <name> -- download an item
+stop <name> -- stop a download
+pause <name> -- pause a download
+play <name> -- plays an item by name in a feed/playlist, uses an external player
+
+rmfeed <name> -- delete a feed
+
+This directory contains the miro.frontends.widgets.gtk.fixedliststore module.
+
+The meat of the code is in fixed-list-store.c and fixed-list-store.h, which
+implement the GtkTreeModel in C.
+
+That code gets wrapped by pygtk to create a python module.  A couple of these
+files are auto-built by the pygobject code generation system:
+
+fixed-list-store.defs:
+  - build using generate-defs.sh
+  - build info is stored in build-info-defs
+
+fixed-list-store-wrapper.c:
+  - build using generate-wrapper.sh
+  - controled by the fixed-list-store.override file
+  - build info is store in build-info-wrapper
+
+fixed-list-store-module.c defines the module that stores the wrapper code.
+
+Lastly there's setup-test.py and test.py which work together to build a quick
+python program to test the code.
+
+This is a local copy of the pydaap package, available from:
+
+http://git.participatoryculture.org/pydaap/
+
+Local, tasteful adapations only please, otherwise changes should
+be reflected in the main pydaap repository.
+
+pybonjour version: 1.1.1, available from: http://code.google.com/p/pybonjour/
+
+pydaap: commit id master 4e64004baad19e230ded4da6a50ca34430e28ff0
+
+If you update these packages please keep this in sync.
+
+# Codegen for Echoprint
+
+Echoprint is an open source music fingerprint and resolving framework powered by the [The Echo Nest](http://the.echonest.com/ "The Echo Nest"). The [code generator](http://github.com/echonest/echoprint-codegen "echoprint-codegen") (library to convert PCM samples from a microphone or file into Echoprint codes) is open source (MIT licensed) and free for any use. The [server component](http://github.com/echonest/echoprint-server "echoprint-server") that stores and resolves queries is open source (Apache 2 licensed) and free for any use. The [data for resolving to millions of songs](http://echoprint.me/data "Echoprint Data") is free for any use provided any changes or additions are merged back to the community. 
+
+[Read more about Echoprint here](http://echoprint.me)
+
+There are two modes of operation of the Echoprint codegen:
+
+1. the codegen library (libcodegen) is meant to be linked into code that passes it a buffer of PCM data and will output a code string.
+ 
+2. the codegen binary runs standalone, accepts filenames as inputs and runs in a multithreaded worker mode.
+
+## Requirements
+
+### For libcodegen
+
+* Boost >= 1.35
+* zlib
+
+### Additional requirements for the codegen binary
+
+* [TagLib](http://developer.kde.org/~wheeler/taglib.html "TagLib")
+* ffmpeg - this is called via shell and is not linked into codegen
+
+On Ubuntu or Debian you can install these dependencies with:
+
+    sudo apt-get install ffmpeg libboost1.42-dev libtag1-dev zlib1g-dev
+On OS-X with homebrew you can use:
+
+    brew install ffmpeg boost taglib
+
+## Notes about libcodegen:
+
+Code generation takes a buffer of floating point PCM data sampled at 11025 Hz and mono. 
+
+    Codegen * pCodegen = new Codegen(const float* pcm, uint numSamples, int start_offset);
+
+    pcm: a buffer of floats, mono, 11025 Hz
+    numSamples: the number of samples
+    start_offset: creates a hint to the server on where the sample is taken from in the original file if known
+
+    string code = pCodegen->getCodeString(); 
+
+The code string is just a base64 encoding of a zlib compression of the original code string, which is a hex encoded series of ASCII numbers. See API/fp.py in echoprint-server for decoding help.
+
+You only need to query for 20 seconds of audio to get a result.
+
+## Notes about the codegen binary
+
+The makefile builds an example code generator that uses libcodegen, called "codegen." This code generator has more features -- it will output ID3 tag information and uses ffmpeg to decode any type of file. If you don't need to compile libcodegen into your app you can rely on this. Note that you need to have ffmpeg installed and accessible on your path for this to work.
+
+    ./echoprint-codegen billie_jean.mp3 10 30
+
+Will take 30 seconds of audio from 10 seconds into the file and output JSON suitable for querying:
+
+    {"metadata":{"artist":"Michael jackson", "release":"800 chansons des annes 80", "title":"Billie jean", "genre":"", "bitrate":192, "sample_rate":44100, "seconds":294, "filename":"billie_jean.mp3", "samples_decoded":220598, "given_duration":30, "start_offset":10, "version":4.00}, "code_count":846, "code":"JxVlIuNwzAMQ1fxCDL133+xo1rnGqNAEcWy/ERa2aKeZmW...
+
+You can POST this JSON directly to the Echo Nest's [song/identify](http://developer.echonest.com/docs/v4/song.html#identify "song/identify") (who has an Echoprint server booted), for example:
+
+    curl -F "query=@post_string" http://developer.echonest.com/api/v4/song/identify?api_key=YOUR_KEY
+    {"fp_lookup_time_ms": 21, "results": [{"songID": "SOAFVGQ1280ED4E371", "match_type": "fp", "title": "Billie Jean", "artist": "Michael Jackson", "artistID": "ARXPPEY1187FB51DF4", "score": 63, "release": "Thriller"}]
+    (you can also use GET, see the API description)
+
+Or you can host your own [Echoprint server](http://github.com/echonest/echoprint-server "echoprint-server") and ingest or query to that.
+
+Codegen also runs in a multithreaded mode for bulk resolving:
+
+    ./echoprint-codegen -s 10 30 < file_list
+
+Will compute codes for every file in file_list for 30 seconds starting at 10 seconds. (It tries to be smart about the number of threads to use.) It will output a JSON list. Note that song/identify can accept lists in the JSON, which will be faster than sending each code one at a time. The "tag" parameter is added to each code dictionary to match the resolving material.
+
+## Statistics
+
+### Speed
+
+Codegen scans audio at roughly 250x real time per processor after decoding and resampling to 11025 Hz. This means a full song can be scanned in less than 0.5s on an average computer, and an amount of audio suitable for querying (30s) can be scanned in less than 0.04s.
+
+Decoding from MP3 will be the bottleneck for most implementations. Decoders like mpg123 or ffmpeg can decode 30s mp3 audio to 11025 PCM in under 0.10s.
+
+    clump:echoprint-codegen bwhitman$ time mpg123 -q -s -4 -n 1200 song.mp3  > /dev/null
+    real        0m0.079s
+    user        0m0.067s
+    sys         0m0.007s
+
+### Accuracy
+
+Look at http://echoprint.me for information on the accuracy of the echoprint system.
+
+## FAQ
+
+Q: I get "Couldn't decode any samples with: ffmpeg" when running codegen
+
+A: When running the example code generator (echoprint-codegen) make sure ffmpeg is accessible to your path. Try running ffmpeg filename.mp3 on the file you are testing the code generator with. If it doesn't work, codegen won't work.
+
+------------------------------
+Building echoprint-codegen-ios
+------------------------------
+
+0. If you don't have it, get [boost](http://www.boost.org/)
+   **Note:** echoprint-codegen only uses boost headers for some numeric operations, 
+   so you don't need to compile boost.
+    
+   
+1. Open `echoprint-codegen-ios.xconfig` and set up your boost include directory, e.g., 
+    
+    HEADER_SEARCH_PATHS = /Users/artgillespie/dev/src/boost_1_46_1
+
+2. Build!
+
+3. If you get a bunch of build errors, goto 2.
+
+-------------------------------------------
+Using echoprint-codegen-ios in your iOS app
+-------------------------------------------
+
+Check out the sample app!
+
+# Codegen windows compilation instructions
+
+Using Visual C++ 2010 Express
+
+## Preliminary steps
+
+1. Install CMake using the Win32 Installer: http://cmake.org/cmake/resources/software.html 
+2. Download zlib: http://zlib.net/zlib125.zip
+3. Download taglib: http://developer.kde.org/~wheeler/files/src/taglib-1.7.tar.gz
+4. Download Boost: http://sourceforge.net/projects/boost/files/boost/1.46.1/
+5. Uncompress zlib, taglib and boost into the echoprint-codegen directory
+
+## Dependencies
+
+### Zlib
+
+1. Load CMake
+2. For Browse Source... and Browse Build... select the zlib directory you uncompressed
+3. Click configure
+4. Choose Visual Studio 10 as the generator, and use default native compilers
+5. Click generate
+6. Load the generated zlib.sln
+7. Make sure release is selected in the top bar (next to the play button)
+8. In the solution explorer, right click on zlib project and select Build
+
+### Taglib
+
+1. Load CMake
+2. For Browse Source... and Browse Build... select the taglib directory you uncompressed
+3. Press configure
+4. Choose Visual Studio 10 as the generator, and use default native compilers
+5. There will be an error saying "Could NOT find ZLIB". Click the Advanced checkbox.
+6. Change the ZLIB_INCLUDE_DIR variable to the zlib directory, and ZLIB_LIBRARY variable to zlib-1.2.5\Release\zlib.lib
+7. Click Generate
+8. Load the generated taglib.sln
+9. Make sure release is selected in the top bar (next to the play button)
+10. In the solution explorer, right click on tag project and select Build
+
+### FFmpeg
+
+1. Download ffmpeg: http://ffmpeg.zeranoe.com/builds/
+3. Uncompress and move somewhere
+4. Update your path to include the ffmpeg\bin directory
+
+## Compiling codegen
+
+1. Load codegen.sln
+2. If you downloaded different versions of the dependencies you will need to change the path to the include and library directories.
+
+ 
+## Running
+
+Copy tag.dll and zlib.dll into the same directory as codegen.exe. Make sure that the ffmpeg bin directory is on your PATH.
+
+## Credits
+
+Zlib and Taglib compilation instructions from Lukáš Lalinský: http://oxygene.sk/lukas/2011/04/windows-binaries-for-taglib/
+========
+ README
+========
+
+This directory holds core platform extensions for Miro on Linux.
+
+For documentation on extensions and how they're implemented, see
+`ExtensionSystem`_.
+
+.. ExtensionSystem: http://develop.participatoryculture.org/index.php/ExtensionSystem
+
+========
+ README
+========
+
+These are helper scripts that are distribution/version specific to help
+you install the dependencies you need to run Miro from the source tarball
+or the git repository.
+
+These scripts are maintained by contributors--people like you!
+
+You're a better expert on how to install requirements on the 
+distribution/version that you use!  If you see errors in these scripts or 
+things that could be improved, let us know!  Patches are more than welcome.
+
+You can find us here:
+
+IRC:          #miro-hackers on freenode.net
+mailing list: http://mailman.pculture.org/listinfo/develop
+
+Or you can email me directly at will.guaraldi at pculture.net.
+
+======
+README
+======
+
+:Author: Will Kahn-Greene <will.guaraldi at pculture dot org>
+:Date: February 8th, 2011
+
+
+Summary
+=======
+
+This is the Linux port of Miro.  It uses GTK and other GNOME
+technologies.
+
+Instructions and build requirements are documented at
+https://develop.participatoryculture.org/index.php/LinuxBuildDocs
+
+
+Requirements
+============
+
+There are helper build scripts located in ``tv/linux/helperscripts/``
+which will install dependencies for some systems.  Note that these
+scripts may be out of date and that you must run them with
+administrative priveliges.
+
+RUN THEM AT YOUR OWN RISK!  
+
+Please send in patches to the scripts if you encounter issues.
+
+Please send in scripts for systems we don't have scripts for.
+
+If you have problems, visit us on ``#miro-hackers`` on
+``irc.freenode.net``.
+
+Generally, the requirements are these:
+
+Build requirements:
+
+* git - http://git-scm.com/
+* gcc, g++, standard c/c++ libraries - http://gcc.gnu.org/
+* Python >= 2.6 - http://www.python.org/ (we don't support Python 3.0
+  or higher yet)
+* Pyrex >= 0.9.6.4 or higher -
+  http://www.cosc.canterbury.ac.nz/greg.ewing/python/Pyrex/
+* PyGTK >= 2.0 - http://www.pygtk.org/
+* pygobject >= 2.0 - http://ftp.gnome.org/pub/GNOME/sources/pygobject/
+* libwebkit dev files - http://webkit.org/ (might work with lower
+  versions--untested)
+* libsoup dev files - http://live.gnome.org/LibSoup 
+
+Runtime requirements:
+
+* Python >= 2.6 - http://www.python.org/
+  (we don't support Python 3.0 or higher yet)
+* dbus and python bindings 0.80.0 or higher -
+  http://www.freedesktop.org/wiki/Software/dbus
+* PyGTK >= 2.0 - http://www.pygtk.org/
+* pygobject >= 2.0 - http://ftp.gnome.org/pub/GNOME/sources/pygobject/
+* pycairo - http://cairographics.org/pycairo/
+* libwebkit >= 1.1.15 - http://webkit.org/
+  (might work with lower versions--untested)
+* pywebkitgtk >= 1.1.5 - http://live.gnome.org/PyWebKitGtk
+* libsoup - http://live.gnome.org/LibSoup
+* gconf and python bindings
+* gstreamer >= 0.10.22 - http://gstreamer.freedesktop.org/
+  (needs playbin2 with text-sink)
+* gstreamer plugins-base and plugins-good
+* gstreamer python bindings
+* libtorrent-rasterbar 0.14 or higher except for 0.15.4 which has
+  known issues (bz:13549) -
+  http://www.rasterbar.com/products/libtorrent/
+* libtorrent-rasterbar python bindings
+* libcurl - http://curl.haxx.se/libcurl/
+* libcurl python bindings - http://curl.haxx.se/libcurl/python/
+* mutagen - http://pypi.python.org/pypi/mutagen/1.12 
+* libavahi-compat-libdnssd1
+
+If you discover that there are other requirements, let us know!
+
+
+Building and running
+====================
+
+To compile and run Miro in the current directory, do::
+
+   ./run.sh
+
+If you have the required dependencies it should build Miro and run it.
+
+See https://develop.participatoryculture.org/index.php/LinuxBuildDocs
+for more information on building and executing the Linux platform code.
+The information at this URL is considered the authoritative source.
+
+For more command-line options including how to set preferences on the command 
+and what preferences are available, do::
+
+   ./run.sh --help
+
+There are two ways to run Miro in a test sandbox.
+
+1. Set the ``HOME`` environment variable to switch where Miro saves
+   database and other files::
+
+      mkdir /tmp/foo
+      HOME=/tmp/foo ./run.sh
+
+   This has the problem that it doesn't work if you're using KDE (it
+   causes problems) and it uses your "production" Miro configuration.
+
+2. Run Miro using the ``--home`` and ``--gconf-name`` arguments::
+
+      mkdir /tmp/foo
+      run.sh --home=/tmp/foo --gconf-name=mirotest
+
+   This stores configuration in a different place and uses a different
+   home without affecting the process environment.
+
+
+Unittest instructions
+=====================
+
+Once you get ``./run.sh`` working, you can run the unittests on Linux
+platform.  Do the following::
+
+   ./run.sh --unittest
+
+
+This will go through all the unittests on the Linux platform and spit
+out any errors to stdout and stderr.
+
+You can run specific tests by providing the test name.  For example::
+
+   ./run.sh --unittest utiltest
+
+
+Preferences
+===========
+
+Miro stores configuration preferences in gconf.
+
+To see gconf preferences, do::
+
+   gconftool-2 -R /apps/miro
+
+To wipe out all preferences, do::
+
+   gconftool-2 --recursive-unset /apps/miro
+
+To backup your preferences, do::
+
+   gconftool-2 --dump /apps/miro > /tmp/foobar
+
+
+Problems with gstreamer
+=======================
+
+Make sure you have gstreamer plugins installed.  That solves most problems.
+Consult your Linux distribution's documentation for details.
+
+
+Problems with ffmpeg
+====================
+
+Miro uses ffmpeg for conversions.  It's common for Linux distributions to
+ship with ffmpeg versions that are missing libaac decoding.  If you're
+running into problems converting things, that's probably the cause.  Consult
+your Linux distribution's documentation for help.
+
+======
+README
+======
+
+:Authors: Will Kahn-Greene <will.guaraldi at pculture dot org>
+          Luc Heinrich <luc at pculture do org>
+:Date: June 13th, 2010
+
+
+Summary
+=======
+
+This is the OSX port of Miro.
+
+Instructions and build requirements are documented at
+https://develop.participatoryculture.org/index.php/OSXBuildDocs
+
+
+Setup build environment
+=======================
+
+Run ``setup_binary_kit.sh`` then ``setup_sandbox.sh``.
+
+This works for OSX 10.5 and 10.6.
+
+Building and running Miro on Mac OS X 10.4 or earlier is not supported.
+
+
+Build and run
+=============
+
+To compile and run Miro in the current directory, do::
+
+   ./run.sh
+
+Miro.app, if it exists, is in the process overwritten with a 
+non-distribution-safe bundle tree that contains symlinks that point outside 
+the bundle.
+
+See https://develop.participatoryculture.org/projects/dtv/wiki/OSXBuildDocs
+for more information on building and executing the OSX platform code.
+The information at this url is considered the authoritative source.
+
+To build a ``.app`` file, do::
+
+   ./build.sh
+
+The result is ``Miro.app``, which is self-contained and should be safe to 
+distribute.
+
+To build a ``.dmg`` file, do::
+
+   ./build.sh --make-dmg
+
+
+Running tests
+=============
+
+To run unittests on OSX, do::
+
+   ./run.sh --unittest
+
+To run unittests verbosely, do::
+
+   ./run.sh --unittest -v
+
+======
+README
+======
+
+This is the source for Miro, the client-side component of the
+Democracy platform for Internet TV.  It is targeted at average,
+unsophisticated Internet users with broadband connections.  It can be
+built for Mac OS X, Microsoft Windows, or X Window-based platforms
+such as Linux, with a native look and feel on each platform.  There is
+a clean separation between the portable backend and the
+platform-specific frontend in the event that new ports are desired in
+the future.
+
+It is written primarily in Python and is distributed under the terms
+of the GNU General Public License; see license.txt.
+
+Binaries are available from::
+
+   http://www.getmiro.com/
+
+Development information, instructions on how to submit bug reports,
+source code, information on mailing lists, and other
+development-related links and information are located at::
+
+   https://develop.participatoryculture.org/
+
+The latest source can be retrieved via git from::
+
+   git clone git://github.com/pculture/miro
+
+Release notes and changes are listed in the dev wiki at::
+
+   https://develop.participatoryculture.org/index.php/ReleaseNotes
+
+The public face of Miro is::
+
+   http://www.getmiro.com/
+
+Participatory Culture Foundation, the non-profit that sponsors
+Miro development and promotes the platform, has a site at::
+
+   http://participatoryculture.org/
+
+See https://develop.participatoryculture.org/ for the latest build 
+instructions.
+
+======
+README
+======
+
+Instructions for dealing with Translations are in the wiki:
+
+https://develop.participatoryculture.org/index.php/TranslationGuide
+
+Summary
+=======
+
+Export strings to Launchpad
+---------------------------
+
+Run ``export-strings.sh`` to build the ``messages.pot`` file.  Then go to
+the Launchpad site and upload the ``messages.pot`` file.
+
+Commit everything.
+
+
+Import translations from Launchpad
+----------------------------------
+
+Go to the Launchpad site and export all ``.po`` files.
+
+They'll send you an email with the url to download the ``.tar.gz`` file
+from.
+
+Move the file into this directory (``tv/resources/locale/``), extract all the files,
+move the files in ``democracyplayer/`` into this directory, remove the ``democracyplayer/``
+directory and run ``import-translations.py``.
+
+Commit everything.
+
+These are the raw HTTP responses from 7digital.  See generate.py for how they
+were created.
+
+========
+ README
+========
+
+These files are output from ffmpeg/ffmpeg2theora runs from command line
+sequences used by Miro.
+
+To build new ones::
+
+    commandline > output.txt 2>&1
+
+where commandline is the line from Miro.
+
+This is easily done on Linux and OSX and probably more difficult on Windows.
+
+The output is verbatim except for the sake of reducing space used and time it
+takes to run the tests, I sometimes remove progress lines.
+
+These are the raw HTTP responses from echonest.  They were created with
+generate.py command.
+
+What's here?
+============
+
+These are test cases for the strippertest which is at
+tv/lib/test/strippertest.py).
+
+See top of that file for format.
+
+======
+README
+======
+
+:Author: Will Kahn-Greene <will.guaraldi at pculture dot org>
+:Date: March 5, 2011
+
+
+Summary
+=======
+
+This is the Gtk-Windows port of Miro.
+
+Instructions and build requirements are documented at
+https://develop.participatoryculture.org/index.php/WindowsBuildDocs
+
+All shell scripts are written for cygwin, but otherwise cygwin is not
+required to build Miro.  Having said that, we exclusively use cygwin
+bash and don't actively support other environments.
+
+If you have problems, visit us on ``#miro-hackers`` on
+``irc.freenode.net``.
+
+
+Setting up a build environment
+==============================
+
+Follow the instructions at:
+https://develop.participatoryculture.org/index.php/WindowsBuildDocs
+
+That sets up Visual Studio 2008, Python, and the rest of the build
+environment.
+
+.. Note::
+
+   We don't support mingw or the gcc compiler for Miro on Windows.  We
+   only support Visual Studio 2008 Express with Python from
+   python.org.
+
+   We would love to get help switching to mingw.  If you're interested
+   in helping out, please let us know.
+
+
+Build and run
+=============
+
+To compile and run Miro in the current directory, do::
+
+   ./run.sh
+
+If you have the required dependencies, it should build Miro and run
+it logging stuff to stdout in your console.
+
+See
+https://develop.participatoryculture.org/index.php/WindowsBuildDocs
+for more information on building and executing the Gtk-Windows
+platform code.  The information at this url is considered the
+authoritative source.
+
+
+To run the unit tests
+=====================
+
+Do::
+
+    ./test.sh
+
+
+To build a Miro installer
+=========================
+
+To build an installer, do::
+
+    python setup.py bdist_nsis
+
+That'll build Miro, then wrap it in a NullSoft installer.  The
+resulting files will be something like::
+
+    dist\Miro-2.0-git-twostage.exe
+    dist\Miro-2.0-git.exe
+
+The second one is the "full" installer.
+

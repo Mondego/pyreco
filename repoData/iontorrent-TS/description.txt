@@ -1,0 +1,3538 @@
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+Repository for FlowspaceCalibration.jar source code
+https://github.com/iontorrent/Torrent-Variant-Caller/tree/FlowspaceCalibration
+
+build:
+cd to checkout directory, type "ant FlowspaceCalibration.jar" to build and the built jar is under dist subfolder
+
+note: ant build might require proper setting of JAVA_HOME, pointing to where jdk installs
+
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+# TMAP - torrent mapping alignment program
+
+See README.md
+
+# TMAP - torrent mapping alignment program
+
+##  General Notes 
+
+TMAP is a fast and accurate alignment software for short and long nucleotide sequences produced by next-generation sequencing technologies.
+
+* The latest TMAP is unsupported.  To use a supported version, please see the TMAP version associated with a Torrent Suite release below.
+
+*  Get the latest source code: 
+    <pre lang="bash"><code>git clone git://github.com/iontorrent/TMAP.git
+    cd TMAP
+    git submodule init
+    git submodule update
+    </code></pre>
+* To download a specific version, please get the latest source code, and then checkout the specific version using the tag listed below:
+    <pre lang="bash"><code>git checkout -b tag "tag name below"</code></pre>
+    For example: <pre lang="bash"><code>git checkout -b 3.0.1 tmap.3.0.1
+    git submodule update
+    </code></pre>
+    Below is the list of tags associated with a specific Torrent Suite release:<table>
+    <tr><td>Torrent Suite 3.0:</td><td>tmap.3.0.1</td></tr>
+    <tr><td>Torrent Suite 2.2</td><td>tmap.0.3.7</td></tr>
+    <tr><td>Torrent Suite 2.0.1</td><td>tmap.0.2.3</td></tr>
+    <tr><td>Torrent Suite 2.0</td><td>tmap.0.2.3</td></tr>
+    <tr><td>Torrent Suite 1.5.1</td><td>tmap.0.1.3</td></tr>
+    <tr><td>Torrent Suite 1.5</td><td>tmap.0.1.3</td></tr>
+    <tr><td>Torrent Suite 1.4.1</td><td>tmap.0.0.28</td></tr>
+    <tr><td>Torrent Suite 1.4</td><td>tmap.0.0.25</td></tr>
+    <tr><td>Torrent Suite 1.3</td><td>tmap.0.0.19</td></tr>
+    <tr><td>Torrent Suite 1.2</td><td>tmap.0.0.9</td></tr>
+    </tr>
+    </table>
+*  See the latest manual: http://github.com/iontorrent/TMAP/blob/master/doc/tmap-book.pdf
+
+
+##  Pre-requisites
+1. Compiler (required):
+  The compiler and system must support SSE2 instructions.  
+
+##  To Install
+
+1. Compile TMAP:
+  <pre lang="bash"><code>sh autogen.sh && ./configure && make</code></pre>
+2. Install
+  <pre lang="bash"><code>make install</code></pre>
+
+##  Optional Installs
+
+### TCMalloc (optional)
+  TMAP will run approximately 15% faster using the tcmalloc memory allocation
+  implementation.  To use tcmalloc, install the Google performance tools:
+  http://code.google.com/p/google-perftools
+  
+  If you have previously compiled TMAP, execute the following command:
+  <pre lang="bash"><code>make distclean && sh autogen.sh && ./configure && make clean && make</code></pre>
+  After installation, execute the following command:
+  <pre lang="bash"><code>sh autogen.sh && ./configure && make clean && make</code></pre>
+  The performance improve should occur when using multiple-threads.
+
+##  Developer Notes
+
+There are a number of areas for potential improvement within TMAP for those
+that are interested; they will be mentioned here.  A great way to find places
+where the code can be improved is to use Google's performance tools:
+  http://code.google.com/p/google-perftools
+This includes a heap checker, heap profiler, and cpu profiler.  Examining 
+performance on large genomes (hg19) is recommended.
+
+### Smith Waterman extensions
+  Currently, each hit is examined with Smith Waterman (score only), which
+   re-considers the portion of the read that matched during seeding.  We need
+   only re-examine the portion of the read that is not matched during seeding.
+   This could be tracked during seeding for the Smith Waterman step, though 
+   the merging of hits from each algorithm could be complicated by this step.
+   Nonetheless, this would improve the run time of the program, especially for
+   high-quality data and/or longer reads (>200bp).
+
+### Smith Waterman vectorization
+  The vectorized (SSE2) Smith Waterman implemented supports an combination of
+    start and end soft-clipping.  To support any type of soft-clipping, some 
+    performance trade-offs needed to be made.  In particular, 16-bit integers
+	are stored in the 128-bit integers, giving only 8 bytes/values per 128-bit 
+    integer.  This could be improved to 16 bytes/values per 128-bit integer by
+    using 8-bit integers.  This would require better overflow handling.  Also,
+    handling negative infinity for the Smith Waterman initialization would be
+    difficult.  Nonetheless, this could significantly improve the performance of
+    the most expensive portion of the program.
+
+### Best two-stage mapping
+  There is no current recommendation for the best settings for two-stage 
+    mapping, which could significantly decrease the running time.  A good 
+	project would be to optimize these settings.
+
+### Mapping quality calibration
+  The mapping quality is sufficiently calibrated, but can always be improved,
+    especially for longer reads.  This is a major area for improvement.
+
+### Better support for paired ends/mate pairs
+  There is minimal support for paired ends/mate pairs, which relies on knowing
+    a prior the parameters for the insert size distribution.  The insert size 
+	could be trained on a subset of the given input data.
+
+### Speeding up lookups in the FM-index/BWT.
+  Further implementation improvements or parameter tuning could be made to make
+    the lookups in the FM-index/BWT faster.  This includes the occurrence 
+	interval, the suffix array interval, and the k-mer occurence hash.  Caching
+	these results may also make sense when examining the same sub-strings across
+	multiple algorithms.  Speed improvements have already been made to BWA and 
+	could be relevant here:
+	  http://github.com/RoelKluin/bwa
+
+### Dynamic split read mapping
+  It is important to detect Structural Variation (SV), as well as finding splice 
+    junctions for RNA-seq.  Support for returning more than one alignment, where
+	these alignments do not significantly overlap in terms of which bases they
+	consume in the query, could be included.  For example, a 400bp read could span
+	a SV breakpiont, with the first 100bp on one side of the breakpoint and the 
+	second 300bp on the other.  Currently (with full soft-clipping options turned 
+    on), we may produce two alignments for the two parts of the query. Nonetheless,
+	the "choice" algorithm will choose the one with the best alignment score 
+    (typically the 300bp one), and so only one alignment will be present in the SAM
+	file.  A better strategy would be to search for pairs (triples, etc.) of 
+	alignments that do not significantly overlap in the query (i.e. consume the same
+	query bases).  This would directly find SVs as well as other types of variant
+	requiring split read mapping.
+
+### Representative repetitive hits
+  If a seeding algorithm finds a large occurence interval that it will save, it 
+    could save one of the occurrences (random) as a representative hit for the 
+	repetitive interval.  This representative hit could be aligned with Smith-Waterman
+	and its alignment score could be compared to the other hits.  If its score is
+	better, than the read could be flagged as repetitive and "unmapped".  The 
+	algorithm would need to be careful that the repetitive hit is not contained 
+	within the returned non-repeititve hits, as to cause many reads to be unmapped.
+
+# Galaxy integration for TMAP
+
+TMAP can be run under galaxy.  This feature is provided for users familiar with 
+integrating other tools within Galaxy.  There is no warranty or support offered
+for this feature.
+
+## Installation
+
+### Copy the Wrapper Scripts
+Place the following files into the "galaxy/tools/sr_mapping/" directory: 
+* tmap_wrapper.py
+* tmap_wrapper.xml
+
+### Copy and Update the TMAP Index Locations 
+If you have pre-built TMAP indexes (recommended), rename the tmap_index.loc.sample
+file "tmap_index.loc" and place it int the "galaxy/tools-data/" directory.
+
+### Let Galaxy Know about the TMAP Tool
+Modify the "" file to include the TMAP wrapper by adding the following line
+to "galaxy/tool_conf.xml" in the "NGS: Mapping" section (search for "bwa" for example):
+* <pre lang="xml"><code><tool file="sr_mapping/tmap_wrapper.xml" /></code></pre>
+
+## Running TMAP within Galaxy
+The TMAP page includes descriptions of the supported options.  For global, flowspace, 
+pairing, and algorithm options, enter them in the given text boxes exactly the same 
+as you would on the command line.  If you encounter problems, please review the source
+code or contact the galaxy help list.
+
+# Contributing to Bootstrap
+
+Looking to contribute something to Bootstrap? **Here's how you can help.**
+
+
+
+## Reporting issues
+
+We only accept issues that are bug reports or feature requests. Bugs must be isolated and reproducible problems that we can fix within the Bootstrap core. Please read the following guidelines before opening any issue.
+
+1. **Search for existing issues.** We get a lot of duplicate issues, and you'd help us out a lot by first checking if someone else has reported the same issue. Moreover, the issue may have already been resolved with a fix available.
+2. **Create an isolated and reproducible test case.** Be sure the problem exists in Bootstrap's code with a [reduced test cases](http://css-tricks.com/reduced-test-cases/) that should be included in each bug report.
+3. **Include a live example.** Make use of jsFiddle or jsBin to share your isolated test cases.
+4. **Share as much information as possible.** Include operating system and version, browser and version, version of Bootstrap, customized or vanilla build, etc. where appropriate. Also include steps to reproduce the bug.
+
+
+
+## Key branches
+
+- `master` is the latest, deployed version.
+- `gh-pages` is the hosted docs (not to be used for pull requests).
+- `*-wip` is the official work in progress branch for the next release.
+
+
+
+## Notes on the repo
+
+As of v2.0.0, Bootstrap's documentation is powered by Mustache templates and built via `make` before each commit and release. This was done to enable internationalization (translation) in a future release by uploading our strings to the [Twitter Translation Center](http://translate.twttr.com/). Any edits to the docs should be first done in the Mustache files and then recompiled into the HTML.
+
+
+
+## Pull requests
+
+- Try to submit pull requests against the latest `*-wip` branch for easier merging
+- Any changes to the docs must be made to the Mustache templates, not just the compiled HTML pages
+- CSS changes must be done in .less files first, never just the compiled files
+- If modifying the .less files, always recompile and commit the compiled files bootstrap.css and bootstrap.min.css
+- Try not to pollute your pull request with unintended changes--keep them simple and small
+- Try to share which browsers your code has been tested in before submitting a pull request
+
+
+
+## Coding standards: HTML
+
+- Two spaces for indentation, never tabs
+- Double quotes only, never single quotes
+- Always use proper indentation
+- Use tags and elements appropriate for an HTML5 doctype (e.g., self-closing tags)
+
+
+
+## Coding standards: CSS
+
+- Adhere to the [Recess CSS property order](http://markdotto.com/2011/11/29/css-property-order/)
+- Multiple-line approach (one property and value per line)
+- Always a space after a property's colon (.e.g, `display: block;` and not `display:block;`)
+- End all lines with a semi-colon
+- For multiple, comma-separated selectors, place each selector on it's own line
+- Attribute selectors, like `input[type="text"]` should always wrap the attribute's value in double quotes, for consistency and safety (see this [blog post on unquoted attribute values](http://mathiasbynens.be/notes/unquoted-attribute-values) that can lead to XSS attacks).
+
+
+
+## Coding standards: JS
+
+- No semicolons
+- Comma first
+- 2 spaces (no tabs)
+- strict mode
+- "Attractive"
+
+
+
+## License
+
+By contributing your code, you agree to license your contribution under the terms of the APLv2: https://github.com/twitter/bootstrap/blob/master/LICENSE
+
+## 2.0 BOOTSTRAP JS PHILOSOPHY
+These are the high-level design rules which guide the development of Bootstrap's plugin apis.
+
+---
+
+### DATA-ATTRIBUTE API
+
+We believe you should be able to use all plugins provided by Bootstrap purely through the markup API without writing a single line of javascript.
+
+We acknowledge that this isn't always the most performant and sometimes it may be desirable to turn this functionality off altogether. Therefore, as of 2.0 we provide the ability to disable the data attribute API by unbinding all events on the body namespaced with `'data-api'`. This looks like this:
+
+    $('body').off('.data-api')
+
+To target a specific plugin, just include the plugins name as a namespace along with the data-api namespace like this:
+
+    $('body').off('.alert.data-api')
+
+---
+
+### PROGRAMATIC API
+
+We also believe you should be able to use all plugins provided by Bootstrap purely through the JS API.
+
+All public APIs should be single, chainable methods, and return the collection acted upon.
+
+    $(".btn.danger").button("toggle").addClass("fat")
+
+All methods should accept an optional options object, a string which targets a particular method, or null which initiates the default behavior:
+
+    $("#myModal").modal() // initialized with defaults
+    $("#myModal").modal({ keyboard: false }) // initialized with now keyboard
+    $("#myModal").modal('show') // initializes and invokes show immediately afterqwe2
+
+---
+
+### OPTIONS
+
+Options should be sparse and add universal value. We should pick the right defaults.
+
+All plugins should have a default object which can be modified to effect all instance's default options. The defaults object should be available via `$.fn.plugin.defaults`.
+
+    $.fn.modal.defaults = { ‚Ä¶ }
+
+An options definition should take the following form:
+
+    *noun*: *adjective* - describes or modifies a quality of an instance
+
+examples:
+
+    backdrop: true
+    keyboard: false
+    placement: 'top'
+
+---
+
+### EVENTS
+
+All events should have an infinitive and past participle form. The infinitive is fired just before an action takes place, the past participle on completion of the action.
+
+    show | shown
+    hide | hidden
+
+---
+
+### CONSTRUCTORS
+
+Each plugin should expose it's raw constructor on a `Constructor` property -- accessed in the following way:
+
+
+    $.fn.popover.Constructor
+
+---
+
+### DATA ACCESSOR
+
+Each plugin stores a copy of the invoked class on an object. This class instance can be accessed directly through jQuery's data API like this:
+
+    $('[rel=popover]').data('popover') instanceof $.fn.popover.Constructor
+
+---
+
+### DATA ATTRIBUTES
+
+Data attributes should take the following form:
+
+- data-{{verb}}={{plugin}} - defines main interaction
+- data-target || href^=# - defined on "control" element (if element controls an element other than self)
+- data-{{noun}} - defines class instance options
+
+examples:
+
+    // control other targets
+    data-toggle="modal" data-target="#foo"
+    data-toggle="collapse" data-target="#foo" data-parent="#bar"
+
+    // defined on element they control
+    data-spy="scroll"
+
+    data-dismiss="modal"
+    data-dismiss="alert"
+
+    data-toggle="dropdown"
+
+    data-toggle="button"
+    data-toggle="buttons-checkbox"
+    data-toggle="buttons-radio"
+[Twitter Bootstrap](http://twitter.github.com/bootstrap) [![Build Status](https://secure.travis-ci.org/twitter/bootstrap.png)](http://travis-ci.org/twitter/bootstrap)
+=================
+
+Bootstrap is a sleek, intuitive, and powerful front-end framework for faster and easier web development, created and maintained by [Mark Otto](http://twitter.com/mdo) and [Jacob Thornton](http://twitter.com/fat).
+
+To get started, checkout http://getbootstrap.com!
+
+
+
+Quick start
+-----------
+
+Clone the repo, `git clone git://github.com/twitter/bootstrap.git`, [download the latest release](https://github.com/twitter/bootstrap/zipball/master), or install with twitter's [Bower](http://twitter.github.com/bower): `bower install bootstrap`.
+
+
+
+Versioning
+----------
+
+For transparency and insight into our release cycle, and for striving to maintain backward compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
+
+Releases will be numbered with the following format:
+
+`<major>.<minor>.<patch>`
+
+And constructed with the following guidelines:
+
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
+
+For more information on SemVer, please visit http://semver.org/.
+
+
+
+Bug tracker
+-----------
+
+Have a bug? Please create an issue here on GitHub that conforms with [necolas's guidelines](https://github.com/necolas/issue-guidelines).
+
+https://github.com/twitter/bootstrap/issues
+
+
+
+Twitter account
+---------------
+
+Keep up to date on announcements and more by following Bootstrap on Twitter, [@TwBootstrap](http://twitter.com/TwBootstrap).
+
+
+
+Blog
+----
+
+Read more detailed announcements, discussions, and more on [The Official Twitter Bootstrap Blog](http://blog.getbootstrap.com).
+
+
+
+Mailing list
+------------
+
+Have a question? Ask on our mailing list!
+
+twitter-bootstrap@googlegroups.com
+
+http://groups.google.com/group/twitter-bootstrap
+
+
+
+IRC
+---
+
+Server: irc.freenode.net
+
+Channel: ##twitter-bootstrap (the double ## is not a typo)
+
+
+
+Developers
+----------
+
+We have included a makefile with convenience methods for working with the Bootstrap library.
+
++ **dependencies**
+Our makefile depends on you having recess, connect, uglify.js, and jshint installed. To install, just run the following command in npm:
+
+```
+$ npm install recess connect uglify-js jshint -g
+```
+
++ **build** - `make`
+Runs the recess compiler to rebuild the `/less` files and compiles the docs pages. Requires recess and uglify-js. <a href="http://twitter.github.com/bootstrap/extend.html#compiling">Read more in our docs &raquo;</a>
+
++ **test** - `make test`
+Runs jshint and qunit tests headlessly in [phantomjs](http://code.google.com/p/phantomjs/) (used for ci). Depends on having phantomjs installed.
+
++ **watch** - `make watch`
+This is a convenience method for watching just Less files and automatically building them whenever you save. Requires the Watchr gem.
+
+
+
+Contributing
+------------
+
+Please submit all pull requests against *-wip branches. If your unit test contains javascript patches or features, you must include relevant unit tests. Thanks!
+
+
+
+Authors
+-------
+
+**Mark Otto**
+
++ http://twitter.com/mdo
++ http://github.com/markdotto
+
+**Jacob Thornton**
+
++ http://twitter.com/fat
++ http://github.com/fat
+
+
+
+Copyright and license
+---------------------
+
+Copyright 2012 Twitter, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this work except in compliance with the License.
+You may obtain a copy of the License in the LICENSE file, or at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+## 2.0 BOOTSTRAP JS PHILOSOPHY
+These are the high-level design rules which guide the development of Bootstrap's plugin apis.
+
+---
+
+### DATA-ATTRIBUTE API
+
+We believe you should be able to use all plugins provided by Bootstrap purely through the markup API without writing a single line of javascript.
+
+We acknowledge that this isn't always the most performant and sometimes it may be desirable to turn this functionality off altogether. Therefore, as of 2.0 we provide the ability to disable the data attribute API by unbinding all events on the body namespaced with `'data-api'`. This looks like this:
+
+    $('body').off('.data-api')
+
+To target a specific plugin, just include the plugins name as a namespace along with the data-api namespace like this:
+
+    $('body').off('.alert.data-api')
+
+---
+
+### PROGRAMATIC API
+
+We also believe you should be able to use all plugins provided by Bootstrap purely through the JS API.
+
+All public APIs should be single, chainable methods, and return the collection acted upon.
+
+    $(".btn.danger").button("toggle").addClass("fat")
+
+All methods should accept an optional options object, a string which targets a particular method, or null which initiates the default behavior:
+
+    $("#myModal").modal() // initialized with defaults
+    $("#myModal").modal({ keyboard: false }) // initialized with now keyboard
+    $("#myModal").modal('show') // initializes and invokes show immediately afterqwe2
+
+---
+
+### OPTIONS
+
+Options should be sparse and add universal value. We should pick the right defaults.
+
+All plugins should have a default object which can be modified to effect all instance's default options. The defaults object should be available via `$.fn.plugin.defaults`.
+
+    $.fn.modal.defaults = { ‚Ä¶ }
+
+An options definition should take the following form:
+
+    *noun*: *adjective* - describes or modifies a quality of an instance
+
+examples:
+
+    backdrop: true
+    keyboard: false
+    placement: 'top'
+
+---
+
+### EVENTS
+
+All events should have an infinitive and past participle form. The infinitive is fired just before an action takes place, the past participle on completion of the action.
+
+    show | shown
+    hide | hidden
+
+---
+
+### CONSTRUCTORS
+
+Each plugin should expose it's raw constructor on a `Constructor` property -- accessed in the following way:
+
+
+    $.fn.popover.Constructor
+
+---
+
+### DATA ACCESSOR
+
+Each plugin stores a copy of the invoked class on an object. This class instance can be accessed directly through jQuery's data API like this:
+
+    $('[rel=popover]').data('popover') instanceof $.fn.popover.Constructor
+
+---
+
+### DATA ATTRIBUTES
+
+Data attributes should take the following form:
+
+- data-{{verb}}={{plugin}} - defines main interaction
+- data-target || href^=# - defined on "control" element (if element controls an element other than self)
+- data-{{noun}} - defines class instance options
+
+examples:
+
+    // control other targets
+    data-toggle="modal" data-target="#foo"
+    data-toggle="collapse" data-target="#foo" data-parent="#bar"
+
+    // defined on element they control
+    data-spy="scroll"
+
+    data-dismiss="modal"
+    data-dismiss="alert"
+
+    data-toggle="dropdown"
+
+    data-toggle="button"
+    data-toggle="buttons-checkbox"
+    data-toggle="buttons-radio"
+[Twitter Bootstrap](http://twitter.github.com/bootstrap) [![Build Status](https://secure.travis-ci.org/twitter/bootstrap.png)](http://travis-ci.org/twitter/bootstrap)
+=================
+
+Bootstrap is a sleek, intuitive, and powerful front-end framework for faster and easier web development, created and maintained by [Mark Otto](http://twitter.com/mdo) and [Jacob Thornton](http://twitter.com/fat) at Twitter.
+
+To get started, checkout http://getbootstrap.com!
+
+
+
+Quick start
+-----------
+
+Clone the repo, `git clone git://github.com/twitter/bootstrap.git`, or [download the latest release](https://github.com/twitter/bootstrap/zipball/master).
+
+
+
+Versioning
+----------
+
+For transparency and insight into our release cycle, and for striving to maintain backward compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
+
+Releases will be numbered with the following format:
+
+`<major>.<minor>.<patch>`
+
+And constructed with the following guidelines:
+
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
+
+For more information on SemVer, please visit http://semver.org/.
+
+
+
+Bug tracker
+-----------
+
+Have a bug? Please create an issue here on GitHub that conforms with [necolas's guidelines](https://github.com/necolas/issue-guidelines).
+
+https://github.com/twitter/bootstrap/issues
+
+
+
+Twitter account
+---------------
+
+Keep up to date on announcements and more by following Bootstrap on Twitter, [@TwBootstrap](http://twitter.com/TwBootstrap).
+
+
+
+Blog
+----
+
+Read more detailed announcements, discussions, and more on [The Official Twitter Bootstrap Blog](http://blog.getbootstrap.com).
+
+
+
+Mailing list
+------------
+
+Have a question? Ask on our mailing list!
+
+twitter-bootstrap@googlegroups.com
+
+http://groups.google.com/group/twitter-bootstrap
+
+
+
+IRC
+---
+
+Server: irc.freenode.net
+
+Channel: ##twitter-bootstrap (the double ## is not a typo)
+
+
+
+Developers
+----------
+
+We have included a makefile with convenience methods for working with the Bootstrap library.
+
++ **dependencies**
+Our makefile depends on you having recess, connect, uglify.js, and jshint installed. To install, just run the following command in npm:
+
+```
+$ npm install recess connect uglify-js jshint -g
+```
+
++ **build** - `make`
+Runs the recess compiler to rebuild the `/less` files and compiles the docs pages. Requires recess and uglify-js. <a href="http://twitter.github.com/bootstrap/less.html#compiling">Read more in our docs &raquo;</a>
+
++ **test** - `make test`
+Runs jshint and qunit tests headlessly in [phantomjs](http://code.google.com/p/phantomjs/) (used for ci). Depends on having phantomjs installed.
+
++ **watch** - `make watch`
+This is a convenience method for watching just Less files and automatically building them whenever you save. Requires the Watchr gem.
+
+
+
+Contributing
+------------
+
+Please submit all pull requests against *-wip branches. If your unit test contains javascript patches or features, you must include relevant unit tests. Thanks!
+
+
+
+Authors
+-------
+
+**Mark Otto**
+
++ http://twitter.com/mdo
++ http://github.com/markdotto
+
+**Jacob Thornton**
+
++ http://twitter.com/fat
++ http://github.com/fat
+
+
+
+Copyright and license
+---------------------
+
+Copyright 2012 Twitter, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this work except in compliance with the License.
+You may obtain a copy of the License in the LICENSE file, or at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Bootstrap Modal v2.0
+=============
+
+See live demo [here](http://jschr.github.com/bootstrap-modal/).
+
+Extends Bootstrap's native modals to provide additional functionality. Introduces a **ModalManager** class that operates behind the scenes to handle multiple modals by listening on their events. 
+
+A single ModalManager is created by default on body and can be accessed through the jQuery plugin interface.
+
+    $('body').modalmanager('loading');
+
+Bootstrap-Modal can be used as a replacement for Bootstrap's Modal class or as a patch to the library.
+
+Overview
+-----------
+
++ Backwards compatible
++ Responsive
++ Stackable
++ Full width
++ Load content via AJAX
++ Disable background scrolling
+
+Installation 
+-----------
++ Include `css/bootstrap-modal.css` after the main bootstrap css files.
++ Include `js/bootstrap-modalmanager.js` and `js/bootstrap-modal.js` after the main bootstrap js files.
+
+	<link href="css/bootstrap.css" rel="stylesheet" />
+	<link href="css/bootstrap-responsive.css" rel="stylesheet" />
+ 	<link href="css/bootstrap-modal.css" rel="stylesheet" />
+
+ 	<script src="js/bootstrap.js"></script>
+ 	<script src="js/bootstrap-modalmanager.js"></script>
+ 	<script src="js/bootstrap-modal.js"></script>
+
+Options
+-----------
+
+In addition to the standard bootstrap options, you now have access to the following options
+
+**Modal**
+
++ **width**
+Set the inital width of the modal.
+
++ **height**
+Set the inital height of the modal.
+
++ **maxHeight**
+Set the max-height of the modal-body.
+
++ **loading**
+Toggle the loading state.
+
++ **spinner**
+Provide a custom image or animation for the loading spinner.
+
++ **consumeTab**
+Used to enable tabindexing for modals with `data-tabindex`. This is set to true by default.
+
++ **focusOn**
+The element or selector to set the focus to once the modal is shown.
+
++ **attentionAnimation**
+Set the animation used by the `attention` method. Any animation in [animate.css](http://daneden.me/animate/) is supported but only the *shake* animation is included by default.
+
++ **modalOverflow**
+Set this property to true for modals with highly dynamic content. This will force the modal to behave as if it is larger than the viewport.
+
++ **manager**
+Set the modal's manager. By default this is set to the `GlobalModalManager` and will most likely not need to be overridden.
+
+**ModalManager**
+
++ **loading**
+Toggle the loading state.
+
++ **backdropLimit**
+Limit the amount of backdrops that will appear on the page at the same time.
+
++ **spinner**
+Provide a custom image or animation for the loading spinner.
+
+Disable Background Scrolling
+-----------
+
+If you want to prevent the background page from scrolling (see [demo](http://jschr.github.com/bootstrap-modal/) for example) you must wrap the page contents in a `<div class="page-container">`. For example:
+
+	<body>
+		<div class="page-container">
+			<div class="navbar navbar-fixed-top">...</div>
+			<div class="container">...</div>
+		</div>
+	</body>
+
+The reason for doing this instead of just simply setting `overflow: hidden` when a modal is open is to avoid having the page shift as a result of the scrollbar appearing/disappearing. This also allows the document to be scrollable when there is a tall modal but only to the height of the modal, not the entire page.
+
+Constrain Modal to Window Size
+-----------
+	
+You can bind the the height of the modal body to the window with something like this:
+	
+    $.fn.modal.defaults.maxHeight = function(){
+        // subtract the height of the modal header and footer
+        return $(window).height() - 165; 
+    }
+	
+**Note:** This will be overwritten by the responsiveness and is only set when the modal is displayed, not when the window is resized.
+	
+Tab Index for Modal Forms
+-----------
+You can use `data-tabindex` instead of the default `tabindex` to specify the tabindex within a modal.
+
+    <input type="text" data-tabindex="1" />
+    <input type="text" data-tabindex="2" />
+
+See the stackable example on the [demo](http://jschr.github.com/bootstrap-modal/) page for an example.
+
+
+	
+
+
+
+
+Plupload - Cross browser and platform uploader API
+===================================================
+
+What is Plupload
+-----------------
+Plupload is a JavaScript API for dealing with file uploads it supports features like multiple file selection, file type filtering,
+request chunking, client side image scaling and it uses different runtimes to achieve this such as HTML 5, Silverlight, Flash, Gears and BrowserPlus.
+
+What you need to build Plupload
+-------------------------------
+* Install the Java JDK or JRE packages you can find it at: [http://java.sun.com/javase/downloads/index.jsp](http://java.sun.com/javase/downloads/index.jsp)
+* Install Apache Ant you can find it at: [http://ant.apache.org/](http://ant.apache.org/)
+* Add Apache Ant to your systems path environment variable, this is not required but makes it easier to issue commands to Ant without having to type the full path for it.
+
+How to build Plupload
+----------------------
+
+In the root directory of Plupload where the build.xml file is you can run ant against different targets.
+
+`ant`
+
+Will combine, preprocess and minify the Plupload classes into the js directory. It will not build the Silverlight and Flash .xap and .swf files.
+
+`ant moxiedoc`
+
+Will generate API Documentation for the project using the Moxiedoc tool. The docs will be generated to the docs/api directory.
+
+`ant release`
+
+Will produce release packages. The release packages will be placed in the tmp directory.
+
+How to build Flash runtime
+---------------------------
+The Flash runtime uses a .swf file that can be built using the Flex SDK. This SDK can be downloaded from Adobe. [http://www.adobe.com/products/flex/flexdownloads/](http://www.adobe.com/products/flex/flexdownloads/)
+
+How to build Silverlight runtime
+---------------------------------
+The Silverlight runtime uses a .xap file that can be built using the Silverlight SDK or Visual Studio. [http://silverlight.net/getstarted/](http://silverlight.net/getstarted/)
+
+Running the development version
+--------------------------------
+The unminified development version of the javascript files can be executed by opening the examples/queue_widget_dev.html file running on a Web Server.
+
+Contributing to the Plupload project
+-------------------------------------
+You can read more about how to contribute to this project at [http://www.plupload.com/contributing](http://www.plupload.com/contributing)
+
+# [Uni-Form Markup](http://sprawsm.com/uni-form/) : Making forms as simple as 1,2,3
+
+## Announcements:
+
+* __Please note that the jQuery plugins no longer automatically initialize.__
+  You must init them yourself with the code found in the section below 
+  titled "How to use?"
+  
+
+## Copyright (c) 2010, Dragan Babic
+   
+   Permission is hereby granted, free of charge, to any person
+   obtaining a copy of this software and associated documentation
+   files (the "Software"), to deal in the Software without
+   restriction, including without limitation the rights to use,
+   copy, modify, merge, publish, distribute, sublicense, and/or sell
+   copies of the Software, and to permit persons to whom the
+   Software is furnished to do so, subject to the following
+   conditions:
+   
+   The above copyright notice and this permission notice shall be
+   included in all copies or substantial portions of the Software.
+   
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+   OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+   NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+   HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+   WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+   OTHER DEALINGS IN THE SOFTWARE.
+
+
+## About Uni‚ÄìForm 
+
+Uni-Form is a framework that standardizes form markup and styles it with CSS 
+giving you two most widely used layout options to choose from. Anyone can get nice 
+looking, well structured, highly customizable, accessible and usable forms. To put 
+it simply: it makes a developer's life a lot easier. 
+
+* [Uni-Form Homepage](http://sprawsm.com/uni-form/)
+* [Support at Get Satisfaction](http://getsatisfaction.com/uni-form)
+* [GitHub repository]()
+
+## How to Use? 
+
+First thing you need to do is to link up the necessary files: 
+
+1.  Link to the main CSS file
+    
+        <link href="path/to/file/uni-form.css" media="all" rel="stylesheet"/>
+    
+1.  Link to the Uni‚ÄìForm style CSS file
+    
+        <link href="path/to/file/default.uni-form.css" media="all" rel="stylesheet"/>
+    
+1.  Optionally you'll want to link up jQuery and Uni‚ÄìForm jQuery files if you'd 
+    like Uni‚ÄìForm to highlight the form rows on focus (it's a usability aid): 
+      
+        <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+        <script type="text/javascript" src="path/to/file/uni-form.jquery.js"></script>
+    
+1.  You may also want to try out the version of the Uni‚ÄìForm jQuery plugin that
+    supports client side validation, in case replace the regular plugin this this:
+    
+        <script type="text/javascript" src="path/to/file/uni-form-validation.jquery.js"></script>
+
+1. Please note that this plugin no longer automatically initialize the Uni‚ÄìForm plugin.
+   You must do this yourself, by adding this snippet after you have included
+   both jQuery and the plugin you have chosen:
+   
+       <script type="text/javascript">
+        $(function(){
+          $('form.uniForm').uniform();
+        });
+       </script>
+
+
+Now that you're all set up, all you need to do is add form fields that are formatted
+with Uni‚ÄìForm markup so the CSS and JavaScript will get the ‚Äúhooks‚Äù they need. These
+chunks of code are called ‚Äúunits‚Äù and all available units can be found within the 
+file called fauxform.html that is included in this package. 
+
+Feel free to extend Uni‚ÄìForm with units of your own and share. 
+
+
+## Styles 
+
+As of v1.4 Uni‚ÄìForm supports styles. These are separate CSS files that contain the
+presentation aspect of your form (considering that uni-form.css) contains the 
+layout. Style CSS files should be used to control how your form looks, spacing‚Ä¶ 
+
+Sharing styles is encouraged, and by default Uni‚ÄìForm is shipped with three: 
+
+ * Default
+ * Blue 
+ * Dark 
+    
+Consider these a starting point for making your own. 
+
+## Options and Layout Control 
+
+Uni‚ÄìForm by default has two form layouts: default and inline. This is controlled 
+by adding (or removing) a CSS class .inlineLabels to the fieldset element. 
+
+There is another option in regards to the layout and it concerns what is referred 
+to as "multifields". These are fields that contain multiple inputs per unit and 
+are usually used for checkboxes and radio buttons. Each layout supports an 
+alternate multifield layout. This is achieved by adding (or removing) a CSS class
+.alternate to the ul element. 
+
+
+## Events
+
+Triggering an error event on the form fields will apply the error
+class to the controller and overwrite the supplied description of that
+controller with the error text, an example would be:
+
+    $(selector).trigger('error',['an error occured']);
+
+Subsequent calls to success on the form field will remove the error
+and replace the error text with the originally supplied description,
+an example:
+
+    $(selector).trigger('success');
+
+----------------------------------------------------------------------------------
+
+## Form Validation
+
+Uni‚ÄìForm can be used with the included uni-form-validation.js file for client
+side validation. This is accomplished by using class names on the form elements
+to trigger validation rules on blur(). It must be noted that these validation rules
+should be used to supplement a server side solution.
+
+Required element, cannot be empty:
+
+    <input type="text" class="textInput required" />
+
+Integer with value greater than or equal to 8:
+
+    <input type="text" class="textInput validateInteger validateMin val-8" />
+
+### Available validators:
+
+* required
+* validateMinLength
+* validateMin
+* validateMaxLength
+* validateMax
+* validateSameAs
+* validateEmail
+* validateUrl
+* validateNumber
+* validateInteger
+* validateAlpha
+* validateAlphaNum
+* validatePhrase
+* validatePhone
+* validateDate
+* validateCallback
+
+Validators what require a parameter, such as validateMinLength, take that parameter
+as a class name following the validator in the format of _val-{value}_. 
+
+
+
+## Give respect and get it back.
+
+# [Uni-Form Markup](http://sprawsm.com/uni-form/) : Validation documentation
+
+
+## Initialize the jQuery plugin
+
+The following code will initialize the jQuery Validation plugin with the default options.
+
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.4/jquery.min.js"></script>
+    <script type="text/javascript" src="../js/uni-form-validation.jquery.js" charset="utf-8"></script>
+    <script>
+      $(function(){
+        $('form.uniForm').uniform();
+      });
+    </script>
+
+You may use a global object to hold site wide validation settings. To do this, you should
+copy the jQuery.fn.uniform.defaults = {} object from the bottom of the validation javascript
+file into a new file that you use throughout your site. You may then edit options there
+globally, and will make the Uni-Form library easy to update in the future.
+
+You may also initialize Uni-Form Validation with custom settings by passing a settings object
+as a parameter when you call uniform(). 
+
+    <script>
+      $(function(){
+        $('form.uniForm').uniform({
+            prevent_submit : true,
+            valid_class    : 'okGo'
+        });
+      });
+    </script>
+
+## Uni-Form Settings
+
+* prevent_submit (false)
+  Set this to true to prevent the form from submitting if there are outstanding
+  errors in the form
+* prevent_submit_callback (false)
+  Supply a function here and it will be called instead of the internal handler.
+  This function can return true to allow the form to proceed with the commit
+* ask_on_leave (false)
+  Set this to true to have the browser prompt if the visitor has made changes to
+  the form, and then initialized a page unload without submitting the form
+* on_leave_callback (false)
+  Provide a function and it will be called instead of the internal method
+* valid_class ('valid')
+  CSS class name used for div.holder_class elements that have passed validation
+* invalid_class ('invalid')
+  CSS class name used for div.holder_class elements that have failed validation
+* error_class ('error')
+  Please note that both of these are applied by the validation script.
+  You may wish to set them separately at the server perhaps.
+* focused_class ('focused')
+  CSS class name applied to the .holder_class of the current element
+* holder_class ('ctrlHolder')
+  CSS class name that you have used as the control holder class
+* field_selector ('input, textarea, select')
+  List of html elements that will be treated with Uni-Form highlighting and 
+  validation (if enabled)
+* default_value_color ("#AFAFAF")
+  HEX color used to display the default data in the background of empty text inputs
+  
+## Validators
+
+* required
+* validateMinLength
+* validateMin
+* validateMaxLength
+* validateMax
+* validateSameAs
+* validateEmail
+* validateUrl
+* validateNumber
+* validateInteger
+* validateAlpha
+* validateAlphaNum
+* validatePhrase
+* validatePhone
+* validateDate
+* validateCallback
+
+Validators what require a parameter, such as validateMinLength, take that parameter
+as a class name following the validator in the format of _val-{value}_. 
+
+## validateCallback
+
+The validateCallback is a special validator. See the demo/callback.html file for example
+use. It allows you to define a custom callback to an input without having to add a new
+validator type to the library.
+
+
+base_template.py generates files for Default report and places them in this
+directory
+This directory contains code for ion-dbreports.
+
+---------------------------------------------------------------------------------------------------
+Development Environment
+---------------------------------------------------------------------------------------------------
+This section describes how to set up your local machine. Unless otherwise specified, this section assumes
+that you have checked out the project and are executing all of the commands listed from the
+directory where this README resides.
+
+Note that this initial section describes how to develop locally. However, the following section on setting up a local vm more closely resembles a production instance
+and may be easier to use.
+
+................
+1. Prerequisites
+````````````````
+- Install Python 2.6.5 or greater (already installed)
+
+- Run ./init.sh (Step 1 & 2 complete), jump to Step 3 
+
+................
+1b. Prerequisites (manually)
+````````````````
+- Install appropriate version of setuptools for your version of Python from http://pypi.python.org/pypi/setuptools 
+$> sudo sh setuptools-0.6c11-py2.6.egg
+OR 
+$> sudo sh setuptools-0.6c11-py2.7.egg
+
+- 
+
+- From the command line use easy_instal pip to install the pip package
+$> sudo easy_install -U pip
+
+- Then use pip to install virtualenv
+$> sudo pip install virtualenv==1.8.2
+
+
+.................
+2. Initial Setup. (manually)
+'''''''''''''''''
+Create an isolated python environment, and fabric for deploying
+running tests and performing static analysis. When first starting to work on the code, you should
+create and activate a virtualenv.
+
+$> virtualenv --system-site-packages local-python
+$> source local-python/bin/activate
+
+You should then install Fabric:
+$> pip install Fabric==1.4.3
+
+** Note: OSX users if this fails and you have XCode 4 installed do the following to fix the issue:
+$> sudo env ARCHFLAGS="-arch i386 -arch x86_64"
+$> pip install Fabric==1.4.3
+
+Finally install nose and run the fabric "dev_setup" command to acquire the other required
+libraries.
+$> fab dev_setup
+
+.................................
+3. Environment-specific settings.
+'''''''''''''''''''''''''''''''''
+- Activate the isolated python environment (virtualenv)
+$> source local-python/bin/activate
+
+......................
+4. Database management
+''''''''''''''''''''''
+N/A
+
+................
+5. Running tests
+''''''''''''''''
+Uses Nose to run the tests. The easiest way to run them is by using the
+Fabric "test" command.
+
+$> fab test
+
+..........................
+6. Running Static Analysis
+''''''''''''''''''''''''''
+Uses pep8 and pylint for static analysis. The easiest way to run them us by using
+the fabric "check" command. The pylint configuration is stored in .pylintrc
+
+$> fab check
+
+...................
+7. Running the app
+'''''''''''''''''''
+TBD. 
+
+---------------------------------------------------------------------------------------------------
+Deployment Environments - Local VM
+---------------------------------------------------------------------------------------------------
+Plugin Warehouse is intended to be deployed using Apache2 with WSGI providing the bridge to the
+django application. The provided fabric scripts can manage the configuration and deployment to
+such an environment. All that is required is a server to connect to. This section will go through
+the instructions for creating a local VM Ware instance that will mimic a production environment.
+This is especially handy if this machine on which you are developing is not a linux box.
+
+...................
+1. Creating the VM
+'''''''''''''''''''
+Since Plugin Warehouse production will be hosted on Ubuntu 10.4 64bit in the Amazon E2 cloud, we
+will install a similar server on our local VM. A good place to start from is the VM Ware image
+available at http://www.thoughtpolice.co.uk/vmware/#ubuntu10.04  Note that notroot is the default
+username and it has a password of thoughtpolice. Note that this VM does not have the openssh
+server installed by default. This will allow you to ssh to this vm (performed at your
+vm command line via VMWare)
+
+$>sudo apt-get update
+$>sudo apt-get install openssh-server
+
+Once you have downloaded your instance, install it to VM Ware and start the server. This can
+be done by unzipping the archive, and opening the vmx file in WM Ware.
+
+You may also want to set the VM timezone to match the application. By default the application is
+set to use the 'America/Los_Angeles' time zone.
+
+.........................................................
+2. Provide the needed configuration information to Fabric
+'''''''''''''''''''''''''''''''''''''''''''''''''''''''''
+The first needed piece of information is the ip address of the server. ifconfig will get this for
+you. Once you have the IP address, open up fabfile.py and replace the ip in the localvm() hosts
+entry with your vm's ip. This will allow fabric to connect to your vm. You will also need
+to modify environments/localvm/localvm_settings.py if you have to change any django configuration
+options. environments/localvm/pluginwarehouse.conf will also need to be edited to get the correct
+ip address as well as environments/trustdb.xml.
+
+..................................
+3. Install requirements on server
+''''''''''''''''''''''''''''''''''
+Once the server is setup and the configuration information is in the correct files run this command
+in your development environment:
+
+$> fab [env] setup
+
+So, in this case where we are setting up the localvm, you should run
+
+$> fab localvm setup
+
+This will connect to the virtual machine and install the needed requirements. Note you will be promted
+to create a password for the pluginwarehouse user. Remember the password you use here as future deployments
+will ask for this as well. Also, if you are asked for a mysql root password you can hit tab and then the
+spacebar to select no password. You may have to do this 3 times. Then the screen will appear to freeze for
+a minute or two while mysql installs, just wait patiently.
+
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#if !defined(_LOG4CXX_ROLLING_ROLLOVER_DESCRIPTION_H)
+#define _LOG4CXX_ROLLING_ROLLOVER_DESCRIPTION_H
+
+#include <log4cxx/portability.h>
+#include <log4cxx/rolling/action.h>
+
+namespace log4cxx {
+    namespace rolling {
+
+
+        class RolloverDescription : public log4cxx::helpers::ObjectImpl {
+          DECLARE_LOG4CXX_OBJECT(RolloverDescription)
+          BEGIN_LOG4CXX_CAST_MAP()
+                  LOG4CXX_CAST_ENTRY(RolloverDescription)
+          END_LOG4CXX_CAST_MAP()
+          /**
+           * Active log file name after rollover.
+           */
+          LogString activeFileName;
+
+          /**
+           * Should active file be opened for appending.
+           */
+          bool append;
+
+          /**
+           * Action to be completed after close of current active log file
+           * before returning control to caller.
+           */
+          ActionPtr synchronous;
+
+          /**
+           * Action to be completed after close of current active log file
+           * and before next rollover attempt, may be executed asynchronously.
+           */
+          ActionPtr asynchronous;
+
+          public:
+          RolloverDescription();
+          /**
+           * Create new instance.
+           * @param activeFileName active log file name after rollover, may not be null.
+           * @param append true if active log file after rollover should be opened for appending.
+           * @param synchronous action to be completed after close of current active log file, may be null.
+           * @param asynchronous action to be completed after close of current active log file and
+           * before next rollover attempt.
+           */
+          RolloverDescription(
+            const LogString& activeFileName,
+            const bool append,
+            const ActionPtr& synchronous,
+            const ActionPtr& asynchronous);
+
+          /**
+           * Active log file name after rollover.
+           * @return active log file name after rollover.
+           */
+          LogString getActiveFileName() const;
+
+          bool getAppend() const;
+
+          /**
+           * Action to be completed after close of current active log file
+           * before returning control to caller.
+           *
+           * @return action, may be null.
+           */
+          ActionPtr getSynchronous() const;
+
+          /**
+           * Action to be completed after close of current active log file
+           * and before next rollover attempt, may be executed asynchronously.
+           *
+           * @return action, may be null.
+           */
+          ActionPtr getAsynchronous() const;
+        };
+
+        LOG4CXX_PTR_DEF(RolloverDescription);
+
+    }
+}
+#endif
+
+
+
+                                    ____ _              v0.54
+                                   / ___(_)_ __ ___ ___  __
+                                  | |   | | '__/ __/ _ \/ __|
+                                  | |___| | | | (_| (_) \__ \
+                                   \____|_|_|  \___\___/|___/
+
+                                                round is good
+
+################################################################
+
+Circos - circular genome data and annotation image generator
+
+v0.54
+
+Martin Krzywinski
+Canada's Michael Smith Genome Sciences Center
+British Columbia Cancer Agency
+
+martink@bcgsc.ca
+mkweb.bcgsc.ca/circos
+
+################################################################
+
+0. INTRODUCTION
+   0.a   what is circos?
+   0.b   requirements
+
+1. GETTING STARTED
+   1.a   installation 
+   1.b   tools
+
+2. BUGS
+   2.a 	 report bugs and comments
+   2.b   known issues
+
+3. INSTALLATION PROBLEMS
+   3.a   missing modules
+
+4. OTHER ISSUES
+   4.a   configuration paths
+   4.b   typical errors and how to fix them
+   4.b.1 numerical parameter units
+
+################################################################
+
+0. INTRODUCTION
+
+0.a  what is circos?
+
+Circos is a program for the generation of publication-quality,
+circularly composited renditions of genomic data and related
+annotations.
+
+Circos is particularly suited for visualizing alignments, conservation
+and intra and inter-chromosomal relationships.
+
+But wait. Also, Circos is useful to visualize any type of information
+that benefits from a circular layout. Thus, although it has been
+designed for the field of genomics, it is sufficiently flexible to be
+used in other data domains.
+
+0.b  requirements
+
+Perl 5.8.x, or newer, is highly recommended. In addition to the core
+modules that come with your Perl distribution, the following CPAN
+modules are required
+
+For a list of modules required by Circos, run
+
+> cd bin
+> ./list.modules
+
+To test whether you have these modules, run
+
+> cd bin
+> ./test.modules
+
+Circos supports TTF fonts. A few fonts are included in fonts/.
+
+1. GETTING STARTED
+
+1.a  installation
+
+> tar xvfz circos-x.xx.tgz
+> cd circos-x.xx
+
+Done. You don't need to move or edit any files in the main distribution.
+
+Test your GD installation to make sure your Perl distribution can
+create graphics and handle True Type fonts.
+
+> bin/gddiag
+
+Look at the created gddiag.png. It should look like this
+
+http://mkweb.bcgsc.ca/dev/circos/tutorials/lessons/configuration/png_output/images
+
+If you don't see any text, see 4.b.2 below.
+
+Now try creating an image from one of the tutorials. 
+
+> cd circos-x.xx
+> bin/circos -conf tutorials/2/2/circos.conf
+
+If everything goes well, the program should terminate with a line
+
+  created image at /tmp/circos-tutorial.png
+
+To get some verbose reporting, use 
+
+> bin/circos -conf tutorials/2/2/circos.conf -debug
+
+Please see mkweb.bcgsc.ca/circos for documentation. There are a large number
+of tutorials that described how the configuration files are formatted.
+
+1.b tools
+
+There are several helper scripts located in tools/ that are designed
+to aid you in processing your data.
+
+Many of these involve manipulating link files. These tools independent
+scripts and are covered in Tutorial 9.
+
+  http://mkweb.bcgsc.ca/circos/?tutorials&id=9
+
+The tools can be downloaded independently. Note that the stand-alone
+tools distribution may contain scripts that are newer than those
+bundled with Circos. To check this, look at the release date for the
+archives at http://mkweb.bcgsc.ca/circos/?download
+
+2. BUGS
+
+2.a  report bugs and comments
+
+I appreciate any and all comments you may have about Circos. Please
+use the Google Group for questions and bug reports.
+
+http://groups.google.com/group/circos-data-visualization
+
+2.b  known issues
+
+GD does not draw rotated text correctly when the font size is small. For example,
+using a font size of 6pt, text drawn an an angle is drawn with letters upright. If you
+see this, increase the font size of the text.
+
+3. INSTALLATION PROBLEMS
+
+3.a missing modules
+
+In order to run Circos you may need to install some modules from CPAN (www.cpan.org). You 
+will need the modules listed here
+
+  http://mkweb.bcgsc.ca/circos/software/requirements/
+
+If you run Circos and get a message like
+
+Can't locate Config/General.pm in @INC (@INC contains: /usr/lib/perl5/5.8.0/i386-linux
+-thread-multi /usr/lib/perl5/5.8.0 /usr/lib/perl5/site_perl/5.8.0/i386-linux-thread-mu
+lti /usr/lib/perl5/site_perl/5.8.0 /usr/lib/perl5/site_perl /usr/lib/perl5/vendor_perl
+/5.8.0/i386-linux-thread-multi /usr/lib/perl5/vendor_perl/5.8.0 /usr/lib/perl5/vendor_
+perl .) at ./bin/circos line 121.
+
+then you do not have a module installed. It may be that you have the module elsewhere,
+but Perl cannot find it. In this case, the error message is barking at the fact that
+Config::General is not installed.
+
+You can install the module using CPAN (if CPAN module is installed)
+
+> perl -MCPAN -e shell
+% install Config::General
+
+Make sure that you are using the same perl binary to install the module as for Circos.
+
+Alternatively, you can grab the module from CPAN directly. Use search.cpan.org to find
+the module.
+
+> wget http://search.cpan.org/~tlinden/Config-General-2.31/General.pm
+> tar xvfz Config-General-x.xx.tgz
+> cd Config-General-x.xx.tgz
+> perl Makefile.PL ; make ; make test
+> make install
+
+4. OTHER ISSUES
+
+4.a configuration paths
+
+If you look inside one of the configuration files you'll find
+that it includes other configuration files using <<include>> and
+makes relative mention of data files, such as
+
+  file = data/5/segdup.txt
+
+Circos tries to find the file regardless where you are running the binary from, but 
+may still run into trouble finding files specified using a relative path.
+
+To avoid problems, run circos from its distribution directory
+
+> cd circos-x.xxx
+> bin/circos -conf ...
+
+Alternative, change all the paths in the .conf file to absolute paths. For example, from
+
+  <<include etc/colors.conf>>
+
+to
+
+  <<include /path/to/your/install/circos-x.xx/etc/colors.conf>>
+
+4.b typical errors and how to fix them
+
+4.b.1 numerical parameter units
+
+Many numerical parameters in the .conf files require that you specify
+a unit. For a given parameter, one or more of these units may be required
+
+  p - absolute size in pixels
+  r - relative size, with the comparator being context sensitive 
+      e.g. relative tick size is relative to ideogram thickness
+      e.g. relative tick label offset is relative to tick size
+  u - chromosome units, as defined by chromosomes_unit
+  b - bases, the natural unit along the ideogram
+  n - no unit, explicitly stated
+
+If you receive an error message of the kind
+
+The parameter [ideogram/spacing/break_style/thickness] value [0.25] does not have 
+    the correct unit [saw n], which should be one of r,p at bin/circos line 3410
+    main::unit_validate(0.25, 'ideogram/spacing/break_style/thickness', 'r', 'p') called atbin/circos line 3559
+    main::draw_axis_break('HASH(0x8a81d10)') called at bin/circos line 872
+
+Then you have the wrong unit. Here the parameter at fault is 
+
+  ideogram/spacing/break_style/thickness
+
+that is
+
+  <ideogram>
+   <spacing>
+    <break_style>
+     thickness = 
+
+It is defined to be 0.25 (no unit) but requires that it have a unit of
+either "r" (relative) or "p" (absolute).
+
+As Circos matures, and the configuration file syntax stabilizes, I am
+striving to standardize the requirement for units for all
+parameters. Previous versions were more tolerant and attempted to
+naively determine the unit automatically (e.g. if value was <1 then
+the unit was assumed relative) and you may find that after upgrading
+to a new version of Circos your old files are creating errors. Just
+add the units and you're good to go.
+
+4.b.2 no text in figures
+
+If Circos is creating images, but without any text (ideogram labels,
+tick labels, etc), it is almost certain that your GD Perl module was
+compiled without True Type support.
+
+See the note about gddiag above.
+
+This may be due to the fact that you don't have the True Type library
+on your system (freetype), or a configuration error during GD
+installation.
+
+You'll need to reinstall GD.
+
+http://search.cpan.org/dist/GD/
+
+/*!
+  \mainpage Lifetech Common C++ Library
+
+	The Lifetech Common C++ library is a collectio nof functiona and classes commonly used in C/C++ components.        
+
+	The library is organized into the following categories:
+	
+	<ul style="LIST-STYLE-TYPE: square">
+	<li><strong style="font-weight: bold;">profile</strong>  Utility for measuring time and memory performance.</li>
+	<li><strong style="font-weight: bold;">string</strong>  Frequently used functions for str::string like tokenize, trim, toupper, tolower, etc...</li>
+	<li><strong style="font-weight: bold;">logging</strong>  log4cxx utilities</li>
+	<li><strong style="font-weight: bold;">program_options</strong>  Command line parsing and validation utilities</li>
+
+*/
+Common C/C++ source code modules and 3rd party libraries
+
+Code layout:
+   c++/src   Contains the source and header files for common C++ modules.  
+   
+Running tests:
+   No tests exist yet but they will.   
+  
+   
+
+Overview:
+
+An interval tree can be used to efficiently find a set of numeric
+intervals overlapping or containing another interval.
+
+This library provides a basic implementation of an interval tree using
+C++ templates, allowing the insertion of arbitrary types into the
+tree.
+
+
+Usage:
+
+Add #include "IntervalTree.h" to the source files in which you will
+use the interval tree.
+
+To make an IntervalTree to contain objects of class T, use:
+
+   vector<Interval<T> > intervals;
+   T a, b, c;
+   intervals.push_back(Interval<T>(2, 10, a));
+   intervals.push_back(Interval<T>(3, 4, b));
+   intervals.push_back(Interval<T>(20, 100, c));
+   IntervalTree<T> tree;
+   tree = IntervalTree<T>(intervals);
+
+Now, it's possible to query the tree and obtain a set of intervals
+which are contained within the start and stop coordinates.
+
+    vector<Interval<T> > results;
+    tree.findContained(start, stop, results);
+    cout << "found " << results.size()
+         << " overlapping intervals" << endl;
+
+The function IntervalTree::findOverlapping provides a method to find
+all those intervals which are contained or partially overlap the
+interval (start, stop).
+
+
+Author: Erik Garrison <erik.garrison@gmail.com>
+
+License: MIT
+
+This is a python implementation of the Bayes-Ewens variant caller algorithm.
+
+== FREEBAYES ==
+
+Overview:
+
+FreeBayes is a Bayesian genetic variant detector designed to find small
+polymorphisms, specifically SNPs (single-nucleotide polymorphisms), indels
+(insertions and deletions), MNPs (multi-nucleotide polymorphisms), and complex
+events (composite insertion and substitution events) smaller than the length of
+a short-read sequencing alignment.  It uses short-read alignments (BAM files
+with Phred+33 encoded quality scores) for any number of individuals from a
+population and a reference genome to determine the most-likely combination of
+genotypes for the population at each position in a reference genome (FASTA).  It
+reports positions which it finds to be more likely polymorphic than monomorphic
+in a standard variant interchange format (VCF).  It can also use an input set of
+variants (VCF) as a source of prior information, and a copy number variant map
+(BED) to define non-uniform ploidy variation across the samples under analysis.
+
+
+Documentation and citation:
+
+See http://arxiv.org/abs/1207.3907 for an overview of the statistical models
+used in FreeBayes.  We ask that you cite this paper if you use FreeBayes in
+work that leads to publication.
+
+
+Obtaining:
+
+To download FreeBayes, please use git to download the most recent development
+tree.  Currently, the tree is hosted on github, and can be obtained via:
+
+    % git clone --recursive git://github.com/ekg/freebayes.git
+
+Note the use of --recursive.  This is required, as the project contains some
+nested git submodules for external repositories.
+
+If you encounter issues with the development HEAD, or simply wish to obtain the
+most recent stable revision (0.9.6) then use:
+
+    % git checkout 03cb231762034007a8e
+
+Compilation:
+
+FreeBayes requires g++ and the standard C and C++ development libraries.
+Additionally, cmake is required for building the BamTools API.
+
+    % make && sudo make install
+
+Will build and install the executable freebayes to /usr/local/bin, as well as
+the utilities bamfiltertech and bamleftalign.
+
+
+Usage:
+
+In its simplest operation, it requires only two inputs: a FASTA reference
+sequence, and a BAM-format alignment file sorted by reference position.  For
+instance:
+
+    % freebayes --fasta-reference h.sapiens.fasta NA20504.bam
+
+Will produce a VCF (Variant Call Format [1]) file on standard out describing
+all SNPs, INDELs, MNPs, and Complex events between the reference and the
+alignments in NA20504.bam.  In order to produce correct output, the reference
+supplied must be the reference to which NA20504.bam was aligned.
+
+Users may specify any number of BAM files on the command line.  FreeBayes uses
+the BamTools API [2] to open and parse these files in parallel, virtually
+merging them at runtime into one logical file with a merged header.  (When
+provided multiple input files, the input to freebayes is the same as the output
+of the bamtools merge utility.)
+
+For a description of available command-line options and their defaults, run:
+
+    % freebayes --help
+
+
+Calling variants:
+
+FreeBayes a standard VCF 4.1 outut stream.  This format is designed for the
+probabilistic description of allelic variants within a population of samples,
+but it is equally suited to describing the probability of variation in a single
+sample.
+
+Of primary interest to most users is the QUAL field, which estimates the
+probability that there is a polymorphism at the loci described by the record.
+In freebayes, this value can be understood as 1 - P(locus is homozygous given
+the data).  It is recommended that users use this value to filter their
+results, rather than accepting anything output by freebayes as ground truth.
+
+By default, records are output even if they have very low probability of
+variation, in expectation that the VCF will be filtered using tools such as
+vcffilter in vcflib [6].
+
+
+Calling variants in a population:
+
+FreeBayes is designed to be run on many individuals from the same population
+(e.g. many human samples) simultaneously.  The algorithm exploits a neutral
+model of evolution and allele diffusion to impute most-confident genotypings
+across the entire population.  In practice, the quality and confidence in the
+callset will increase if you run multiple samples simultaneously.  If your
+study has multiple individuals, you should run freebayes against them at the
+same time.
+
+To call variants in a population of samples, each alignment must have a read
+group identifier attached to it (RG tag), and the header of the BAM file in
+which it resides must map the RG tags to sample names (SM).  Furthermore, read
+group IDs must be unique across all the files used in the analysis.  One read
+group cannot map to multiple samples.  The reason this is required is that
+freebayes operates on a virtually merged BAM stream provided by the BamTools
+API.  If merging the files in your analysis using bamtools merge would generate
+a file in which multiple samples map to the same RG, the files are not suitable
+for use in population calling, and they must be modified.
+
+Users may add RG tags to BAM files which were generated without this
+information by using bamaddrg [5].  If you have many files corresponding to
+many individuals, add a unique read group and sample name to each, and then
+open them all simultaneously with freebayes.  The VCF output will have one
+column per sample in the input.
+
+
+Input filters:
+
+FreeBayes filters its input so as to ignore low-confidence alignments and
+alleles which are only supported by low-quality sequencing observations (see
+--min-mapping-quality and --min-base-quality).  It also will only evaluate a
+position if at least one read has mapping quality of
+--min-supporting-mapping-quality and one allele has quality of at least
+--min-supporting-base-quality.  All these quality filters are set to sensible
+defaults, but may be turned off by specifying --no-filters on the command line,
+
+Reads with more than a fixed number of high-quality mismatches can be excluded
+by specifying --read-mismatch-limit.
+
+As a guard against spurious variation caused by sequencing artifacts, positions
+are skipped when no more than --min-alternate-count or --min-alternate-fraction
+non-clonal observations of an alternate are found in one sample.
+
+In data with high rates of insertion and deletion errors, you can use
+--indel-exclusion-window to exclude bases from reads within a number of bases
+of a putative indel allele.  (This behavior is incompatible with indel
+detection.)
+
+
+Stream processing:
+
+FreeBayes can read BAM from standard input (--stdin) instead of directly from
+files.  This allows the application of any number of streaming BAM filters and
+calibrators to its input.  Two filters are of particular interest:
+
+    1) base alignment quality (BAQ) adjustment, a quality adjustment
+    which applies a hidden markov model of read genesis to each alignment
+    independently.  This is currently implemented by samtools calmd.  (See
+    Biological Sequence Analysis Probabilistic Models of Proteins and Nucleic
+    Acids by Durbin et. al. for more details.)
+
+    2) read-independent left realignment of indels.  Aligners may position gaps
+    in reads inconsistently despite the fact that the indels represent identical
+    variation.  By realigning insertions and deletions as far left as they will go
+    without introducing mismatches between read placement and reference, we can
+    homogenize the input to deal with the most common classes of indels.
+
+For example, you can apply BAQ adjustment region 10:6000..7000 to a set of BAM
+files using this pattern:
+
+    % bamtools filter -region 10:6000..7000 -in NA20504.bam -in NA20507.bam \
+       | samtools calmd -EAru - reference.fasta \
+       | freebayes --stdin -f reference.fasta
+
+Using this pattern, you can filter out reads with certain criteria using
+bamtools filter without having to modify the input BAM file.  You can also use
+the bamtools API to write your own custom filters in C++.  An example filter is
+bamfiltertech (src/bamfiltertech.cpp), which is provided here to filter out
+technologies which have characteristic errors which may frustrate certain types
+of variant detection.
+
+
+INDELs:
+
+FreeBayes has been tested as an indel caller as part of the 1000 Genomes
+Project.  In principle, any gapped aligner which is sensitive to indels will
+produce satisfactory results.  Indels are called by default, but they may be
+ignored by using the --no-indels flag.  Due to potential ambiguity, indels are
+not parsed when they overlap the beginning or end of alignment boundaries.
+
+When calling indels, it is important to homogenize the positional distribution
+of insertions and deletions in the input by using left realignment.  This can
+be done by using the --left-align-indels flag, or in a streaming fashion as in
+this indel detection example:
+
+    % bamtools merge -region 10:6000..7000 -in NA20504.bam -in NA20507.bam \
+       | bamleftalign -f reference.fasta \
+       | samtools fillmd -Aru - reference.fasta \
+       | freebayes --stdin \
+                   --region 10:6000..7000 \
+                   -f reference.fasta
+
+(Note that BAQ is applied after realignment.  Also note the --indels flag,
+which is required for indel detection.  Also, when supplied a --region
+specifier but reading from stdin, freebayes will not report sites outside of
+the target region, which may occur as bamtools merge emits all reads which are
+partially overlapping the target region.)
+
+Left realignment will place all indels in homopolymer and microsatellite
+repeats at the same position, provided that doing so does not introduce
+mismatches between the read and reference other than the indel.  Indel
+detection using left realignment is not perfect, as some classes of indels,
+such as non-homologous insertions in repetitive sequence, are not presently
+handled.  However, this method computationally inexpensive and handles the most
+common classes of alignment inconsistency.
+
+
+Pooled datasets:
+
+While FreeBayes always 'pools' sequence information from many individuals to
+improve the accuracy of small variant calls, it can also operate on 'pooled
+sequencing' datasets, in which DNA from many individuals is simultaneously
+sequenced and the original sample which originates a specific observation
+cannot be determined.  To run on pooled data, set the --pooled flag (which
+turns off the prior component derived from the probability of a specific
+distribution of heterozygotes and homozygotes given the allele frequency), and
+set --ploidy to the number of total copies of the genome in each pooled sample.
+For example, if you have 10 individuals in a pool, and each individual is
+diploid, you would set --ploidy 20.  Users should be aware that the current
+implementation may have poor performance with ploidy set very high (e.g. 40).
+
+
+Input variants:
+
+FreeBayes can use a BGZIP-compressed and tabix-indexed [7] VCF file as input,
+specified using the --variant-input parameter.  Alleles, their frequencies, and
+genotype likelihoods can all be used as out-of-band input to the algorithm.
+This allows the use of information from population-specific panels during the
+detection of variants within a single individual.
+
+Directed genotyping can be enabled with the addition of the
+--use-only-input-alleles flag.  When this flag is set, the model will only
+evaluate the input alleles, and the output VCF will contain exactly the same set
+of alleles that were input and genotypes for all the samples in the input
+alignments.
+
+The input data is handled differently depending on what information is included
+in the VCF.  There are three modes that are enabled on the basis of the data
+available in the input VCF:
+
+   1) Sites and alleles only: If the input file has only a set of sites and
+   alleles, the input variants serve as a set of hints which indicate that a
+   variant may be known or expected at a given loci.  An allele specified in the
+   input will be considered in the Bayesian model even if there is not enough
+   read evidence to pass the algorithm's input filters.  However, the output
+   will only contain those alleles which have enough support in the data to pass
+   the --pvar threshold
+
+   and,
+
+   2) Allele frequencies: If the input file has allele frequency information via
+   the AF INFO field tag, then the allele frequency of each allele will be
+   used as a prior in the Bayesian model.
+
+   or
+
+   3) Samples and genotype likelihoods: If samples are provided, then their
+   listed genotype likelihoods (GL) are used and the samples are incorporated
+   into the model.  This allows the imputation of a single, or small set of
+   samples against a much larger panel without requiring the use of the full
+   alignment data from that panel.
+
+Mode (1) is required for (2) or (3), but (3) supercedes (2).  To enable (1) or
+(2), remove all of the sample-specific columns from the VCF.
+
+
+Bugs:
+
+Please report bugs using the built-in bug reporting feature in github or by
+sending the author an email.
+
+
+Mailing list:
+
+A summary of each commit will be posted to freebayes@groups.google.com.  Please
+use this mailing list for public discussion of freebayes and variant detection
+issues.  If you have a general question, this is the best place to pose it, as
+it may be helpful to other users.
+
+
+Author: Erik Garrison <erik.garrison@bc.edu>
+        Marth Lab [3], Boston College
+
+License: MIT
+
+References:
+
+[1] http://www.1000genomes.org/wiki/doku.php?id=1000_genomes:analysis:vcf4.0
+[2] http://sourceforge.net/projects/bamtools/
+[3] http://bioinformatics.bc.edu/marthlab/Main_Page
+[4] http://bioinformatics.bc.edu/marthlab/Mosaik
+[5] https://github.com/ekg/bamaddrg
+[6] https://github.com/ekg/vcflib
+[7] http://samtools.sourceforge.net/tabix.shtml
+
+ã      ˇÌù{_[Gí˜ÛoÙ*NÄ,¬ëÑ$ÿ$vL 'll„2ô|<Y>B:Ä∆B"∫3?Ø˝˘˛™ªœE_≤;ªkÕKÁÙ•∫∫∫∫™∫™˙`‘uÜ£NkXﬁéá≠AÁb‘yóW*’ïjıãOÛ©V´Î´´_|Q≠Ø4ÍµÙﬂ(˘Tø®’÷k´çFu≠∂ÚET[k¨Ø~QÂœˇåá£Ê‡ãjux÷ÌüwNÆÌ∂˜íÉ≥œµÕ¸´Ω8∏i˛ó˜w6∑üÌ|,Ã`§—h§ÛË¿OˇJum}b˛◊WÎ’/"∞˘Á˛èœˇÓÛÉ√ÕßO7w˜û
+á˝®”cAtª—Ë¨3åŒ˚Ìq7.EÉqèqt“Ôv˚óùﬁi‘Íüü7{Ì·F°ÂE<ËF?å;›vÂ≈”¬óïe˚û|âFÒpî˛Ú
+øºx±∑m>ﬂé∂˜∂~y∂Û¸–√±y2ä∫+EW˝q‘jˆ¢ìNØµ˚≠Òy‹Èˆy‘d°ç.;£3A[\∞V
+Q\xöR˛∆FÜı
+ø˘Æö›a?Íˆ˚Ø¨áNè~Œ]èÕ√V[˚á•hÎ≈ÊÛ≈a4àˇ3Œh4h∂^≈{≠"g£—≈∆ÚÚ`Ti]4{ï˛‡t˘ys<:Kß√ ŸËº˚˝6¯a
+Oñª~6{Ωæ˙)E˙∆∏„∂ıõ«ƒdüM &ù∂Èc˘¶>‘~¥œ {ß√…ñ‘ ¿Ω™6åˆçÕƒÕAÎÃ†úlmhØR|‹⁄÷ﬁãﬂˆw¸…—…”›≠ùÁ[;P™»Ûb–?4œ#æ‚n‹ÇñqØÈ‰âµ€i≈Ωaºas_(î3üBaØ€éü€(<L?æã^|ΩéCZ±^Y]ä˙'Qä∆È@h–$Ùuî££à^ÎÍH„té«F≠óM[Vùì¿B`£≥Ê(
+I created these files using HDFView to edit some old prototypes from Chengyong.
+
+There are ambiguities in the specification for which I had to guess.  Some of the data is
+completely bogus.   These files should not be considered to be official XSQ files.
+
+The 'bs','c11' and 'c1303' strings refer to base, 2-base and 4 base encoded data in the files.
+/*!
+  \mainpage Samita C++ Library
+
+	\section sdd Software Design Description
+	- \ref introduction 
+	- \ref history  
+	- \ref system_overview 
+	- \ref design_considerations 
+		- \ref assumptions  
+		- \ref constraints  
+		- \ref goals  
+	- \ref architecture 
+	- \ref policies 
+		- \ref code_stye  
+		- \ref code_building
+		- \ref code_layout 
+		- \ref code_docs 
+		- \ref code_tests 
+		- \ref code_debug 
+	- \ref examples 
+
+	\section introduction Introduction
+	
+	Samita is a C++ library for creating programs and algorithms for next generation sequencing data. 
+	Samita is designed to be efficient, flexible, high quality, and to reduce the time to market for programs.  
+	Samita provides many valuable classes for processing sequence alignments, genome references, as well as
+	many other utilities.  
+	
+	The Samita library builds upon the <a href="http://samtools.sourceforge.net/"> SAMtools C library</a> by 
+	providing a complementary collection of software for C++ programmers.  Where appropriate, Samita provides more efficient 
+	and easier to use functionality which gives consumers of the library a competitive advantage over programs built using SAMtools.      
+
+	\section history Release History
+	Version 0.5 of the Samita C++ library was originally released in March, 2010 as part of the Bioscope 1.2 release.  
+	This was not a fully functional implementation of the library but it was used for the bam2mates and largeindel applications.      
+
+	\section system_overview System Overview 
+	
+	The Samital library provides classes for many different functions including:
+	
+	<ul style="LIST-STYLE-TYPE: square">
+	<li>Common file format reading & writing</li>
+	<li>Efficient data structures</li>
+	<li>Iterators</li>
+	<li>Filtering</li>
+	<li>Multi-threading</li>
+	</ul>
+
+	<p>Below is just a partial list of the classes in the Samita library.</p>
+
+	<ul style="LIST-STYLE-TYPE: square">
+	<li><strong style="font-weight: bold;">Core cata types</strong> <em style="font-style: italic;">Align, Cigar</em></li>
+	<li><strong style="font-weight: bold;">BAM files</strong> <em style="font-style: italic;">BamReader, BamReader::iterator, BamHeader, BamStats</em></li>
+	<li><strong style="font-weight: bold;">Advanced alignment files</strong> <em style="font-style: italic;">AlignReader, AlignReader::iterator</em></li>
+	<li><strong style="font-weight: bold;">Reference files</strong> <em style="font-style: italic;">ReferenceSequenceReader, ReferenceSequenceReader::iterator</em></li>
+	<li><strong style="font-weight: bold;">FASTQ &amp; CSFASTQ</strong> <em style="font-style: italic;">FastqRecord, FastqReader, FastqReader::iterator, FastqWriter</em></li>
+	<li><strong style="font-weight: bold;">GFF</strong> <em style="font-style: italic;">GffRecord, GffReader, GffReader::iterator, GffWriter</em></li>
+	<li><strong style="font-weight: bold;">Miscellaneous</strong> <em style="font-style: italic;">SequenceInterval, QualityValueArray</em></li>
+	</ul>
+	
+	<p>Below is a partial list of the classes that are scheduled to be included in the Samita library.</p>
+	<ul style="LIST-STYLE-TYPE: square">
+	<li><strong style="font-weight: bold;">BAM files</strong> <em style="font-style: italic;">BamWriter</em></li>
+	<li><strong style="font-weight: bold;">Filtering</strong></li>
+	<li><strong style="font-weight: bold;">Parameter specification & validation</strong></li>
+	<li><strong style="font-weight: bold;">Logging message formatting & utilities</strong></li>
+	</ul>
+	
+
+	<p>Feature Wish List.</p>
+	<ul style="LIST-STYLE-TYPE: square">
+	<li>Remove duplicates when iterating multiple bam files and merging at runtime</li>
+	<li>Add support to merge qname sorted bam files at runtime.  Right now only coordinate sorted files can be merged.
+  This would likely involve promoting the comparator function to allow the client to control how the order is 
+  preserved during runtime merging.</li>
+	<li>Remap read group ids at runtime when merging multiple bam files.  Right now read groups must be unique across bam files in order to 
+  iterate over multiple bam files.  Should we reassign read group ids using the same schema as Picard?  Probably.</li>
+	</ul>
+
+	\section design_considerations Design Considerations
+
+	\subsection assumptions Assumptions and Dependencies 
+	
+	The Samita library depends on the following third party libraries
+	<ul style="LIST-STYLE-TYPE: square">
+	<li><a href="http://www.boost.org/">Boost</a></li>
+	<li><a href="http://logging.apache.org/log4cxx/index.html">Apache log4cxx</a></li>
+	<li><a href="http://samtools.sourceforge.net/">SAMtools</a></li>
+	</ul>
+	
+	As mentioned in the introduction, Samita can be thought of as a C++ wrapper for the <a href="http://samtools.sourceforge.net/">SAMtools library</a>. 
+	However, more efficient and easier to use functionality has been implemented in some areas in order to 
+	give consumers of the library a competitive advantage over programs build using SAMtools.      
+
+	The Samita library unit tests depend on the <a href="http://sourceforge.net/apps/mediawiki/cppunit/index.php?title=Main_Page">cppunit library</a>
+	
+	\subsection constraints General Constraints
+	
+	<strong style="BACKGROUND-COLOR:red">TODO:</strong> Need to pin down the system reqs more
+	
+	The Samita library is designed to be portable across any 64 bit version of Linux, MacOS, or Windows.  
+	However, it is only tested on Cento OS 4.0 and 5.0.      
+	
+	\subsection goals Goals and Guidelines 
+
+	Below is a list of design goals:	
+
+	<ul style="LIST-STYLE-TYPE: square">
+	<li>Keep it simple</li>
+	<li>Emphasize speed</li>
+	<li>Be sensitive to memory, I/O, and other shared resources</li>
+	<li>Promote code consistency and code reuse</li>
+	<li>Remain compatible and consistent with STL and Boost libraries</li>
+	</ul>
+	
+	\section architecture System Architecture
+	
+	The library is organized into the following categories:
+	
+	<ul style="LIST-STYLE-TYPE: square">
+	<li><strong style="font-weight: bold;">common</strong>  Header only classes need by many other Samita libraries
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::Interval Interval\endlink</li>
+		<li>\link lifetechnologies::Feature Feature\endlink</li>
+		<li>\link lifetechnologies::SequenceInterval SequenceInterval\endlink</li>
+		<li>\link lifetechnologies::RGStats RGStats\endlink</li>
+		<li>\link lifetechnologies::RG RG\endlink</li>
+		<li>\link lifetechnologies::SQ SQ\endlink</li>
+		<li>\link lifetechnologies::PG PG\endlink</li>
+		<li>\link lifetechnologies::Align Align\endlink</li>
+		<li>\link lifetechnologies::RecordReader RecordReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>\link lifetechnologies::RecordReader::record_stream_iterator RecordReader::iterator\endlink</li>
+				<li>\link lifetechnologies::RecordReader::record_stream_iterator RecordReader::const_iterator\endlink</li>
+			</ul>
+		<li>\link lifetechnologies::RecordWriter RecordWriter\endlink</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">exception</strong>  Exceptions thrown by the library
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::index_creation_exception index_creation_exception\endlink</li>
+		<li>\link lifetechnologies::invalid_cigar_operation invalid_cigar_operation\endlink</li>
+		<li>\link lifetechnologies::invalid_input_record invalid_input_record\endlink</li>
+		<li>\link lifetechnologies::read_group_not_found read_group_not_found\endlink</li>
+		<li>\link lifetechnologies::reference_sequence_not_found reference_sequence_not_found\endlink</li>
+		<li>\link lifetechnologies::reference_sequence_index_out_of_bounds reference_sequence_index_out_of_bounds\endlink</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">align</strong>  Advanced alignment reader and writer</li>
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::Cigar Cigar\endlink</li>
+		<li>\link lifetechnologies::AlignReader AlignReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>\link lifetechnologies::AlignReader::align_iterator AlignReader::iterator\endlink</li>
+				<li>\link lifetechnologies::AlignReader::align_iterator AlignReader::filter_iterator\endlink</li>
+			</ul>
+		<li>AlignWriter</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">sam</strong>  BAM file reader and writer
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::BamHeaderTag BamHeaderTag\endlink</li>
+		<li>\link lifetechnologies::BamHeader BamHeader\endlink</li>
+		<li>\link lifetechnologies::BamReader BamReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>BamReader::iterator</li>
+				<li>BamReader::filter_iterator</li>
+			</ul>
+		<li>AlignWriter</li>
+		<li>\link lifetechnologies::BasRecord BasRecord\endlink</li>
+		<li>BamWriter</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">filter</strong>  Useful filters
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::FilterPair FilterPair\endlink</li>
+		<li>\link lifetechnologies::FilterTriple FilterTriple\endlink</li>
+		<li>\link lifetechnologies::FilterChain FilterChain\endlink</li>
+		<li>\link lifetechnologies::RequiredFlagFilter RequiredFlagFilter\endlink</li>
+		<li>\link lifetechnologies::FlagFilter FlagFilter\endlink</li>
+		<li>\link lifetechnologies::MapQualFilter MapQualFilter\endlink</li>
+		<li>\link lifetechnologies::StandardFilter StandardFilter\endlink</li>
+		<li>\link lifetechnologies::AlignMates AlignMates\endlink</li>
+		<li>\link lifetechnologies::MateFilter MateFilter\endlink</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">reference</strong>  Reference file reader and writer
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::ReferenceSequence ReferenceSequence\endlink</li>
+		<li>\link lifetechnologies::ReferenceSequenceReader ReferenceSequenceReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>ReferenceSequenceReader::iterator</li>
+				<li>ReferenceSequenceReader::const_iterator</li>
+			</ul>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">gff</strong>  GFF file reader and writer
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::GFFReader GFFReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>GFFReader::iterator</li>
+				<li>GFFReader::const_iterator</li>
+			</ul>
+		<li>\link lifetechnologies::GFFWriter GFFWriter\endlink</li>
+		</ul>
+	</li>
+	<li><strong style="font-weight: bold;">fastq</strong>  FASTQ file reader and writer
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>\link lifetechnologies::FastqRecord FastqRecord\endlink</li>
+		<li>\link lifetechnologies::FastqReader FastqReader\endlink</li>
+			<ul style="LIST-STYLE-TYPE: square">
+				<li>FastqReader::iterator</li>
+				<li>FastqReader::const_iterator</li>
+			</ul>
+		<li>\link lifetechnologies::FastqWriter FastqWriter\endlink</li>
+		</ul>
+	</li>
+	</ul>
+	
+	<strong style="BACKGROUND-COLOR:red">TODO:</strong> need enumerate what parts of SAMtools were re-implemented and why \n 
+	<strong style="BACKGROUND-COLOR:red">TODO:</strong> need enumerate what Boost libraries are used and for what \n 
+    <strong style="BACKGROUND-COLOR:red">TODO:</strong> need to describe the error detection & recovery \n
+    <strong style="BACKGROUND-COLOR:red">TODO:</strong> need to describe policies for memory management \n
+    <strong style="BACKGROUND-COLOR:red">TODO:</strong> need to describe policies for I/O management \n
+    <strong style="BACKGROUND-COLOR:red">TODO:</strong> need to describe policies for concurrency & synchronization \n
+
+	\section policies Policies and Tactics 
+	
+	\subsection code_stye Coding Style 
+	Every possible effort has been made to comply with the Life Technologies C++ coding standard.  See
+	<a href="http://bioscope.apg.per.na.ab.applera.net/mwiki/index.php/Standards:Home/C%2B%2B/Coding_Standards"> 
+	http://bioscope.apg.per.na.ab.applera.net/mwiki/index.php/Standards:Home/C%2B%2B/Coding_Standards</a>
+
+	\subsection code_building Obtaining and Building the Software 
+	
+	First you must fetch and build the bioscope source code.  
+	
+	\verbatim
+    $ svn co https://scm.appliedbio.sfee-hosted.com/svn/repos/corona/bioscope/trunk
+	\endverbatim
+	
+	Then, try to build the source. 
+	
+	\verbatim
+    $ make
+	\endverbatim
+	
+	In order to run samita based apps, you must set the path for the shared libraries.  You can do that by,
+
+	\verbatim
+    $ LIFE_LIBS={path_to_your_trunk}/common/c++/lib:{path_to_your_trunk}/samita/lib:
+    $ LD_LIBRARY_PATH=${LIFE_LIBS}:${LD_LIBRARY_PATH}
+    $ export LD_LIBRARY_PATH
+	\endverbatim
+
+    \subsection code_layout Code Layout
+
+	\verbatim
+    samita          Contains the public *.hpp files for the library
+    src             Contains the *.cpp and private *.hpp files for the library
+    test            Contains the main test file (testRunner.cpp), unit test classes, and the unit test input files
+    examples        Contains the usage examples and the example input files
+    lib             Destination for shared libraries
+    doc             Destination for doxygen documentation
+    build 			Contains build related files
+	\endverbatim
+
+	\section code_docs Creating Documentation
+
+	Run
+
+	\verbatim
+    $ make docs
+	\endverbatim
+
+	Then open doc/html/index.html in your favorite browser.
+
+	\subsection code_tests Running the Tests
+
+	The test executable just reads from the example files and
+	prints to stdout.  To build and run it (from the "c++" directory):
+
+	\verbatim
+    $ make test
+	\endverbatim
+
+	\subsection code_debug Debugging
+
+	To build debug versions of the library and/or tests, specify the debug target.
+
+	\verbatim
+    $ make debug
+	\endverbatim
+
+	\subsection code_assertions Debug Assertions
+
+	Samita++ makes use of asserts in the code.  Those asserts do not get compiled out by default.
+	So, unless you want them in your release versions you have to either:
+
+	\li Add -DNDEBUG to your gcc flags
+
+		-or-
+
+	\li Add "#define NDEBUG" to any source file or header that includes a header from the Samita library.
+		   If you chose this option make sure you put the #define before the #include for those headers.
+
+    Either method is fine.  In fact, leaving the assertions in for release is also fine but typically they are not.
+    
+	\section examples Examples
+	
+	<strong style="BACKGROUND-COLOR:red">TODO:</strong> need to describe the different example applications
+	
+	Below is a wish list for examples.
+	<ul style="LIST-STYLE-TYPE: square">
+	<li>Add more examples using STL algorithms</li>
+		<ul style="LIST-STYLE-TYPE: square">
+		<li>ptr_fun and other functional adaptor functions</li>
+		<li>function composition</li>
+		</ul>
+	</ul>
+    
+*/
+
+   svn2cl - create a ChangeLog from a subversion log
+
+   Copyright (C) 2004, 2005, 2006, 2007, 2008, 2009 Arthur de Jong
+
+   Redistribution and use in source and binary forms, with or without
+   modification, are permitted provided that the following conditions
+   are met:
+   1. Redistributions of source code must retain the above copyright
+      notice, this list of conditions and the following disclaimer.
+   2. Redistributions in binary form must reproduce the above copyright
+      notice, this list of conditions and the following disclaimer in
+      the documentation and/or other materials provided with the
+      distribution.
+   3. The name of the author may not be used to endorse or promote
+      products derived from this software without specific prior
+      written permission.
+
+   THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS OR
+   IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+   WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+   ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+   DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+   DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+   GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+   INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+   IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+   OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+   IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+INTRODUCTION
+============
+
+svn2cl is a simple xsl transformation and shell script wrapper for generating
+a classic GNU-style ChangeLog from a subversion repository log. It is made
+from several changelog-like scripts using common xslt constructs found in
+different places.
+
+I made it because it was the only thing that I missed from cvs after I
+converted a repository to subversion. I used cvs2cl before.
+
+INSTALLING SVN2CL
+=================
+
+Just unpack the tarball in some directory (e.g. /opt/svn2cl-0.12)
+and symlink the svn2cl.sh script in your path somewhere (e.g.
+ln -s /opt/svn2cl-0.12/svn2cl.sh /usr/local/bin/svn2cl).
+
+Note: Be sure to keep the svn2cl.xsl file in the same directory as the
+svn2cl.sh script as the script looks for it there (symlinking is ok).
+
+USING SVN2CL IN AN ANT TARGET
+=============================
+
+It is possible to use svn2cl in an ant target with a snippet like:
+
+<tempfile property="info.xml.file"
+          prefix="info-" suffix=".xml"
+          destdir="${java.io.tmpdir}" />
+<java classname="org.tmatesoft.svn.cli.SVN" dir="${basedir}"
+      fork="true" output="${info.xml.file}"
+      classpathref="javasvn-classpath">
+ <arg line="log --xml --verbose" />
+</java>
+<xslt in="${info.xml.file}" out="ChangeLog" style="svn2cl.xsl">
+ <param name="strip-prefix" expression="trunk/myProject/" />
+ <param name="groupbyday" expression="yes" />
+ <param name="separate-daylogs" expression="yes" />
+ <param name="include-rev" expression="yes" />
+ <param name="breakbeforemsg" expression="yes" />
+ <param name="reparagraph" expression="yes" />
+</xslt>
+<delete file="${info.xml.file}" />
+
+Although it seems that currently the xslt processor that is used by ant
+inserts newlines in places it shouldn't. This can be worked around by
+replacing &newl; throughout the xsl files by &#xa;.
+
+WINDOWS PORT
+============
+
+A VBScript port of the wrapper shell script has been made by Iwasa Kazmi,
+which allows running svn2cl on Microsoft Windows without a POSIX compatibility
+layer and xsltproc. More information is available here:
+http://www.cosmo-system.jp/iwasa/svn2clwin.html
+
+NOTES
+=====
+
+The log is performed on the current directory '.' unless you specify URL
+and/or PATH parameters. Before generating the ChangeLog you may want to make
+your working copy up to date with 'svn update' (non-recursive update will do)
+or pass --revision HEAD:1 as a parameter to svn2cl.sh.
+
+There will not be very frequent new releases but if there are they can be
+found at: http://arthurdejong.org/svn2cl/
+
+FEEDBACK AND BUG REPORTS
+========================
+
+If you have any questions about svn2cl or would like to report a bug please
+send an email to Arthur de Jong <arthur@arthurdejong.org>.
+
+Multiset combinations, n multichoose k
+
+Erik Garrison <erik.garrison@bc.edu>
+
+multichoose.cpp --
+
+This is a small C++ library/program which contains a generic function to
+generate multisets for vectors of any type of object.  You can test out the
+program using strings input from the command line by typing:
+
+    % make
+
+Running:
+
+    % ./multichoose
+
+Prints usage information:
+
+    usage: 
+    ./multichoose <k> <item1> <item2> ... <itemN>  ~ n multichoose k
+
+Example usage:
+
+    % ./multichoose 2 a t g c
+    a a 
+    a t 
+    a g 
+    a c 
+    t t 
+    t g 
+    t c 
+    g g 
+    g c 
+    c c 
+
+This example lists all the possible *unordered' genotypes at a given genetic
+loci of which there are two copies (e.g. chromosomes).  'k' (2 in this case)
+could be understood as the expected ploidy of the given locus.  Applying
+multiset permutations to each of the results would generate all possible
+ordered multisets.
+
+vcflib
+ a simple C++ library for parsing and manipulating VCF files.
+
+author: Erik Garrison <erik.garrison@bc.edu>
+
+license: MIT
+
+The Variant Call Format (VCF) is a flat-file, tab-delimited textual format
+intended to concisely describe reference-indexed variations between
+individuals.  The current specification can be found on the 1000 Genomes wiki
+(http://www.1000genomes.org/wiki/Analysis/Variant%20Call%20Format/vcf-variant-call-format-version-41)
+
+This library provides a simple API to map each VCF record into a C++ class.
+See included applications for example usage.
+
+note: vcflib includes submodules, so to obtain vcflib you have to use:
+
+  % git clone --recursive git://github.com/ekg/vcflib.git
+
+or
+
+  % git clone --recursive https://github.com/ekg/vcflib.git
+
+To build, use Make:
+
+  % cd vcflib
+  % make
+
+Executables are built into the root directory of the repository.
+
+This is a fork of the tabix project [1] which includes a C++ class wrapper for
+reading tabix-indexed files.
+
+Author: Erik Garrison <erik.garrison@bc.edu>
+
+[1] http://samtools.sourceforge.net/tabix.shtml
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+FlashCanvas
+===========
+
+An implementation of the HTML5 Canvas API for Internet Explorer.
+
+
+Description
+-----------
+
+FlashCanvas is a JavaScript library which adds the HTML5 Canvas support
+to Internet Explorer. It renders shapes and images via Flash drawing
+API, and in many cases, runs faster than other similar libraries which
+use VML or Silverlight.
+
+
+Requirements
+------------
+
+ * Microsoft Internet Explorer
+ * Adobe Flash Player 9 or later
+
+
+Usage
+-----
+
+FlashCanvas consists of JavaScript, Flash and PHP files:
+
+ * flashcanvas.js
+ * flashcanvas.swf
+ * canvas2png.js (helps you to save a canvas image)
+ * proxy.php     (used to load a file from other domain)
+ * save.php      (used to save a canvas image)
+
+These files can be found in the bin directory in this distribution
+package. To install FlashCanvas, copy these files into some directory on
+a Web server, and then add the following HTML code between <head> and
+</head> tags on your web page.
+
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="path/to/flashcanvas.js"></script>
+    <![endif]-->
+
+That's all you have to do in most cases. For more details, please read
+the online manual at the project page.
+
+
+License
+-------
+
+FlashCanvas is developed by FlashCanvas Project and released under the
+MIT License.
+
+
+Contact
+-------
+
+If you have a question about FlashCanvas, please utilize the discussion
+group and issue tracker found at the project page. If you need to
+contact us directly, you can reach us at the e-mail address.
+
+Project page: http://code.google.com/p/flashcanvas/
+E-mail:       flashcanvas@gmail.com
+
+FlashCanvas
+===========
+
+An implementation of the HTML5 Canvas API for Internet Explorer.
+
+
+Description
+-----------
+
+FlashCanvas is a JavaScript library which adds the HTML5 Canvas support
+to Internet Explorer. It renders shapes and images via Flash drawing
+API, and in many cases, runs faster than other similar libraries which
+use VML or Silverlight.
+
+
+Requirements
+------------
+
+ * Microsoft Internet Explorer
+ * Adobe Flash Player 9 or later
+
+
+Usage
+-----
+
+FlashCanvas consists of JavaScript, Flash and PHP files:
+
+ * flashcanvas.js
+ * flashcanvas.swf
+ * canvas2png.js (helps you to save a canvas image)
+ * proxy.php     (used to load a file from other domain)
+ * save.php      (used to save a canvas image)
+
+These files can be found in the bin directory in this distribution
+package. To install FlashCanvas, copy these files into some directory on
+a Web server, and then add the following HTML code between <head> and
+</head> tags on your web page.
+
+    <!--[if lt IE 9]>
+    <script type="text/javascript" src="path/to/flashcanvas.js"></script>
+    <![endif]-->
+
+That's all you have to do in most cases. For more details, please read
+the online manual at the project page.
+
+
+License
+-------
+
+FlashCanvas is developed by FlashCanvas Project and released under the
+MIT License.
+
+
+Contact
+-------
+
+If you have a question about FlashCanvas, please utilize the discussion
+group and issue tracker found at the project page. If you need to
+contact us directly, you can reach us at the e-mail address.
+
+Project page: http://code.google.com/p/flashcanvas/
+E-mail:       flashcanvas@gmail.com
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+Installation of new target region files
+---------------------------------------
+
+New target files may be added to the targetFiles directory and will appear in the targetSeqCoverage
+plugin GUI for selection provided they follow the following naming convention:
+  <prefix>targetseq.<ref>.<targets id>.bed
+
+"targetseq." and ".bed" are mandatory and used to identify the file and parse the file name.
+<prefix> may be any valid string unix file name characters, but spaces are not recommended.
+<ref> should reflect the actual genome (short name) the targets refer to, e.g. "hg19".
+<targets id> is any suitable (short) name for the target set.
+
+For Ion TargetSeq, a valid targets (BED) file must have at least the 3 mandatory fields,
+<chromosome name>, <start> and <end> separated by a single tab character, defined for each target (per line).
+Additional fields, e.g. the individual target id, are permissible and ignorred.
+BED track lines (begining with "track") are ignorred but if multiple track lines are present only the first
+first track is read as targets.
+Ion TragetSeq files should be sorted (chromosome>start>end) and the target regions non-overlapping (merged).
+
+
+{
+    "torrent_variant_caller":{
+
+        "data_quality_stringency":["Filter: Phred-scaled minimum average evidence per read or no-call.",
+                                   "Related VCF field: MLLD",
+                                   "Allowed values: Decimal numbers >= 0",
+                                   "Recommended values >= 6.5"],
+
+        "downsample_to_coverage":["Reduce coverage in over-sampled locations to this value",
+                                  "Allowed values: Integers >= 1",
+                                  "Recommended values: 400 (germline), 2000 (somatic)" ],
+
+         "snp_min_cov_each_strand":["Filter: Minimum coverage required on each strand",
+                                     "Allowed values: Integers >= 0",
+                                     "Recommended values >= 3" ],
+
+        "snp_min_variant_score":["Filter: Phred-scaled evidence that the reads support a variant above minimum frequency",
+                                  "Quality: Integers >= 0",
+                                  "Recommended values >= 10"],
+
+        "snp_min_allele_freq":["Frequency cutoff for supporting a variant",
+                                "Allowed values: Decimal numbers between 0 and 1.0",
+                                "Recommended values between 0.01 and 0.2"],
+
+        "snp_min_coverage":["total coverage required of reads or no-call",
+                                "Allowed values: Integers >= 0 ",
+                                "Recommended values between 5 and 20 "],
+
+        "snp_strand_bias":["Filter: proportion of variant alleles comes overwhelmingly from one strand.",
+                               "Related VCF field: STB",
+                               "Allowed values: Decimal numbers between 0.5 and 1.0",
+                               "Recommended 0.95"],
+
+        "indel_min_cov_each_strand":["Filter: Minimum coverage required on each strand",
+                                     "Allowed values: Integers >= 0",
+                                     "Recommended >= 3" ],
+
+        "indel_min_variant_score":["Filter: Phred-scaled evidence that the reads support a variant above minimum frequency",
+                                  "Quality: Integers >= 0",
+                                  "Recommended values >= 10"],
+
+        "indel_min_allele_freq":["Frequency cutoff for supporting a variant",
+                                "Allowed values: Decimal numbers between 0 and 1.0 ",
+                                "Recommended values between 0.05 and 0.2 "],
+
+        "indel_min_coverage":["Total coverage required of reads or no-call",
+                                "Allowed values: Integers >= 0",
+                                "Recommended values between 15 and 30"],
+
+        "indel_strand_bias":["Filter: proportion of variant alleles comes overwhelmingly from one strand.",
+                               "Related VCF field: STB",
+                               "Allowed values: Decimal numbers between 0.5 and 1.0",
+                               "Recommended 0.95"],
+        
+        "hotspot_min_cov_each_strand":["Filter: Minimum coverage required on each strand",
+                                     "Allowed values: Integers >= 0",
+                                     "Recommended >= 3" ],
+
+        "indel_min_variant_score":["Phred-scaled evidence that the reads support a variant above minimum frequency",
+                                  "Quality: Integers >= 0",
+                                  "Recommended values >= 10"],
+
+        "hotspot_min_allele_freq":["Frequency cutoff for supporting a variant",
+                                "Allowed values: Decimal numbers between 0 and 1.0 ",
+                                "Recommended values between 0.01 and 0.2"],
+
+        "hotspot_min_coverage":["Total coverage required of reads or no-call",
+                                "Allowed values: Integers >=0",
+                                "Recommended values between 5 and 20"],
+
+        "hotspot_strand_bias":["Filter:  proportion of variant alleles comes overwhelmingly from one strand.",
+                               "Related VCF field: STB",
+                               "Allowed values: Decimal numbers between 0.5 and 1.0",
+                               "Recommended 0.95"],
+        
+        "prediction_precision":["Number of pseudo-data-points suggesting our predictions match the measurements without bias",
+                                "Allowed values: Decimal numbers >= 0  ",
+                                "Recommended value 1.0 "],
+
+        "outlier_probability":["Prior probability that a read comes from some other distribution",
+                                "Allowed values: Decimal numbers between 0 and 1.0",
+                                "Recommended values between 0.005 and 0.01"],
+
+        "heavy_tailed":["How heavy the t-distribution tails are to allow for unusual spread in the data",
+                                "Allowed values: Decimal numbers >= 0",
+                                "Recommended value 3.0"],
+
+        "filter_unusual_predictions":["Filter:  predictions are distorted to fit the data more than this distance (relative to the size of the variant).",
+                                       "Related VCF fields: FWDB, REVB [RBI = sqrt(FWDB ^ 2 + REVB ^ 2)]",
+                                       "Allowed values: Decimal numbers >= 0",
+                                       "Recommended value: 0.3 = 30% of variant change size"],
+
+        "filter_insertion_predictions":["Filter:  observed clusters deviate from predictions more than this amount (relative to the size of the variant).",
+                                       "Related VCF fields: VARB, REFB",
+                                       "Allowed values: Decimal numbers >= 0",
+                                       "Recommended value: 0.2 = 20% of variant change size"],
+
+        "filter_deletion_predictions":["Filter:  observed clusters deviate from predictions more than this amount (relative to the size of the variant).",
+                                       "Related VCF fields: VARB, REFB",
+                                       "Allowed values: Decimal numbers >= 0",
+                                       "Recommended value: 0.2 = 20% of variant change size"],
+        
+        "hp_max_length":["Filter:  homopolymer length involved in an in/del",
+                         "Related VCF field: HRUN",
+                         "Allowed values: Integers >= 1",
+                         "Recommended value: 8" ],
+ 
+        "sse_prob_threshold":["If the motif model predicts an error likely at this position, filter me",
+                        "Related VCF fields: SSEN, SSEP ",
+                        "Allowed values: Decimal numbers between 0.0 and 1.0"],
+
+        "min_ratio_reads_non_sse_strand":["If there is a predicted error, and the opposite strand may be fine, tentatively evaluate.",
+                                "Allowed values: ",
+                                "Recommended values "],
+                                
+        "do_snp_realignment":["Realign reads in the vicinity of SNP candidates.",
+                              "Allowed values: 0 = do not realign, 1 = realign",
+                              "Recommended value: (germline) 0, (somatic) 1"],
+                                
+        "suppress_recalibration": ["Recalibration values from pipeline used or not (experimental)",
+                                   "No related fields, changes basecalling behavior",
+                                   "Allowed values: 0 = allow recalibration, 1 = don't allow recalibration",
+                                   "Recommended value: (non-proton), 1, proton=0"]
+
+    },
+
+    
+    "freebayes":{
+        "allow_indels":[
+            "Enable indels in FreeBayes hypothesis generator.",
+            "Allowed values: 1 = generate indel hypotheses, 0 = don't generate",
+            "Recommended value: 1"],
+            
+        "allow_snps":[
+            "Enable SNPs in FreeBayes hypothesis generator.",
+            "Allowed values: 1 = generate SNP hypotheses, 0 = don't generate",
+            "Recommended value: 1"],
+            
+        "allow_mnps":[
+            "Enable MNPs in FreeBayes hypothesis generator.",
+            "Allowed values: 1 = generate MNP hypotheses, 0 = don't generate",
+            "Recommended value: 1"],
+            
+        "allow_complex":[
+            "Enable complex variants in FreeBayes hypothesis generator.",
+            "Allowed values: 1 = generate MNP hypotheses, 0 = don't generate",
+            "Recommended value: 1"],            
+                                    
+        "min_mapping_qv":[
+            "Minimum mapping QV value required for reads to be allowed into the pileup (both freebayes and evaluator)",
+            "Allowed values: Integers >= 0",
+            "Recommended value: 4"],
+            
+        "min_base_qv":[
+            "Minimum base QV value required",
+            "Allowed values: Integers >= 0",
+            "Recommended value: 4"],
+            
+        "read_mismatch_limit":[
+            "Read mismatch limit on number of mismatches: filter potential mis-mapped reads",
+            "Allowed values: Integers >= 0",
+            "Recommended value: 10"],
+            
+        "read_max_mismatch_fraction":[
+            "Read maximum mismatch fraction of mismatches in length of read: filter potential mis-mapped reads",
+            "Allowed values: Decimal numbers between 0 and 1.0",
+            "Recommended value: 1.0"],
+            
+        "gen_min_alt_allele_freq": [
+            "Generate variants with at least this frequency in the pileup",
+            "Allowed values: Decimal numbers between 0 and 1.0",
+            "Recommended values: between 0.02 and 0.15"],
+
+        "gen_min_indel_alt_allele_freq": [
+            "Generate INDEL variants with at least this frequency in the pileup",
+            "Allowed values: Decimal numbers between 0 and 1.0",
+            "Recommended values: between 0.02 and 0.15"],
+            
+        "gen_min_coverage":[
+            "Generate variants in locations with at least this depth of coverage",
+            "Allowed values: Integers >= 0",
+            "Recommended value: 6"]
+    },
+    
+    "long_indel_assembler":{
+        "kmer_len": [
+            "Size of the smallest k-mer used in assembly.",
+            "Allowed values: Integers greater than 5",
+            "Recommended values: between 11 and 30",
+            "Impact: Increasing values make indel calls less sensitive but more specific. "],
+            
+        "min_var_count":[
+            "Minimum support for a variant to be evaluated.",
+            "Allowed values: Integers greater than 1",
+            "Recommended values: between 3 and 30",
+            "Impact: Increasing values make indel calls less sensitive but more specific. "],
+            
+        "short_suffix_match":[
+            "Minimum assembled sequence match on both sides of the variant.",
+            "Allowed values: Integers greater than 2",
+            "Recommended values: between 4 and the value given to the kmer_len parameter",
+            "Impact: Increasing values make indel calls less sensitive but more specific. "],
+            
+        "min_indel_size":[
+            "Minimum size indel reported by assembly.",
+            "Allowed values: Integers greater than 0",
+            "Recommended values: between 2 and 30",
+            "Impact: Increasing values make indel calls less sensitive but more specific. "],
+            
+        "max_hp_length":[
+            "Variants containing HP larger than this are not reported.",
+            "Allowed values: Integers greater than 1",
+            "Recommended values: between 2 and 11",
+            "Impact: Increasing values make indel calls more sensitive but less specific. "],
+            
+        "min_var_freq":[
+            "Minimum frequency of the variant to be reported.",
+            "Allowed values: Decimal numbers between 0.0 and 1.0",
+            "Recommended values: between 0.1 and 0.4",
+            "Impact: Increasing values make indel calls less sensitive but more specific. "],
+            
+        "relative_strand_bias":[
+            "Variants with strand bias above this are not reported.",
+            "Allowed values: Decimal numbers between 0.0 and 1.0",
+            "Recommended values: between 0.6 and 1.0",
+            "Impact: Increasing values make indel calls more sensitive but less specific. "],
+            
+        "output_mnv":[
+            "Enables reporting of complex variants.",
+            "Allowed values: 1 = report complex variants, 0 = don't report",
+            "Recommended value: 0"]
+            
+    }
+}
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+Please see buildTools/BUILD.txt for build requirements and instructions.
+Note especially the section BUILD SPECIFIC MODULES.
+
+To build Analysis module, the command is:
+MODULES=Analysis ./buildTools/build.sh
+
+To build dbReports module, the command is:
+MODULES=dbReports ./buildTools/build.sh
+
+
+Tips:
+- If you are building this software for the first time, it's suggested to use the Torrent Suite Virtual Machine as your Ubuntu 10.04 build environment.  That will reduce the chance of your being blocked by any environment dependencies.  Once you are familiar with the build process on Ubuntu 10.04, you'll have more confidence when getting creative with other operating systems.  You can find the virtual machine and helpful people on ionCommunity: http://ioncommunity.lifetechnologies.com/welcome
+
+- Note that the code that was formerly in the ion-alignment and tmap packages is now rolled into the ion-analysis packages
+
+- Also note that prior to the Torrent Suite 3.6 release the Variant Caller functioned independently as a plugin that could be executed outside of Torrent Suite.  That is no longer the case: today the Variant Caller plugin is primarily UI code.  The core Variant Caller algorithms reside in the ion-analysis package, and Variant Caller needs to be executed in the Torrent Suite pipeline.
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+First up, let me say I don't like writing in assembler.  It is not portable,
+dependant on the particular CPU architecture release and is generally a pig
+to debug and get right.  Having said that, the x86 architecture is probably
+the most important for speed due to number of boxes and since
+it appears to be the worst architecture to to get
+good C compilers for.  So due to this, I have lowered myself to do
+assembler for the inner DES routines in libdes :-).
+
+The file to implement in assembler is des_enc.c.  Replace the following
+4 functions
+des_encrypt(DES_LONG data[2],des_key_schedule ks, int encrypt);
+des_encrypt2(DES_LONG data[2],des_key_schedule ks, int encrypt);
+des_encrypt3(DES_LONG data[2],des_key_schedule ks1,ks2,ks3);
+des_decrypt3(DES_LONG data[2],des_key_schedule ks1,ks2,ks3);
+
+They encrypt/decrypt the 64 bits held in 'data' using
+the 'ks' key schedules.   The only difference between the 4 functions is that
+des_encrypt2() does not perform IP() or FP() on the data (this is an
+optimization for when doing triple DES and des_encrypt3() and des_decrypt3()
+perform triple des.  The triple DES routines are in here because it does
+make a big difference to have them located near the des_encrypt2 function
+at link time..
+
+Now as we all know, there are lots of different operating systems running on
+x86 boxes, and unfortunately they normally try to make sure their assembler
+formating is not the same as the other peoples.
+The 4 main formats I know of are
+Microsoft	Windows 95/Windows NT
+Elf		Includes Linux and FreeBSD(?).
+a.out		The older Linux.
+Solaris		Same as Elf but different comments :-(.
+
+Now I was not overly keen to write 4 different copies of the same code,
+so I wrote a few perl routines to output the correct assembler, given
+a target assembler type.  This code is ugly and is just a hack.
+The libraries are x86unix.pl and x86ms.pl.
+des586.pl, des686.pl and des-som[23].pl are the programs to actually
+generate the assembler.
+
+So to generate elf assembler
+perl des-som3.pl elf >dx86-elf.s
+For Windows 95/NT
+perl des-som2.pl win32 >win32.asm
+
+[ update 4 Jan 1996 ]
+I have added another way to do things.
+perl des-som3.pl cpp >dx86-cpp.s
+generates a file that will be included by dx86unix.cpp when it is compiled.
+To build for elf, a.out, solaris, bsdi etc,
+cc -E -DELF asm/dx86unix.cpp | as -o asm/dx86-elf.o
+cc -E -DSOL asm/dx86unix.cpp | as -o asm/dx86-sol.o
+cc -E -DOUT asm/dx86unix.cpp | as -o asm/dx86-out.o
+cc -E -DBSDI asm/dx86unix.cpp | as -o asm/dx86bsdi.o
+This was done to cut down the number of files in the distribution.
+
+Now the ugly part.  I acquired my copy of Intels
+"Optimization's For Intel's 32-Bit Processors" and found a few interesting
+things.  First, the aim of the exersize is to 'extract' one byte at a time
+from a word and do an array lookup.  This involves getting the byte from
+the 4 locations in the word and moving it to a new word and doing the lookup.
+The most obvious way to do this is
+xor	eax,	eax				# clear word
+movb	al,	cl				# get low byte
+xor	edi	DWORD PTR 0x100+des_SP[eax] 	# xor in word
+movb	al,	ch				# get next byte
+xor	edi	DWORD PTR 0x300+des_SP[eax] 	# xor in word
+shr	ecx	16
+which seems ok.  For the pentium, this system appears to be the best.
+One has to do instruction interleaving to keep both functional units
+operating, but it is basically very efficient.
+
+Now the crunch.  When a full register is used after a partial write, eg.
+mov	al,	cl
+xor	edi,	DWORD PTR 0x100+des_SP[eax]
+386	- 1 cycle stall
+486	- 1 cycle stall
+586	- 0 cycle stall
+686	- at least 7 cycle stall (page 22 of the above mentioned document).
+
+So the technique that produces the best results on a pentium, according to
+the documentation, will produce hideous results on a pentium pro.
+
+To get around this, des686.pl will generate code that is not as fast on
+a pentium, should be very good on a pentium pro.
+mov	eax,	ecx				# copy word 
+shr	ecx,	8				# line up next byte
+and	eax,	0fch				# mask byte
+xor	edi	DWORD PTR 0x100+des_SP[eax] 	# xor in array lookup
+mov	eax,	ecx				# get word
+shr	ecx	8				# line up next byte
+and	eax,	0fch				# mask byte
+xor	edi	DWORD PTR 0x300+des_SP[eax] 	# xor in array lookup
+
+Due to the execution units in the pentium, this actually works quite well.
+For a pentium pro it should be very good.  This is the type of output
+Visual C++ generates.
+
+There is a third option.  instead of using
+mov	al,	ch
+which is bad on the pentium pro, one may be able to use
+movzx	eax,	ch
+which may not incur the partial write penalty.  On the pentium,
+this instruction takes 4 cycles so is not worth using but on the
+pentium pro it appears it may be worth while.  I need access to one to
+experiment :-).
+
+eric (20 Oct 1996)
+
+22 Nov 1996 - I have asked people to run the 2 different version on pentium
+pros and it appears that the intel documentation is wrong.  The
+mov al,bh is still faster on a pentium pro, so just use the des586.pl
+install des686.pl
+
+3 Dec 1996 - I added des_encrypt3/des_decrypt3 because I have moved these
+functions into des_enc.c because it does make a massive performance
+difference on some boxes to have the functions code located close to
+the des_encrypt2() function.
+
+9 Jan 1996 - des-som2.pl is now the correct perl script to use for
+pentiums.  It contains an inner loop from
+Svend Olaf Mikkelsen <svolaf@inet.uni-c.dk> which does raw ecb DES calls at
+273,000 per second.  He had a previous version at 250,000 and the best
+I was able to get was 203,000.  The content has not changed, this is all
+due to instruction sequencing (and actual instructions choice) which is able
+to keep both functional units of the pentium going.
+We may have lost the ugly register usage restrictions when x86 went 32 bit
+but for the pentium it has been replaced by evil instruction ordering tricks.
+
+13 Jan 1996 - des-som3.pl, more optimizations from Svend Olaf.
+raw DES at 281,000 per second on a pentium 100.
+
+
+		libdes, Version 4.01 13-Jan-97
+
+		Copyright (c) 1997, Eric Young
+			  All rights reserved.
+
+    This program is free software; you can redistribute it and/or modify
+    it under the terms specified in COPYRIGHT.
+    
+--
+The primary ftp site for this library is
+ftp://ftp.psy.uq.oz.au/pub/Crypto/DES/libdes-x.xx.tar.gz
+libdes is now also shipped with SSLeay.  Primary ftp site of
+ftp://ftp.psy.uq.oz.au/pub/Crypto/SSL/SSLeay-x.x.x.tar.gz
+
+The best way to build this library is to build it as part of SSLeay.
+
+This kit builds a DES encryption library and a DES encryption program.
+It supports ecb, cbc, ofb, cfb, triple ecb, triple cbc, triple ofb,
+triple cfb, desx, and MIT's pcbc encryption modes and also has a fast
+implementation of crypt(3).
+It contains support routines to read keys from a terminal,
+generate a random key, generate a key from an arbitrary length string,
+read/write encrypted data from/to a file descriptor.
+
+The implementation was written so as to conform with the manual entry
+for the des_crypt(3) library routines from MIT's project Athena.
+
+destest should be run after compilation to test the des routines.
+rpw should be run after compilation to test the read password routines.
+The des program is a replacement for the sun des command.  I believe it
+conforms to the sun version.
+
+The Imakefile is setup for use in the kerberos distribution.
+
+These routines are best compiled with gcc or any other good
+optimising compiler.
+Just turn you optimiser up to the highest settings and run destest
+after the build to make sure everything works.
+
+I believe these routines are close to the fastest and most portable DES
+routines that use small lookup tables (4.5k) that are publicly available.
+The fcrypt routine is faster than ufc's fcrypt (when compiling with
+gcc2 -O2) on the sparc 2 (1410 vs 1270) but is not so good on other machines
+(on a sun3/260 168 vs 336).  It is a function of CPU on chip cache size.
+[ 10-Jan-97 and a function of an incorrect speed testing program in
+  ufc which gave much better test figures that reality ].
+
+It is worth noting that on sparc and Alpha CPUs, performance of the DES
+library can vary by upto %10 due to the positioning of files after application
+linkage.
+
+Eric Young (eay@mincom.oz.au)
+
+
+zlib 1.1.4 is a general purpose data compression library.  All the code
+is thread safe.  The data format used by the zlib library
+is described by RFCs (Request for Comments) 1950 to 1952 in the files 
+http://www.ietf.org/rfc/rfc1950.txt (zlib format), rfc1951.txt (deflate
+format) and rfc1952.txt (gzip format). These documents are also available in
+other formats from ftp://ftp.uu.net/graphics/png/documents/zlib/zdoc-index.html
+
+All functions of the compression library are documented in the file zlib.h
+(volunteer to write man pages welcome, contact jloup@gzip.org). A usage
+example of the library is given in the file example.c which also tests that
+the library is working correctly. Another example is given in the file
+minigzip.c. The compression library itself is composed of all source files
+except example.c and minigzip.c.
+
+To compile all files and run the test program, follow the instructions
+given at the top of Makefile. In short "make test; make install"
+should work for most machines. For Unix: "./configure; make test; make install"
+For MSDOS, use one of the special makefiles such as Makefile.msc.
+For VMS, use Make_vms.com or descrip.mms.
+
+Questions about zlib should be sent to <zlib@gzip.org>, or to
+Gilles Vollant <info@winimage.com> for the Windows DLL version.
+The zlib home page is http://www.zlib.org or http://www.gzip.org/zlib/
+Before reporting a problem, please check this site to verify that
+you have the latest version of zlib; otherwise get the latest version and
+check whether the problem still exists or not.
+
+PLEASE read the zlib FAQ http://www.gzip.org/zlib/zlib_faq.html
+before asking for help.
+
+Mark Nelson <markn@ieee.org> wrote an article about zlib for the Jan. 1997
+issue of  Dr. Dobb's Journal; a copy of the article is available in
+http://dogma.net/markn/articles/zlibtool/zlibtool.htm
+
+The changes made in version 1.1.4 are documented in the file ChangeLog.
+The only changes made since 1.1.3 are bug corrections:
+
+- ZFREE was repeated on same allocation on some error conditions.
+  This creates a security problem described in
+  http://www.zlib.org/advisory-2002-03-11.txt
+- Returned incorrect error (Z_MEM_ERROR) on some invalid data
+- Avoid accesses before window for invalid distances with inflate window
+  less than 32K.
+- force windowBits > 8 to avoid a bug in the encoder for a window size
+  of 256 bytes. (A complete fix will be available in 1.1.5).
+
+The beta version 1.1.5beta includes many more changes. A new official
+version 1.1.5 will be released as soon as extensive testing has been
+completed on it.
+
+
+Unsupported third party contributions are provided in directory "contrib".
+
+A Java implementation of zlib is available in the Java Development Kit
+http://www.javasoft.com/products/JDK/1.1/docs/api/Package-java.util.zip.html
+See the zlib home page http://www.zlib.org for details.
+
+A Perl interface to zlib written by Paul Marquess <pmarquess@bfsec.bt.co.uk>
+is in the CPAN (Comprehensive Perl Archive Network) sites
+http://www.cpan.org/modules/by-module/Compress/
+
+A Python interface to zlib written by A.M. Kuchling <amk@magnet.com>
+is available in Python 1.5 and later versions, see
+http://www.python.org/doc/lib/module-zlib.html
+
+A zlib binding for TCL written by Andreas Kupries <a.kupries@westend.com>
+is availlable at http://www.westend.com/~kupries/doc/trf/man/man.html
+
+An experimental package to read and write files in .zip format,
+written on top of zlib by Gilles Vollant <info@winimage.com>, is
+available at http://www.winimage.com/zLibDll/unzip.html
+and also in the contrib/minizip directory of zlib.
+
+
+Notes for some targets:
+
+- To build a Windows DLL version, include in a DLL project zlib.def, zlib.rc
+  and all .c files except example.c and minigzip.c; compile with -DZLIB_DLL
+  The zlib DLL support was initially done by Alessandro Iacopetti and is
+  now maintained by Gilles Vollant <info@winimage.com>. Check the zlib DLL
+  home page at http://www.winimage.com/zLibDll
+
+  From Visual Basic, you can call the DLL functions which do not take
+  a structure as argument: compress, uncompress and all gz* functions.
+  See contrib/visual-basic.txt for more information, or get
+  http://www.tcfb.com/dowseware/cmp-z-it.zip
+
+- For 64-bit Irix, deflate.c must be compiled without any optimization.
+  With -O, one libpng test fails. The test works in 32 bit mode (with
+  the -n32 compiler flag). The compiler bug has been reported to SGI.
+
+- zlib doesn't work with gcc 2.6.3 on a DEC 3000/300LX under OSF/1 2.1   
+  it works when compiled with cc.
+
+- on Digital Unix 4.0D (formely OSF/1) on AlphaServer, the cc option -std1
+  is necessary to get gzprintf working correctly. This is done by configure.
+
+- zlib doesn't work on HP-UX 9.05 with some versions of /bin/cc. It works
+  with other compilers. Use "make test" to check your compiler.
+
+- gzdopen is not supported on RISCOS, BEOS and by some Mac compilers.
+
+- For Turbo C the small model is supported only with reduced performance to
+  avoid any far allocation; it was tested with -DMAX_WBITS=11 -DMAX_MEM_LEVEL=3
+
+- For PalmOs, see http://www.cs.uit.no/~perm/PASTA/pilot/software.html
+  Per Harald Myrvang <perm@stud.cs.uit.no>
+
+
+Acknowledgments:
+
+  The deflate format used by zlib was defined by Phil Katz. The deflate
+  and zlib specifications were written by L. Peter Deutsch. Thanks to all the
+  people who reported problems and suggested various improvements in zlib;
+  they are too numerous to cite here.
+
+Copyright notice:
+
+ (C) 1995-2002 Jean-loup Gailly and Mark Adler
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  Jean-loup Gailly        Mark Adler
+  jloup@gzip.org          madler@alumni.caltech.edu
+
+If you use the zlib library in a product, we would appreciate *not*
+receiving lengthy legal documents to sign. The sources are provided
+for free but without warranty of any kind.  The library has been
+entirely written by Jean-loup Gailly and Mark Adler; it does not
+include third-party code.
+
+If you redistribute modified sources, we would appreciate that you include
+in the file ChangeLog history information documenting your changes.
+
+To install, copy binary, plus do this:
+
+cd /usr/local/eldk/ppc_85xx/lib
+scp libssl.so.0.9.7f root@10.25.3.228:/usr/lib/
+scp libcrypto.so.0.9.7f root@10.25.3.228:/usr/lib/
+
+ssh root@10.25.3.228
+cd /usr/lib
+ln -s libssl.so.0.9.7f libssl.so.5
+ln -s libcrypto.so.0.9.7f libcrypto.so.5
+
+To Run:
+./RSMAgent https://lifetechnologies-sandbox.axeda.com:443/eMessage
+
+
+Package: torrentR
+Title: R package for Ion Torrent data
+Version: 0.5.0
+Date: 2011-09-30
+Author: Simon Cawley <simon.cawley@lifetech.com>
+Maintainer: Simon Cawley <simon.cawley@lifetech.com>
+Description: R package for Ion Torrent data
+Depends: R (>= 2.10.0), Rcpp (>= 0.7.8), fields (>= 6.0.1), methods
+Suggests:
+SystemRequirements: None
+URL: http://www.iontorrent.com
+License: GPL-2
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+
+@CMAKE_PROJECT_NAME@ -- @PROJECT_DESCRIPTION@
+Copyright (C) 2010 Ion Torrent Systems, Inc.
+
+This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+(version 2) as published by the Free Software Foundation.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  
+02110-1301, USA.
+
+================================================================================
+
+

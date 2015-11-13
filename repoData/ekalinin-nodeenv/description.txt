@@ -1,0 +1,406 @@
+README.rst
+Node.js virtual environment
+===========================
+
+``nodeenv`` (node.js virtual environment) is a tool to create 
+isolated node.js environments.
+
+It creates an environment that has its own installation directories, 
+that doesn't share libraries with other node.js virtual environments.
+
+Also new environment can be integrated with environment which was built
+by virtualenv_ (python).
+
+Install
+-------
+
+Global installation
+^^^^^^^^^^^^^^^^^^^
+
+You can install nodeenv globally with `easy_install`_::
+
+    $ sudo easy_install nodeenv
+
+or `pip`_::
+
+    $ sudo pip install nodeenv
+
+Local installation
+^^^^^^^^^^^^^^^^^^
+
+If you're using virtualenv_ then you can install nodeenv via
+pip_/easy_install_ inside any virtual environment built with virtualenv::
+
+    $ virtualenv env
+    $ . env/bin/activate
+    (env) $ pip install nodeenv
+    (env) $ nodeenv --version
+    0.6.5
+
+If you want to work with the latest version of the nodeenv you can 
+install it from the github `repository`_::
+
+    $ git clone https://github.com/ekalinin/nodeenv.git
+    $ ./nodeenv/nodeenv.py --help
+
+.. _repository: https://github.com/ekalinin/nodeenv
+.. _pip: http://pypi.python.org/pypi/pip
+.. _easy_install: http://pypi.python.org/pypi/setuptools
+
+
+Dependency
+----------
+
+For nodeenv
+^^^^^^^^^^^
+
+* python (>= 2.6)
+* make
+* curl
+* egrep
+* sort
+* tail
+* tar
+
+For node.js
+^^^^^^^^^^^
+
+* libssl-dev
+
+Usage
+-----
+
+Basic
+^^^^^
+
+Create new environment::
+
+    $ nodeenv env
+
+Activate new environment::
+
+    $ . env/bin/activate
+
+Chek versions of main packages::
+
+    (env) $ node -v
+    v0.10.26
+
+    (env) $ npm -v
+    1.4.3
+
+Deactivate environment::
+
+    (env) $ deactivate_node
+
+Advanced
+^^^^^^^^
+
+Get available node.js versions::
+
+    $ nodeenv --list
+    0.0.1   0.0.2   0.0.3   0.0.4   0.0.5   0.0.6   0.1.0
+    0.1.2   0.1.3   0.1.4   0.1.5   0.1.6   0.1.7   0.1.8
+    0.1.10  0.1.11  0.1.12  0.1.13  0.1.14  0.1.15  0.1.16
+    0.1.18  0.1.19  0.1.20  0.1.21  0.1.22  0.1.23  0.1.24
+    0.1.26  0.1.27  0.1.28  0.1.29  0.1.30  0.1.31  0.1.32
+    0.1.90  0.1.91  0.1.92  0.1.93  0.1.94  0.1.95  0.1.96
+    0.1.98  0.1.99  0.1.100 0.1.101 0.1.102 0.1.103 0.1.104
+    0.2.1   0.2.2   0.2.3   0.2.4   0.2.5   0.2.6   0.3.0
+    0.3.2   0.3.3   0.3.4   0.3.5   0.3.6   0.3.7   0.3.8
+    0.4.1   0.4.2   0.4.3   0.4.4   0.4.5   0.4.6
+
+Install node.js "0.4.3" without ssl support with 4 parallel commands 
+for compilation and npm.js "0.3.17"::
+
+    $ nodeenv --without-ssl --node=0.4.3 --npm=0.3.17 --jobs=4 env-4.3
+
+Install node.js from prebuilt package::
+
+    $ nodeenv --node=0.10.25 --prebuilt env-0.10.25-prebuilt
+
+It much faster then install & compile node.js from source::
+
+    $ time nodeenv --node=0.10.25 --prebuilt env-0.10.25-prebuilt
+     + Install node.js (0.10.25) ... done.
+
+    real    0m6.928s
+    user    0m0.408s
+    sys     0m1.144s
+
+    $ time nodeenv --node=0.10.25 env-0.10.25-src
+     + Install node.js (0.10.25) ... done.
+
+    real    4m12.602s
+    user    6m34.112s
+    sys     0m30.524s
+
+Create a new environment with the system-wide node.js::
+
+    $ nodeenv --node=system
+
+Saving into the file versions of all installed packages::
+
+    $ . env-4.3/bin/activate
+    (env-4.3)$ npm install -g express
+    (env-4.3)$ npm install -g jade
+    (env-4.3)$ freeze ../prod-requirements.txt
+
+Create environment copy from requirement file::
+
+    $ nodeenv --requirement=../prod-requirements.txt --jobs=4 env-copy
+
+Requirements files are plain text files that contain a list of packages 
+to be installed. These text files allow you to create repeatable installations.
+Requirements file example::
+
+    $ cat ../prod-requirements.txt
+    connect@1.3.0
+    express@2.2.2
+    jade@0.10.4
+    mime@1.2.1
+    npm@0.3.17
+    qs@0.0.7
+
+If you're already have python virtualenv tool, and want to use nodeenv and
+virtualenv in conjunction, then you should create (or activate) python virtual
+environment::
+
+    # in case of using virtualenv_wrapper
+    $ mkvirtualenv my_env
+
+    # in case of using virtualenv
+    $ . my_env/bin/activate
+
+and add node virtual environment to this existing new_venv::
+
+    $ nodeenv -p
+    
+If you need to set the path to make used  to build node::
+
+	$ nodeenv -m /usr/local/bin/gmake ENV
+
+That's all. Now, all your node.js modules will be installed into your virtual
+environment::
+
+    $ workon my_env
+    $ npm install -g coffee-script
+    $ which coffee
+    /home/monty/virtualenvs/my_env/bin/coffee
+
+If environment's directory already exists then you can use ``--force`` option::
+
+    $ nodeenv --requirement=./requirements.txt --jobs=4 --force env
+
+If you alredy have an environment and want to update packages from requirements
+file you can use ``--update`` option::
+
+    $ . env-4.3/bin/activate
+    (env-4.3)$ nodeenv --update=./requirements.txt
+
+If you whant to call node from environment without activation then you shoould
+use `shim` script::
+
+    $ ./env-4.3/bin/shim --version
+    v0.4.3
+
+Alternatives
+------------
+
+There are several alternatives that create isolated environments:
+
+* `nave <https://github.com/isaacs/nave>`_ - Virtual Environments for Node.
+  Nave stores all environments in one directory ``~/.nave``. Can create
+  per node version environments using `nave use envname versionname`.
+  Can not pass additional arguments into configure (for example --without-ssl)
+  Can't run on windows because it relies on bash.
+
+* `nvm <https://github.com/creationix/nvm/blob/master/nvm.sh>`_ - Node Version
+  Manager. It is necessarily to do `nvm sync` for caching available node.js
+  version.
+  Can not pass additional arguments into configure (for example --without-ssl)
+
+* virtualenv_ — Virtual Python Environment builder. For python only.
+
+.. _`virtualenv`: https://github.com/pypa/virtualenv
+
+Виртуальное окружение для Node.js
+=================================
+
+``nodeenv`` (node.js virtual environment) — утилита для создания изолированных
+окружений для node.js.
+
+Результатом работы утилиты является создание изолированного окружения в
+отдельной директории, которое (окружение) никак не зависит от других
+установок node.js.
+
+Так же новое окружение может быть интегрировано в уже существующее окружение,
+созданное ранее с помощью virtualenv_ (python).
+
+
+Установка
+---------
+
+Глобальная
+^^^^^^^^^^
+
+Nodeenv можно установить с помощью `easy_install`_::
+
+    $ sudo easy_install nodeenv
+
+или с помощью `pip`_::
+
+    $ sudo pip install nodeenv
+
+Локальная
+^^^^^^^^^
+
+Если же используется virtualenv_, то можно установить nodeenv
+внутри виртуального окружения с помощью pip_/easy_install_::
+
+    $ virtualenv env
+    $ . env/bin/activate
+    (env) $ pip install nodeenv
+    (env) $ nodeenv --version
+    0.6.5
+
+Если есть желание поработать с последней версией nodeenv, то
+установить его можно напрямую из репозитория::
+
+    $ git clone https://github.com/ekalinin/nodeenv.git
+    $ ./nodeenv/nodeenv.py --help
+
+
+.. _pip: http://pypi.python.org/pypi/pip
+.. _easy_install: http://pypi.python.org/pypi/setuptools
+
+
+Зависимости
+-----------
+
+Для nodeenv
+^^^^^^^^^^^
+
+* make
+* curl
+* egrep
+* sort
+* tail
+* tar
+
+Для node.js
+^^^^^^^^^^^
+
+* python
+* libssl-dev
+
+Использование
+-------------
+
+Основы
+^^^^^^
+
+Создание нового окружения::
+
+    $ nodeenv env
+
+Активация окружения::
+
+    $ . env/bin/activate
+
+Проверка версий основных пакетов::
+
+    (env) $ node -v
+    v0.4.6
+
+    (env) $ npm -v
+    0.3.18
+
+Отключение окружения::
+
+    (env) $ deactivate_node
+
+Доп.возможности
+^^^^^^^^^^^^^^^
+
+Просмотр списка доступных версий node.js::
+
+    $ nodeenv --list
+    0.0.1   0.0.2   0.0.3   0.0.4   0.0.5   0.0.6   0.1.0
+    0.1.2   0.1.3   0.1.4   0.1.5   0.1.6   0.1.7   0.1.8
+    0.1.10  0.1.11  0.1.12  0.1.13  0.1.14  0.1.15  0.1.16
+    0.1.18  0.1.19  0.1.20  0.1.21  0.1.22  0.1.23  0.1.24
+    0.1.26  0.1.27  0.1.28  0.1.29  0.1.30  0.1.31  0.1.32
+    0.1.90  0.1.91  0.1.92  0.1.93  0.1.94  0.1.95  0.1.96
+    0.1.98  0.1.99  0.1.100 0.1.101 0.1.102 0.1.103 0.1.104
+    0.2.1   0.2.2   0.2.3   0.2.4   0.2.5   0.2.6   0.3.0
+    0.3.2   0.3.3   0.3.4   0.3.5   0.3.6   0.3.7   0.3.8
+    0.4.1   0.4.2   0.4.3   0.4.4   0.4.5   0.4.6
+
+Установка node.js версии "0.4.3" без поддержки ssl с компиляцией в 4
+параллели, а так же npm версией "0.3.17"::
+
+    $ nodeenv --without-ssl --node=0.4.3 --npm=0.3.17 --jobs=4 env-4.3
+
+Сохранение в файл «зависимостей» версий всех установленных пакетов::
+
+    $ . env-4.3/bin/activate
+    (env-4.3)$ npm install -g express
+    (env-4.3)$ npm install -g jade
+    (env-4.3)$ freeze ../prod-requirements.txt
+
+Создание точной копии окружения из файла «зависимостей»::
+
+    $ nodeenv --requirement=../prod-requirements.txt --jobs=4 env-copy
+
+Файл «зависимостей» или «требований» — это простой файл, в котором перечислены
+пакеты, которые необходимо установить. Такой файл дает возможность полностью
+повторяемые установки. Пример содержания файла::
+
+    $ cat ../prod-requirements.txt
+    connect@1.3.0
+    express@2.2.2
+    jade@0.10.4
+    mime@1.2.1
+    npm@0.3.17
+    qs@0.0.7
+
+Если вы используете оригинальную версию утилиты virtualenv (для python'а), то 
+возможно вы захотите использовать nodeenv и virtualenv вместе. В этом случае,
+сперва вы должны создать (или активировать) виртуальное окружение для
+python'а::
+
+    # если вы используете утилиту virtualenv_wrapper
+    $ mkvirtualenv my_env
+
+и затем добавить node.js в это окружение::
+
+    $ nodeenv -p
+
+Теперь все модули node.js будут устанавливаться в созданное виртуальное
+окружение::
+
+    $ workon my_env
+    $ npm install -g coffee-script
+    $ which coffee
+    /home/monty/virtualenvs/my_env/bin/coffee
+
+
+Альтернативы
+------------
+
+Существует несколько альтернативных утилит, которые так же позволяют создавать
+изолированные окружения:
+
+* `nave <https://github.com/isaacs/nave>`_ - Virtual Environments for Node.
+  Сохраняет все окружения в одной директории ``~/.nave``. Таким образом, не
+  позволяет создавать несколько окружений для одной и той же версии node.js.
+  Не позволяет передавать аргументы в конфигурацию (например, --without-ssl)
+* `nvm <https://github.com/creationix/nvm/blob/master/nvm.sh>`_ - Node Version
+  Manager. Требует регулярно выполнять ``nvm sync`` для кэширования доступных
+  версий node.js
+  Не позволяет передавать аргументы в конфигурацию (например, --without-ssl)
+* `virtualenv`_ Virtual Python Environment builder. Только для python.
+
+.. _`virtualenv`: https://github.com/pypa/virtualenv
+

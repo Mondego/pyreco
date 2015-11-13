@@ -1,0 +1,219 @@
+appshell-node-core
+==================
+
+Implements the "core" of the node server for the appshell. The code here is
+responsible for launching node, setting up loggers, and creating the 
+http/websocket servers necessary to communicate with the client.
+
+This code also implements the minimal "base" domain which has commands for
+enabling the debugger and loading new domains. All other node code is in the 
+client repository, and is loaded using the base.loadDomainModulesFromPaths 
+command. The goal is for the "core" to be as minimal as possible, and to
+change very little once it is stable.
+
+# Overview
+
+This module contains a minimal repackaging of ws for deployment.
+It is currently at version 0.4.25. The main repository for ws can be
+found at https://github.com/einaros/ws
+
+This repository also incorporates options.js instead of relying on it
+as an external dependency. The main repository for options.js can be
+found at https://github.com/einaros/options.js
+
+No modifications are made to either library except for a.) removing
+files that are not necessary for deployment and b.) fixing up paths.
+Specifically, this module was made by following these steps:
+
+1. Start with version 0.4.25 of ws
+2. Incorporate options.js directly into ws and fix up paths
+3. Remove files not needed for deployment (tests, etc.)
+4. Remove "compiled" code, and fix up paths to use "fallback"
+JS code by default. (Removing "compiled" code makes it easier
+to have this work in a cross-platform way.)
+
+Both ws and options.js are written by Einar Otto Stangvik and licensed
+under the MIT license (see below).
+
+## License for ws##
+
+(The MIT License)
+
+Copyright (c) 2011 Einar Otto Stangvik &lt;einaros@gmail.com&gt;
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+## License for options.js##
+
+(The MIT License)
+
+Copyright (c) 2012 Einar Otto Stangvik &lt;einaros@gmail.com&gt;
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+Setup
+=====
+
+Run ./install to install the .desktop file and brackets command line tool to your ~/.local directory.
+Run ./uninstall to remove these files.
+
+Requires libudev.so.0. install.sh will attempt to symlink this file automatically if it exists.
+
+If you see a libudev-related error message, you may need to do this:
+
+     # 64-bit Fedora system.
+     ln -s /usr/lib64/libudev.so.1 /usr/lib64/libudev.so.0
+     # 32-bit Fedora system
+     ln -s /usr/lib/libudev.so.1 /usr/lib/libudev.so.0
+
+If you are unsure of your library directory, you can run the following command and examine its output to find the right path:
+
+     ldd Brackets
+     # Sample output:
+     # libpangocairo-1.0.so.0 => /lib64/libpangocairo-1.0.so.0 (0x00007f482aed6000)
+     # libatk-1.0.so.0 => /lib64/libatk-1.0.so.0 (0x00007f482acb3000)
+
+In the example above, the library path is /lib64.
+
+Happy hacking.
+
+## Overview
+This readme describes how the .dmg file is created for Brackets on Mac. Like many Mac apps 
+Brackets doesn't have an installer. Instead the user opens a disk image file (.dmg) and manually 
+drags Brackets.app to their Applications folder.
+
+## To create a Brackets dmg
+1. Install DropDMG (http://c-command.com/dropdmg/) and Xcode 4.x. If the command-line Xcode build tools are not automatically installed, download them from the Apple Developer Center.
+2. Run DropDMG once. In Preferences > Advanced, click "Install 'dropdmg' Tool".
+3. In Terminal, run: grunt installer
+
+## How it Works
+* DropDMG provides both a GUI and command line interface for building Mac dmg files. 
+  See http://c-command.com/dropdmg/. Brackets uses the shell script interface to control 
+  DropDMG. Using the command line instead of the GUI allows build settings to be stored as 
+  text and tracked in the brackets-shell git repo.
+
+- buildInstaller.sh sets up some configuration variables regarding the name of the release, 
+  creates a temporary directory for the build and then makes a single call to dropdmg to 
+  create the dmg. All the options used to build the disk image are specified via command 
+  arguments except the layout for the disk image. The layout is described via the 
+  brackets-shell\installer\mac\dropDmgConfig\layouts\bracketsLayout folder. This folder 
+  contains an Info.plist file, icons, and background image that DropDMG uses to layout the 
+  appearance of the disk image. This layout folder is generated by the DropDMG GUI tool. 
+  Dragging a layout from DropDMG to the tool creates this folder structure.
+
+## Overview
+This readme describes how the .msi installer is created for Brackets on Windows.
+
+## To build the Brackets installer (after completing System Setup below)
+1. grunt installer
+
+## System Setup
+Normally, the installer scripts are run via Jenkins on the build machine http://win-agent186.macromedia.com:8080/. These are instructions for setting up a _new_ build machine:
+
+1. Download Ant; unzip it into a path (ideally a path with no spaces -- see below)
+2. Download & install a JDK (the full SDK, _not_ just a JRE)
+3. Set `ANT_HOME` to the path to Ant. Must not contain spaces -- if target dir does have spaces, use the DOS-style path mapping (e.g. `c:\progra~1\...`)
+4. Set `JAVA_HOME` to the path to Java. Must not contain spaces -- same as above.
+5. Add `%ANT_HOME%\bin` to the PATH
+6. Download & install Wix 3.5
+7. Get the MsiTran.exe tool:
+    * Option A: If you have Visual Studio installed, look in C:\Program Files\Microsoft SDKs\Windows\v??\bin to locate it
+    * Option B: Follow the [instructions here](http://www.geektieguy.com/2010/03/13/create-a-multi-lingual-multi-language-msi-using-wix-and-custom-build-scripts/) to
+      download the Windows SDK ISO and extract just the bit you need
+    * Option C: Download the [full Windows SDK online installer](http://www.microsoft.com/en-us/download/details.aspx?id=3138). On
+       the "Installation Options" screen, uncheck everything but "Win32 Development Tools"
+    * Copy it to _(wix-install-dir)_\bin
+8. Get the WiSubStg.vbs and WiLangId.vbs scripts:
+    * Option A: Follow the [instructions here](http://www.geektieguy.com/2010/03/13/create-a-multi-lingual-multi-language-msi-using-wix-and-custom-build-scripts/) to
+      download the Windows SDK ISO and extract just the bit you need
+    * Option B: Download the [full Windows SDK online installer](http://www.microsoft.com/en-us/download/details.aspx?id=3138). On
+      the "Installation Options" screen, uncheck everything but "Samples"
+    * Copy these two files to _(wix-install-dir)_\bin
+9. You may need to locally edit `wix.base` in brackets-win-install-build.xml if the Wix install folder doesn't match what's hardcoded there
+
+## Update Sprint Number with Grunt
+To rev the Brackets sprint number with Grunt, both brackets-shell and brackets repositories must be updated. For the initial Grunt setup, see: https://github.com/adobe/brackets/wiki/Grunt-Setup.
+
+brackets       > grunt set-sprint --sprint=NN
+brackets-shell > grunt set-sprint --sprint=NN
+
+## To rev the Brackets sprint number manually
+1. Open brackets-win-install-build.xml and change `product.sprint.number`
+2. Open brackets-shell\installer\mac\buildInstaller.sh and change `releaseName`
+3. Open Brackets.wxs and replace the `StartMenuShortcut` GUID property with a newly generated GUID
+4. Open brackets-shell\appshell\version.rc and change `FILEVERSION` and `"FileVersion"`
+5. Open brackets-shell\appshell\mac\Info.plist and change `CFBundleVersion` and `CFBundleShortVersionString`
+6. Open brackets\src\package.json and change `"version"`
+## Overview
+
+This is the CEF3-based application shell for [Brackets](https://github.com/adobe/brackets). 
+
+Please read the main [README in the brackets repo](https://github.com/adobe/brackets/blob/master/README.md) 
+for general information about Brackets.
+
+If you are interested in contributing to this shell, let us know on the 
+[brackets-dev Google Group](http://groups.google.com/group/brackets-dev), 
+or on the [#brackets channel on freenode](http://webchat.freenode.net/?channels=brackets).
+
+If you run into any issues with this new shell, please file a bug in the 
+[brackets issue tracker](https://github.com/adobe/brackets/issues).
+
+_Note: The brackets-shell is only maintained for use by the Brackets project. Although some people have 
+definitely had success using it as an app shell for other projects, we don't provide any official 
+support for that and we haven't done a ton of work to make the app shell easily reusable. Many people 
+will likely find it easier to use a project like node-webkit, which is more generic by design._
+
+## Running
+
+There are no downloads for the brackets-shell. You either need to 
+build from source, or grab the [latest Brackets installer](http://download.brackets.io) 
+and run the shell from that.
+
+When the app is launched, it first looks for an index.html file in the following locations:
+* Mac - Brackets.app/Contents/dev/src/index.html, Brackets.app/Contents/www/index.html
+* Win - dev/src/index.html, www/index.html (these folders must be in the same folder as Brackets.exe)
+* Linux - dev/src/index.html, www/index.html (these folders must be in the same folder as the Brackets executable)
+
+If the index.html can't be found, you'll be prompted to find the brackets index.html file. 
+Make sure you select the brackets/src/index.html file, and *not* some other file. 
+
+The preferences are stored in `{USER}/Library/Application Support/Brackets/cef_data` on Mac, `{USER}\AppData\Roaming\Brackets\cef_data` on Windows, and `~/.Brackets/cef_data` on Linux.
+
+## Building
+
+Information on building the app shell can be found on the [brackets-shell wiki](https://github.com/adobe/brackets-shell/wiki/Building-brackets-shell).
+

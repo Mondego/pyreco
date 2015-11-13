@@ -1,0 +1,1964 @@
+## Requirements
+To build the client you need to configure the project to include
+the _Play Services library_ in the _Android SDK_.
+
+This page explains it clearly: [http://developer.android.com/google/play-services/setup.html](http://developer.android.com/google/play-services/setup.html)
+
+## Makefile
+I have included a _Makefile_ so you can easily build the project from the
+commandline. You need to configure _ant_ to point to your sdk-directory
+to use it though. Being in the android-client directory, you do the
+following:
+
+
+    /path/to/sdk/tools/android update project -p .
+
+Then you can do this to build the project:
+
+    make debug
+
+The advantage of make is that you can chain commands, like so:
+
+    make debug installd run
+
+That would build and install the debug version and then run the app
+on your device/emulator.
+
+
+## Basic app
+__SHA1__: 92e4ed4383b4
+
+This is not a tutorial in making apps in general, so the starting point
+is a working local-only app. No synchronization or network connectivity
+is implemented at all. The app simply stores a list of links in its local
+database. A user can share a link from anywhere and select 'Add to Links'
+to add links easily and quickly.
+
+<img src="../img/list.png" width="50%" height="50%"/>
+<img src="../img/share.png" width="50%" height="50%"/>
+<img src="../img/add.png" width="50%" height="50%"/>
+
+## Adding synchronization with a SyncAdapter
+__SHA1__: fc7d7aa9550b
+
+Synchronization needs to be done on a background thread. One could use an
+AsyncTask, but we are going to go all the way and a SyncAdapter here instead.
+Why? A SyncAdapter handles all the syncing for you. There is no need to
+request a sync manually, you set a period and you're done. Even better,
+a SyncAdapter respects the user's global sync setting. So if the user has
+turned off sync, our app will respect that.
+
+Setting up a SyncAdapter is fairly well covered in the docs so I won't go
+too far into specifics there. What needs to be clarified are the bits that
+make it work with the user's Google account.
+
+### Idea
+The general idea is as follows:
+1. Get an access token
+2. Upload new items and deletions from the client
+3. Download new items and deletions from the server (if we have synced before, only fetch items newer than last time)
+4. Save the timestamp from this sync for next time
+
+The syncing model is simple because the app doesn't really have the idea
+of updates. There is no way to update individual entries, only add new
+ones or delete them. Hence we avoid the problem of sync conflicts
+entirely. If your use case involves updating things, you'll have to
+consider some kind of conflict resolution.
+
+HTTP-requests are handled with an excellent library for _REST_ requests:
+[Retrofit](http://square.github.io/retrofit/) by
+[Square](http://square.github.io/). All necessary libraries are included
+in the _libs_ folder.
+
+### Code
+Note below that I specify _"com.google"_ as the account type. This means
+that our app will show up in the global sync settings under the Google
+account. The authority is the same as specified in the ContentProvider.
+
+__syncadapter.xml:__
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Important to use my own authority
+  also specify that we want to use standard google account as the type
+  also we want to be able to upload etc...
+-->
+
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="com.nononsenseapps.linksgcm.database.AUTHORITY"
+    android:accountType="com.google"
+    android:supportsUploading="true"
+    android:userVisible="true"
+/>
+```
+
+The SyncAdapter itself is very simple, here is the onPerform method
+as the rest is just short boilerplate:
+```java
+	@Override
+	public void onPerformSync(Account account, Bundle extras, String authority,
+			ContentProviderClient provider, SyncResult syncResult) {
+		try {
+			// Need to get an access token first
+			final String token = SyncHelper.getAuthToken(getContext(),
+					account.name);
+
+			if (token == null) {
+				Log.e(TAG, "Token was null. Aborting sync");
+				// Sync is rescheduled by SyncHelper
+				return;
+			}
+
+			// Just to make sure. Can happen if sync happens in background first time
+			if (null == SyncHelper.getSavedAccountName(getContext())) {
+				PreferenceManager.getDefaultSharedPreferences(getContext())
+						.edit().putString(SyncHelper.KEY_ACCOUNT, account.name)
+						.commit();
+			}
+			// token should be good. Transmit
+
+			final LinksServer server = SyncHelper.getRESTAdapter();
+			DatabaseHandler db = DatabaseHandler.getInstance(getContext());
+
+			// Upload stuff
+			for (LinkItem item : db.getAllLinkItems(LinkItem.COL_SYNCED
+					+ " IS 0 OR " + LinkItem.COL_DELETED + " IS 1", null, null)) {
+				if (item.deleted != 0) {
+					// Delete the item
+					server.deleteLink(token, item.sha);
+					syncResult.stats.numDeletes++;
+					db.deleteItem(item);
+				}
+				else {
+					server.addLink(token, new LinkMSG(item));
+					syncResult.stats.numInserts++;
+					item.synced = 1;
+					db.putItem(item);
+				}
+			}
+
+			// Download stuff - but only if this is not an upload-only sync
+			if (!extras.getBoolean(ContentResolver.SYNC_EXTRAS_UPLOAD, false)) {
+				// Check if we synced before
+				final String lastSync = PreferenceManager
+						.getDefaultSharedPreferences(getContext()).getString(
+								KEY_LASTSYNC, null);
+
+				final LinkItems items;
+				if (lastSync != null && !lastSync.isEmpty()) {
+					items = server.listLinks(token, "true", lastSync);
+				}
+				else {
+					items = server.listLinks(token, "false", null);
+				}
+
+				if (items != null && items.links != null) {
+					for (LinkMSG msg : items.links) {
+						final LinkItem item = msg.toDBItem();
+						if (msg.deleted) {
+							db.deleteItem(item);
+						}
+						else {
+							item.synced = 1;
+							db.putItem(item);
+						}
+					}
+				}
+
+				// Save sync timestamp
+				PreferenceManager.getDefaultSharedPreferences(getContext())
+						.edit().putString(KEY_LASTSYNC, items.latestTimestamp)
+						.commit();
+			}
+		}
+		catch (RetrofitError e) {
+			Log.d(TAG, "" + e);
+			final int status;
+			if (e.getResponse() != null) {
+				Log.e(TAG, "" + e.getResponse().getStatus() + "; " + e.getResponse().getReason());
+				status = e.getResponse().getStatus();
+			}
+			else {
+				status = 999;
+			}
+			// An HTTP error was encountered.
+			switch (status) {
+			case 401: // Unauthorized
+				syncResult.stats.numAuthExceptions++;
+				break;
+			case 404: // No such item, should never happen, programming error
+			case 415: // Not proper body, programming error
+			case 400: // Didn't specify url, programming error
+				syncResult.databaseError = true;
+				break;
+			default: // Default is to consider it a networking problem
+				syncResult.stats.numIoExceptions++;
+				break;
+			}
+		}
+	}
+```
+
+Let's have look at the SyncHelper class next. That's where the
+access token is retrieved:
+
+__SyncHelper.java:__
+```java
+public class SyncHelper {
+
+	public static final String KEY_ACCOUNT = "key_account";
+	public static final String SCOPE = "oauth2:https://www.googleapis.com/auth/userinfo.email";
+	static final String TAG = "Links";
+
+	public static LinksServer getRESTAdapter() {
+		RestAdapter restAdapter = new RestAdapter.Builder().setServer(
+				LinksServer.API_URL).build();
+		return restAdapter.create(LinksServer.class);
+	}
+
+	public static String getSavedAccountName(final Context context) {
+		return PreferenceManager.getDefaultSharedPreferences(context)
+				.getString(SyncHelper.KEY_ACCOUNT, null);
+	}
+
+	public static String getAuthToken(final Context context) {
+		final String accountName = getSavedAccountName(context);
+		if (accountName == null || accountName.isEmpty()) {
+			return null;
+		}
+
+		return getAuthToken(context, accountName);
+	}
+
+	/**
+	 * Only use this in a background thread, i.e. the syncadapter.
+	 */
+	public static String getAuthToken(final Context context,
+			final String accountName) {
+		try {
+			return "Bearer " + GoogleAuthUtil.getTokenWithNotification(context,
+					accountName, SCOPE, null, ItemProvider.AUTHORITY, null);
+		}
+		catch (UserRecoverableNotifiedException userRecoverableException) {
+			// Unable to authenticate, but the user can fix this.
+			Log.e(TAG,
+					"Could not fetch token: "
+							+ userRecoverableException.getMessage());
+		}
+		catch (GoogleAuthException fatalException) {
+			Log.e(TAG, "Unrecoverable error " + fatalException.getMessage());
+		}
+		catch (IOException e) {
+			Log.e(TAG, e.getMessage());
+		}
+		return null;
+	}
+
+	public static Account getAccount(final Context context,
+			final String accountName) {
+		final AccountManager manager = AccountManager.get(context);
+		Account[] accounts = manager
+				.getAccountsByType(GoogleAuthUtil.GOOGLE_ACCOUNT_TYPE);
+		for (Account account : accounts) {
+			if (account.name.equals(accountName)) {
+				return account;
+			}
+		}
+		return null;
+	}
+
+	public static void manualSync(final Context context) {
+		final String email = getSavedAccountName(context);
+
+		if (email != null) {
+			// Set it syncable
+			final Account account = getAccount(context, email);
+
+			if (!ContentResolver.isSyncActive(account, ItemProvider.AUTHORITY)) {
+				Bundle options = new Bundle();
+				// This will force a sync regardless of what the setting is
+				// in accounts manager. Only use it here where the user has
+				// manually desired a sync to happen NOW.
+				// options.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+				ContentResolver.requestSync(account, ItemProvider.AUTHORITY,
+						options);
+			}
+		}
+	}
+}
+```
+
+_accountName_ is the e-mail address of the user. If you're confused,
+focus entirely on the _getAuthToken_ method. It returns an access token
+if the user has/will authorized the app, and null if the user declined.
+This is supposed to be used in the SyncAdapter, and what happens the first
+time if unauthorized is that a notification will appear. If clicked,
+the user gets a question if he/she wants to authorize the app to
+access the profile information. We get authorized to see the user's
+email address but little else.
+
+The actual network communication is handled by the excellent
+[Retrofit](http://square.github.io/retrofit/) library. This
+is all the code necessary to define how to communicate with
+the _REST_ server defined in the server:
+
+__LinksServer.java:__
+```java
+public interface LinksServer {
+
+	/**
+	 * Change the IP to the address of your server
+	 */
+	// Server-app uses no prefixes in the URL
+	public static final String API_URL = "http://192.168.1.17:5500";
+	// Server on App Engine will have a Base URL like this
+	//public static final String API_URL = "http://192.168.1.17:8080/_ah/api/links/v1";
+
+	public static class LinkItems {
+		String latestTimestamp;
+		List<LinkMSG> links;
+	}
+
+	/**
+	 * We could have used LinkItem class directly instead.
+	 * But to make it compatible with both servers, I chose
+	 * to make this converter class to handle the deleted field.
+	 * Converting the integer to boolean for the JSON message.
+	 */
+	public static class LinkMSG {
+		String url;
+		String sha;
+		boolean deleted;
+		String timestamp;
+
+		public LinkMSG(LinkItem link) {
+			url = link.url;
+			sha = link.sha;
+			deleted = (link.deleted == 1);
+		}
+
+		public LinkItem toDBItem() {
+			final LinkItem item = new LinkItem();
+			item.url = url;
+			item.sha = sha;
+			item.timestamp = timestamp;
+			if (deleted) {
+				item.deleted = 1;
+			}
+			return item;
+		}
+	}
+
+	public static class RegId {
+		public String regid;
+	}
+
+	public static class Dummy {
+		// Methods must have return type
+	}
+
+	@GET("/links")
+	LinkItems listLinks(@Header("Authorization") String token,
+			@Query("showDeleted") String showDeleted,
+			@Query("timestampMin") String timestampMin);
+
+	@GET("/links/{sha}")
+	LinkMSG getLink(@Header("Authorization") String token, @Path("sha") String sha);
+
+	@DELETE("/links/{sha}")
+	Dummy deleteLink(@Header("Authorization") String token, @Path("sha") String sha);
+
+	@POST("/links")
+	LinkMSG addLink(@Header("Authorization") String token, @Body LinkMSG item);
+```
+
+You define an interface, and the library takes care of building an
+actual object that talks to the server.
+We could have used _LinkItem_ directly as the message class because
+it has public fields, but I want to convert the _deleted_ field
+to a boolean to maintain compatibility between both the regular
+server and the app-engine version.
+This is seriously __ALL__ the code required to talk
+with a rest server. Notice also that the definitions match those
+in the server.
+
+That was __IT__. There are a few additional convenience classes and such
+that I included to make the app more user friendly but this is all
+that takes place behind the scenes.
+
+As the user adds new links or removes existing ones, the SyncAdapter
+takes care of uploading those events to the server as they happen.
+Typically they are scheduled after a short delay (~20 seconds) to
+allow several actions to be bunched together.
+
+The download part happens at fixed times though. Either the user hits sync
+inside the app, or it's once a day.
+Currently, there's just no way for the server to notify a
+device that there is new data available on the server.
+That's where _GCM_ comes in.
+
+
+## Adding GCM
+__SHA1:__ 2448515e2ed2a
+
+CloudMessaging is the final piece of our networked app. By using _GCM_,
+the server can pass a message to Google, and ask it to relay it to the
+device(s) at the most oppertune moment. If the device is offline, GCM
+queues the message for transmission later when the device comes back.
+
+The way it works is as follows:
+
+1. Device1 uploads a new or deleted link to server as before using the REST API.
+2. Server stores the data in the database as before.
+3. Server hands the same data to GCM in a request to send to Device2,3,...
+4. GCM does its magic and delivers the data to the specified devices.
+5. Device2,3... adds or deletes the link from step 1 to their databases
+
+Client side, I have adapted the sample classes by Google for our
+purposes. GCM works in two parts: first the app has to register for GCM
+and second it will receive Intents through a BroadcastReceiver.
+
+A small tweak has been made to the _REST_ api. It accepts an optional query
+parameter called _regid_. By sending the device's own registration id
+to the server when links are uploaded, the server can make sure to _avoid_
+sending a GCM message to the same device about a link itself uploaded.
+If DeviceA uploads Link1, then only devices B and C needs to get a
+GCM message about Link1.
+
+### Registering
+First step is handled in the SyncAdapter when we are syncing anyway.
+A snippet shows the change:
+
+*In __onPerformSync()__*
+```java
+//...
+if (token == null) {
+    Log.e(TAG, "Token was null. Aborting sync");
+    // Sync is rescheduled by SyncHelper
+    return;
+}
+// token should be good. Transmit
+
+// Register for GCM if we need to
+GCMHelper.registerIfNotAlreadyDone(getContext());
+
+final LinksServer server = SyncHelper.getRESTAdapter();
+DatabaseHandler db = DatabaseHandler.getInstance(getContext());
+
+// Upload stuff
+//...
+```
+
+__GCMHelper__ is a class with a couple of convenience methods.
+The interesting ones are these:
+
+*Snippet of __GCMHelper.java__*
+```java
+    /**
+     * Handle registrations. If already registered, returns.
+     */
+    public static void registerIfNotAlreadyDone(final Context context) {
+        if (!isPlayServicesAvailable(context)) {
+            return;
+        }
+
+        final String regid = getRegistrationId(context);
+        if (regid.isEmpty()) {
+            registerForGCM(context);
+        }
+    }
+
+    private static void registerForGCM(final Context context) {
+        try {
+            GoogleCloudMessaging gcm = GoogleCloudMessaging
+                    .getInstance(context);
+
+            final String regid = gcm.register(GCMConfig.SENDER_ID);
+
+            if (sendRegistrationIdToBackend(context, regid)) {
+
+                // Persist the regID - no need to register again.
+                storeRegistrationId(context, regid);
+            }
+        }
+        catch (IOException ex) {
+            // If there is an error, don't just keep trying to register.
+            // Require the user to click a button again, or perform
+            // exponential back-off.
+        }
+    }
+
+    private static boolean sendRegistrationIdToBackend(final Context context,
+            final String regid) {
+        // Need to get an access token first
+        final String token = SyncHelper.getAuthToken(context,
+                SyncHelper.getSavedAccountName(context));
+
+        if (token == null) {
+            return false;
+        }
+
+        // token should be good. Transmit
+        final LinksServer server = SyncHelper.getRESTAdapter();
+        final RegId item = new RegId();
+        item.regid = regid;
+        server.registerGCM(token, item);
+
+        return true;
+    }
+```
+
+Notice that we send the registration id to the server using a
+new REST-method called "registerGCM". It simply adds the registration
+id to a table on the server's database.
+
+### Receiving GCM messages
+In step 2, the messages are delivered to our Broadcast manager:
+
+__GCMReceiver.java:__
+```java
+public class GCMReceiver extends WakefulBroadcastReceiver {
+	public GCMReceiver() {
+	}
+
+	@Override
+	public void onReceive(Context context, Intent intent) {
+		// Explicitly specify that GcmIntentService will handle the intent.
+        ComponentName comp = new ComponentName(context.getPackageName(),
+                GCMIntentService.class.getName());
+        // Start the service, keeping the device awake while it is launching.
+        startWakefulService(context, (intent.setComponent(comp)));
+        setResultCode(Activity.RESULT_OK);
+	}
+}
+```
+
+Which just offloads the work to a service:
+
+__GCMIntentService.java:__
+```java
+public class GCMIntentService extends IntentService {
+	public GCMIntentService() {
+		super("GCMIntentService");
+	}
+
+	@Override
+	protected void onHandleIntent(Intent intent) {
+		Bundle extras = intent.getExtras();
+		GoogleCloudMessaging gcm = GoogleCloudMessaging.getInstance(this);
+		// The getMessageType() intent parameter must be the intent you received
+		// in your BroadcastReceiver.
+		String messageType = gcm.getMessageType(intent);
+
+		if (!extras.isEmpty()) { // has effect of unparcelling Bundle
+			/*
+			 * Filter messages based on message type. Since it is likely that
+			 * GCM will be extended in the future with new message types, just
+			 * ignore any message types you're not interested in, or that you
+			 * don't recognize.
+			 */
+
+			// If it's a regular GCM message, do some work.
+			if (GoogleCloudMessaging.MESSAGE_TYPE_MESSAGE.equals(messageType)) {
+				// Write link to database
+				final LinkItem link = new LinkItem();
+				link.sha = extras.getString("sha");
+				link.timestamp = extras.getString("timestamp");
+				link.url = extras.getString("url");
+				link.synced = 1;
+				if (Boolean.parseBoolean(extras.getString("deleted", "false"))) {
+					link.deleted = 1;
+				}
+
+				if (link.deleted == 0) {
+					DatabaseHandler.getInstance(this).putItem(link);
+				} else {
+					DatabaseHandler.getInstance(this).deleteItem(link);
+				}
+
+				Log.i("linksgcm", "Received: " + extras.toString() + ", deleted: " + link.deleted);
+			}
+			else if (GoogleCloudMessaging.MESSAGE_TYPE_DELETED
+					.equals(messageType)) {
+				// We reached the limit of 100 queued messages. Request a full
+				// sync
+				SyncHelper.requestSync(this);
+			}
+		}
+		// Release the wake lock provided by the WakefulBroadcastReceiver.
+		GCMReceiver.completeWakefulIntent(intent);
+	}
+```
+
+And that is all there is to it really. This is all the result
+of following the steps on
+[http://developer.android.com/google/gcm/client.html](http://developer.android.com/google/gcm/client.html).
+
+
+## Summary
+So what we have now is an app that stores simple pieces of text
+in a local database. An incredibly boring app if weren't for the
+fact that it keeps that database synchronized across all of your
+devices. Structure of the app is as follows:
+
+* Code relevant for the app, like it UI and such are present in
+the package _com.nononsenseapps.linksgcm_.
+* Data is stored in a database, which is handled by the classes
+present in _com.nononsenseapps.linksgcm.database_.
+* All code that handles synchronization and uploading is located
+in _com.nononsenseapps.linksgcm.sync_.
+* Receiving messages from other devices through GCM is handled
+in _com.nononsenseapps.linksgcm.gcm_
+
+## RetroFit VS Google's endpoint client libraries
+I have made two servers for this app, one suitable for running
+on any computer and one suitable for deployment to App Engine.
+The client will work with either of them, all you need to do
+is configure the URL in
+[LinksServer.java](https://github.com/spacecowboy/AndroidGCMTutorial/blob/master/android-client/src/com/nononsenseapps/linksgcm/sync/LinksServer.java).
+Which incidently is all the client side code specific to your
+server, running on App Engine or not.
+
+Now compare that to what Google recommends in
+[here for example](https://developers.google.com/eclipse/docs/endpoints-addentities)
+for apps talking to endpoints on App Engine (which this app does, if you
+run the app engine server).
+They start you off with defining a simple class to represent your data,
+like we did with Retrofit. _But then_ you need to generate Endpoint classes.
+
+The end result of which can be seen
+in the code for the TicTacToe example at
+[GitHub.](https://github.com/GoogleCloudPlatform/appengine-endpoints-tictactoe-android/tree/master/src/com/google/api/services/tictactoe)
+
+That's way __too complicated__ for the simple purposes of most apps! Look
+at the sheer amount of libs you need to include in your project for
+this to actually work:
+
+* google-api-client-1.12.0-beta.jar
+* google-api-client-android-1.12.0-beta.jar
+* google-http-client-1.12.0-beta.jar
+* google-http-client-android-1.12.0-beta.jar
+* google-http-client-gson-1.12.0-beta.jar
+* google-oauth-client-1.12.0-beta.jar
+* gson-2.1.jar
+* guava-jdk5-13.0.jar
+* jsr305-1.3.9.jar
+
+The guide then goes on talking about using AsyncTasks and stuff. Don't
+listen to them! Use a SyncAdapter and live a happy life instead. I don't
+mean that AsyncTasks are bad, they serve a very important purpose. But
+if you're implementing synchronization for data that doesn't update
+in absolute realtime (e.g. apps which aren't games),
+then it makes all the sense
+in the world to use a SyncAdapter because it ultimately makes your life
+that much easier.
+
+Now compare that to the solution with Retrofit that I use here. You only
+need the following libs:
+
+* retrofit-1.2.2.jar
+* gson-2.2.4.jar
+* okhttp-1.2.1-jar-with-dependencies.jar
+
+Where the last one isn't strictly necessary, retrofit only uses it it's
+available, else it falls back to the built in http-classes
+(if I understood correctly).
+The code client side to connect with your service is short and easy:
+[LinksServer.java](https://github.com/spacecowboy/AndroidGCMTutorial/blob/master/android-client/src/com/nononsenseapps/linksgcm/sync/LinksServer.java).
+And there is _no_ generating of additional libraries.
+
+It's ultimately up to you of course, but I found the Retrofit solution
+way easier to understand, implement and use. The fact that I can use
+the same code for server running on any computer, and not just
+App Engine is a huge plus for me because it gives me a choice. One
+that I don't have to make until scaling becomes an issue.
+
+## App Engine Server
+__SHA1:__ 1be93d88b65c
+
+Please read about the regular server before this. I will not
+be writing about every step again in here. What I will do
+is note the differences that are necessary due to the restrictions
+in App Engine.
+
+## Deployment and Testing
+I have included a handy _Makefile_ that does most of what one
+wants to do. What you must start with is downloading the
+SDK [from here](https://developers.google.com/appengine/downloads#Google_App_Engine_SDK_for_Python).
+
+Then edit the _Makefile_ and change the path to where you
+unzipped the SDK. Then you can do the following:
+
+Run it locally:
+```
+make local
+```
+
+Run it locally, but clear out the database first:
+```
+make clear
+```
+
+Deploy it to App Engine proper:
+```
+make deploy
+```
+
+During development, you will be wanting to run it locally. You can
+experiment with your API by accessing this page:
+[http://localhost:8080/_ah/api/explorer](http://localhost:8080/_ah/api/explorer)
+
+This is probably the biggest advantage of App Engine. Experimenting
+with the API this way is a great way to debug your code.
+
+You can access the API explorer for the server running on my App Engine
+account at: [esoteric-storm-343.appspot.com/_ah/api/explorer](esoteric-storm-343.appspot.com/_ah/api/explorer)
+
+## The Code
+There are a few restrictions due to App Engine's environment. Instead
+of Bottle, we are using Google's _Endpoints_ here. In addition,
+because we can not install packages in the python environment, I
+have manually included _python-gcm_ in the project. An App Engine
+app does not have the ability to write to disk so we can't use
+the same database solution as before. I have replaced that with
+App Engine's _NDB_. The code does not change in a significant
+manor.
+
+Every App Engine projects needs a configuration _yaml file_.
+
+__app.yaml:__
+```yaml
+application: 'Your app engine project name here'
+version: 1
+runtime: python27
+api_version: 1
+threadsafe: true
+
+handlers:
+- url: /_ah/spi/.*
+  script: app.application
+
+libraries:
+- name: endpoints
+  version: 1.0
+# Needed for endpoints/users_id_token.py.
+- name: pycrypto
+  version: "2.6"
+```
+
+### app.py
+Because we no longer can use Sqlite, we have to declare some
+storage models. We also need to declare the messaging
+models so App Engine knows what to convert in the JSON requests.
+
+First, sending a link to the server:
+```python
+class Link(messages.Message):
+    url = messages.StringField(1, required=True)
+    sha = messages.StringField(2)
+    deleted = messages.BooleanField(3, default=False)
+    timestamp = messages.StringField(4)
+
+POST_REQUEST = endpoints.ResourceContainer(
+    Link,
+    regid=messages.StringField(2))
+```
+
+The class _Link_ inherits from _messages.Message_. That means
+that all the members defined will be found in the JSON body
+of the HTTP-request. *POST_REQUEST* on the other hand
+is a _ResourceContainer_ that contains a _Link_. This is the
+way to receive URL parameters in the request. _regid_ will
+be present in the URL, like in _bob.com/links?regid=123456_.
+
+Similarly, we defined earlier that a delete request would
+have the _sha_ of the Link in the URL, e.g.
+_bob.com/links/13av25cav31_, which could include a regid also,
+_bob.com/links/13av25cav31?regid?123456_.
+
+```python
+# Used to request a link to be deleted.
+# Has no body, only URL parameter
+DELETE_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    sha=messages.StringField(2, required=True),
+    regid=messages.StringField(3))
+```
+
+But as you can see, this actually contains a _VoidMessage_ instead
+because a delete request expects no request body. Another
+_VoidMessage_ is a request to link all links:
+
+```python
+# Used to request the list with query parameters
+LIST_REQUEST = endpoints.ResourceContainer(
+    message_types.VoidMessage,
+    showDeleted=messages.BooleanField(2, default=False),
+    timestampMin=messages.StringField(3))
+```
+
+Which will respond with a _LinkList_:
+
+```python
+class LinkList(messages.Message):
+    latestTimestamp = messages.StringField(2)
+    links = messages.MessageField(Link, 1, repeated=True)
+```
+
+And finally, registering a device for GCM is of the form:
+
+```python
+# Add a device id to the user, database model in app_gcm.py
+class GCMRegId(messages.Message):
+    regid = messages.StringField(1, required=True)
+```
+
+Next is the definition of the API. Some basic things are
+declared by annotating the API class. It is important
+to add all relevant client ids here so that we can use
+authentication:
+
+```python
+@endpoints.api(name='links', version='v1',
+               description='API for Link Management',
+               allowed_client_ids=[CLIENT_ID,CLIENT_ID_ANDROID,
+                                   endpoints.API_EXPLORER_CLIENT_ID]
+               )
+class LinkApi(remote.Service):
+    '''This is the REST API. Annotations
+    specify address, HTTP method and expected
+    messages.'''
+    pass
+```
+
+Authentication is handled by _endpoints_. Just add the following
+snippet to the beginning of each method:
+
+```
+current_user = endpoints.get_current_user()
+if current_user is None:
+    raise endpoints.UnauthorizedException('Invalid token.')
+```
+
+*current_user* is a UserProperty from which we can acquire the email
+of user, but we don't need to. _NDB_ takes care of all that for us.
+All we need to do is add a UserProperty to our storage classes, which
+incidentally are declared as this:
+
+```python
+# Link in NDB
+class LinkModel(ndb.Model):
+    sha = ndb.StringProperty(required=True)
+    url = ndb.StringProperty(required=True)
+    deleted =  ndb.BooleanProperty(required=True, default=False)
+    userid = ndb.UserProperty(required=True)
+    timestamp = ndb.DateTimeProperty(required=True, auto_now=True)
+
+# DeviceID in NDB
+class GCMRegIdModel(ndb.Model):
+    regid = ndb.StringProperty(required=True)
+    userid = ndb.UserProperty(required=True)
+```
+
+The API methods that do the actual work look as follows. Adding a link:
+
+```python
+    @endpoints.method(POST_REQUEST, Link,
+                      name = 'link.insert',
+                      path = 'links',
+                      http_method = 'POST')
+    def add_link(self, request):
+        current_user = endpoints.get_current_user()
+        if current_user is None:
+            raise endpoints.UnauthorizedException('Invalid token.')
+
+        # Generate an ID if one wasn't included
+        sha = request.sha
+        if sha is None:
+            sha = binascii.b2a_hex(os.urandom(15))
+        # Construct object to save
+        link = LinkModel(key=ndb.Key(LinkModel, sha),
+                         sha=sha,
+                         url=request.url,
+                         deleted=request.deleted,
+                         userid=current_user)
+        # And save it
+        link.put()
+
+        # Notify through GCM
+        send_link(link, request.regid)
+
+        # Return a complete link
+        return Link(url = link.url,
+                    sha = link.sha,
+                    timestamp = datetime_to_string(link.timestamp))
+```
+
+Deleting a link:
+
+```python
+    @endpoints.method(DELETE_REQUEST, message_types.VoidMessage,
+                      name = 'link.delete',
+                      path = 'links/{sha}',
+                      http_method = 'DELETE')
+    def delete_link(self, request):
+        current_user = endpoints.get_current_user()
+        if current_user is None:
+            raise endpoints.UnauthorizedException('Invalid token.')
+
+        link_key = ndb.Key(LinkModel, request.sha)
+        link = link_key.get()
+        if link is not None:
+            link.deleted = True
+            link.put()
+        else:
+            raise endpoints.NotFoundException('No such item')
+
+        # Notify through GCM
+        send_link(link, request.regid)
+
+        return message_types.VoidMessage()
+```
+
+Listing all links:
+
+```python
+    @endpoints.method(LIST_REQUEST, LinkList,
+                      name = 'link.list',
+                      path = 'links',
+                      http_method = 'GET')
+    def list_links(self, request):
+        current_user = endpoints.get_current_user()
+        if current_user is None:
+            raise endpoints.UnauthorizedException('Invalid token.')
+
+        # Build the query
+        q = LinkModel.query(LinkModel.userid == current_user)
+        q = q.order(LinkModel.timestamp)
+
+        # Filter on delete
+        if not request.showDeleted:
+            q = q.filter(LinkModel.deleted == False)
+
+        # Filter on timestamp
+        if (request.timestampMin is not None and
+            parse_timestamp(request.timestampMin) is not None):
+            q = q.filter(LinkModel.timestamp >\
+                         parse_timestamp(request.timestampMin))
+
+        # Get the links
+        links = []
+        latest_time = None
+        for link in q:
+            ts = link.timestamp
+            # Find the latest time
+            if latest_time is None:
+                latest_time = ts
+            else:
+                delta = ts - latest_time
+                if delta.total_seconds() > 0:
+                    latest_time = ts
+
+            # Append to results
+            links.append(Link(url=link.url, sha=link.sha,
+                              deleted=link.deleted,
+                              timestamp=datetime_to_string(ts)))
+
+        if latest_time is None:
+            latest_time = datetime(1970, 1, 1, 0, 0)
+
+        return LinkList(links=links,
+                        latestTimestamp=datetime_to_string(latest_time))
+```
+
+And finally, registering a device for GCM:
+
+```python
+    @endpoints.method(GCMRegId, message_types.VoidMessage,
+                      name = 'gcm.register',
+                      path = 'registergcm',
+                      http_method = 'POST')
+    def register_gcm(self, request):
+        current_user = endpoints.get_current_user()
+        if current_user is None:
+            raise endpoints.UnauthorizedException('Invalid token.')
+
+        device = GCMRegIdModel(key=ndb.Key(GCMRegIdModel, request.regid),
+                               regid=request.regid,
+                               userid=current_user)
+        # And save it
+        device.put()
+
+        # Return nothing
+        return message_types.VoidMessage()
+```
+
+### app_gcm.py
+The only thing that has really changed in the _GCM_ code compared
+to the regular server is the retrieval from _NDB_ instead of Sqlite:
+
+```python
+def send_link(link, excludeid=None):
+    '''Transmits the link specified by the sha to the users devices.
+
+    Does not run in a separate thread because App-Engine did not
+    seem to support that.
+    '''
+    # Get devices
+    reg_ids = []
+    query = GCMRegIdModel.query(GCMRegIdModel.userid == link.userid)
+
+    for reg_model in query:
+        reg_ids.append(reg_model.regid)
+
+    # Dont send to origin device, if specified
+    try:
+        reg_ids.remove(excludeid)
+    except ValueError:
+        pass # not in list, or None
+
+    if len(reg_ids) < 1:
+        return
+
+    _send(link.userid, reg_ids, to_dict(link))
+```
+
+## App Engine vs Regular server
+The App Engine version of the server does have a few things
+going in its favour.
+
+* API Explorer is great for development
+* Your app will scale easily in terms of bandwidth and storage, as long as you're willing to pay for it
+* You get https for free
+* No need to configure _nginx_ or something else to host the server in a production setting
+
+On the other side, there are some downsides also:
+
+* Developing for App Engine can be frustrating as its Python environment has limits which you might need to work around. You can't use C-extensions
+for example.
+* Google has the data which might not be what you want because of privacy concerns.
+
+So what to use is a judgement call really. To make an educated decision,
+you should investigate the question further elsewhere.
+
+## Goals
+
+1. Learn how to implement an Android app which utilises __GCM__,
+to a server-side app.
+2. Learn how to make a server-side app with a __REST__ interface and
+connections to GCM.
+3. Be able to deploy the server to Google App Engine.
+
+This project is divided into two (three) parts:
+the Android client and the server app (and a version of the server
+suitable for App Engine).
+My own motivations for this project is to learn how to make a server side
+app. I already know how to make Android apps but know very little about
+web programming. So this will be outside of my comfort zone. I have used
+_REST_ interfaces plenty, but never implemented one before. Likewise,
+I am familiar with _GCM_ but have only seen crappy sample implementations
+so far.
+
+I stipulate the following requirements for the projects:
+
+__Serverside:__
+* Should be written in _Python_
+* Have a __REST__ api
+* Use __GCM__
+* Require login but don't handle passwords
+
+__Androidside:__
+* No passwords
+* All network stuff should be done in a _SyncAdapter_
+* Get push updates through __GCM__
+* Full syncs using __REST__
+
+## Can't I read all this somewhere already?
+Yes you can! There are a lot of documents, tutorials, sample code
+and help you can get online, many times straight from Google themselves!
+The problem is that there is __a lot__ of documents, tutorials etc.
+And they all __focus on one thing__. Either it's a document about
+making a _SyncAdapter_, or it's a tutorial on _GCM_, or a document
+about making a _WebApp_.
+
+It's all about __context__. Maybe I haven't looked hard enough, but
+to my eyes no one gives you the big picture and the technical details.
+Google's own documents on _GCM_ is a prime example: they talk at length
+about the structure of the system, and give you plenty of sample code
+for the client side, but are incredibly vague on the server bit. They
+mention the requirement of an _application server_ but give no help
+in creating one.
+
+Again, it's all about __context__. The _GCM_ docs focus on how to implement
+the _GCM_ bits, so it's not that weird that it doesn't go into newbie
+hints on application servers. But no one else seems to do that either.
+Another thing is that there are a ton of documents that are out-dated.
+
+In my opinion it is best to  stay away from libraries developed by Google,
+whenever possible. They build good frameworks but the libraries are just
+not user friendly.
+
+In short, I will attempt to deliver both the
+_big picture_ and the _nitty gritty details_ in this project that no one
+else seems keen on writing down.
+
+## Target audience
+This is not a tutorial for someone looking to write their first Android
+app or program. I assume that you have worked with Android before. I also
+expect that you are familiar with some concepts, at least in theory, like
+_REST APIs_ or _Sqlite_. I do try to explain the idea behind the
+implementations but I will not go into detail as to why I had that particular
+idea over another.
+
+## Intent
+I do not claim that this code is ready for anything other than a base to
+build upon for your own projects. It is __NOT PRODUCTION READY__.
+People with more expertise than myself can probably improve upon several
+aspects, and I welcome any suggestions/merge requests that can improve
+the project. As I said, when it comes to server apps, I'm also something
+of a newbie.
+
+## Why Python for the server app?
+_Python_ is by far my current favorite language. It takes so much less
+bloat compared to _Java_ to translate an idea into a working implementation.
+Hopefully, I will convince you along the way that _Python_ is awesome.
+Even if you are not familiar with _Python_, I bet that it will be possible
+for you to understand the program completely anyway. Because it's that
+simple.
+
+## Format of the tutorial
+The _READMEs_ go through the construction of the apps step by step. They
+specify what __SHA1__ corresponds to that state in the tutorial. That
+means that you can examine all pieces of the project at that particular
+state by doing:
+
+```shell
+git checkout <sha1>
+```
+
+Just do this to get back to the normal state
+```shell
+git checkout master
+```
+
+
+What is particularly useful is that you can do direct comparisons
+to see all changes between one state and the next by doing:
+
+```shell
+git diff <sha1> <sha1>
+```
+
+And you can show the differences for a particular
+file/folder with:
+
+```shell
+git diff <sha1> <sha1> <filename-or-folder>
+```
+
+I highly recommend doing it to see exactly what lines of code
+were added to implement some feature. Here's an example
+that would show what was added to enable authentication
+with Google in the server-app:
+
+```shell
+git diff 92e4ed4383b4a6 e4c340b30155 server-app/app.py server-app/google_auth.py
+```
+
+## Requirements
+You should read the [official docs on GCM](http://developer.android.com/google/gcm/gcm.html)
+
+You also need to create a project in the [Google API console](https://code.google.com/apis/console)
+
+For the purpose of this tutorial, the docs are somewhat confusing in regards
+to what key you need to generate. You need to generate the following
+types of keys:
+
+* Client ID for installed applications ([Guide](https://developers.google.com/+/mobile/android/getting-started))
+* Simple API Access ([Guide](http://developer.android.com/google/gcm/gs.html))
+
+The _Simple API key_ will be used by the server to verify the validity of
+authentication tokens generated by the client. To generate the token, the
+clients need the _Client ID for installed apps_, but you won't need a specific
+key in that case since Google will verify the package name of
+the application. You will need the project number in the client though, which
+you can see in the address bar of your browser:
+
+```
+https://code.google.com/apis/console/#project:8646666293:access
+```
+
+Where _8646666293_ is your project number.
+
+### Android app
+In this folder I implement an android app. This will be fairly straightforward.
+Have a look in _android-client_ for that.
+
+### Server app
+In this folder I construct an app we can deploy on a webserver somewhere.
+Go into the _server-app_ folder and see how that's done.
+
+The server is coded in _Python_ because _Java_ is mostly bloat.
+
+### Google App Engine
+I have also made a version of the server which can be deployed to
+[App Engine](https://appengine.google.com)
+
+A few tweaks were necessary for it to function, but structurally
+it is almost the same as the regular server.
+
+## Result
+You can download the finished app and try it out for yourself here:
+
+[Releases](https://github.com/spacecowboy/AndroidGCMTutorial/releases)
+
+There are two versions to choose from. One connects to a running version
+of the server on a computer controlled by me. The other connects to
+a version of the app engine server, running on app engine.
+
+It looks like this:
+
+<img src="img/list.png" width="50%" height="50%"/>
+
+As a side note, you can experiment with the server running on App Engine
+by using the
+[API Explorer](http://esoteric-storm-343.appspot.com/_ah/api/explorer).
+
+## If you have questions or feedback
+You can contact me by e-mail. If you find some part of the tutorial
+hard to understand or want something clarified, you can also
+[create an issue](https://github.com/spacecowboy/AndroidGCMTutorial/issues).
+The same goes if you find an error. As I said, I am sort of unfamiliar
+with App Engine and server side stuff at the time I'm writing this, so
+there might very well be mistakes. Do the Internet a favor and report
+them if you find any.
+
+## Basics first - Hello world server
+__SHA1:__ c8c736c87020a
+
+You can run the server and visit [localhost:5500](http://localhost:5500)
+
+```bash
+python app.py
+```
+
+The app is built using [Bottle](bottlepy.org). It's included in the repo
+in _bottle.py_. At this stage it's as easy as it can get:
+
+__app.py__
+```python
+from bottle import get, run
+
+@get('/')
+def homepage():
+    return 'Hello world!'
+
+
+if __name__ == '__main__':
+    run(host='0.0.0.0', port=5500, reloader=True, debug=True)
+```
+
+## REST API
+__SHA1:__ d97dc97347632
+
+I'm going to start by creating a REST skeleton of what I
+want to do. The methods are basically as follows:
+
+* get all links: GET request on __links.nononsenseapps.com/links__
+* get a specific link: GET request on __links.nononsenseapps.com/links/id__
+* delete a specific link: DELETE request on __links.nononsenseapps.com/links/id__
+* add a link: POST request on __links.nononsenseapps.com/links__
+
+```python
+from bottle import run, get, post, delete
+
+@get('/')
+@get('/links')
+def list_links():
+    '''Return a complete list of all links'''
+    return 'List of links'
+
+@get('/links/<id>')
+def get_link(id):
+    '''Returns a specific link'''
+    return 'Link {}'.format(id)
+
+@delete('/links/<id>')
+def delete_link(id):
+    '''Deletes a specific link from the list'''
+    return 'Link {} deleted'.format(id)
+
+@post('/links')
+def add_link():
+    '''Adds a link to the list'''
+    return 'Link added'
+
+if __name__ == '__main__':
+    run(host='0.0.0.0', port=5500, reloader=True, debug=True)
+```
+
+## JSON
+__SHA1__: 08c71200b96fc7
+
+Adding all the methods was really easy. But the REST methods should
+return JSON, not strings. So let's tweak it so it returns
+dummy JSON data instead.
+
+```python
+from bottle import run, get, post, delete
+
+@get('/')
+@get('/links')
+def list_links():
+    '''Return a complete list of all links'''
+    return dict(links=[])
+
+@get('/links/<id>')
+def get_link(id):
+    '''Returns a specific link'''
+    return dict(link={"sha":"1111111",
+                      "url":"http://www.google.com",
+                      "timestamp":"2013-09-19 08:22:19.000"})
+
+@delete('/links/<id>')
+def delete_link(id):
+    '''Deletes a specific link from the list.
+    On success, returns an empty response'''
+    return {}
+
+@post('/links')
+def add_link():
+    '''Adds a link to the list.
+    On success, returns the entry created.'''
+    return dict(link={"sha":"1111111",
+                      "url":"http://www.google.com",
+                      "timestamp":"2013-09-19 08:22:19.000"})
+
+if __name__ == '__main__':
+    run(host='0.0.0.0', port=5500, reloader=True, debug=True)
+```
+
+## Adding a database
+__SHA1:__ 7e193b5579483
+
+Getting the skeleton up was really fast and now it's already
+time to implement some real data.
+I want a Link to have the following structure:
+
+* a URL
+* a unique ID
+* a timestamp
+* a delete flag
+
+The delete flag is necessary because the server needs to notify other clients
+that something has been deleted, whereas the clients can actually delete the
+item. We also have to add a userid field so each user has their own items.
+
+The data will be stored
+in an sqlite database. The database is really simple and created
+in _dbsetup.py:_
+
+```python
+import sqlite3 as sql
+import sys
+from app_conf import DBNAME
+
+_CREATE_TABLE = \
+"""CREATE TABLE IF NOT EXISTS links
+  (_id INTEGER PRIMARY KEY,
+  userid TEXT NOT NULL,
+  sha TEXT NOT NULL,
+  url TEXT NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE(userid, url) ON CONFLICT REPLACE,
+  UNIQUE(userid, sha) ON CONFLICT REPLACE)
+"""
+
+def init_db(filename=DBNAME):
+    con = sql.connect(filename)
+    con.row_factory = sql.Row
+    with con:
+        cur = con.cursor()
+        cur.execute(_CREATE_TABLE)
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        init_db(sys.argv[1])
+    else:
+        init_db()
+```
+
+To make use of it in our app, we import the *bottle_sqlite* plugin
+and add some logic to our existing methods:
+
+```python
+import os, binascii
+from bottle import run, get, post, delete, install, HTTPError, request
+from bottle_sqlite import SQLitePlugin
+
+from dbsetup import init_db
+
+DBNAME='test.db'
+
+init_db(DBNAME)
+install(SQLitePlugin(dbfile=DBNAME))
+
+def to_dict(row):
+    return dict(sha=row['sha'],
+                url=row['url'],
+                timestamp=row['timestamp'],
+                # Convert integer to boolean
+                deleted=(1 == row['deleted']))
+
+@get('/')
+@get('/links')
+def list_links(db):
+    '''Return a complete list of all links'''
+    links = []
+    for row in db.execute('SELECT * from links'):
+        links.append(to_dict(row))
+    return dict(links=links)
+
+@get('/links/<sha>')
+def get_link(db, sha):
+    '''Returns a specific link'''
+    row = db.execute('SELECT * from links WHERE sha IS ?', [sha]).fetchone()
+    if row:
+        return dict(link=to_dict(row))
+
+    return HTTPError(404, "No such item")
+
+@delete('/links/<sha>')
+def delete_link(db, sha):
+    '''Deletes a specific link from the list.
+    On success, returns an empty response'''
+    db.execute('UPDATE links SET deleted = 1, timestamp = CURRENT_TIMESTAMP \
+    WHERE sha IS ? AND userid is ?', [sha, userid])
+
+    return {}
+
+@post('/links')
+def add_link(db):
+    '''Adds a link to the list.
+    On success, returns the entry created.'''
+    # Only accept json data
+    if request.content_type != 'application/json':
+        return HTTPError(415, "Only json is accepted")
+    # Check required fields
+    if 'url' not in request.json:
+        return HTTPError(400, "Must specify a url")
+
+    # Sha is optional, generate if not present
+    if 'sha' not in request.json:
+        request.json['sha'] = binascii.b2a_hex(os.urandom(15))
+
+    # All users are bob for now
+    args = ['bob@bob.bob',
+            request.json['url'],
+            request.json['sha']]
+
+    stmt = 'INSERT INTO links (userid, url, sha) VALUES(?, ?, ?)'
+
+    db.execute(stmt, args)
+
+    return get_link(db, request.json['sha'])
+
+
+if __name__ == '__main__':
+    # Restart server automatically when this file changes
+    run(host='0.0.0.0', port=5500, reloader=True, debug=True)
+```
+
+That was fairly straightforward. The one thing that is
+missing is a requirement to login. We can also tweak some
+things like the get all method. We can limit the necessary
+bandwidth by restricting not necessarily including deleted
+items. A client's first sync does not need to have deleted
+items for example.
+
+A client which has synced before doesn't
+need to know about things it already synced either. So by
+including a timestamp in the response, the client could in
+the future request only items with a greater timestamp.
+Notice that I purposefuly ignore the timestamp of the posted
+link. I want the server to generate a new timestamp for each
+link for this specific purpose.
+
+## Adding Google authentication and users
+__SHA1:__ e4c340b30155a
+
+To make sure we don't mix user's data, we have a column in
+the database that will hold the username, e.g. their e-mail.
+
+But we also need people to login with Google, and the server
+to verify that, so that people can't just use any e-mail
+they'd like. We are going to do this by accepting an
+_auth token_, which is just a string that can be said to be
+a temporary id for the user. The Android app will request
+an access token and include that in its communication
+with the server. The only user information we can use is
+what Google can tell us about the token.
+
+It would be a __BAD__ idea to accept the e-mail as a parameter
+from the user. For example, what if the user sends a valid
+auth token for account _bob@bob.com_, while supplying the
+parameter _susan@microsoft.com_? Hence, we must retrieve
+the email from the auth token itself. We do that by sending
+it to a Google server which tells us if it is valid and who
+it is authorized for. For that we'll need a library to make
+a request, so install _httplib2_:
+
+```shell
+pip install httplib2
+```
+
+Here's a little plugin for Bottle that handles verifying the users
+for us:
+
+__google_auth.py:__
+```python
+"""Handle validating that a client is verified"""
+from __future__ import print_function
+from bottle import request, HTTPError
+from httplib2 import Http
+import json
+
+
+def validate_token(access_token):
+    '''Verifies that an access-token is valid and
+    meant for this app.
+
+    Returns None on fail, and an e-mail on success'''
+    h = Http()
+    resp, cont = h.request("https://www.googleapis.com/oauth2/v2/userinfo",
+                           headers={'Host':'www.googleapis.com',
+                                    'Authorization':access_token})
+
+    if not resp['status'] == '200':
+        return None
+
+    data = json.loads(cont)
+
+    return data['email']
+
+def gauth(fn):
+    """Decorator that checks Bottle requests to
+    contain an id-token in the request header.
+    userid will be None if the
+    authentication failed, and have an id otherwise.
+
+    Use like so:
+    bottle.install(guath)"""
+
+    def _wrap(*args, **kwargs):
+        if 'Authorization' not in request.headers:
+            return HTTPError(401, 'Unauthorized')
+
+        userid = validate_token(request.headers['Authorization'])
+        if userid is None:
+            return HTTPError(401, "Unauthorized")
+
+        return fn(userid=userid, *args, **kwargs)
+    return _wrap
+```
+
+The really neat thing is that a single line in _app.py_ does the hard
+work:
+
+```python
+from google_auth import gauth
+install(gauth)
+```
+
+But, we also have to add the _userid_ parameter to the methods, as well
+as actually handle it:
+
+```python
+@get('/')
+@get('/links')
+def list_links(db, userid):
+    '''Return a complete list of all links'''
+    args = [userid]
+
+    deleted_part = ' AND deleted IS 0'
+    if ('showDeleted' in request.query and
+        'true' == request.query['showDeleted']):
+        deleted_part = ''
+
+    timestamp_part = ''
+    if 'timestampMin' in request.query:
+        timestamp_part = ' AND timestamp > ?'
+        args.append(request.query['timestampMin'])
+
+    latest_time = None
+    links = []
+    stmt = 'SELECT * from links WHERE userid IS ?'
+    stmt += deleted_part + timestamp_part
+    for row in db.execute(stmt,
+                          args):
+        links.append(to_dict(row))
+        # Keep track of the latest timestamp here
+        if latest_time is None:
+            latest_time = row['timestamp']
+        else:
+            delta = dateparser.parse(row['timestamp']) - dateparser.parse(latest_time)
+            if delta.total_seconds() > 0:
+                latest_time = row['timestamp']
+
+    return dict(latestTimestamp=latest_time,
+                links=links)
+
+@get('/links/<sha>')
+def get_link(db, sha, userid):
+    '''Returns a specific link'''
+    row = db.execute('SELECT * from links WHERE sha IS ? AND userid IS ?',
+                     [sha, userid]).fetchone()
+    if row:
+        return to_dict(row)
+
+    return HTTPError(404, "No such item")
+
+@delete('/links/<sha>')
+def delete_link(db, sha, userid):
+    '''Deletes a specific link from the list.
+    On success, returns an empty response'''
+    db.execute('UPDATE links SET deleted = 1, timestamp = CURRENT_TIMESTAMP \
+    WHERE sha IS ? AND userid is ?', [sha, userid])
+
+    return {}
+
+@post('/links')
+def add_link(db, userid):
+    '''Adds a link to the list.
+    On success, returns the entry created.'''
+    if 'application/json' not in request.content_type:
+        return HTTPError(415, "Only json is accepted")
+    # Check required fields
+    if ('url' not in request.json or request.json['url'] is None
+        or len(request.json['url']) < 1):
+        return HTTPError(400, "Must specify a url")
+
+    # Sha is optional, generate if not present
+    if 'sha' not in request.json:
+        request.json['sha'] = binascii.b2a_hex(os.urandom(15))
+
+    args = [userid,
+            request.json['url'],
+            request.json['sha']]
+    stmt = 'INSERT INTO links (userid, url, sha) VALUES(?, ?, ?)'
+
+    db.execute(stmt, args)
+
+    return get_link(db, request.json['sha'], userid)
+
+
+if __name__ == '__main__':
+    # Restart server automatically when this file changes
+    run(host='0.0.0.0', port=5500, reloader=True, debug=True)
+```
+
+The methods are only executed if the supplied auth token was valid, else
+an _Unauthorized_ exception is thrown.
+
+## Adding GCM
+__SHA1:__ 2448515e2ed2
+
+CloudMessaging is the final piece of our networked app. By using GCM,
+the server can pass a message to Google, and ask it to relay it to the
+device(s) at the most oppertune moment. If the device is offline, GCM
+queues the message for transmission later when the device comes back.
+
+The way it works is as follows:
+
+1. Device1 uploads a new or deleted link to server as before using the REST API.
+2. Server stores the data in the database as before.
+3. Server hands the same data to GCM in a request to send to Device2,3,...
+4. GCM does its magic and delivers the data to the specified devices.
+5. Device2,3... adds or deletes the link from step 1 to their databases
+
+To achieve this on the server side, we are going _python-gcm_ which you can
+install by doing:
+
+```shell
+pip install python-gcm
+```
+
+To avoid blocking the main app, we are also going to do the GCM request on
+a separate thread, but this is handled behind the scenes by a decorator.
+First though, I created a "config file":
+
+__app_conf.py:__
+```python
+'''Call from a file which requires the stuff as
+from app_conf import GCM_API_KEY
+from app_conf import DBNAME'''
+
+DBNAME = 'test.db'
+GCM_API_KEY = 'Your key here'
+```
+
+Our database needs a table for handling ids for users' devices:
+
+__dbsetup.py:__
+```python
+import sqlite3 as sql
+import sys
+from app_conf import DBNAME
+
+_CREATE_TABLE = \
+"""CREATE TABLE IF NOT EXISTS links
+  (_id INTEGER PRIMARY KEY,
+  userid TEXT NOT NULL,
+  sha TEXT NOT NULL,
+  url TEXT NOT NULL,
+  deleted INTEGER NOT NULL DEFAULT 0,
+  timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+  UNIQUE(userid, url) ON CONFLICT REPLACE,
+  UNIQUE(userid, sha) ON CONFLICT REPLACE)
+"""
+
+_CREATE_GCM_TABLE = \
+"""CREATE TABLE IF NOT EXISTS gcm
+  (_id INTEGER PRIMARY KEY,
+  userid TEXT NOT NULL,
+  regid TEXT NOT NULL,
+
+  UNIQUE(userid, regid) ON CONFLICT REPLACE)
+"""
+
+def init_db(filename=DBNAME):
+    con = sql.connect(filename)
+    con.row_factory = sql.Row
+    with con:
+        cur = con.cursor()
+        cur.execute(_CREATE_TABLE)
+        cur.execute(_CREATE_GCM_TABLE)
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        init_db(sys.argv[1])
+    else:
+        init_db()
+```
+
+We are only interested in sending newly posted links (and deletes)
+through GCM and that is handled here:
+
+__app_gcm.py:__
+```python
+from __future__ import print_function, division
+from threading import Thread
+from functools import wraps
+import sqlite3 as sql
+from gcm import GCM
+from app_conf import GCM_API_KEY, DBNAME
+from dbsetup import init_db
+
+init_db(DBNAME)
+
+gcm = GCM(GCM_API_KEY)
+
+def to_dict(row):
+    return dict(sha=row['sha'],
+                url=row['url'],
+                timestamp=row['timestamp'],
+                # Convert integer to boolean
+                deleted=(1 == row['deleted']))
+
+def async(func):
+    """
+    Runs the decorated function in a separate thread.
+    Returns the thread.
+
+    Example:
+    @async
+    def dowork():
+        print('Hello from another thread')
+
+    t = dowork()
+    t.join()
+    """
+    @wraps(func)
+    def async_func(*args, **kwargs):
+        t = Thread(target = func, args = args, kwargs = kwargs)
+        t.start()
+        return t
+
+    return async_func
+
+@async
+def send_link(userid, sha, excludeid=None):
+    '''This method runs in a separate thread as to not block
+    the main app with this networking IO.
+
+    Transmits the link specified by the sha to the users devices.
+    '''
+    db = _get_db()
+    with db:
+        c = db.cursor()
+        # Get link
+        link = db.execute('SELECT * FROM links WHERE\
+        userid IS ? AND sha IS ?', [userid, sha]).fetchone()
+
+        if link is None:
+            return
+
+        data = to_dict(link)
+        print("Sending data:", data)
+
+        # Get devices
+        regrows = db.execute('SELECT * FROM gcm WHERE userid IS ?', [userid])\
+                 .fetchall()
+
+        if len(regrows) < 1:
+            return
+
+        reg_ids = []
+        for row in regrows:
+            reg_ids.append(row['regid'])
+
+        # Dont send to origin device, if specified
+        try:
+            reg_ids.remove(excludeid)
+        except ValueError:
+            pass # not in list, or None
+
+    if len(reg_ids) < 1:
+        return
+
+    print("Sending to:", len(reg_ids))
+    _send(userid, reg_ids, data)
+
+
+def _get_db():
+    db = sql.connect(DBNAME)
+    db.row_factory = sql.Row
+    return db
+
+
+def _remove_regid(userid, regid):
+    db = _get_db()
+    with db:
+        c = db.cursor()
+        c.execute('DELETE FROM gcm WHERE userid IS ? AND regid IS ?',
+                  [userid, regid])
+
+
+def _replace_regid(userid, oldid, newid):
+    db = _get_db()
+    with db:
+        c = db.cursor()
+        c.execute('UPDATE gcm SET regid=? WHERE userid IS ? AND regid IS ?',
+                  [newid, userid, oldid])
+
+
+def _send(userid, rids, data):
+    '''Send the data using GCM'''
+    response = gcm.json_request(registration_ids=rids,
+                                data=data,
+                                delay_while_idle=True)
+    # A device has switched registration id
+    if 'canonical' in response:
+        for reg_id, canonical_id in response['canonical'].items():
+            # Repace reg_id with canonical_id in your database
+            _replace_regid(userid, reg_id, canonical_id)
+
+    # Handling errors
+    if 'errors' in response:
+        for error, reg_ids in response['errors'].items():
+            # Check for errors and act accordingly
+            if error is 'NotRegistered':
+                # Remove reg_ids from database
+                for regid in reg_ids:
+                    _remove_regid(userid, regid)
+```
+
+In our main app, much hasn't changed. The delete and add functions got
+an added line each, and we've got a new _REST_ method:
+
+```python
+@post('/registergcm')
+def register_gcm(db, userid):
+    '''Adds a registration id for a user to the database.
+    Returns nothing.'''
+    if 'application/json' not in request.content_type:
+        return HTTPError(415, "Only json is accepted")
+    # Check required fields
+    if ('regid' not in request.json or request.json['regid'] is None
+        or len(request.json['regid']) < 1):
+        return HTTPError(400, "Must specify a registration id")
+
+    db.execute('INSERT INTO gcm (userid, regid) VALUES(?, ?)',
+               [userid, request.json['regid']])
+
+    if db.total_changes > 0:
+        return {}
+    else:
+        return HTTPError(500, "Adding regid to DB failed")
+```
+
+Here is the delete function:
+
+```python
+@delete('/links/<sha>')
+def delete_link(db, sha, userid):
+    '''Deletes a specific link from the list.
+    On success, returns an empty response'''
+    db.execute('UPDATE links SET deleted = 1, timestamp = CURRENT_TIMESTAMP \
+    WHERE sha IS ? AND userid is ?', [sha, userid])
+
+    if db.total_changes > 0:
+        # Regid is optional to provide from the client
+        # If present, it will not receive a GCM msg
+        regid = None
+        if 'regid' in request.query:
+            regid = request.query['regid']
+        send_link(userid, sha, regid)
+
+    return {}
+```
+
+Similarly, *send_link* is also called in the add function:
+
+```python
+@post('/links')
+def add_link(db, userid):
+    '''Adds a link to the list.
+    On success, returns the entry created.'''
+    if 'application/json' not in request.content_type:
+        return HTTPError(415, "Only json is accepted")
+    # Check required fields
+    if ('url' not in request.json or request.json['url'] is None
+        or len(request.json['url']) < 1):
+        return HTTPError(400, "Must specify a url")
+
+    # Sha is optional, generate if not present
+    if 'sha' not in request.json:
+        request.json['sha'] = binascii.b2a_hex(os.urandom(15))
+
+    args = [userid,
+            request.json['url'],
+            request.json['sha']]
+    stmt = 'INSERT INTO links (userid, url, sha) VALUES(?, ?, ?)'
+
+    db.execute(stmt, args)
+
+    if db.total_changes > 0:
+        # Regid is optional to provide from the client
+        # If present, it will not receive a GCM msg
+        regid = None
+        if 'regid' in request.query:
+            regid = request.query['regid']
+        send_link(userid, request.json['sha'], regid)
+
+    return get_link(db, request.json['sha'], userid)
+```
+
+## Summary
+Now we have a server. It has a _REST API_ and sends notifications
+through _GCM_ when stuff changes. Users can only access their own
+data, as specified in their access tokens.
+

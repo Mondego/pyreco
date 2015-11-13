@@ -1,0 +1,541 @@
+OWSLib
+======
+
+OWSLib is a Python package for client programming with Open Geospatial
+Consortium (OGC) web service (hence OWS) interface standards, and their
+related content models.
+
+Full documentation is available at http://geopython.github.io/OWSLib
+
+OWSLib provides a common API for accessing service metadata and wrappers for
+numerous OGC Web Service interfaces.
+
+Dependencies
+------------
+
+OWSLib requires elementtree (standard in 2.5 as xml.etree) or lxml.
+
+Usage
+-----
+
+Find out what a WMS has to offer. Service metadata::
+
+    >>> from owslib.wms import WebMapService
+    >>> wms = WebMapService('http://wms.jpl.nasa.gov/wms.cgi', version='1.1.1')
+    >>> wms.identification.type
+    'OGC:WMS'
+    >>> wms.identification.version
+    '1.1.1'
+    >>> wms.identification.title
+    'JPL Global Imagery Service'
+    >>> wms.identification.abstract
+    'WMS Server maintained by JPL, worldwide satellite imagery.'
+
+Available layers::
+
+    >>> list(wms.contents)
+    ['us_landsat_wgs84', 'modis', 'global_mosaic_base', 'huemapped_srtm',
+    'srtm_mag', 'daily_terra', 'us_ned', 'us_elevation', 'global_mosaic',
+    'daily_terra_ndvi', 'daily_aqua_ndvi', 'daily_aqua_721', 'daily_planet',
+    'BMNG', 'srtmplus', 'us_colordem', None, 'daily_aqua', 'worldwind_dem',
+    'daily_terra_721']
+
+Details of a layer::
+
+    >>> wms['global_mosaic'].title
+    'WMS Global Mosaic, pan sharpened'
+    >>> wms['global_mosaic'].boundingBoxWGS84
+    (-180.0, -60.0, 180.0, 84.0)
+    >>> wms['global_mosaic'].crsOptions
+    ['EPSG:4326', 'AUTO:42003']
+    >>> wms['global_mosaic'].styles
+    {'pseudo_bright': {'title': 'Pseudo-color image (Uses IR and Visual bands,
+    542 mapping), gamma 1.5'}, 'pseudo': {'title': '(default) Pseudo-color
+    image, pan sharpened (Uses IR and Visual bands, 542 mapping), gamma 1.5'},
+    'visual': {'title': 'Real-color image, pan sharpened (Uses the visual
+    bands, 321 mapping), gamma 1.5'}, 'pseudo_low': {'title': 'Pseudo-color
+    image, pan sharpened (Uses IR and Visual bands, 542 mapping)'},
+    'visual_low': {'title': 'Real-color image, pan sharpened (Uses the visual
+    bands, 321 mapping)'}, 'visual_bright': {'title': 'Real-color image (Uses
+    the visual bands, 321 mapping), gamma 1.5'}}
+
+Available methods, their URLs, and available formats::
+
+    >>> [op.name for op in wms.operations]
+    ['GetTileService', 'GetCapabilities', 'GetMap']
+    >>> wms.getOperationByName('GetMap').methods
+    {'Get': {'url': 'http://wms.jpl.nasa.gov/wms.cgi?'}}
+    >>> wms.getOperationByName('GetMap').formatOptions
+    ['image/jpeg', 'image/png', 'image/geotiff', 'image/tiff']
+
+That's everything needed to make a request for imagery::
+
+    >>> img = wms.getmap(   layers=['global_mosaic'],
+    ...                     styles=['visual_bright'],
+    ...                     srs='EPSG:4326',
+    ...                     bbox=(-112, 36, -106, 41),
+    ...                     size=(300, 250),
+    ...                     format='image/jpeg',
+    ...                     transparent=True
+    ...                     )
+    >>> out = open('jpl_mosaic_visb.jpg', 'wb')
+    >>> out.write(img.read())
+    >>> out.close()
+
+A very similar API exists for WebFeatureService. See
+tests/wfs_MapServerWFSCapabilities.txt for details.
+
+There is also support for Web Coverage Service (WCS), Catalogue
+Service for the Web (CSW), Web Processing Service (WPS), and Web
+Map Tile Service (WMTS). Some of those are beta quality.
+
+
+Logging
+-------
+OWSLib logs messages to the 'owslib' named python logger. You may
+configure your application to use the log messages like so:
+
+    >>> import logging
+    >>> owslib_log = logging.getLogger('owslib')
+    >>> # Add formatting and handlers as needed
+    >>> owslib_log.setLevel(logging.DEBUG)
+
+
+Support
+-------
+
+http://lists.osgeo.org/mailman/listinfo/owslib-users
+http://lists.osgeo.org/mailman/listinfo/owslib-devel
+
+Python doctest file to simulate a WPS DescribeProcess invocation.
+This test does not execute any live HTTP request, rather it parses XML files containing pre-made HTTP responses.
+
+Imports
+
+    >>> from tests.utils import resource_file
+    >>> from owslib.wps import WebProcessingService, printInputOutput
+
+Initialize WPS client
+
+    >>> wps = WebProcessingService('http://ceda-wps2.badc.rl.ac.uk/wps',skip_caps=True)
+
+Execute fake invocation of DescribeProcess operation by parsing cached response from USGS service
+
+    >>> xml = open(resource_file('wps_CEDADescribeProcess.xml'), 'r').read()
+    >>> process = wps.describeprocess('Doubleit', xml=xml)
+
+Check process description
+
+    >>> process.identifier
+    'DoubleIt'
+    >>> process.title
+    'Doubles the input number and returns value'
+    >>> process.abstract
+    'This is test process used to demonstrate how the WPS and the WPS User Interface work. The process accepts an integer or floating point number and returns some XML containing the input number double.'
+
+Check process inputs
+
+    >>> for input in process.dataInputs:
+    ...     print 'Process input:'
+    ...     printInputOutput(input)
+    ... 
+    Process input:
+     identifier=NumberToDouble, title=NumberToDouble, abstract=NumberToDouble, data type=LiteralData
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=1, maxOccurs=-1
+
+Check process outputs
+
+    >>> for output in process.processOutputs:
+    ...     print 'Process output:'
+    ...     printInputOutput(output)
+    ... 
+    Process output:
+     identifier=OutputXML, title=OutputXML, abstract=OutputXML, data type=ComplexData
+     Supported Value: mimeType=text/XML, encoding=UTF-8, schema=NONE
+     Default Value: None 
+     reference=None, mimeType=None
+
+Python doctest file to simulate a WPS DescribeProcess invocation.
+This test does not execute any live HTTP request, rather it parses XML files containing pre-made HTTP responses.
+
+Imports
+
+    >>> from tests.utils import resource_file
+    >>> from owslib.wps import WebProcessingService, printInputOutput
+
+Initialize WPS client
+
+    >>> wps = WebProcessingService('http://cida.usgs.gov/gdp/process/WebProcessingService',skip_caps=True)
+
+Execute fake invocation of DescribeProcess operation by parsing cached response from USGS service
+
+    >>> xml = open(resource_file('wps_USGSDescribeProcess.xml'), 'r').read()
+    >>> process = wps.describeprocess('gov.usgs.cida.gdp.wps.algorithm.FeatureWeightedGridStatisticsAlgorithm', xml=xml)
+
+Check process description
+
+    >>> process.identifier
+    'gov.usgs.cida.gdp.wps.algorithm.FeatureWeightedGridStatisticsAlgorithm'
+    >>> process.title
+    'Feature Weighted Grid Statistics'
+    >>> process.abstract
+    'This algorithm generates area weighted statistics of a gridded dataset for a set of vector polygon features. Using the bounding-box that encloses the feature data and the time range, if provided, a subset of the gridded dataset is requested from the remote gridded data server. Polygon representations are generated for cells in the retrieved grid. The polygon grid-cell representations are then projected to the feature data coordinate reference system. The grid-cells are used to calculate per grid-cell feature coverage fractions. Area-weighted statistics are then calculated for each feature using the grid values and fractions as weights. If the gridded dataset has a time range the last step is repeated for each time step within the time range or all time steps if a time range was not supplied.'
+
+Check process inputs
+    >>> for input in process.dataInputs:
+    ...     print 'Process input:'
+    ...     printInputOutput(input, indent='')
+    ... 
+    Process input:
+     identifier=FEATURE_COLLECTION, title=Feature Collection, abstract=A feature collection encoded as a WFS request or one of the supported GML profiles., data type=ComplexData
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/2.0.0/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/2.1.1/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/2.1.2/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/2.1.2.1/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/3.0.0/base/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/3.0.1/base/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/3.1.0/base/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/3.1.1/base/feature.xsd
+     Supported Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/3.2.1/base/feature.xsd
+     Default Value: mimeType=text/xml, encoding=UTF-8, schema=http://schemas.opengis.net/gml/2.0.0/feature.xsd 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=DATASET_URI, title=Dataset URI, abstract=The base data web service URI for the dataset of interest., data type=anyURI
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=DATASET_ID, title=Dataset Identifier, abstract=The unique identifier for the data type or variable of interest., data type=string
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=1, maxOccurs=2147483647
+    Process input:
+     identifier=REQUIRE_FULL_COVERAGE, title=Require Full Coverage, abstract=If turned on, the service will require that the dataset of interest fully cover the polygon analysis zone data., data type=boolean
+     Allowed Value: True
+     Default Value: True 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=TIME_START, title=Time Start, abstract=The date to begin analysis., data type=dateTime
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=0, maxOccurs=1
+    Process input:
+     identifier=TIME_END, title=Time End, abstract=The date to end analysis., data type=dateTime
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=0, maxOccurs=1
+    Process input:
+     identifier=FEATURE_ATTRIBUTE_NAME, title=Feature Attribute Name, abstract=The attribute that will be used to label column headers in processing output., data type=string
+     Allowed Value: AnyValue
+     Default Value: None 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=DELIMITER, title=Delimiter, abstract=The delimiter that will be used to separate columns in the processing output., data type=string
+     Allowed Value: COMMA
+     Allowed Value: TAB
+     Allowed Value: SPACE
+     Default Value: COMMA 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=STATISTICS, title=Statistics, abstract=Statistics that will be returned for each feature in the processing output., data type=string
+     Allowed Value: MEAN
+     Allowed Value: MINIMUM
+     Allowed Value: MAXIMUM
+     Allowed Value: VARIANCE
+     Allowed Value: STD_DEV
+     Allowed Value: WEIGHT_SUM
+     Allowed Value: COUNT
+     Default Value: None 
+     minOccurs=1, maxOccurs=7
+    Process input:
+     identifier=GROUP_BY, title=Group By, abstract=If multiple features and statistics are selected, this will change whether the processing output columns are sorted according to statistics or feature attributes., data type=string
+     Allowed Value: STATISTIC
+     Allowed Value: FEATURE_ATTRIBUTE
+     Default Value: None 
+     minOccurs=1, maxOccurs=1
+    Process input:
+     identifier=SUMMARIZE_TIMESTEP, title=Summarize Timestep, abstract=If selected, processing output will include columns with summarized statistics for all feature attribute values for each timestep, data type=boolean
+     Allowed Value: True
+     Default Value: True 
+     minOccurs=0, maxOccurs=1
+    Process input:
+     identifier=SUMMARIZE_FEATURE_ATTRIBUTE, title=Summarize Feature Attribute, abstract=If selected, processing output will include a final row of statistics summarizing all timesteps for each feature attribute value, data type=boolean
+     Allowed Value: True
+     Default Value: True 
+     minOccurs=0, maxOccurs=1
+
+
+Check process outputs
+    >>> for output in process.processOutputs:
+    ...     print 'Process output:'
+    ...     printInputOutput(output, indent='')
+    ... 
+    Process output:
+     identifier=OUTPUT, title=Output File, abstract=A delimited text file containing requested process output., data type=ComplexData
+     Supported Value: mimeType=text/csv, encoding=UTF-8, schema=None
+     Default Value: mimeType=text/csv, encoding=UTF-8, schema=None 
+     reference=None, mimeType=None
+
+<?xml version="1.0" encoding="ISO-8859-1" standalone="no"?>
+<ProcessDescriptions xsi:schemaLocation="http://www.ogcnetwork.net/schemas/wps/1.0.0/wpsDescribeProcess.xsd" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+		<ProcessDescription processVersion="none" statusSupported="False" storeSupported="True">
+			<ns1:Identifier xmlns:ns1="http://www.opengeospatial.net/ows">DoubleIt</ns1:Identifier>
+			<ns1:Title xmlns:ns1="http://www.opengeospatial.net/ows">Doubles the input number and returns value</ns1:Title>
+			<ns1:Abstract xmlns:ns1="http://www.opengeospatial.net/ows">This is test process used to demonstrate how the WPS and the WPS User Interface work. The process accepts an integer or floating point number and returns some XML containing the input number double.</ns1:Abstract>
+			<ns1:Metadata xlink:title="none" xmlns:ns1="http://www.opengeospatial.net/ows" xmlns:xlink="http://www.w3.org/1999/xlink" />
+			<ns1:Metadata xlink:title="none" xmlns:ns1="http://www.opengeospatial.net/ows" xmlns:xlink="http://www.w3.org/1999/xlink" />
+                        <DataInputs>
+				<Input>
+					<ns1:Identifier xmlns:ns1="http://www.opengeospatial.net/ows">NumberToDouble</ns1:Identifier>
+					<ns1:Title xmlns:ns1="http://www.opengeospatial.net/ows">NumberToDouble</ns1:Title>
+					<ns1:Abstract xmlns:ns1="http://www.opengeospatial.net/ows">NumberToDouble</ns1:Abstract>
+					<LiteralData>
+                                                <ns1:AnyValue xmlns:ns1="http://www.opengeospatial.net/ows">
+						</ns1:AnyValue>
+					</LiteralData>
+					<MinimumOccurs>1</MinimumOccurs>
+				</Input>
+				</DataInputs>
+                        <ProcessOutputs>
+			<Output>
+                		<ns1:Identifier xmlns:ns1="http://www.opengeospatial.net/ows">OutputXML</ns1:Identifier>
+                		<ns1:Title xmlns:ns1="http://www.opengeospatial.net/ows">OutputXML</ns1:Title>
+                		<ns1:Abstract xmlns:ns1="http://www.opengeospatial.net/ows">OutputXML</ns1:Abstract>
+                		<ComplexOutput defaultEncoding="UTF-8" defaultFormat="text/XML" defaultSchema="NONE">
+                    			<SupportedComplexData>
+                        			<Format>text/XML</Format>
+                        			<Encoding>UTF-8</Encoding>
+                        			<Schema>NONE</Schema>
+                    			</SupportedComplexData>
+                		</ComplexOutput>
+            		</Output>
+                        </ProcessOutputs>
+		</ProcessDescription>
+</ProcessDescriptions>
+<?xml version="1.0" encoding="UTF-8"?>
+<ns:ProcessDescriptions xmlns:ns="http://www.opengis.net/wps/1.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.opengis.net/wps/1.0.0 http://schemas.opengis.net/wps/1.0.0/wpsDescribeProcess_response.xsd"
+	xml:lang="en-US" service="WPS" version="1.0.0">
+	<ProcessDescription statusSupported="true"
+		storeSupported="true" ns:processVersion="1.0.0">
+		<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">gov.usgs.cida.gdp.wps.algorithm.FeatureWeightedGridStatisticsAlgorithm</ns1:Identifier>
+		<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Feature Weighted Grid Statistics</ns1:Title>
+		<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">This algorithm generates area weighted statistics of a gridded dataset for a set of vector polygon features. Using the bounding-box that encloses the feature data and the time range, if provided, a subset of the gridded dataset is requested from the remote gridded data server. Polygon representations are generated for cells in the retrieved grid. The polygon grid-cell representations are then projected to the feature data coordinate reference system. The grid-cells are used to calculate per grid-cell feature coverage fractions. Area-weighted statistics are then calculated for each feature using the grid values and fractions as weights. If the gridded dataset has a time range the last step is repeated for each time step within the time range or all time steps if a time range was not supplied.</ns1:Abstract>
+		<DataInputs>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">FEATURE_COLLECTION</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Feature Collection</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">A feature collection encoded as a WFS request or one of the supported GML profiles.</ns1:Abstract>
+				<ComplexData>
+					<Default>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/2.0.0/feature.xsd</Schema>
+						</Format>
+					</Default>
+					<Supported>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/2.0.0/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/2.1.1/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/2.1.2/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/2.1.2.1/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/3.0.0/base/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/3.0.1/base/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/3.1.0/base/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/3.1.1/base/feature.xsd</Schema>
+						</Format>
+						<Format>
+							<MimeType>text/xml</MimeType>
+							<Encoding>UTF-8</Encoding>
+							<Schema>http://schemas.opengis.net/gml/3.2.1/base/feature.xsd</Schema>
+						</Format>
+					</Supported>
+				</ComplexData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">DATASET_URI</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Dataset URI</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The base data web service URI for the dataset of interest.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:anyURI" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="2147483647">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">DATASET_ID</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Dataset Identifier</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The unique identifier for the data type or variable of interest.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:string" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">REQUIRE_FULL_COVERAGE</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Require Full Coverage</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">If turned on, the service will require that the dataset of interest fully cover the polygon analysis zone data.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:boolean" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+					<DefaultValue>true</DefaultValue>
+				</LiteralData>
+			</Input>
+			<Input minOccurs="0" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">TIME_START</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Time Start</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The date to begin analysis.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:dateTime" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+				</LiteralData>
+			</Input>
+			<Input minOccurs="0" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">TIME_END</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Time End</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The date to end analysis.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:dateTime" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">FEATURE_ATTRIBUTE_NAME</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Feature Attribute Name</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The attribute that will be used to label column headers in processing output.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:string" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">DELIMITER</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Delimiter</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">The delimiter that will be used to separate columns in the processing output.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:string" />
+					<ns1:AllowedValues xmlns:ns1="http://www.opengis.net/ows/1.1">
+						<ns1:Value>COMMA</ns1:Value>
+						<ns1:Value>TAB</ns1:Value>
+						<ns1:Value>SPACE</ns1:Value>
+					</ns1:AllowedValues>
+					<DefaultValue>COMMA</DefaultValue>
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="7">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">STATISTICS</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Statistics</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">Statistics that will be returned for each feature in the processing output.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:string" />
+					<ns1:AllowedValues xmlns:ns1="http://www.opengis.net/ows/1.1">
+						<ns1:Value>MEAN</ns1:Value>
+						<ns1:Value>MINIMUM</ns1:Value>
+						<ns1:Value>MAXIMUM</ns1:Value>
+						<ns1:Value>VARIANCE</ns1:Value>
+						<ns1:Value>STD_DEV</ns1:Value>
+						<ns1:Value>WEIGHT_SUM</ns1:Value>
+						<ns1:Value>COUNT</ns1:Value>
+					</ns1:AllowedValues>
+				</LiteralData>
+			</Input>
+			<Input minOccurs="1" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">GROUP_BY</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Group By</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">If multiple features and statistics are selected, this will change whether the processing output columns are sorted according to statistics or feature attributes.</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:string" />
+					<ns1:AllowedValues xmlns:ns1="http://www.opengis.net/ows/1.1">
+						<ns1:Value>STATISTIC</ns1:Value>
+						<ns1:Value>FEATURE_ATTRIBUTE</ns1:Value>
+					</ns1:AllowedValues>
+				</LiteralData>
+			</Input>
+			<Input minOccurs="0" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">SUMMARIZE_TIMESTEP</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Summarize Timestep</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">If selected, processing output will include columns with summarized statistics for all feature attribute values for each timestep</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:boolean" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+					<DefaultValue>false</DefaultValue>
+				</LiteralData>
+			</Input>
+			<Input minOccurs="0" maxOccurs="1">
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">SUMMARIZE_FEATURE_ATTRIBUTE</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Summarize Feature Attribute</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">If selected, processing output will include a final row of statistics summarizing all timesteps for each feature attribute value</ns1:Abstract>
+				<LiteralData>
+					<ns1:DataType xmlns:ns1="http://www.opengis.net/ows/1.1"
+						ns1:reference="xs:boolean" />
+					<ns1:AnyValue xmlns:ns1="http://www.opengis.net/ows/1.1" />
+					<DefaultValue>false</DefaultValue>
+				</LiteralData>
+			</Input>
+		</DataInputs>
+		<ProcessOutputs>
+			<Output>
+				<ns1:Identifier xmlns:ns1="http://www.opengis.net/ows/1.1">OUTPUT</ns1:Identifier>
+				<ns1:Title xmlns:ns1="http://www.opengis.net/ows/1.1">Output File</ns1:Title>
+				<ns1:Abstract xmlns:ns1="http://www.opengis.net/ows/1.1">A delimited text file containing requested process output.</ns1:Abstract>
+				<ComplexOutput>
+					<Default>
+						<Format>
+							<MimeType>text/csv</MimeType>
+							<Encoding>UTF-8</Encoding>
+						</Format>
+					</Default>
+					<Supported>
+						<Format>
+							<MimeType>text/csv</MimeType>
+							<Encoding>UTF-8</Encoding>
+						</Format>
+					</Supported>
+				</ComplexOutput>
+			</Output>
+		</ProcessOutputs>
+	</ProcessDescription>
+</ns:ProcessDescriptions>

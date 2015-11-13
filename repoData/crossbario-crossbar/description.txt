@@ -1,0 +1,531 @@
+# {{ appname }}
+
+All Python application code is in `{{ appname }}/{{ appname }}.py`. The backend is called from JavaScript, which is in `{{ appname }}/web/index.html`.
+
+## Installation
+
+* [cryptography](https://crossbar.io.s3.amazonaws.com/download/python/cryptography-0.2.dev1.win32-py2.7.exe)
+* [pyopenssl](https://crossbar.io.s3.amazonaws.com/download/python/pyOpenSSL-0.14a4.win32.exe)
+
+### Python Cryptography package on Windows
+
+Get and install the latest *full* OpenSSL distribution (incude development headers) from [here](http://slproweb.com/download/Win32OpenSSL-1_0_1f.exe). 
+
+Open "Visual Studio 2008-Eingabeaufforderung" and set
+
+	set INCLUDE=C:\OpenSSL-Win32\include;%INCLUDE%
+	set LIB=C:\OpenSSL-Win32\lib;%LIB%
+
+Clone the cryptography [repo](https://github.com/pyca/cryptography)
+
+	git clone git@github.com:pyca/cryptography.git
+
+and run (within the shell above)
+
+	python setup.py install
+
+To build a Windows installer package
+
+	python setup.py bdist_wininst
+
+which should produce a file
+
+	dist\cryptography-0.2.dev1.win32-py2.7.exe
+
+Clone the pyopenssl [repo](https://github.com/pyca/pyopenssl)
+
+	git clone git@github.com:pyca/pyopenssl.git
+	git checkout 0.14a4
+
+and run (within the shell above)
+
+	python setup.py install
+
+To build a Windows installer package
+
+	python setup.py bdist_wininst
+
+which should produce a file
+
+	dist\pyOpenSSL-0.14a4.win32.exe
+
+# Getting Started
+
+To initialize a new Crossbar.io instance, create a *data directory* for the instance
+ 
+	crossbar init <data directory>
+
+and startup the instance.
+
+    crossbar start <data directory>
+
+The new Crossbar.io instance will automatically connect to the Crossbar.io Management Cloud and print an *activation code*
+
+
+    ...
+    Instance key generated.
+    Instance started.
+    ...
+    Connected to Crossbar.io Management Cloud.
+    Log into https://console.crossbar.io to configure your instance using
+    the activation code: 981240
+
+Now open and log into the management interface at
+  
+	https://console.crossbar.io
+
+and select "Pair Instance", and enter the activation code.
+
+The instance will log it's pairing
+
+    Instance paired. Owner is 'user1'.
+    Configured as router.
+    Starting instance.
+    Starting management service.
+    Starting routing service.
+    Starting WebSocket transport on port 443/TLS.
+
+# Running Modules
+
+When a Crossbar.io node is initially started, no modules run
+
+<center style="width: 580px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_01.png "Application Code")
+</center>
+
+## Running a WAMP Router
+
+Crossbar.io allows to start worker processes on nodes and run modules inside worker processes.
+
+For example, here is the configuration for a Crossbar.io node with one running worker process that acts as a WAMP router over a WebSocket transport:
+
+```javascript
+{
+   'processes': [
+      {
+         'type': 'router',
+         'realms': {
+            'myrealm1': {
+               'auth': {
+                  'create': {
+                     'allow': 'any'
+                  },
+                  'join': {
+                     'allow': 'any'
+                  }
+               }
+               'permissions': {
+                  ## application
+                  'com.myapp1': {
+                     ## application.role
+                     'developer': {
+                        ## application.role.resource
+                        'com.myapp1.monitor.*': {
+                           ## application.role.resource.permission
+                           'publish': True,
+                           'subscribe': True,
+                           'call': True,
+                           'register': False
+                        },
+                        'com.myapp1.custom.*': {
+                           'publish': True,
+                           'subscribe': True,
+                           'call': True,
+                           'register': 'single'
+                        }
+                     }
+                  }
+               },
+            }
+         },
+         'transports': [
+            {
+               'type': 'websocket',
+               'endpoint': 'tcp:localhost:8080'
+            },
+            {
+               'type': 'websocket',
+               'endpoint': 'unix:/tmp/sock3'
+            }
+         ]
+      }
+   ]
+}
+```
+
+
+<center style="width: 580px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_02.png "Application Code")
+</center>
+
+
+
+## Multi-core and Multi-node
+
+The WAMP router module of Crossbar.io allows to leverage multiple core by starting multiple worker processes for the routing core:
+
+<center style="width: 680px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_03.png "Application Code")
+</center>
+
+## Hosting Bridge modules
+
+A node may also host a WAMP bridge:
+
+<center style="width: 580px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_04.png "Application Code")
+</center>
+
+## Router with Bridge modules
+
+A node can combine router and bridge modules:
+
+<center style="width: 680px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_05.png "Application Code")
+</center>
+
+## Hosting Application components
+A node can host application components:
+
+<center style="width: 580px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_06.png "Application Code")
+</center>
+
+## Router with Application components
+A node can combine router and application modules:
+
+<center style="width: 680px; margin: auto;">
+![alt text](figures/gen/crossbar_deployment_07.png "Application Code")
+</center>
+
+# Configuration
+
+## Transports
+
+*Transports* is a top level attribute of a *Router* module:
+
+	{
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// transports provided by this router process
+	         	"transports": []
+          	}
+       	]
+	}
+
+A WebSocket transport listening on TCP port 8080 is configured 
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:8080",
+        "url": "ws://localhost:8080"
+	}
+
+WebSocket options can be set like this
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:8080",
+        "url": "ws://localhost:8080",
+		"options": {
+			"opening_timeout": 2000,
+			"enable_compression": true
+        }
+	}
+
+A WebSocket transport listening on a Unix domain socket is configured
+
+	{
+		"type": "websocket",
+		"endpoint": "unix:/tmp/sock3",
+        "url": "ws://localhost:8080"
+	}
+
+A secure WebSocket transport is configured
+
+	{
+		"type": "websocket",
+		"endpoint": "tcp:443",
+        "url": "wss://somehost.com",
+        "tls": {
+            "ca": "keys/ca.pub",
+			"key": "keys/somehost.key",
+			"cert": "keys/somehost.crt"
+        }
+	}
+
+## Links
+
+*Links* is a top level attribute of a *Router* module:
+
+	{
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// links to other routers this router connects to
+	         	"links": []
+          	}
+       	]
+	}
+
+where a WebSocket link is configured
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": ["myrealm01", "corp20"]
+    }
+
+The router will connect to the router specified in the link definition. It will setup routing for all of the realms listed.
+
+Using the special value `all` for realms will setup routing for any realm
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": "any"
+    }
+
+A Unix domain socket link is configured
+
+
+    {
+       "type": "websocket",
+       "endpoint": "unix:/tmp/myrouter1"
+       "realms": "any"
+    }
+
+Client certificate based authentication
+
+    {
+       "type": "websocket",
+       "endpoint": "tcp:somehost.net:8080"
+       "realms": "any",
+	   "tls": {
+          "key": "keys/my.key",
+          "cert": "keys/my.crt"
+       }
+    }
+
+
+## Realms
+
+*Realms* is a top level attribute of a *Router* module:
+
+	{
+	   	"processes": [
+			{
+				"type": "router",
+		
+				// realms hosted by this router process
+	         	"realms": {}
+          	}
+       	]
+	}
+
+which is a dictionary of named entries
+
+	"realms": {
+		// a first realm definition
+		"myrealm01": {
+		},
+
+		// a second realm definition
+		"myrealm02": {
+		}
+	}
+
+### Realm Authentication
+
+Each realm entry must contains authentication
+
+	"myrealm01": {
+		"auth": {
+
+			// any session is allowed to create the realm
+			"create": {
+				 "allow": "any"
+			},
+
+			// any session may join the realm
+			"join": {
+				 "allow": "any"
+			}
+		}
+	}
+
+### Realm Permissions
+
+Each realm entry contains permissions
+
+	"myrealm01": {
+		"permissions": {
+
+			// application
+			"com.myapp1": {
+
+				// application.role
+				"developer": {
+
+					// application.role.resource
+					"com.myapp1.monitor.*": {
+
+						// permissions granted on URI pattern
+					   	"publish": True,
+					   	"subscribe": True,
+					   	"call": True,
+					   	"register": False
+					}
+				}
+			}
+	   	}
+	}
+
+
+
+# Instance Types
+
+1. **Router**
+2. Bridges
+   * **PostgreSQL Bridge**
+   * Oracle Bridge
+   * REST Bridge
+   * SRDP Bridge
+
+# Misc
+
+    session, realm, action = 'create' | 'join' => application, role | None
+    application, role => list of permissions
+    permission: (topic pattern, [pub|sub|list]*) |
+                (procedure pattern, [call|register|list]* 
+
+
+
+ * http://permalink.gmane.org/gmane.comp.python.twisted/26395
+ * http://freeprogrammersblog.vhex.net/post/linux-39-introduced-new-way-of-writing-socket-servers/2
+ * https://lwn.net/Articles/542629/
+ * http://stackoverflow.com/questions/10077745/twistedweb-on-multicore-multiprocessor
+ * http://stackoverflow.com/questions/14388706/socket-options-so-reuseaddr-and-so-reuseport-how-do-they-differ-do-they-mean-t
+ * http://stackoverflow.com/questions/12542700/setsockopt-before-connect-for-reactor-connecttcp
+
+
+Authentication with Mozilla Persona
+===================================
+
+This example shows how to authenticate WAMP connections on **Crossbar**.io using [Mozilla Persona](http://www.mozilla.org/en-US/persona/) and [**Autobahn**|JS](https://github.com/tavendo/AutobahnJS/). The code works with purely static Web pages and WebSocket only.
+
+Start Crossbar.io from this directory
+
+	crossbar start
+
+open **http://localhost:8080** in your browser and login via Persona:
+
+![](mozilla_persona.png)
+
+The WAMP connection has been authenticated via Mozilla Persona.
+
+The Crossbar.io configuration also specifies the mapped role for authenticated users:
+
+```javascript
+"ws": {
+   "type": "websocket",
+   "url": "ws://localhost:8080/ws",
+   "cookie": {},
+   "auth": {
+      "mozilla_persona": {
+         "role": {
+            "type": "static",
+            "value": "com.myapp.user"
+         }
+      }
+   }
+}
+```
+
+Note that caller authentication information can be accessed in procedure endpoints (and event handlers):
+
+```python
+def utcnow(details = None):
+   ## details is an instance of autobahn.wamp.types.CallDetails
+   ## and provides information on the caller
+   now = datetime.datetime.utcnow()
+   now = now.strftime("%Y-%m-%dT%H:%M:%SZ")
+   return "{} (called by session {} / authid '{}' / authrole '{}')".format(\
+      now, details.caller, details.authid, details.authrole)
+
+## To get caller information when being called, we need to
+## register with options ..
+self.register(utcnow, 'com.timeservice.now',
+   options = RegisterOptions(details_arg = 'details', discloseCaller = True))
+```
+
+
+References:
+
+* [Crossbar.io Authentication](https://github.com/crossbario/crossbar/wiki/Authentication)
+* [Mozilla Persona Developer Site](https://developer.mozilla.org/en-US/Persona)
+
+
+
+# Crossbar.io
+
+**Open-source polyglot application router**
+
+*Remote Procedure Calls* and *Publish & Subscribe* for distributed applications, direct-to-database messaging and no application server needed.
+
+> Please also see the [Wiki](https://github.com/crossbario/crossbar/wiki) for more information.
+
+
+
+## What is that?
+
+[**Crossbar**.io](http://crossbar.io) is an application _router_: it can route remote procedure calls to endpoints and at the same time can act as a message broker to dispatch events in (soft) real-time to subscribers.
+
+It provides application infrastructure services to application components running in a distributed system and does so using two well-known, powerful messaging patterns:
+
+ * *Remote Procedure Calls*
+ * *Publish & Subscribe*
+
+For example, **Crossbar**.io allows you to
+
+  * Call database stored procedures from JavaScript
+  * Subscribe to topics and receive events in JavaScript
+  * Publish events to topics from within database stored procedures or triggers
+
+## Why?
+
+### Less complexity
+
+ * no application server required
+ * logically 2-tier architecture
+ * clean separation of frontend and backend code
+ * fewer wheels to keep running and maintain
+ * only JavaScript and PL/SQL know-how needed
+
+### More power
+
+ * create next-generation, single-page HTML5 frontends
+ * create real-time enabled applications
+ * push information from within the database
+ * drive Web and Mobile frontends from the same backend API
+
+## How does it work?
+
+**Crossbar**.io provides routing services according to [The Web Application Messaging Protocol (WAMP)](http://wamp.ws/) and supports direct integration of databases into WAMP based architectures. PostgreSQL and Oracle connectors under development.
+
+**Crossbar.io** is written in Python, and builds on [Twisted](http://twistedmatrix.com/) and [Autobahn](http://autobahn.ws/). It's fully asynchronous, high-performance with critical code paths accelerated in native code, and also able to run on [PyPy](http://pypy.org/), a [JITting](http://en.wikipedia.org/wiki/Just-in-time_compilation) Python implementation.
+
+
+# Where to go
+
+For further information including a getting started, please checkout the [Wiki](https://github.com/crossbario/crossbar/wiki).
+
+
+----------
+
+
+
+Copyright (c) 2014 [Tavendo GmbH](http://www.tavendo.com). Licensed under the [Creative Commons CC-BY-SA license](http://creativecommons.org/licenses/by-sa/3.0/). "WAMP", "Crossbar.io" and "Tavendo" are trademarks of Tavendo GmbH.

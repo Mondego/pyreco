@@ -1,0 +1,309 @@
+libgreader is written and maintained by Matthew Behrens and various contributors:
+
+Development Lead
+
+- Matthew Behrens <askedrelic@gmail.com>
+
+Patches and Suggestions
+
+- Stephane Angel aka Twidi <s.angel@twidi.com>
+- Wu Yuntao <wyt.brandon@gmail.com>
+- Valentin Alexeev <https://github.com/valentinalexeev>
+
+#History
+
+##v0.8.0 - 
+- Make API endpoint configurable
+
+##v0.7.0 - 2013/03/18
+- Now requires Requests > 1.0 (Requests now used for all HTTP requests)
+- Python 3.3 Compatibility (Test suite passes for Python 2.6, 2.7, and 3.3)
+- Deprecate OAuth 1.0 auth method (Google deprecated it April 20, 2012 https://developers.google.com/accounts/docs/OAuth )
+- RIP Google Reader :(
+
+##v0.6.3 - 2013/02/20
+- Add support for add/remove tag transaction abi- lity, to mass edit tags on on an Item
+- Add since/until argument support for many Container calls
+- Add support for loadLimit argument with feed Containers loadItems() call
+
+##v0.6.2 - 2012/10/11
+- Fix broken post() method with OAuth2 auth, https://github.com/askedrelic/libgreader/issues/11
+
+##v0.6.1 - 2012/08/13
+- cleanup sdist package contents, to not include tests
+- Remove httplib2 as a require import unless you are using GAPDecoratorAuthMethod
+
+##v0.6.0 - 2012/08/10
+* OAuth2 support
+* Deprecating OAuth support
+* Added auth support for Google App Engine with GAPDecoratorAuthMethod
+* Internal code re-organization
+
+##v0.5 - 2010/12/29
+* Added project to PyPi, moved to real Python project structure
+* Style cleanup, more tests
+
+##v0.4 - 2010/08/10
+Lot of improvements : 
+
+* Manage special feeds (reading-list, shared, starred, friends...)
+* Manage categories (get all items, mark as read)
+* Manage feeds (get items, unread couts, mark as read, "fetch more")
+* Manage items (get and mark read, star, share)
+
+and:
+
+* oauth2 not required if you don't use it
+* replacing all xml calls by json ones
+
+##v0.3 - 2010/03/07
+* All requests to Google use HTTPS
+* CLeaned up formatting, should mostly meet PEP8
+* Fixed random unicode issues
+* Added licensing
+
+##v0.2 - 2009/10/27
+* Moved all get requests to private convenience method
+* Added a few more basic data calls
+
+##v0.1 - 2009/10/27
+* Connects to GR and receives auth token correctly.
+* Pulls down subscription list.
+
+# libgreader readme
+libgreader is a Python library for authenticating and interacting with the unofficial Google Reader API. It currently supports all major user authentication methods (ClientLogin, OAuth2) and aims to simplify the many features that Google Reader offers. RSS ain't dead yet (but Google Reader may be)!
+
+Licensed under the MIT license: [http://www.opensource.org/licenses/mit-license.php]()
+
+## Current Status
+As of March 2013, Google plans to shutdown down Google Reader on July 1st, 2013, which kind of makes this library not so useful.
+
+There are plans to recreate the Google Reader API in several open source projects, so perhaps this library could be extended to support multiple APIs. At present, the author is waiting to see how things turn out and what course of action would make the most sense.
+
+
+## Features
+
+* Support for all Google recommended authentication methods, for easy integration with existing web or desktop applications
+* Explanation of most of the Google Reader API endpoints, which Google has never really opened up
+* Convenient functions and models for working with those endpoints
+* A modest integration test suite!
+
+## Usage
+
+It's as simple as:
+
+
+	>>> from libgreader import GoogleReader, ClientAuthMethod, Feed
+	>>> auth = ClientAuthMethod('YOUR USERNAME','YOUR PASSWORD')
+	>>> reader = GoogleReader(auth)
+	>>> print reader.getUserInfo()
+	{u'userName': u'Foo', u'userEmail': u'libgreadertest@gmail.com', u'userId': u'16058940398976999581', u'userProfileId': u'100275409503040726101', u'isBloggerUser': False, u'signupTimeSec': 0, u'isMultiLoginEnabled': False}`
+
+For more examples with all of the authentication methods, see the [USAGE file](https://github.com/askedrelic/libgreader/blob/master/USAGE.md).
+
+## Installation
+
+libgreader is on pypi at [http://pypi.python.org/pypi/libgreader/](http://pypi.python.org/pypi/libgreader/)
+
+	$ pip install libgreader
+
+or 
+
+	$ easy_install libgreader
+
+## Testing and Contribution
+
+Want to test it out or contribute some changes?
+
+First, fork the repository on Github to make changes on your private branch.
+Then, create a dev environment using a virtualenv:
+
+	$ pip install virtualenvwrapper
+	$ mkvirtualenv venv-libgreader --no-site-packages
+
+Checkout your fork and then run the tests:
+
+	$ python setup.py test
+
+Now hack away! Write tests which show that a bug was fixed or that the feature works as expected. Then send a pull request and bug me until it gets merged in and published.
+
+
+## Thanks
+
+Originally created with help from:
+
+[http://blog.martindoms.com/2009/08/15/using-the-google-reader-api-part-1/]()
+
+[http://code.google.com/p/pyrfeed/wiki/GoogleReaderAPI]()
+
+[http://groups.google.com/group/fougrapi]()
+
+Since then, [many have contributed to the development of libgreader](https://github.com/askedrelic/libgreader/blob/master/AUTHORS.md).
+
+#Usage
+The library is currently broken into 2 parts: The Authentication class and the GoogleReader class. 
+
+The Authentication class authenticates itself with Google and then provides a GET/POST method for making authenticated calls.  
+Currently, ClientLogin, OAuth are supported.
+
+The GoogleReader class keeps track of user data and provides wrapper methods around known Reader urls.
+
+##ClientLogin
+To get started using the ClientLogin auth type, create a new ClientAuthMethod class:
+
+```python
+from libgreader import GoogleReader, ClientAuthMethod, Feed
+auth = ClientAuthMethod('USERNAME','PASSWORD')
+```
+	
+Then setup GoogleReader:
+	
+```python
+reader = GoogleReader(auth)
+```
+
+Then make whatever requests you want:
+
+```python
+print reader.getUserInfo()
+```
+
+##OAuth
+The OAuth method is a bit more complicated, depending on whether you want to use a callback or not, and because oauth is just complicated.
+
+###No Callback
+Send user to authorize with Google in a new window or JS lightbox, tell them to close the window when done authenicating
+
+The oauth key and secret are setup with Google for your domain [https://www.google.com/accounts/ManageDomains]()
+
+```python
+from libgreader import GoogleReader, OAuthMethod, Feed
+auth = OAuthMethod(oauth_key, oauth_secret)
+```
+
+We want to internally set the request token
+
+```python
+auth.setRequestToken()
+```
+
+Get the authorization URL for that request token, which you can link the user to or popup in a new window
+
+```python
+auth_url = auth.buildAuthUrl()
+```
+
+After they have authorized you, set the internal access token, and then you should have access to the user's data
+
+```python
+auth.setAccessToken()
+reader = GoogleReader(auth)
+print reader.getUserInfo()
+```
+
+###Callback
+User goes to Google, authenticates, then is automatically redirected to your callback url without using a new window, a much more seamless user experience
+
+Same opening bit, you still need an oauth key and secret from Google
+
+```python
+from libgreader import GoogleReader, OAuthMethod, Feed
+auth = OAuthMethod(oauth_key, oauth_secret)
+```
+
+Set the callback...
+
+```python
+auth.setCallback("http://www.asktherelic.com/theNextStep")
+```
+
+Now the interesting thing with using a callback is that you must split up the process of authenticating the user and store their token data while they leave your site. Whether you use internal sessions or cookies is up to you, but you need access to the token_secret when the user returns from Google.
+
+```python
+token, token_secret = auth.setAndGetRequestToken()
+auth_url = auth.buildAuthUrl()
+```
+
+So assume the user goes, authenticates you, and now they are returning to http://www.asktherelic.com/theNextStep with two query string variables, the token and the verifier. You can now finish authenticating them and access their data.
+
+```python
+#get the token verifier here
+token_verifier = ""
+auth.setAccessTokenFromCallback(token, token_secret, token_verifier)
+reader = GoogleReader(auth)
+print reader.getUserInfo()
+```
+
+##Using libgreader on Google AppEngine
+If you want to use libgreader on Google AppEngine it is easier to use the Google's API for Python library which
+contains implementation of OAuth2 especially designed for AppEngine.
+
+Here is a minimal way to implement it:
+
+```python
+from google.appengine.ext.webapp.util import login_required
+
+from oauth2client.appengine import CredentialsProperty
+from oauth2client.appengine import StorageByKeyName
+from oauth2client.appengine import OAuth2WebServerFlow
+
+from libgreader import GoogleReader
+from libgreader.auth import GAPDecoratorAuthMethod
+
+GOOGLE_URL = 'https://accounts.google.com'
+AUTHORIZATION_URL = GOOGLE_URL + '/o/oauth2/auth'
+ACCESS_TOKEN_URL = GOOGLE_URL + '/o/oauth2/token'
+REDIRECT_URI = '<YOU REDIRECT URI>'
+
+FLOW = OAuth2WebServerFlow(
+    client_id='<YOUR GOOGLE API CLIENT ID>',
+    client_secret='<YOUR GOOGLE API CLIENT SECRET>',
+    scope=[
+        'https://www.googleapis.com/auth/userinfo.email',
+        'https://www.googleapis.com/auth/userinfo.profile',
+        'https://www.google.com/reader/api/',
+    ],
+    redirect_uri=REDIRECT_URI,
+    user_agent='<YOU USER AGENT>',
+    auth_uri=AUTHORIZATION_URL,
+    token_uri=ACCESS_TOKEN_URL)
+
+class Credentials(db.Model):
+    credentials = CredentialsProperty()
+
+
+#... Checking and obtaining credentials if needed
+class MainHandler(webapp2.RequestHandler):
+@login_required
+def get(self):
+    user = users.get_current_user()
+
+    # get stored credentials for current user from the Datastore
+    credentials = StorageByKeyName(Credentials, user.user_id(), 'credentials').get()
+    
+    if credentials is None or credentials.invalid == True:
+        # we are not authorized (=no credentials) create an authorization URL
+        authorize_url = FLOW.step1_get_authorize_url(REDIRECT_URI)
+        template_values = {
+            'authurl': authorize_url
+        }
+        # a courtsey message to user to ask for authorization. we can just redirect here if we want
+        path = os.path.join(os.path.dirname(__file__), 'templates/template_authorize.html')
+        self.response.out.write(template.render(path, template_values))
+
+#... Using credentials:
+class SubscriptionListHandler(webapp2.RequestHandler):
+@login_required
+def get(self):
+    user = users.get_current_user()
+    
+    if user:
+        storage = StorageByKeyName(Credentials, user.user_id(), 'credentials')
+        credentials = storage.get()
+        
+        # Use the new AuthMethod to decorate all the requests with correct credentials
+        auth = GAPDecoratorAuthMethod(credentials)
+        reader = GoogleReader(auth)
+        reader.buildSubscriptionList()
+```
+

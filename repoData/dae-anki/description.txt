@@ -1,0 +1,273 @@
+Anki uses a modified version of Pystache to provide Mustache-like syntax.
+Behaviour is a little different from standard Mustache:
+
+- {{text}} returns text verbatim with no HTML escaping
+- {{{text}}} does the same and exists for backwards compatibility
+- partial rendering is disabled for security reasons
+- certain keywords like 'cloze' are treated specially
+
+
+========
+Pystache
+========
+
+Inspired by ctemplate_ and et_, Mustache_ is a
+framework-agnostic way to render logic-free views.
+
+As ctemplates says, "It emphasizes separating logic from presentation:
+it is impossible to embed application logic in this template language."
+
+Pystache is a Python implementation of Mustache. Pystache requires
+Python 2.6.
+
+Documentation
+=============
+
+The different Mustache tags are documented at `mustache(5)`_.
+
+Install It
+==========
+
+::
+
+    pip install pystache
+
+
+Use It
+======
+
+::
+
+    >>> import pystache
+    >>> pystache.render('Hi {{person}}!', {'person': 'Mom'})
+    'Hi Mom!'
+
+You can also create dedicated view classes to hold your view logic.
+
+Here's your simple.py::
+
+    import pystache
+    class Simple(pystache.View):
+        def thing(self):
+            return "pizza"
+
+Then your template, simple.mustache::
+
+    Hi {{thing}}!
+
+Pull it together::
+
+    >>> Simple().render()
+    'Hi pizza!'
+
+
+Test It
+=======
+
+nose_ works great! ::
+
+    pip install nose
+    cd pystache
+    nosetests
+
+
+Author
+======
+
+::
+
+    context = { 'author': 'Chris Wanstrath', 'email': 'chris@ozmm.org' }
+    pystache.render("{{author}} :: {{email}}", context)
+
+
+.. _ctemplate: http://code.google.com/p/google-ctemplate/
+.. _et: http://www.ivan.fomichev.name/2008/05/erlang-template-engine-prototype.html
+.. _Mustache: http://defunkt.github.com/mustache/
+.. _mustache(5): http://defunkt.github.com/mustache/mustache.5.html
+.. _nose: http://somethingaboutorange.com/mrl/projects/nose/0.11.1/testing.html
+This is libanki 1.2.11, for the purposes of fixing problems when upgrading
+1.2.x decks.
+
+Anki uses a modified version of Pystache to provide Mustache-like syntax.
+Behaviour is a little different from standard Mustache:
+
+- {{text}} returns text verbatim with no HTML escaping
+- {{{text}}} strips an outer span tag
+- partial rendering is disabled for security reasons
+
+========
+Pystache
+========
+
+Inspired by ctemplate_ and et_, Mustache_ is a
+framework-agnostic way to render logic-free views.
+
+As ctemplates says, "It emphasizes separating logic from presentation:
+it is impossible to embed application logic in this template language."
+
+Pystache is a Python implementation of Mustache. Pystache requires
+Python 2.6.
+
+Documentation
+=============
+
+The different Mustache tags are documented at `mustache(5)`_.
+
+Install It
+==========
+
+::
+
+    pip install pystache
+
+
+Use It
+======
+
+::
+
+    >>> import pystache
+    >>> pystache.render('Hi {{person}}!', {'person': 'Mom'})
+    'Hi Mom!'
+
+You can also create dedicated view classes to hold your view logic.
+
+Here's your simple.py::
+
+    import pystache
+    class Simple(pystache.View):
+        def thing(self):
+            return "pizza"
+
+Then your template, simple.mustache::
+
+    Hi {{thing}}!
+
+Pull it together::
+
+    >>> Simple().render()
+    'Hi pizza!'
+
+
+Test It
+=======
+
+nose_ works great! ::
+
+    pip install nose
+    cd pystache
+    nosetests
+
+
+Author
+======
+
+::
+
+    context = { 'author': 'Chris Wanstrath', 'email': 'chris@ozmm.org' }
+    pystache.render("{{author}} :: {{email}}", context)
+
+
+.. _ctemplate: http://code.google.com/p/google-ctemplate/
+.. _et: http://www.ivan.fomichev.name/2008/05/erlang-template-engine-prototype.html
+.. _Mustache: http://defunkt.github.com/mustache/
+.. _mustache(5): http://defunkt.github.com/mustache/mustache.5.html
+.. _nose: http://somethingaboutorange.com/mrl/projects/nose/0.11.1/testing.html
+Anki
+-------------------------------------
+
+Prerequisites
+---------------
+
+To install the prerequisites on Ubuntu/Debian, please use the following
+command:
+
+sudo apt-get install python-qt4 mplayer lame libportaudio2 python-sqlalchemy
+
+If you're on another distribution the packages may be named differently, so
+please consult your package manager.
+
+Your Python version will need to be 2.6 or 2.7 (not 3+), and both Qt and PyQt
+need to be 4.7 or later.
+
+Installation & Running
+------------------------
+
+Anki does not need installing, and can be run from the directory it is
+extracted to. If you extracted it to ~/anki-2.0 for example, you can run Anki
+by simply typing ~/anki-2.0/runanki in a terminal.
+
+If you'd like to install it system wide, change to the folder you extracted it
+to, and run 'sudo make install'. If you need to uninstall Anki in the future,
+you can do so by typing 'sudo make uninstall'.
+
+More information
+-----------------
+
+For more information and the latest version, please see the website at:
+
+http://ankisrs.net/
+
+Please see the README file for basic requirements.
+
+In addition to the basic requirements, you also need the PyQt development
+tools (specifically pyrcc4 and pyuic4). These are often contained in a
+separate package on Linux, such as 'pyqt4-dev-tools' on Debian/Ubuntu. On a Mac
+they are part of the PyQt source install.
+
+Windows users, please see the note at the bottom of this file before proceeding.
+
+To use the development version:
+
+$ git clone https://github.com/dae/anki.git
+$ cd anki
+$ ./tools/build_ui.sh
+
+If you get any errors, you will not be able to proceed, so please return to
+the top and check the requirements again.
+
+ALL USERS: Make sure you rebuild the UI every time you git pull, otherwise you
+will get errors down the road.
+
+The translations are stored in a bazaar repo for integration with Launchpad's
+translation services. If you want to use a language other than English:
+
+$ cd ..
+$ mv anki dtop # i18n code expects anki folder to be called dtop
+$ bzr clone lp:anki i18n
+$ cd i18n
+$ ./update-mos.sh
+$ cd ../dtop
+
+And now you're ready to run Anki:
+$ ./runanki
+
+If you get any errors, please make sure you don't have an older version of
+Anki installed in a system location.
+
+Before contributing code, please read the LICENSE file.
+
+If you'd like to contribute translations, please see the translations section
+of http://ankisrs.net/docs/manual.html#_contributing
+
+WINDOWS USERS:
+
+I have not tested the build scripts on Windows, so you'll need to solve any
+problems you encounter on your own. The easiest way is to use a source
+tarball instead of git, as that way you don't need to build the UI yourself.
+If you do want to use git, a user contributed the following, which should get
+you most of the way there:
+
+    1) Install "git bash".
+    2) In the tools directory, modify build_ui.sh. Locate the line that reads
+    "pyuic4 $i -o $py" and alter it to be of the following form:
+    "<python-path-string>" "<pyuic-path-string>" $i -o $py
+    These two paths must point to your python executable, and to pyuic.py, on your
+    system. Typical paths would be:
+    <python-path> = C:\\Python27\\python.exe
+    <pyuic-path-string> = C:\\Python27\\Lib\\site-packages\\PyQt4\\uic\\pyuic.py
+
+The files in this folder are covered by their respective licenses and are
+provided to minimize external dependencies. The _portaudio.so files were
+extracted from Ubuntu 32bit and 64 distributions - check md5s to confirm.
+

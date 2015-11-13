@@ -1,0 +1,2695 @@
+  IMDbPY's goodies
+  ================
+
+Useful shell scripts, especially for developers.
+See the comments at the top of the files for usage and
+configuration options.
+
+applydiffs.sh: Bash script useful apply patches to a set of
+IMDb's plain text data files.
+You can use this script to apply the diffs files distributed
+on a (more or less) weekly base by IMDb.
+
+download_applydiffs.py: courtesy of Roy Stead, download and
+apply diff files (especially suited for a Windows environment).
+
+reduce.sh: Bash script useful to create a "slimmed down" version
+of the IMDb's plain text data files.
+It's useful to create shorter versions of the plain
+text data files, to test the imdbpy2sql.py script faster.
+
+
+
+
+  IMDbPY for (too) sensitive people
+  =================================
+
+Since version 2.0 (shame on me!  I've noticed this only after more
+than a year of development!!!) by default adult movies are included
+in the result of the search_movie(), search_episode() and search_person()
+methods.
+
+If for some unintelligible reason you don't want classics
+like "Debbie Does Dallas" to show up in your list of results,
+you can disable this feature initializing the IMDb class with
+the 'adultSearch' argument set to 0 (or other "False" value).
+
+E.g.:
+    from imdb import IMDb
+    ia = IMDb(accessSystem='http', adultSearch=0)
+
+
+The behavior of a IMDb class's instance can be modified at
+runtime, calling the do_adult_search() method.
+
+E.g.:
+    from imdb import IMDb
+
+    # By default in the horny-mode.
+    ia = IMDb(accessSystem='http')
+
+    # Just for this example, be sure to exclude the proxy.
+    ia.set_proxy(None)
+
+    results = ia.search_movie('debby does dallas', results=5)
+    for movie in results:
+        print movie['long imdb title'], movie.movieID
+    # It will print:
+    # Debbie Does Dallas (1978) 0077415
+    # Debbie Does Dallas Part II (1981) 0083807
+    # Debbie Does Dallas: The Next Generation (1997) (V) 0160174
+    # Debbie Does Dallas '99 (1999) (V) 0233539
+    # Debbie Does Dallas 3 (1985) 0124352
+
+    # You can now revert to the old puritan behavior.
+    ia.do_adult_search(0)
+
+    results = ia.search_movie('debby does dallas', results=5)
+    for movie in results:
+       print movie['long imdb title'], movie.movieID
+    # It will print only:
+    # Pauly Does Dallas (1993) (TV) 0208347
+
+
+The do_adult_search() method of the http and mobile data access system
+also takes another couple of arguments: "cookie_id" and "cookie_uu", so
+that you can select _your own_ IMDb's account; if cookie_id is set to
+None, no cookies are sent.  These parameters can also be set in
+the imdbpy.cfg configuration file.
+For the strings to use, see your "cookie" or "cookie.txt" file.
+Obviously you need to activate the "adult movies" option for
+your account; see http://imdb.com/find/preferences?_adult=1
+
+
+  OTHER DATA ACCESS SYSTEMS
+  =========================
+
+Since version 2.2 every other data access system (sql)
+support the same behavior of the http and mobile data access
+systems (i.e.: you can set the 'adultSearch' argument and use
+the 'do_adult_search' method).
+
+Notice that for the sql data access system only results from the
+search_movie() and search_episode() methods are filtered: there's no
+easy (and fast) way to tell that an actor/actress is a porn-star.
+
+
+
+
+  COMPANIES DATA
+  ==============
+
+Since IMDbPY 3.6, companies have their own class and every reference
+to a company is now an instance of the Company class.
+
+  NOTES
+  =====
+
+- no references (inside text field) about companies are retrieved,
+  so far; I don't even think there are any in the IMDb web site, but
+  I may be wrong.
+
+- 'mobile' data access system collects companies informations through
+  the 'httpThin' method; it should be fast enough.
+
+
+
+
+  THE currentRole ATTRIBUTE AND THE Character CLASS
+  =================================================
+
+Since version 3.3, IMDbPY supports the character pages of the IMDb
+database; this required some substantial changes to how actors'
+and acresses' roles were handled.
+Starting with release 3.4, "sql" data access system is supported,
+too - but it works a bit differently from "http" and "mobile".
+See "SQL" below.
+
+The currentRole instance attribute can be found in every instance
+of Person, Movie and Character classes, even if actually the Character
+never uses it.
+
+The currentRole of a Person object is set to a Character instance,
+inside a list of person who acted in a given movie.
+The currentRole of a Movie object is set to a Character instance,
+inside a list of movies played be given person.
+The currentRole of a Movie object is set to a Person instance,
+inside a list of movies in which a given character was portrayed.
+
+Schema:
+  movie['cast'][0].currentRole -> a Character object.
+                |
+                +-> a Person object.
+
+  person['actor'][0].currentRole -> a Character object.
+                  |
+                  +-> a Movie object.
+
+  character['filmography'][0].currentRole -> a Person object.
+                           |
+                           +-> a Movie object.
+
+The roleID attribute can be used to access/set the characterID
+or personID instance attribute of the current currentRole.
+Building Movie or Person objects, you can pass the currentRole
+parameter and the roleID parameter (to set the ID).
+The currentRole parameter can be an object (Character or Person),
+an unicode string (in which case a Character or Person object is
+automatically instanced) or a list of objects or strings (to
+handle multiple characters played by the same actor/actress in
+a movie, or character played by more then a single actor/actress
+in the same movie).
+
+Anyway, currentRole objects (Character or Person instances) can
+be pretty-printed easily: calling unicode(CharacterOrPersonObject)
+will return a good-old-unicode string, like expected in the previous
+version of IMDbPY.
+
+
+  SQL
+  ===
+
+Fetching data from the web, only characters with an active page
+on the web site will have their characterID; we don't have these
+information accessing "sql", so _every_ character will have an
+associated characterID.
+This way, every character with the same name will share the same
+characterID, even if - in fact - they may not be portraying the
+same character.
+
+
+  GOODIES
+  =======
+
+To help getting the required information from Movie, Person and
+Character objects, in the "helpers" module there's a new factory
+function, makeObject2Txt, which can be used to create your
+pretty-printing function.
+It takes some optional parameters: movieTxt, personTxt, characterTxt
+and companyTxt; in these strings %(value)s items are replaced with
+object['value'] or with obj.value (if the first is not present).
+
+E.g.:
+  import imdb
+  myPrint = imdb.helpers.makeObject2Txt(personTxt=u'%(name)s ... %(currentRole)s')
+  i = imdb.IMDb()
+  m = i.get_movie('0057012')
+  ps = m['cast'][0]
+  print myPrint(ps)
+  # The output will be something like:
+  Peter Sellers ... Group Captain Lionel Mandrake / President Merkin Muffley / Dr. Strangelove
+
+
+Portions of the formatting string can be stripped conditionally: if
+the specified condition is false, they will be cancelled.
+
+E.g.:
+  myPrint = imdb.helpers.makeObject2Txt(personTxt='<if personID><a href=/person/%(personID)s></if personID>%(long imdb name)s<if personID></a></if personID><if currentRole> ... %(currentRole)s<if notes> %(notes)s</if notes></if currentRole>'
+
+
+Another useful argument is 'applyToValues': if set to a function,
+it will be applied to every value before the substitution; it can
+be useful to format strings for html output.
+
+
+  DEVELOPMENT OF IMDbPY
+  =====================
+
+A lot of other information useful to IMDbPY developers are available
+in the "README.package" file.
+
+Sections in this file:
+* STRUCTURE OF THE IMDbPY PACKAGE
+* GENERIC DESCRIPTION
+* HOW TO EXTEND
+
+
+  STRUCTURE OF THE IMDbPY PACKAGE
+  ===============================
+
+imdb (package)
+ |
+ +-> _compat
+ +-> _exceptions
+ +-> _logging
+ +-> linguistics
+ +-> Movie
+ +-> Person
+ +-> Character
+ +-> Company
+ +-> utils
+ +-> helpers
+ +-> parser (package)
+       |
+       +-> http (package)
+       |    |
+       |    +-> movieParser
+       |    +-> personParser
+       |    +-> characterParser
+       |    +-> companyParser
+       |    +-> searchMovieParser
+       |    +-> searchPersonParser
+       |    +-> searchCharacterParser
+       |    +-> searchCompanyParser
+       |    +-> searchKeywordParser
+       |    +-> topBottomParser
+       |    +-> utils
+       |    +-> bsouplxml
+       |         |
+       |         +-> _bsoup.py
+       |         +-> etree.py
+       |         +-> html.py
+       |         +-> bsoupxpath.py
+       |
+       +-> mobile (package)
+       |
+       +-> sql (package)
+            |
+            +-> dbschema
+            +-> alchemyadapter
+            +-> objectadapter
+            +-> cutils (C module)
+
+
+Description:
+imdb (package): contains the IMDb function, the IMDbBase class and imports
+                the IMDbError exception class.
+_compat: compatibility functions and class for some strange environments
+         (internally used).
+_exceptions: defines the exceptions internally used.
+_logging: provides the logging facility used by IMDbPY.
+linguistics: defines some functions and data useful to smartly guess the
+           language of a movie title (internally used).
+Movie: contains the Movie class, used to describe and manage a movie.
+Person: contains the Person class, used to describe and manage a person.
+Character: contains the Character class, used to describe and manage
+           a character.
+Company: contains the Company, used to describe and manage a company.
+utils: miscellaneous utilities used by many IMDbPY modules.
+parser (package): a package containing a package for every data access system
+                  implemented.
+http (package): contains the IMDbHTTPAccessSystem class which is a subclass
+                of the imdb.IMDbBase class; it provides the methods used to
+                retrieve and manage data from the web server (using,
+                in turn, the other modules in the package).
+                It defines methods to get a movie and to search for a title.
+http.movieParser: parse html strings from the pages on the IMDb web server about
+                  a movie; returns dictionaries of {key: value}
+http.personParser: parse html strings from the pages on the IMDb web server
+                   about a person; returns dictionaries.
+http.characterParser: parse html strings from the pages on the IMDb web server
+                      about a character; returns dictionaries.
+http.companyParser: parse html strings from the pages on the IMDb web server
+                    about a company; returns dictionaries.
+http.searchMovieParser: parse an html string, result of a query for a movie
+                        title.
+http.searchPersonParser: parse an html string, result of a query for a person
+                         name.
+http.searchCharacterParser: parse an html string, result of a query for a
+                            character name.
+http.searchCompanyParser: parse an html string, result of a query for a
+                          company name.
+http.searchKeywordParser: parse an html string, result of a query for a keyword.
+http.topBottomParser: parse an html string, result of a query for top250
+                      and bottom100 movies.
+http.utils: miscellaneous utilities used only by the http package.
+http.bsouplxml (package): adapter to make BeautifulSoup behave like lxml
+                          (internally, the API of lxml is always used).
+http.bsouplxml._bsoup: just a copy of the BeautifulSoup module, so that it's not
+                       an external dependency.
+http.bsouplxml.etree: adapter for the lxml.etree module.
+http.bsouplxml.html: adapter for the lxml.html module.
+http.bsouplxml.bsoupxpath: xpath support for beautifulsoup.
+
+
+The parser.sql package manages the access to the data in the SQL
+database, created with the imdbpy2sql.py script; see the README.sqldb file.
+The dbschema module contains tables definitions and some useful functions;
+The alchemyadapter adapts the SQLAlchemy ORM to the internal mechanisms
+of IMDbPY, and the objectadapter does the same for the SQLObject ORM
+(internally the API of SQLObject is always used).
+The cutils module is a C module containing C function to speed up the
+'sql' data access system; if it can't be compiled, a set of fall'back
+functions will be used.
+
+The class in the parser.mobile package is a subclass of the one found
+in parser.http, with some method overridden to be many times faster (from
+2 to 20 times); it's useful for systems with slow bandwidth and not
+much CPU power.
+
+The helpers module contains functions and other goodies not directly
+used by the IMDbPY package, but that can be useful to develop
+IMDbPY-based programs.
+
+
+  GENERIC DESCRIPTION
+  ===================
+
+I wanted to stay independent from the source of the data for a given
+movie/person/character/company, and so the imdb.IMDb function returns
+an instance of a class that provides specific methods to access a given
+data source (web server, SQL database, etc.)
+
+Unfortunately that means that the movieID in the Movie class, the
+personID in the Person class and the characterID in the Character class
+are dependent on the data access system used.
+So, when a Movie, a Person or a Character object is instantiated, the
+accessSystem instance variable is set to a string used to identify the
+used data access system.
+
+
+  HOW TO EXTEND
+  =============
+
+To introduce a new data access system, you've to write a new package
+inside the "parser" package; this new package must provide a subclass
+of the imdb.IMDb class which must define at least the following methods:
+ _search_movie(title)  - to search for a given title; must return a
+                         list of (movieID, {movieData}) tuples.
+ _search_episode(title)  - to search for a given episode title; must return a
+                           list of (movieID, {movieData}) tuples.
+ _search_person(name)  - to search for a given name; must return a
+                         list of (movieID, {personData}) tuples.
+ _search_character(name)  - to search for a given character's name; must
+                            return a list of (characterID, {characterData})
+                            tuples.
+ _search_company(name)  - to search for a given company's name; must
+                            return a list of (companyID, {companyData})
+                            tuples.
+ get_movie_*(movieID)  - a set of methods, one for every set of information
+                         defined for a Movie object; should return
+                         a dictionary with the relative information.
+                         This dictionary can contains some optional keys:
+                         'data': must be a dictionary with the movie info.
+                         'titlesRefs': a dictionary of 'movie title': movieObj
+                                       pairs.
+                         'namesRefs': a dictionary of 'person name': personObj
+                                      pairs.
+ get_person_*(personID) - a set of methods, one for every set of information
+                          defined for a Person object; should return
+                          a dictionary with the relative information.
+ get_character_*(characterID) - a set of methods, one for every set of
+                                information defined for a character object;
+                                should return a dictionary with the relative
+                                information.
+ get_company_*(companyID) - a set of methods, one for every set of
+                            information defined for a company object;
+                            should return a dictionary with the relative
+                            information.
+ _get_top_bottom_movies(kind) - kind can be one of 'top' and 'bottom';
+                                returns the related list of movies.
+ _get_keyword(keyword) - return a list of Movie objects with the given keyword.
+ _search_keyword(key) - return a list of keywords similar to the given key.
+ get_imdbMovieID(movieID) - must convert the given movieID to a string
+                            representing the imdbID, as used by the IMDb web
+                            server (e.g.: '0094226' for Brian De Palma's
+                            "The Untouchables").
+ get_imdbPersonID(personID) - must convert the given personID to a string
+                              representing the imdbID, as used by the IMDb web
+                              server (e.g.: '0000154' for "Mel Gibson").
+ get_imdbCharacterID(characterID) - must convert the given characterID to a
+                                    string representing the imdbID, as used by
+                                    the IMDb web server (e.g.: '0000001' for
+                                    "Jesse James").
+ get_imdbCompanyID(companyID) - must convert the given companyID to a
+                                string representing the imdbID, as used by
+                                the IMDb web server (e.g.: '0071509' for
+                                "Columbia Pictures [us]").
+ _normalize_movieID(movieID) - must convert the provided movieID in a
+                               format suitable for internal use (e.g.:
+                               convert a string to a long int).
+                               NOTE: as a rule of thumb you _always_ need
+                               to provide a way to convert a "string
+                               representation of the movieID" into the
+                               internally used format, and the internally
+                               used format should _always_ be converted to
+                               a string, in a way or another.
+                               Rationale: a movieID can be passed from the
+                               command line, or from a web browser.
+ _normalize_personID(personID) - idem.
+ _normalize_characterID(characterID) - idem.
+ _normalize_companyID(companyID) - idem.
+ _get_real_movieID(movieID) - return the true movieID; useful to handle
+                              title aliases.
+ _get_real_personID(personID) - idem.
+ _get_real_characterID(characterID) - idem.
+ _get_real_companyID(companyID) - idem.
+
+The class should raise the appropriate exceptions, when needed;
+IMDbDataAccessError must be raised when you cannot access the resource
+you need to retrieve movie info or you're unable to do a query (this is
+_not_ the case when a query returns zero matches: in this situation an
+empty list must be returned); IMDbParserError should be raised when an
+error occurred parsing some data.
+
+Now you've to modify the imdb.IMDb function so that, when the right
+data access system is selected with the "accessSystem" parameter, an
+instance of your newly created class is returned.
+
+NOTE: this is a somewhat misleading example: we already have a
+data access system for sql database (it's called 'sql' and it supports
+also MySQL, amongst other).  Maybe I'll find a better example...
+E.g.: if you want to call your new data access system "mysql" (meaning
+that the data are stored in a mysql database), you've to add to the imdb.IMDb
+function something like:
+  if accessSystem == 'mysql':
+      from parser.mysql import IMDbMysqlAccessSystem
+      return IMDbMysqlAccessSystem(*arguments, **keywords)
+
+where "parser.mysql" is the package you've created to access the
+local installation, and "IMDbMysqlAccessSystem" is the subclass of
+imdb.IMDbBase.
+Then it's possibile to use the new data access system like:
+  from imdb import IMDb
+  i = IMDb(accessSystem='mysql')
+  results = i.search_movie('the matrix')
+  print results
+
+A specific data access system implementation can defines it's own
+methods.
+As an example, the IMDbHTTPAccessSystem that is in the parser.http package
+defines the method set_proxy() to manage the use a web proxy; you
+can use it this way:
+      from imdb import IMDb
+      i = IMDb(accessSystem='http') # the 'accessSystem' argument is not
+                              # really needed, since "http" is the default.
+      i.set_proxy('http://localhost:8080/')
+
+A list of special methods provided by the imdb.IMDbBase subclass, along
+with their description, is always available calling the get_special_methods()
+of the IMDb class.
+E.g.:
+     i = IMDb(accessSystem='http')
+     print i.get_special_methods()
+
+will print a dictionary with the format:
+  {'method_name': 'method_description', ...}
+
+
+
+  IMDbPY HTTP CONNECTION
+  ======================
+
+HTTP is the default data access system of IMDbPY, meaning that by default
+data are requested at the IMDb web servers.
+For other kinds of data access, see README.sqldb and README.mobile.
+
+By default IMDbPY uses its own account to access the IMDb web server (this
+is done to enable searches on adult titles); if you want to uses your own
+account, see README.adult.
+
+  CONNECTION PROBLEMS
+  ===================
+
+It has been reported some kind of problems connecting to the IMDb servers;
+the problem seems to be related to the use of our cookie and the geographical
+location of the user.
+If you experience such a problem, report it and try to disable the use of the
+cookie (to do so, see README.adult).
+
+
+
+  INFORMATION IN XML FORMAT
+  =========================
+
+Since version 4.0, IMDbPY can output information of Movie, Person,
+Character and Company instances in XML format.
+It's possible to get a single information (a key) in XML format,
+using the getAsXML(key) method (it will return None if the key is
+not found).
+E.g.:
+  from imdb import IMDb
+  ia = IMDb('http')
+  movie = ia.get_movie(theMovieID)
+  print movie.getAsXML('keywords')
+
+It's also possible to get a representation of a whole object,
+using the asXML() method:
+  print movie.asXML()
+
+The returned strings are unicode.  The _with_add_keys argument
+of the asXML() method can be set to False (default: True) to
+exclude the dynamically generated keys (like 'smart canonical title'
+and so on).
+
+
+  XML FORMAT
+  ==========
+
+Keywords are converted to tags, items in lists are enclosed in
+a 'item' tag.  E.g.:
+  <keywords>
+    <item>a keyword</item>
+    <item>another keyword</item>
+  </keywords>
+
+Except when keys are known to be not fixed (e.g.: a list of keywords),
+in which case this schema is used:
+  <item key="EscapedKeyword">
+     ...
+  </item>
+
+In general, the 'key' attribute is present whenever the used tag
+doesn't match the key name.
+
+Movie, Person, Character and Company instances are converted like
+that (portions enclosed in squares are optionals):
+  <movie id="movieID" access-system="accessSystem">
+    <title>A Long IMDb Movie Title (YEAR)</title>
+    [<current-role>
+       <person id="personID" access-system="accessSystem">
+         <name>Name Surname</name>
+         [<notes>A Note About The Person</notes>]
+       </person>
+     </current-role>]
+     [<notes>A Note About The Movie</notes>]
+  </movie>
+
+Every 'id' can be empty.
+
+Actually the returned XML is mostly not pretty-printed.
+
+
+  REFERENCES
+  ==========
+
+Some text keys can contain references to other movies, persons
+and characters.  The user can provide the defaultModFunct function (see
+the "MOVIE TITLES AND PERSON/CHARACTER NAMES REFERENCES" section of
+the README.package file), to replace these references with their own
+strings (e.g.: a link to a web page); it's up to the user, to be sure
+that the output of the defaultModFunct function is valid XML.
+
+
+  DTD
+  ===
+
+Since version 4.1 a DTD is available; it can be found in this
+directory or on the web, at:
+  http://imdbpy.sf.net/dtd/imdbpy41.dtd
+
+The version number changes with the IMDbPY version.
+
+
+  LOCALIZATION
+  ============
+
+Since version 4.1 it's possible to translate the XML tags;
+see README.locale.
+
+
+  FROM XML TO OBJECTS
+  ===================
+
+Since version 4.6, you can dump the generated XML in a string or
+in a file, using it - later - to rebuild the original object.
+In the imdb.helpers module there's the parseXML() function which
+takes a string as input and return - if possible - an instance of
+the Movie, Person, Character or Company classes.
+
+
+
+
+  KEYWORDS
+  ========
+
+Since version 4.0, it's possible (for every data access system) to
+search for movies' keywords.
+People's keywords are not supported.
+
+
+  SEARCH FOR A KEYWORD SIMILAR TO A GIVEN STRING
+  ==============================================
+
+The search_keyword(unicode_string) can be used to search amongst
+keywords: a list of keywords similar to the given string will be
+returned, sorted by similarity.  Notice that the keywords in the
+returned list are plain unicode strings, and not instances of
+some class (like the ones returned by other search_SOMETHING methods).
+
+E.g.:
+  from imdb import IMDb
+  ia = IMDb('http')
+  print ia.search_keyword(u'alabama')
+
+
+  GET A LIST OF MOVIES FOR A GIVEN KEYWORD
+  ========================================
+
+To get a list of movies that are tagged with the given keyword,
+use the get_keyword(unicode_string) method.
+E.g.:
+  from imdb import IMDb
+  ia = IMDb('http')
+  print ia.get_keyword(u'alabama')
+
+Beware that by default the list is limited to 100 movies, and
+it's not possible to get more results, using 'http'.
+Moreover, the lists returned using 'sql' are not sorted in any way.
+Another limit is that actually (as of february 2009), the IMDb's
+web server is unable to serve pages about non-ascii keywords.
+It's a known problem of their systems.
+
+
+  LOCAL INSTALLATION
+  ==================
+
+Simple instruction: switch to 'sql' (see the README.sqldb file).
+
+The 'local' data access system was removed since IMDbPY 4.2, for
+a series of good reasons:
+- the moviedb program was no more distributed by IMDb.
+- the new format for movie titles ("The Title" instead of "Title, The")
+  created way too many problems almost impossible to fix, since a lot
+  of damage was done by the - never updated - moviedb program.
+- it was slower and less complete than 'sql'.
+- there were very few users of it.
+
+
+If you are veeery willing to resuscitate it, you can write in
+the mailing list about your crazy idea. :-)
+
+
+
+  LOCALIZATION FOR IMDbPY
+  =======================
+
+Since version 4.1 it's easy to translate the labels that describe
+sets of information.
+
+
+  LIMITATION
+  ==========
+
+So far no internal message or exception is translated, the
+internationalization is limited to the "tags" returned
+by the getAsXML and asXML methods of the Movie, Person, Character
+or Company classes.  Beware that in many cases these "tags" are not
+the same as the "keys" used to access information in the same
+classes, as if they are dictionaries.
+E.g.: you can translate "long-imdb-name" - the tag returned by
+the call person.getAsXML('long imdb name') - but not "long imdb name"
+directly.
+To translate keys, you can use the helpers.translateKey function in
+the 'helpers' module.
+
+
+  USAGE
+  =====
+
+If you want to add i18n to your IMDbPY-based application, all you need
+to do is to switch to the 'imdbpy' text domain.
+
+E.g.:
+  import imdb.locale
+
+  # Standard gettext stuff.
+  import gettext
+  from gettext import gettext as _
+
+  # Switch to the imdbpy domain.
+  gettext.textdomain('imdbpy')
+
+  # Request a translation.
+  print _(u'long-imdb-name')
+
+
+  ADD A NEW LANGUAGE
+  ==================
+
+You can (but you're not forced to) use Transifex to manage/coordinate
+your translations; see: http://www.transifex.net/projects/p/imdbpy/c/default/
+Below, the generic instruction about how translation works.
+
+In the imdb.locale package, you'll find some scripts useful to build
+your own internationalization files.
+If you create a new translation or update an existing one, you can send
+it to the <imdbpy-devel@lists.sourceforge.net> mailing list, for
+inclusion in the next releases.
+
+- the generatepot.py should be used only when the DTD is changed; it's
+  used to create the imdbpy.pot file (the one shipped is always
+  up-to-date).
+- you can copy the imdbpy.pot file to your language's .po file (e.g.
+  imdbpy-fr.po for French) and modify it accordingly to your needs.
+- then you must run rebuildmo.py (which is automatically called
+  at install time, by the setup.py script) to create the .mo files.
+
+If you need to upgrade an existing .po file, after changes to the .pot
+file (usually because the DTD was changed), you can use the msgmerge
+tool, part of the GNU gettext suite.
+E.g.:
+  msgmerge -N imdbpy-fr.po imdbpy.pot > new-imdbpy-fr.po
+
+
+
+  ARTICLES IN TITLES
+  ==================
+
+Converting a title to its 'Title, The' canonical format, IMDbPY does
+some assumptions about what is an article and what not, and this could
+lead to some wrong canonical titles.  E.g.: "Hard, Die" instead of
+"Die Hard", since 'Die' is guessed as an article (and it is, in Germany...)
+To solve this problem, there are other keys: "smart canonical title",
+"smart long imdb canonical title", "smart canonical series title",
+"smart canonical episode title" which can be used to do a better job
+converting a title into its canonical format.
+
+It works, but it needs to know something about articles in various
+languages: if you want to help, see the LANG_ARTICLES and LANG_COUNTRIES
+dictionaries in the 'linguistics' module.
+
+To know what the language in which a movie title is assumed to be,
+call its 'guessLanguage' method (it will return None, if unable to guess).
+If you want to force a given language instead of the guessed one, you
+can call its 'smartCanonicalTitle' method, setting the 'lang' argument
+appropriately.
+
+
+  TITLE AKAS
+  ==========
+
+Sometimes it's useful to manage title's AKAs knowing their languages.
+In the 'helpers' module there are some (hopefully) useful functions:
+akasLanguages(movie) - given a movie, return a list of tuples
+                       in (lang, AKA) format (lang can be None, if unable to detect).
+sortAKAsBySimilarity(movie, title) - sorts the AKAs on a movie considering
+                                     how much they are similar to a given title (see
+                                     the code for more options).
+getAKAsInLanguage(movie, lang) - return a list of AKAs of the movie in the given
+                                 language (see the code for more options).
+
+
+
+  LOGGING
+  =======
+
+Since version 4.4 IMDbPY provides a logging facility, using the
+powerful "logging" module.
+You can find documentation about it here:
+  http://docs.python.org/library/logging.html
+
+By default information are logged on standard error; you can read
+on the module documentation how to stream them elsewhere.
+
+The default logging level is "warning"; this can be changed
+modifying the "loggingLevel" key of your imdbpy.cfg file.
+
+
+  IMDbPY FOR SMALL SYSTEMS
+  ========================
+
+Since version 1.8, IMDbPY tries to be usable even on
+systems with very limited storage space, bandwidth and
+CPU power, like PDA, hand-held devices and mobile phones.
+
+Sections in this file:
+* INSTALLATION OPTIONS
+  how to save a little space installing IMDbPY.
+* THE "MOBILE" DATA ACCESS SYSTEM
+  useful for systems with very little CPU power and bandwidth.
+* THE "HTTPTHIN" DATA ACCESS SYSTEM
+  for systems with normal CPU power, but insufficient bandwidth.
+* OTHER TIPS
+
+Please read all the following section.
+
+
+  INSTALLATION OPTIONS
+  ====================
+
+You can call the setup.py script with some arguments:
+
+The --without-sql argument, if used, will excludes the parser.sql
+package; you don't need it if your system does not have any of the
+SQLObject or SQLAlchemy packages and/or you don't want to store the
+whole IMDb's plain text database files in a SQL database.
+
+Now, if you're installing IMDbPY (using ./setup.py install), you
+should take a look at some options, like "--no-compile" and "-O0"
+to exclude pyc  and pyo files, saving hundreds of KBs.
+
+Moreover, if you're creating a package (rpm, deb or whatever),
+in the setup.cfg you can exclude from your package things
+like the documentation (more than 200Kb) and the scripts in the
+./bin/ directory.
+
+
+  THE "MOBILE" DATA ACCESS SYSTEM
+  ===============================
+
+Intended to be used with PDA, smart phones and hand-held devices,
+the "mobile" data access system is a subclass of the default
+"httpThin" data access system, with some methods replaced with faster
+string methods, instead of the html parser.  Moreover, for
+the movies, only the main information are retrieved (see the 'httpThin'
+notes).  It should be, at usage time, from 2 to 20 times faster than
+the "http"/"httpThin" data access system.
+
+This code still needs tests on mobile phones!
+Please report any bugs/ideas/hints...
+
+Usage:
+  from imdb import IMDb
+  i = IMDb('mobile')
+  sp = i.search_person('mel gibson', results=10)
+  p = sp[0]
+  i.update(p)
+  sm = i.search_movie('mystic river', results=15)
+  m = sm[0]
+  i.update(m)
+  ...and so on...
+
+
+A GUI for Series 60 smart phones, is available at:
+  http://imdbpy.sourceforge.net/?page=mobile
+
+
+  THE "HTTPTHIN" DATA ACCESS SYSTEM
+  =================================
+
+Instead of the default data access system ('http'), you can
+also use 'httpThin' (or 'webThin' or 'htmlThin').
+
+I.e.:
+  from imdb import IMDb
+  i = IMDb('httpThin')
+  sp = i.search_person('mel gibson', results=10)
+  sm = i.search_movie('mystic river', results=15)
+  ...and so on...
+
+
+The main difference is that, parsing movies' information,
+the "maindetails" page is parsed, in place of the "combined" page.
+This reduces the required bandwidth and the CPU power needed.
+Obviously a lot of information are lost (and only the first 15
+people of the cast are listed), but it still retrieves everything
+you usually need (director, writer, runtime, country, language, akas,
+etc.)
+
+Another difference is that, if the "defaultModFuct" parameter is not
+provided (as default) calling the IMDb() function, no references
+to people or movie are collected from textual information (like
+the plot of a movie).
+
+
+  OTHER TIPS
+  ==========
+
+Remember that, calling the search_movie(), search_episode() and
+search_person() methods of the "IMDb" object, you can provide a "results"
+parameter, to download only a limited amount of results (20,
+by default).
+
+With the http, httpThin and mobile data access systems you can
+set a proxy with the set_proxy() method; e.g.:
+  i = IMDb('http')
+  i.set_proxy('http://localhost:8080/')
+
+Remember that the proxy is automatically used if the $HTTP_PROXY
+environment variable is set.
+
+
+
+  IMDbPY'S NEW HTML PARSERS
+  =========================
+
+Since version 3.7, IMDbPY has moved its parsers for the HTML of
+the IMDb's website from a set of subclasses of SGMLParser (they
+were finite-states machines, being SGMLParser a SAX parser) to
+a set of parsers based on the libxml2 library or on the BeautifulSoup
+module (and so, using a DOM/XPath-based approach).
+The idea and the implementation of these new parsers is mostly a
+work of H. Turgut Uyar, and can bring to parsers that are shorter,
+easier to write and maybe even faster.
+
+The old set of parsers was removed since IMDbYP 4.0.
+
+
+  LIBXML AND/OR BEAUTIFULSOUP
+  ===========================
+
+To use "lxml", you need the libxml2 library installed (and its
+python-lxml binding).  If it's not present on your system, you'll
+fall-back to BeautifulSoup - distributed alongside IMDbPY, and so
+you don't need to install anything.
+However, beware that being pure-Python, BeautifulSoup is much
+slower than lxml, so install it, if you can.
+
+If for some reason you can't get lxml and BeautifulSoup is too
+slow for your needs, consider the use of the 'mobile' data
+access system.
+
+
+  GETTING LIBXML, LIBXSLT AND PYTHON-LXML
+  =======================================
+
+If you're in a Microsoft Windows environment, all you need is
+python-lxml (it includes all the required libraries), which can
+be downloaded from here:
+  http://pypi.python.org/pypi/lxml/
+
+Otherwise, if you're in a Unix environment, you can download libxml2
+and libxslt from here (you need both, to install python-lxml):
+  http://xmlsoft.org/downloads.html
+  http://xmlsoft.org/XSLT/downloads.html
+
+The python-lxml package can be found here:
+  http://codespeak.net/lxml/index.html#download
+
+Obviously you should first check if these libraries are already
+packaged for your distribution/operating system.
+
+IMDbPY was tested with libxml2 2.7.1, libxslt 1.1.24 and
+python-lxml python-lxml 2.1.1.  Older versions can work, too; if
+you have problems, submit a bug report specifying your versions.
+
+You can also get the latest version of BeautifulSoup from here:
+  http://www.crummy.com/software/BeautifulSoup/
+but since it's distributed with IMDbPY, you don't need it (or
+you have to override the '_bsoup.py' file in the imdb/parser/http
+directory), and this is probably not a good idea, since newer versions
+of BeautifulSoup behave in new and unexpected ways.
+
+
+  USING THE OLD PARSERS
+  =====================
+
+The old set of parsers was removed since IMDbYP 4.0.
+
+
+  FORCING LXML OR BEAUTIFULSOUP
+  =============================
+
+By default, IMdbPY uses python-lxml, if it's installed.
+You can force the use of one given parser passing the 'useModule'
+parameter.  Valid values are 'lxml' and 'BeautifulSoup'.  E.g.:
+    from imdb import IMDb
+    ia = IMDb('http', useModule='BeautifulSoup')
+    ...
+
+useModule can also be a list/tuple of strings, to specify the
+preferred order.
+
+
+
+  IMDbPY package
+  ==============
+
+Here you can find information useful to use IMDbPY to write your
+own scripts or programs.
+These information are far from complete: the code is the final
+documentation! ;-)
+
+Sections in this file:
+* GENERAL USAGE
+* THE Movie CLASS
+* THE Person CLASS
+* THE Character CLASS
+* THE Company CLASS
+* INFORMATION SETS
+* Person OBJECTS INSIDE A Movie CLASS AND Movie OBJECTS INSIDE A Person OBJECT
+* Company OBJECTS INSIDE A Movie CLASS AND Movie OBJECTS INSIDE A Company OBJECT
+* THE (NOT-SO-)"UNIVERSAL" '::' SEPARATOR
+* MOVIE TITLES AND PERSON/CHARACTER NAMES REFERENCES
+* EXCEPTIONS
+* OTHER SOURCES OF INFO
+
+  UNICODE NOTICE
+  ==============
+
+Since release 2.4, IMDbPY internally manages every information about
+movies and people using unicode strings.  Please read the README.unicode file.
+
+
+  GENERAL USAGE
+  =============
+
+To use the IMDbPY package, you've to import the imdb package and
+call the IMDb function.
+the basic invocation is:
+
+  import imdb
+  imdb_access = imdb.IMDb()
+
+If you're accessing a sql installation of the IMDb's data,
+you must do:
+  imdb_access = imdb.IMDb('sql', uri='URI_TO_YOUR_DB')
+where 'URI_TO_YOUR_DB' points to your SQL database (see README.sqldb
+for more information).
+
+Now you've the "imdb_access" object, instance of a subclass
+of the imdb.IMDbBase class, which can be used to search for a given
+title/name and to retrieve information about the referred movie,
+person or character.
+
+The IMDb function can be called with a 'accessSystem' keyword argument,
+that must be a string representing the type of data access you want
+to use.  That's because different systems to access the IMDb data are
+available: you can directly fetch data from the web server, you can
+have a local copy of the database (see http://www.imdb.com/interfaces/),
+you can access movie data through the e-mail interface, etc. etc.
+
+
+  Supported access systems  |  Aliases  |  Description
+ ---------------------------+-----------+------------------------------------
+  (default) 'http'          |   'web',  | information are fetched through
+                            |   'html'  | the http://akas.imdb.com web server.
+ ---------------------------+-----------+------------------------------------
+             'sql'          |   'db',   | information are fetched through
+                            | 'database'| a SQL database (every database
+                            |           | supported by SQLObject and SQLAlchemy
+                            |           | is available).
+ ---------------------------+-----------+------------------------------------
+           'mobile'         |           | same as 'httpThin', but string
+                            |           | methods are used for parsing.
+                            |           | Ideal for small systems like PDA,
+                            |           | smart phones, hand-held devices with
+                            |           | limited bandwidth and CPU power.
+ ---------------------------+-----------+------------------------------------
+          'httpThin'        | 'webThin' | identical to 'http', but less
+                            | 'htmlThin'| information are gathered; useful
+                            |           | for systems with limited bandwidth.
+
+NOTE ON THE 'DEFAULT' ACCESS SYSTEM: since release 3.4, the 'imdbpy.cfg'
+configuration file is available, so that you can set a system-wide (or
+user-wide) default.  The file is commented with indication of the location
+where it can be put, and how to modify it.
+Obviously, if no imdbpy.cfg file is found (or is not readable or it can't
+be parsed), 'http' is still considered the default.
+
+
+The imdb_access object has ten main methods: search_movie(title),
+get_movie(movieID), search_person(name), get_person(personID),
+search_character(name), get_character(characterID), search_company(name),
+get_company(companyID), search_episode() and update(MovieOrPersonObject)
+
+  Methods description:
+
+search_movie(title) searches for the given title, and returns a
+list of Movie objects containing only basic information like the
+movie title and year, and with a "movieID" instance variable:
+   - movieID is an identifier of some kind; for the sake of simplicity
+     you can think of it as the ID used by the IMDb's web server used to
+     univocally identify a movie (e.g.: '0094226' for Brian De Palma's
+     "The Untouchables"), but keep in mind that it's not necessary the
+     same ID!!!
+     For some implementations of the "data access system" these two IDs can
+     be the same (and this is the case of the 'http' data access system), but
+     other "access systems" can use a totally different kind of movieID.
+     The easier (I hope!) way to understand this is to think at the
+     movieID of a Movie returned by the search_movie() method as the _thing_
+     you've  to pass to the get_movie() method, so that it can retrieve info
+     about the referred movie.
+     So, movieID _can_ be the imdbID ('0094226') if you're accessing
+     the web server, but with a sql installation of the IMDb database,
+     movieID will be an integer, as read from the id columns in the database.
+
+search_episode(title) is identical to search_movie(), except that its
+tailored to search for episodes' titles; best results are expected
+searching for just the title of the episode, _without_ the title of
+the TV series.
+
+get_movie(movieID) will fetch the needed data and return a Movie object
+for the movie referenced by the given movieID; the Movie class can be
+found in the Movie module; a Movie object presents basically the same
+interface of a Python's dictionary, so you can access, for example, the
+list of actors and actress using the syntax: movieObject['cast']
+
+The search_person(name), get_person(personID) search_character(name)
+get_character(characterID), search_company(name) and get_company(companyID)
+methods work the same way as search_movie(title) and get_movie(movieID).
+
+The search_keyword(string) method returns a list of unicode string that are
+valid keywords, similar to the one given.
+The get_keyword(keyword) method returns a list of Movie instances that
+are tagged with the given keyword.
+For more information see README.keywords.
+
+The get_imdbMovieID(movieID), get_imdbPersonID(personID),
+get_imdbCharacterID(characterID) and get_imdbCompanyID(companyID) take,
+respectively, a movieID, a personID, a movieID and a companyID and return
+the relative imdbID; it's safer to use the
+get_imdbID(MovieOrPersonOrCharacterOrCompanyObject) method.
+
+The title2imdbID(title), name2imdbID(name), character2imdbID(name) and
+company2imdbID(name) take, respectively, a movie title (in the plain text
+data files format), a person name, a character name and a company name, and
+return the relative imdbID; when possibile it's safer to use the
+get_imdbID(MovieOrPersonOrCharacterOrCompanyObject) method.
+These functions _always_ need to connect to the IMDb's web site, if
+you're not using 'http', 'httpThin' or 'mobile' data acess systems.
+
+The get_imdbID(MovieOrPersonOrCharacterOrCompanyObject) method returns the
+imdbID for the given Movie, Person, Character or Company object.
+
+The get_imdbURL(MovieOrPersonOrCharacterOrCompanyObject) method returns a
+string with the main IMDb URL for the given Movie, Person, Character or
+Company object; it tries to do its best to retrieve the URL.
+
+The update(MovieOrPersonOrCharacterOrCompanyObject) method takes an
+instance of a Movie, Person, Character or Company class and retrieve
+other available information.
+Remember that the search_*(txt)  methods will return a list of Movie, Person,
+Character or Company objects with only basic information, like the movie
+title or the person/character name, so update() can be used to retrieve
+every other information.
+By default a "reasonable" set of information are retrieved ('main',
+'filmography' and 'biography' for a Person/Character objects, 'main'
+and 'plot' for a Movie object and 'main' for Company objects).
+
+Example:
+  i = IMDb()
+  # movie_list is a list of Movie objects, with only attributes like 'title'
+  # and 'year' defined.
+  movie_list = i.search_movie('the passion')
+  # the first movie in the list.
+  first_match = movie_list[0]
+  # only basic information like the title will be printed.
+  print first_match.summary()
+  # update the information for this movie.
+  i.update(first_match)
+  # a lot of information will be printed!
+  print first_match.summary()
+  # retrieve trivia information and print it.
+  i.update(first_match, 'trivia')
+  print m['trivia']
+  # retrieve both 'quotes' and 'goofs' information (with a list or tuple)
+  i.update(m, ['quotes', 'goofs'])
+  print m['quotes']
+  print m['goofs']
+  # retrieve every available information.
+  i.update(m, 'all')
+
+
+  THE Movie CLASS
+  ===============
+
+The main use of a Movie object is to access to the info it contains
+with a dictionary-like interface, like "movieObject[key]" where 'key'
+is a string that identifies the information you want to get.
+
+I've a really bad news for you: at this time, what 'key' is, is a
+little unclear! <g>
+
+In general, it's the name of the section as used by the IMDb web
+server to show the data.
+Where the information is a list of people with a role (an actor,
+a stunt, a writer, etc.) the relative section in the HTML page
+starts with a link to a "/Glossary/X#SectName" page; here "sectname"
+is used as 'key'.
+When the info regard companies (distributors, special effects, etc.)
+or the movie itself (sound mix, certifications, etc.) the section
+in the HTML page begins with a link to a "/List?SectName=" page, so
+we use "sectname" as a 'key'.
+The section name (the key) is always (with some minor exceptions)
+lowercase; underscores and minus signs are replaced with spaces.
+Some other keys aren't taken from the HTML page, but are defined
+within the Movie class.
+To get the complete list of keys available for a given Movie object,
+you can use the movieObject.keys() method (obviously only keys that
+refer to some existing information are defined, so a movie without an
+art director will raise a KeyError exception is you try
+movieObject['art director']); to avoid the exception, you can test
+if a Movie object has a given key with the has_key(key) method, or
+get the value with the get(key) method, which returns the value or
+None if the key is not found (an optional paramenter can modify the
+default value returned if the key isn't found).
+
+Below, a list of the main keys you can encounter, the type of the value
+returned by movieObject[key] and a short description/example:
+
+title; string; the "usual" title of the movie, like "The Untouchables".
+long imdb title; string; "Uncommon Valor (1983/II) (TV)"
+canonical title; string; the title in the canonical format,
+                         like "Untouchables, The".
+long imdb canonical title; string; "Patriot, The (2000)".
+year; string; the year of release or '????' if unknown.
+kind; string; one in ('movie', 'tv series', 'tv mini series', 'video game',
+                      'video movie', 'tv movie', 'episode')
+imdbIndex; string; the roman number for movies with the same title/year.
+director; Person list; a list of director's name (e.g.: ['Brian De Palma'])
+cast; Person list; list of actor/actress, with the currentRole instance
+                   variable set to a Character object which describe his
+                   role/duty.
+cover url; string; the link to the image of the poster.
+writer; Person list; list of writers ['Oscar Fraley (novel)']
+plot; list; list of plots and authors of the plot.
+rating; string; user rating on IMDb from 1 to 10 (e.g. '7.8')
+votes; string; number of votes (e.g. '24,101')
+runtimes; string list; in minutes ['119'] or something like ['USA:118',
+          'UK:116']
+number of episodes; int; number or episodes for a series.
+color info; string list; ["Color (Technicolor)"]
+countries; string list; production's country ['USA', 'Italy']
+genres; string list; one or more in (Action, Adventure, Adult, Animation,
+		Comedy, Crime, Documentary, Drama, Family, Fantasy, Film-Noir,
+		Horror, Musical, Mystery, Romance, Sci-Fi, Short, Thriller,
+		War, Western) and other genres defined by IMDb.
+akas; string list; list of aka for this movie
+languages; string list; list of languages
+certificates; string list; ['UK:15', 'USA:R']
+mpaa; string; the mpaa rating
+episodes (series only); dictionary of dictionary; one key for every season,
+                        one key for every episode in the season.
+number of episodes (series only); int; total number of episodes.
+number of seasons (series only); int; total number of seasons.
+series years (series only); string; range of years when the series was produced.
+episode of (episode only); Movie object; the parent series for an episode.
+season (episode only); int; the season number.
+episode (episode only); int; the number of the episode in the season.
+long imdb episode title (episode only); string; episode and series title.
+series title; string.
+canonical series title; string.
+
+
+Other keys that contain a list of Person objects are: costume designer,
+sound crew, crewmembers, editor, production manager, visual effects,
+assistant director, art department, composer, art director,
+cinematographer, make up, stunt performer, producer, set decorator,
+production designer.
+
+Other keys that contain list of companies are: production companies, special
+effects, sound mix, special effects companies, miscellaneous companies,
+distributors.
+
+Converting a title to its 'Title, The' canonical format, IMDbPY does
+some assumptions about what is an article and what not, and this could
+lead to some wrong canonical titles.
+For more information on this subject, see the "ARTICLES IN TITLES"
+section of the README.locale file.
+
+
+  THE Person CLASS
+  ================
+
+It works mostly like the Movie class. :-)
+
+The Movie class defines a __contains__() method, which is used to
+check if a given person has worked in a given movie with the syntax:
+  if personObject in movieObject:
+      print '%s worked in %s' % (personObject['name'], movieObject['title'])
+
+The Person class defines a isSamePerson(otherPersonObject) method, useful
+to compare two person if you're not sure that both objects have retrieved
+complete information (e.g.: a Person object returned by a query);
+th syntax is:
+   if personObject.isSamePerson(otherPersonObject):
+       print 'they are the same person!'
+
+An analogous method is defined for the Movie class, and it's
+called isSameTitle(otherMovieObject)
+
+
+  THE Character CLASS
+  ===================
+
+It works mostly like the Person class. :-)
+For more information about the "currentRole" attribute, see the
+README.currentRole file.
+
+
+  THE Company CLASS
+  ================
+
+It works mostly like the Person class. :-)
+The "currentRole" attribute is always None.
+
+
+  INFORMATION SETS
+  ================
+
+Since release 1.2, it's possibile to retrieve almost every piece of
+information about a given movie or person; this can be a problem, because
+(at least for the 'http' data access system) it means that a lot of
+web pages must be fetched and parsed, and this can be time and
+bandwidth consuming, especially if you're interested only in a small set
+of information.
+
+Now the get_person, get_movie, get_character, get_company and update
+methods have an optional 'info' argument, which can be set to a list
+of strings, each one representing an "information set".
+Movie/Person/Character/Company objects have, respectively, their own list
+of available "information sets".
+E.g.: the Movie class have a set called 'taglines' for the taglines
+of the movie, a set called 'vote details' for the number of votes for
+rating [1-10], demographic breakdowns and top 250 rank; the Person
+class have a set called 'other works' for miscellaneous works of
+this person an so on.
+
+By default only important information are retrieved/updated (i.e.:
+for a Movie object, only the 'main' and 'plot' information sets;
+for a Person/Character object only 'main', 'filmography', 'biography'.
+
+Example:
+  i = imdb.IMDb(accessSystem='http')
+  m = i.get_movie('0133093') # only default info set are retrieved.
+  m.has_key('demographic') # returns false, since no demographic breakdowns
+                           # aren't available by default.
+  i.update(m, info=('vote details',)) # retrieve the vote details info set.
+  print m['demographic'] # print the demographic breakdowns.
+
+Another example:
+  i = imdb.IMDb(accessSystem='http')
+  # retrieve only the biography and the "other works" page:
+  p = i.get_person('0000154', info=['biography', 'other works'])
+  print p['salary']
+  print p['other works']
+
+To see which information sets are available and what are the defaults,
+see the all_info and default_info instance variable of Movie, Person
+and Character classes.  Each object instance of Movie, Person or Character,
+also have a current_info instance variable, to remember the information sets
+already retrieved.
+
+Beware that the information sets vary from an access system to another:
+locally not every data is accessible, while - for example for sql -
+accessing one set of data automatically means automatic access to a number
+of other unrelated information (without major performace drawbacks).
+You can get the list of available info set with the methods:
+i.get_movie_infoset(), i.get_person_infoset(), i.get_character_infoset()
+and i.get_company_infoset().
+
+
+  TOP250 / BOTTOM100 LISTS
+  ========================
+
+Since IMDbPY 4.0, it's possible to retrieve the list of top250
+and bottom100 movies.
+Use the get_top250_movies() and get_bottom100_movies() methods.
+Beware that, for 'sql', the bottom100 list i limited to the first 10 results.
+
+
+  Person OBJECTS INSIDE A Movie CLASS AND Movie OBJECTS INSIDE A Person OBJECT
+  ============================================================================
+
+Parsing the information about a movie, you'll encounter a lot of references
+to the people who worked on it, like the cast, the director, the stunts,
+and so on.
+For people in the cast (actors/actresses), the "currentRole" instance
+variable is set to the name of the character they played (e.g.: "Roy Neary"
+for the role played by Richard Dreyfuss in Close Encounters of the Third Kind).
+In fact, in this case currentRole will be a Character instance.
+
+Another instance variable of a Person object is "notes", used to store
+miscellaneous information (like an aka name for the actor, an "uncredited"
+notice and so on).
+It's also used, for non-cast people, to describe the specific task of
+the person (e.g.: "assistant dialogue staff" for a person of the sound
+departement).
+
+It's possible to test, with the Python "in" statement, if a person worked
+in a given movie, or vice-versa; the following are all valid tests:
+  movie in person
+  movie in character
+  person in movie
+  person in character
+  character in movie
+  character in person
+
+Considerations similar to the above ones, can be done for Character
+instances: please read the README.currentRole file for more information.
+
+E.g.:
+    # retrieve data for Steven Spielberg's "Close Encounters of the Third Kind"
+    import imdb
+    i =  imdb.IMDb(accessSystem='http')
+    movie = i.get_movie('0075860')
+
+    # Get the 7th Person object in the cast list
+    cast = movie['cast'][6]
+    # Will print "Warren J. Kemmerling"
+    print cast['name']
+    # Will print "Wild Bill"
+    print cast.currentRole
+    # Will print "(as Warren Kemmerling)"
+    print cast.notes
+
+    # Get the 5th Person object in the list of writers
+    writer = movie['writer'][4]
+    # Will print "Steven Spielberg"
+    print writer['name']
+    # Will print "written by", because that was duty of Steven Spielberg,
+    # as a writer for the movie.
+    print writer.notes
+
+Obviously these Person objects contain only information directly
+available parsing the movie pages (e.g.: the name, an imdbID, the role/duty),
+so if now you:
+    print writer['actor']
+to get a list of movies acted by Mel Gibson, you'll get a KeyError
+exception, because the Person object doesn't contain this kind of
+information.
+
+To gather every available information, you've to use the update()
+method of the IMDb class:
+    i.update(writer)
+    # Now it will print a list of Movie objects.
+    print writer['actor']
+
+The same is true parsing a person data: you'll find a list of movie
+he/she worked on and, for every movie, the currentRole instance variable
+is set to a string describing the role/duty of the considered person.
+E.g.:
+    # Julia Roberts
+    julia = i.get_person('0000210')
+    # Print a list of movies she acted in and the played role, separated
+    # by '::'
+    print [movie['title'] + '::' + movie.currentRole
+           for movie in julia['actress']]
+
+Here the various Movie objects only contain minimal information, like
+the title and the year; the latest movie with Julia Roberts:
+    last = julia['actress'][0]
+    # Retrieve full information
+    i.update(last)
+    # Print the name of the first director
+    print last['director'][0]['name']
+
+
+  Company OBJECTS INSIDE A Movie CLASS AND Movie OBJECTS INSIDE A Company OBJECT
+  ==============================================================================
+
+As for Person/Character and Movie objects, you can test - using the "in"
+operator - if a Company has worked on a given Movie.
+
+
+  THE (NOT-SO-)"UNIVERSAL" '::' SEPARATOR
+  =======================================
+
+Sometimes I've used '::' to separate a set of different information
+inside a string, like the name of a company and what it has done for the
+movie, the information in the "Also Known As" section, and so on.
+It's easier to understand if you look at it; look at the output of:
+  import imdb
+  i = imdb.IMDb()
+  m = i.get_movie('0094226')
+  print m['akas']
+
+As a rule, there's as much as one '::' separator inside a string,
+splitting it two logical pieces: "TEXT::NOTE".
+In the helpers module there's the makeTextNotes function, that can
+be used to create a custom function to pretty-print this kind of
+information.  See its documentation for more info.
+
+
+  MOVIE TITLES AND PERSON/CHARACTER NAMES REFERENCES
+  ==================================================
+
+Sometimes in Movie, Person and Character attributes, there're strings
+with references to other movies or persons (e.g.: in the plot, in
+the biography, etc.).
+These references are stored in the Movie, Person and Character
+instances; in the strings you'll find values like _A Movie (2003)_ (qv)
+or 'A Person' (qv) or '#A Character# (qv)'; accessing these
+string (like movie['plot'] or person['biography']), these strings are
+modified using a provided function, which must take, as arguments, the
+string and two dictionary with titles and names references;
+by default the (qv) strings are converted in the "normal"
+format ("A Movie (2003)", "A Person" and "A Character").
+You can find some examples of these functions in the
+imdb.utils module.
+The function used to modify the strings can be set with
+the defaultModFunct parameter of the IMDb class or
+with the modFunct parameter of the get_movie, get_person
+and get_character methods.
+E.g.:
+  import imdb
+  i = imdb.IMDb(defaultModFunct=imdb.utils.modHtmlLinks)
+
+Or:
+  import imdb
+  i = imdb.IMDb()
+  i.get_person('0000154', modFunct=imdb.utils.modHtmlLinks)
+
+
+  EXCEPTIONS
+  ==========
+
+The imdb._exceptions module contains the exceptions raised by the
+imdb package.  Every exception is a subsclass of IMDbError, which is
+available from the imdb package.
+
+You can catch any type of errors raised by the IMDbPY package with
+something like:
+  from imdb import IMDb, IMDbError
+
+  try:
+      i = IMDb()
+  except IMDbError, err:
+      print err
+
+  try:
+      results = i.search_person('Mel Gibson')
+  except IMDbError, err:
+      print err
+
+  try:
+      movie = i.get_movie('0335345')
+  except IMDbError, err:
+      print err
+
+
+  OTHER SOURCES OF INFO
+  =====================
+
+Once the IMDbPY package is installed, you can read the docstring for
+packages, modules, functions, classes, objects, methods using the
+pydoc program; e.g.: "pydoc imdb.IMDb" will show the documentation
+about the imdb.IMDb class.
+
+The code contains a lot of comments, try reading it, if you can
+understand my English!
+
+
+
+
+  IMDb's web site redesign
+  ========================
+
+On September 2010 the IMDb web pages had a major redesign.
+With IMDbPY 4.7 we're trying to parse the new web pages,
+but it will take some time before all the bugs are fixed.
+
+Any help (fixing parsers or simple bug reports) is greatly
+appreciated.
+
+Beware that:
+- the "httpThin" data access method is badly broken and
+  probably it will not fixed.
+- the "mobile" data access method can be partially broken,
+  and will be fixed: please report any problem.
+- some of the information in these keys could be somewhat
+  ruined: soundtrack, awards, episodes rating, faqs.
+- information about series were not extensively tested.
+- it's possible that some information will be missing, like
+  "in development" movies.
+
+The above problems, with the exception of "httpThin" will be
+fixed in future releases.
+
+Notes about the code: we have a very powerful and efficient
+parsing infrastructure, but after many releases and so many
+changes of the IMDb pages, some of the main parsers are showing
+their age.  So, parsers for main information about movies and
+persons should be probably rewritten from scratch, and the same
+applies to helper functions like "build_person" and "build_movie"
+in imdb.parser.http.utils.
+
+
+Summary of this file:
+* MANAGING SERIES EPISODES
+* TITLES
+* SERIES
+* FULL CREDITS
+* RATINGS
+* PEOPLE
+* GOODIES
+
+
+  MANAGING SERIES EPISODES
+  ========================
+
+Since January 2006, IMDb changed the way it handles TV episodes:
+now every episode is treated as full title.
+Starting with version 2.5, also IMDbPY supports this new behavior.
+
+
+  TITLES
+  ======
+
+analyze_title() and build_title() now supports tv episodes.
+You can pass a string to the analyze_title function in the format used
+by the web server ("The Series" The Episode (2005)) or in the format
+of the plain text data files ("The Series" (2004) {The Episode (#ser.epi)})
+
+An example of the returned dictionary: call the function:
+  analyze_title('"The Series" The Episode (2005)')
+
+the result will be:
+  {'kind': 'episode',       # kind is set to 'episode'.
+   'year': '2005',          # the release year of this episode.
+   'title': 'The Episode',  # episode title
+   'episode of': {'kind': 'tv series',        # 'episode of' will contains
+                  'title': 'The Series'}      # information about the series.
+  }
+
+
+The 'episode of' key can be a dictionary or a Movie class instance with
+the same information.
+
+The build_title() function takes an optional argument: ptdf; is it's
+set to false (the default), it returns the title of the episode in
+the format used by the IMDb's web server ("The Series" An Episode (2006)),
+otherwise it uses the format used by the plain text data files (something
+like "The Series" (2004) {An Episode (#2.5)})
+
+
+  SERIES
+  ======
+
+You can retrieve information about seasons and episodes for a tv (mini) series:
+
+  from imdb import IMDb
+  i = IMDb()
+  m = i.get_movie('0389564')  # The 4400.
+  m['kind']    # kind is 'tv series'.
+  i.update(m, 'episodes')   # retrieves episodes information.
+
+  m['episodes']    # a dictionary with the format:
+                   #    {#season_number: {
+                   #                      #episode_number: Movie object,
+                   #                      #episode_number: Movie object,
+                   #                      ...
+                   #                     },
+                   #     ...
+                   #    }
+                   # season_number always starts with 1, episode_number
+                   # depends on the series' numbering schema: some series
+                   # have a 'episode 0', while others starts counting from 1.
+
+  m['episodes'][1][1] # <Movie id:0502803[http] title:_"The 4400" Pilot (2004)_>
+
+  e = m['episodes'][1][2]  # second episode of the first season.
+  e['kind']    # kind is 'episode'.
+  e['season'], e['episode']   # return 1, 2.
+  e['episode of']  # <Movie id:0389564[http] title:_"4400, The" (2004)_>
+                   # XXX: beware that e['episode of'] and m _are not_ the
+                   #      same object, while both represents the same series.
+                   #      This is to avoid circular references; the
+                   #      e['episode of'] object only contains basics
+                   #      information (title, movieID, year, ....)
+  i.update(e)  # retrieve normal information about this episode (cast, ...)
+
+  e['title']  # 'The New and Improved Carl Morrissey'
+  e['series title']  # 'The 4400'
+  e['long imdb episode title']  # '"The 4400" The New and Improved Carl Morrissey (2004)'
+
+
+Summary of keys of the Movie object for a series episode:
+  'kind': set to 'episode'.
+  'episode of': set to a movie object, this is a reference to the series.
+  'season': an integer; the number of the season.
+  'episode': an integer; the number of the episode in the season.
+  'long imdb episode title': combines series and episode title.
+  'series title': title of the series.
+  'canonical series title': title of the series, in the canonical format.
+
+Summary of keys of the Movie object for a series:
+  'kind': set to 'tv series'.
+  'episodes': dictionary (seasons) of dictionary (episodes in the season).
+
+
+  FULL CREDITS
+  ============
+
+Retrieving credits for a tv (mini) series, you may notice that many long lists
+(like "cast", "writers", ...) are incomplete.
+You can fetch the complete list of cast and crew with the "full credits"
+data set; e.g.:
+  from imdb import IMDb
+  i = IMDb()
+  m = i.get_movie('0285331')  # 24.
+  print len(m['cast']) # wooah!  Only 7 person in the cast of 24?!?!
+  i.update(m, 'full credits')
+  print len(m['cast']) # yup!  More than 300 persons!
+
+If you prefer, you can retrieve the complete cast of every episode,
+keeping the lists separated for every episode; instead of retrieving
+the list of episodes with:
+  i.update(m, 'episodes')
+use instead:
+  i.update('episodes cast')
+or the equivalent:
+  i.update(m, 'guests')
+
+Now you end up having the same information as if you have updated
+the 'episodes' info set, but every Movie object inside the dictionary
+of dictionary has the complete cast.
+E.g.:
+  cast = m['episodes'][1][2]['cast']  # cast list for the second episode
+                                      # of the first season.
+
+Beware that both 'episodes cast' and 'guests' will update the
+keyword 'episodes' (and not 'episodes cast' or 'guests').
+
+
+  RATINGS
+  =======
+
+You can retrieve rating information about every episode in a tv (mini) series
+using the 'episodes rating' data set.
+ 
+
+  PEOPLE
+  ======
+
+You can retrieve information about single episodes acted/directed/... by
+a person.
+
+  from imdb import IMDb
+  i = IMDb()
+  p = i.get_person('0005041')  # Laura Innes.
+  p['actress'][0]   # <Movie id:0568152[http] title:_"ER" (????)_>
+
+  # At this point you have an entry (in keys like 'actor', 'actress',
+  # 'director', ...) for every series the person starred/worked in, but
+  # you knows nothing about singles episodes.
+  i.update(p, 'episodes')  # updates information about single episodes.
+
+  p['episodes']    # a dictionary with the format:
+                   #    {<TV Series Movie Object>: [
+                                                    <Episode Movie Object>,
+                                                    <Episode Movie Object>,
+                                                    ...
+                                                   ],
+                         ...
+                        }
+
+  er = p['actress'][0]  # ER tv series.
+  p['episodes'][er]   # list of Movie objects; one for every ER episode
+                      # she starred/worked in.
+
+  p['episodes'][er][0]  # <Movie id:0568154[http] title:_"ER" Welcome Back Carter! (1995)_>
+  p['episodes'][er]['kind']   # 'episode'
+  p['episodes'][er][0].currentRole   # 'Dr. Kerry Weaver'
+
+
+  GOODIES
+  =======
+
+In the imdb.helpers module there are some functions useful to manage
+lists of episodes:
+
+- sortedSeasons(m) returns a sorted list of seasons of the given series.
+                   E.g.:
+                       >>> from imdb import IMDb
+                       >>> i = IMDb()
+                       >>> m = i.get_movie('0411008')
+                       >>> i.update(m, 'episodes')
+                       >>> sortedSeasons(m)
+                       [1, 2]
+
+- sortedEpisodes(m, season=None) returns a sorted list of episodes of the
+                                 the given series, considering only the
+                                 specified season(s) (every season, if None).
+                                 E.g.:
+                                     >>> from imdb import IMDb
+                                     >>> i = IMDb()
+                                     >>> m = i.get_movie('0411008')
+                                     >>> i.update(m, 'episodes')
+                                     >>> sortedEpisodes(m, season=1)
+                                     [<Movie id:0636289[http] title:_"Lost" Pilot: Part 1 (2004)_>, <Movie id:0636290[http] title:_"Lost" Pilot: Part 2 (2004)_>, ...]
+
+
+
+
+NOTE: the imdbpy2sql.py script, used to populate a database using
+the data in the IMDb's plain text data files, is a critical piece
+of IMDbPY: it's based on an ORM to be database-independent and
+contains a lot of tricks to be as fast as possible; however there
+are huge margins for improvements; if you want to help, please read the
+TODO.txt file and subscribe the imdbpy-devel mailing list at:
+  http://imdbpy.sf.net/?page=help#ml
+ 
+
+NOTE: see README.currentRole for information about characters support.
+
+
+  SQL
+  ===
+
+Since version 2.1 it's possible to transfer the whole IMDb's
+database from the plain text data files into a SQL database.
+Starting with version 2.5 every database supported by the SQLObject
+Object Relational Manager can be used to store and retrieve
+movies and persons information.
+This means that MySQL, PostgreSQL, SQLite, Firebird, MAX DB,
+Sybase and MSSQL are supported and, as your read this text,
+maybe other database backends were added.
+
+Since release 3.8, SQLAlchemy (version 0.4 and 0.5) is also supported
+(this adds at least DB2/Informix IDS to the list of supported databases).
+
+Since release 3.9, there's a partial support to output large tables
+in a set of CSV (Comma Separated Values) files, to be later imported
+in a database.  Actually only MySQL, PostgreSQL and IBM DB2 are
+supported.
+
+In version 4.1 the imdbpy2sql.py script has the '--fix-old-style-titles'
+command line argument; if used, every movie title will be converted to
+the new style ("The Title", instead of the old "Title, The").
+This option will go away in 4.2, and is intended only to support old
+set of plain text data files.
+
+Since version 4.2 --fix-old-style-titles is no more needed, being
+turned on by default.  The --do-not-fix-old-style-titles was
+introduced in case you want to turn it off for some strange reason.
+
+
+  REQUIREMENTS
+  ============
+
+You need one of SQLObject or SQLAlchemy (both can be installed
+safely: by default IMDbPY first tries SQLObject; if not present
+it fall-backs to SQLAlchemy).
+
+[SQLObject]
+You need the SQLObject package, at least version 0.8; even better
+if you can download the latest SVN snapshot.
+
+SQLObject home page: http://sqlobject.org/
+SVN command to download the latest development version:
+  svn co http://svn.colorstudy.com/SQLObject/trunk SQLObject
+
+[SQLAlchemy]
+Support for SQLAlchemy is still in beta (please report any bug!)
+and a bit slower than SQLObject; anyway, you need version 0.4 or 0.5.
+
+SQLAlchemy home page: http://www.sqlalchemy.org/
+SVN command to download the latest development version:
+  svn checkout http://svn.sqlalchemy.org/sqlalchemy/trunk sqlalchemy
+
+
+[OTHER REQUIRED MODULES]
+Obviously SQLObject and SQLAlchemy can access databases only through other
+specific modules/packages, that you need to have installed (e.g.:
+'mysql-python' for MySQL, 'psycopg' for PostgreSQL, and so on).
+
+
+  SQL DATABASE INSTALLATION
+  =========================
+
+Select a mirror of the "The Plain Text Data Files" from
+the http://www.imdb.com/interfaces/ page and download
+every file in the main directory (beware that the "diffs"
+subdirectory contains _a lot_ of files you _don't_ need,
+so don't start mirroring everything!).
+
+Starting from release 2.4, you can just download the files you need,
+instead of every single file; the files not downloaded will be skipped.
+This feature is still quite untested, so please report any bug.
+
+Create a database named "imdb" (or whatever you like),
+using the tool provided by your database; as an example, for MySQL
+you will use the 'mysqladmin' command:
+  # mysqladmin -p create imdb
+For PostgreSQL, you have to use the "createdb" command:
+  # createdb -W imdb
+
+To create the tables and to populate the database, you must run
+the imdbpy2sql.py script:
+  # imdbpy2sql.py -d /dir/with/plainTextDataFiles/ -u 'URI'
+
+Where the 'URI' argument is a string representing the connection
+to your database, with the schema:
+  scheme://[user[:password]@]host[:port]/database[?parameters]
+
+Where 'scheme' is one in "sqlite", "mysql", "postgres", "firebird",
+"interbase", "maxdb", "sapdb", "mssql", "sybase", "ibm_db_sa".
+
+Some examples:
+    mysql://user:password@host/database
+    postgres://user:password@host/database
+    mysql://host/database?debug=1
+    postgres:///full/path/to/socket/database
+    postgres://host:5432/database
+    sqlite:///full/path/to/database
+    sqlite:/C|/full/path/to/database
+    sqlite:/:memory:
+
+For other information you can read the SQLObject/SQLAlchemy documentation.
+You can force the use of SQLObject or SQLAlchemy with the '-o' command
+line option (i.e.: "-o sqlobject" or "-o sqlalchemy" or a list of comma
+separated values to specify an order of preference).
+
+
+  TIMING
+  ======
+
+The performances are hugely dependant upon the underlying Python
+module/package used to access the database.  The imdbpy2sql.py script
+has a number of command line arguments, useful to chose amongst
+presets that can improve performances, using specific database servers.
+
+The fastest database appears to be MySQL, with about 200 minutes to
+complete on my test system (read below).
+A lot of memory (RAM or swap space) is required, in the range of
+at least 250/500 megabytes (plus more for the database server).
+In the end, the database will require between 2.5GB and 5GB of disc space.
+The should be no difference - at insert time - between SQLObject and
+SQLAlchemy.
+
+As said, the performances varies greatly using a database server or another:
+MySQL, for instance, has an executemany() method of the cursor object
+that accept multiple data insertion with a single SQL statement; other
+database requires a call to the execute() method for every single row
+of data, and they will be much slower - from 2 to 7 times slower than
+MySQL.
+
+There are generic suggestions that can lead to better performances,
+like turning off your filesystem journaling (so it can be a good idea to
+remount an ext3 filesystem as ext2).  Another option is the use of a
+ramdisk/tmpfs, if you have enough RAM.  Obviously these have effect only
+at insert-time: during the day-to-day use, you can turn your journaling
+on again.  You can also consider the use of the CSV output, explained
+below (but be sure that your database server of choice is able to
+import CSV files).
+
+I've done some tests, using an AMD Athlon 1800+, 1GB of RAM, over a
+complete plain text data files set (as of 11 Apr 2008, with more than
+1.200.000 titles and over 2.200.000 names):
+
+      database         |  time in minutes: total (insert data/create indexes)
+ ----------------------+-----------------------------------------------------
+   MySQL 5.0 MyISAM    |  205 (160/45)
+   MySQL 5.0 InnoDB    |  _untested_, see NOTES below.
+   PostgreSQL 8.1      |  560 (530/30)
+   SQLite 3.3          |  ??? (150/???) - very slow building indexes.
+                       |  Timed with the "--sqlite-transactions" command
+                       |  line option; otherwise it's _really_ slow: even
+                       |  35 hours or more.
+   SQLite 3.7          |  65/13 - with --sqlite-transactions and using a SSD hard disk
+   SQL Server          |  about 3 or 4 hours.
+
+If you have different experiences, please tell me!
+As expected, the most important things that you can do to improve performances are:
+1. use an in-memory filesystem or an SSD disk.
+2. use the -c /path/to/empty/dir argument to use CSV files.
+3. follow the specific notes about your database server.
+
+
+  NOTES
+  =====
+
+[save the output]
+The imdbpy2sql.py will print a lot of debug information on standard output;
+you can save it in a file, appending (without quotes) "2>&1 | tee output.txt"
+
+
+[Microsoft Windows paths]
+It's much safer, in a Microsoft Windows environment, to use full paths
+for the values of the '-c' and '-d' arguments, complete with drive letter.
+The best thing is to use _UNIX_ path separator, and to add a leading
+separator.  E.g.:
+  -d C:/path/to/imdb_files/ -c C:/path/to/csv_tmp_files/
+
+
+[MySQL]
+In general, if you get an embarrassingly high numbero of "TOO MANY DATA
+... SPLITTING" lines, consider increasing max_allowed_packet (in the
+configuration of your MySQL server) to at least 8M or 16M.
+Otherwise, inserting the data will be very slow, and some data may
+be lost.
+
+
+[MySQL InnoDB and MyISAM]
+InnoDB is abysmal slow for our purposes: my suggestion is to always
+use MyISAM tables and - if you really want to use InnoDB - convert
+the tables later.
+The imdbpy2sql.py script provides a simple way to manage these cases,
+see ADVANCED FEATURES below.
+
+In my opinion, the cleaner thing to do is to set the server to use
+MyISAM tables or - you you can't modifiy the server - use the
+--mysql-force-myisam command line option of imdbpy2sql.py.
+Anyway, if you really need to use InnoDB, in the server-side settings
+I recommend to set innodb_file_per_table to "true".
+
+Beware that the conversion will be extremely slow (some hours), but
+still faster than using InnoDB from the begin.
+You can use the "--mysql-innodb" command line option to force the
+creation of a datbase with MyISAM tables, converted at the end
+into InnoDB.
+
+
+[Microsoft SQL Server/SQLExpress]
+If you get and error about how wrong and against nature is the
+blasphemous act of inserting indentity keys, you can try to fix it
+with the new custom queries support; see ADVANCED FEATURES below.
+
+As a shortcut, you can use the "--ms-sqlserver" command line option
+to set all the needed options.
+You probably need SQLObject 0.10 (in the svn repository, as I'm
+writing this).
+
+
+[SQLite speed-up]
+For some reason, SQLite is really slow, except when used with
+transactions; you can use the '--sqlite-transactions' command
+line option to obtain acceptable performances.
+The same command, also turns off "PRAGMA synchronous".
+
+SQLite seems to hugely benefit from the use of a non-journaling
+filesystem and/or of a ramdisk/tmpfs: see the generic suggestions
+discussed above in the TIMING section.
+
+
+[SQLite failure]
+It seems that, with older versions of the python-sqlite package, the first
+run may fail; if you get a DatabaseError exception saying "no such table",
+try running again the command with the same arguments.  Double funny, uh? ;-)
+
+
+[data truncated]
+If you get an insane amount (hundreds or thousands, on various text
+columns) of warnings like these lines:
+
+  imdbpy2sql.py:727: Warning: Data truncated for column 'person_role' at row 4979
+  CURS.executemany(self.sqlString, self.converter(self.values()))
+
+you probably have a problem with the configuration of your database.
+The error came from strings that get cut at the first non-ASCII char (and
+so you're losing a lot of information).
+To obviate at this problem, you must be sure that your database
+server is set up properly, with the use library/client configured
+to communicate with the server in a consistent way.
+E.g., for MySQL you can set:
+  character-set-server   = utf8
+  default-collation      = utf8_unicode_ci
+  default-character-set  = utf8
+
+of even:
+  character-set-server   = latin1
+  default-collation      = latin1_bin
+  default-character-set  = latin1
+
+
+[adult titles]
+Beware that, while running, the imdbpy2sql.py script will output a lot
+of strings containing both person names and movie titles.  The script
+has absolutely no way to know that the processed title is an adult-only
+movie, so... if you leave it running and your little daughter runs to you
+screaming 'daddy!  daddy!  what kind of animals Rocco trains in the
+documentary "Rocco: Animal Trainer 17"???'... well it's not my fault! ;-)
+
+
+  SQL USAGE
+  =========
+
+Now you can use IMDbPY with the database:
+  from imdb import IMDb
+  i = IMDb('sql', uri='YOUR_URI_STRING')
+  resList = i.search_movie('the incredibles')
+  for x in resList: print x
+  ti = resList[0]
+  i.update(ti)
+  print ti['director'][0]
+
+and so on...
+
+The 'sql' data access system takes an optional argument, named "useORM",
+which can be set to a string or a list of values (the string can be
+a comma-separated list of items, to denote an order of preference).
+Valid values are "sqlobject" and "sqlalchemy".
+The default is ('sqlobject', 'sqlalchemy').
+E.g.:
+  i = IMDb('sql', uri='YOUR_URI_STRING', useORM='sqlalchemy,sqlobject')
+  i = IMDb('sql', uri='YOUR_URI_STRING', useORM=['sqlalchemy', 'sqlobject'])
+  i = IMDb('sql', uri='YOUR_URI_STRING', useORM='sqlalchemy'])
+
+
+  ADVANCED FEATURES
+  =================
+
+With the -e (or --execute) command line argument you can specify
+custom queries to be executed at certain times, with the syntax:
+  -e "TIME:[OPTIONAL_MODIFIER:]QUERY"
+
+Where TIME is actually one of these: 'BEGIN', 'BEFORE_DROP', 'BEFORE_CREATE',
+'AFTER_CREATE', 'BEFORE_MOVIES', 'BEFORE_CAST', 'BEFORE_RESTORE',
+'BEFORE_INDEXES' and 'END'.
+
+The only available OPTIONAL_MODIFIER is 'FOR_EVERY_TABLE' and it
+means that the QUERY command will be executed for every table in the
+database (so it doesn't make much sense to use it with BEGIN, BEFORE_DROP
+or BEFORE_CREATE time...), replacing the "%(table)s" text in the QUERY
+with the appropriate table name.
+
+Other available TIMEs are: 'BEFORE_MOVIES_TODB', 'AFTER_MOVIES_TODB',
+'BEFORE_PERSONS_TODB', 'AFTER_PERSONS_TODB', 'BEFORE_CHARACTERS_TODB',
+'AFTER_CHARACTERS_TODB', 'BEFORE_SQLDATA_TODB', 'AFTER_SQLDATA_TODB',
+'BEFORE_AKAMOVIES_TODB' and 'AFTER_AKAMOVIES_TODB'; they take no modifiers.
+Special TIMEs 'BEFORE_EVERY_TODB' and 'AFTER_EVERY_TODB' apply to
+every BEFORE_* and AFTER_* TIME above mentioned.
+These commands are executed before and after every _toDB() call in
+their respective objects (CACHE_MID, CACHE_PID and SQLData instances);
+the  "%(table)s" text in the QUERY is replaced as above.
+
+You can specify so many -e arguments as you need, even if they
+refers to the same TIME: they will be executed from the first to the last.
+Also, always remember to correctly escape queries: after all you're
+passing it on the command line!
+
+E.g. (ok, quite a silly example...):
+  -e "AFTER_CREATE:SELECT * FROM title;"
+
+The most useful case is when you want to convert the tables of a MySQL
+from MyISAM to InnoDB:
+  -e "END:FOR_EVERY_TABLE:ALTER TABLE %(table)s ENGINE=InnoDB;"
+
+If your system uses InnoDB by default, you can trick it with:
+  -e "AFTER_CREATE:FOR_EVERY_TABLE:ALTER TABLE %(table)s ENGINE=MyISAM;" -e "END:FOR_EVERY_TABLE:ALTER TABLE %(table)s ENGINE=InnoDB;"
+
+You can use the "--mysql-innodb" command line option as a shortcut
+of the above command.
+
+Cool, uh?
+
+Another possible use is to fix a problem with Microsoft SQLServer/SQLExpress:
+to prevent errors setting IDENTITY fields, you can run something like this:
+  -e 'BEFORE_EVERY_TODB:SET IDENTITY_INSERT %(table)s ON' -e 'AFTER_EVERY_TODB:SET IDENTITY_INSERT %(table)s OFF'
+
+You can use the "--ms-sqlserver" command line option as a shortcut
+of the above command.
+
+To use transactions to speed-up SQLite, try:
+  -e 'BEFORE_EVERY_TODB:BEGIN TRANSACTION;' -e 'AFTER_EVERY_TODB:COMMIT;'
+
+Which is also the same thing the command line option '--sqlite-transactions'
+does.
+
+
+  CSV files
+  =========
+
+Keep in mind that actually only MySQL, PostgreSQL and IBM DB2 are
+supported.  Moreover, you may incur in problems (e.g.: your
+postgres _server_ process must have reading access to the directory
+you're storing the CSV files).
+
+To create (and import) a set of CSV files, run imdbpy2sql.py with the
+syntax:
+  ./imdbpy2sql.py -d /dir/with/plainTextDataFiles/ -u URI -c /directory/where/to/store/CSVfiles
+
+The created files will be imported near the end of the imdbpy2sql.py
+processing; notice that after that, you can safely cancel these files.
+
+
+  CSV partial processing
+  ======================
+
+It's possible, since IMDbPY 4.5, to separate the two steps involved using
+CSV files.
+With the --csv-only-write command line option the old database will
+be zeroed and the CSV files saved (along with imdbIDs information).
+Using the --csv-only-load option you can load these saved files into
+an existing database (this database MUST be the one left almost empty
+by the previous run).
+Beware that right now the whole procedure is not very well tested.
+Using both commands, on the command line you still have to specify
+the whole "-u URI -d /path/plainTextDataFiles/ -c /path/CSVfiles/"
+series of arguments.
+
+
+
+  What's IMDbPY?
+  ==============
+
+NOTE: see also the recommendations in the "DISCLAIMER.txt" file.
+
+
+IMDbPY is a Python package useful to retrieve and manage the data of
+the IMDb movie database.
+
+IMDbPY is mainly a tool intended for programmers and developers, but
+some example scripts are included.
+
+If you're a poor, simple, clueless user, read the "README.users" file. :-)
+Seriously: take a look at the provided example scripts even if you're
+a Really Mighty Programmer(tm), they should clearly show how to use IMDbPY.
+Other IMDbPY-based programs can be downloaded from:
+  http://imdbpy.sourceforge.net/?page=programs
+
+If you want to develop a program/script/package/framework using the
+IMDbPY package, see the "README.package" file, for instructions about
+how to use this package.
+
+If you're installing IMDbPY in a smart phone, PDA or hand-held system,
+read the "README.mobile" file.
+
+If you're crazy enough and/or you've realized that your higher
+inspiration in life is to help the development of IMDbPY, begin reading
+the "README.devel" file. ;-)
+
+
+  INSTALLATION
+  ============
+
+Everything you need to do is to run, as the root user, the command:
+    # python setup.py install
+
+IMDbPY itself can be installed through easy_install and pip,
+with - respectively - these commands (as root):
+  easy_install IMDbPY
+  pip install IMDbPY
+
+Using easy_install and pip, the dependencies will be automatically
+satisfied.  Third-party packages may be downloaded, and if not
+otherwise specified (see below), C extensions compiled (this means
+that you need the python-dev package installed).
+
+If, for some reason, it doesn't work, you can copy the "./imdb"
+directory in the local site-packages directory of the python
+major version you're using, but remember that you'll not satisfy
+the required dependencies and neither compile the optional C module,
+so use this as your very last resort.
+To know what major version of python you've installed, run:
+    $ python -V
+It should return a string like "Python 2.6.1"; in this example
+the major version is "2.6".
+Now copy the "./imdb" directory:
+    # cp -r ./imdb /usr/local/lib/python{MAJORVERSION}/site-packages/
+
+The setup.py contains some configuration options that could
+be useful if you're installing IMDbPY in a system with very
+little hard disk space (like an handheld device) or where
+you've not a complete development environment available;
+read the "README.mobile" file.
+
+If you want to insert the content of the plain text data files
+into a SQL database, read the "README.sqldb" file.
+
+The whole list of command line options of the setup.py script is:
+  --without-lxml	exclude lxml (speeds up "http" considerably,
+					so try to fix it).
+  --without-cutils	don't compile the C module (speeds up 'sql')
+  --without-sql		no access to SQL databases.
+
+If you're install 'sql', setup.py tries to install BOTH SQLObject
+and SQLAlchemy.  In fact, having one of them will be enough.
+You can exclude the unwanted one with:
+  --without-sqlobject	exclude SQLObject
+  --without-sqlalchemy	exclude SQLAlchemy
+
+If you specify both, --without-sql is implied.
+
+
+  Mercurial VERSION
+  =================
+
+The best thing is always to use a package for your distribution,
+or use easy_install or pip to install the latest release, but it
+goes without saying that sometimes you need the very latest version
+(keep in mind that the IMDb site is a moving target...).
+In this case, you can always use the Mercurial version, available here:
+  http://imdbpy.sourceforge.net/?page=download#hg
+
+
+  HELP
+  ====
+
+Refer to the web site http://imdbpy.sf.net/ and subscribe to the
+mailing list:  http://imdbpy.sf.net/?page=help#ml
+
+
+  NOTES FOR PACKAGERS
+  ===================
+
+If you plan to package IMDbPY for your distribution/operating system,
+keep in mind that, while IMDbPY can works out-of-the-box, some external
+package may be required for certain functionality:
+  - python-lxml: the 'http' data access system will be much faster, if
+    it's installed.
+  - SQLObject or SQLAlchemy: one of these is REQUIRED if you want to use
+    the 'sql' data access system.
+
+All of them should probably be "recommended" (or at least "suggested")
+dependencies.
+To compile the C module, you also need the python-dev package.
+
+As of IMDbPY 4.0, the installer is based on setuptools.
+
+
+  RECENT IMPORTANT CHANGES
+  ========================
+
+Since release 2.4, IMDbPY internally manages every information about
+movies and people using unicode strings.  Please read the README.unicode file.
+
+Since release 3.3, IMDbPY supports IMDb's character pages; see the
+README.currentRole file for more information.
+
+Since release 3.6, IMDbPY supports IMDb's company pages; see the
+README.companies file for more information.
+
+Since release 3.7, IMDbPY has moved its main parsers from a SAX-based
+approach to a DOM/XPath-based one; see the README.newparsers file
+for more information.
+
+Since release 3.8, IMDbPY supports both SQLObject and SQLAlchemy; see
+README.sqldb for more information.
+
+Since release 3.9 support dumping the plain text data files in CSV files;
+see README.sqldb for more information.
+
+Since release 4.0 it's possible to search for keywords (get keywords
+similar to a given one and get a list of movies for a specified keyword).
+See README.keywords for more information.
+Moreover, it's possible to get information out of Movie, Person, Character
+and Company instances as XML (getting a single keys or the representation
+of a whole object).
+See README.info2xml for more information.
+Another new feature, is the ability to get top250 and bottom100 lists;
+see the "TOP250 / BOTTOM100 LISTS" section of the README.package file
+for more information.
+
+Since release 4.1 a DTD for the XML output is available (see
+imdbpyXY.dtd).  Other important features are locale (i18n) support (see
+README.locale) and support for the new style of movie titles used by IMDb
+(now in the "The Title" style, and no more as "Title, The").
+
+
+  FEATURES
+  ========
+
+So far you can search for a movie with a given title, a person
+with a given name, a character you've seen in a movie or a company, and retrieve
+information for a given movie, person, character or company; the supported data
+access systems are 'http' (i.e.: the data are fetched through the IMDb's
+web server http://akas.imdb.com) and 'sql', meaning that the data are
+taken from a SQL database, populated (using the imdbpy2sql.py script) with
+data taken from the plain text data files; see
+http://www.imdb.com/interfaces/ for more information.
+For mobile systems there's the 'mobile' data access system, useful
+for PDA, hand-held devices and smart phones.
+Another data access system is 'httpThin', which is equal to 'http'
+but fetch less data and so it is (or at least it tries to be)
+suitable for systems with limited bandwidth but normal CPU power.
+
+
+  FEATURES OF THE HTTP DATA ACCESS SYSTEM
+  =======================================
+
+* Returns almost every available information about a movie, person or
+  character.
+* The use of the "akas" server will provide access to a lot of
+  AKA titles in many languages, so it's really useful if English is
+  not your native language.
+* By default includes adult titles (and people who have worked
+  only/mostly in adult movies) in the results of a title/name search; this
+  behavior can be changed with the do_adult_search() method; please
+  read the "README.adult" file.
+* You can set/use a proxy to access the web; if set, the HTTP_PROXY
+  environment variable will be automatically used, otherwise you can set a
+  proxy with the set_proxy() method of the class returned by the
+  imdb.IMDb function; obviously this method is available only for the http
+  data access system, since it's defined in the IMDbHTTPAccessSystem class
+  of the parser.http package.
+  Example:
+      from imdb import IMDb
+      i = IMDb(accessSystem='http') # the accessSystem argument is not really
+                            # needed, since "http" is the default.
+      i.set_proxy('http://localhost:8080/')
+
+  You can force a direct connection to the net setting the proxy
+  to a null value (i.e.: i.set_proxy('')).
+
+
+  FEATURES OF THE SQL DATA ACCESS SYSTEM
+  ======================================
+
+* Returns every information available in the plain text data files.
+* Every database supported by SQLObject and SQLAlchemy is available.
+
+
+  FEATURES OF THE MOBILE DATA ACCESS SYSTEM
+  =========================================
+
+* Very lightweight, returns almost every needed information.
+* Accessories data sets (like 'goofs', 'trivia' and so on) are always
+  available (being a subclass of the 'http' data access system).
+
+
+
+  UNICODE SUPPORT
+  ===============
+
+Starting with release 2.4, IMDbPY internally manages (almost) every string
+using unicode, with UTF-8 encoding.
+Since release 3.0, every string containing some sort of information is
+guarantee to be unicode (notable exceptions are dictionary keywords and
+movieID/personID, where they are stored as strings).
+
+The good: we can correctly manage "foreign" names, titles and other
+          information.
+          Previously every string was stored in bytecode, losing information
+          about the original charset.
+          Without knowing the charset, how can you know that the bytecode
+          string 'Lina Wertm\xfcller' is west-European iso-8859-1 (and so
+          it's "Lina Wertmüller" - if you're reading this file as UTF-8)
+          and not Cyrillic KOI-8-R (resulting in "Lina WertmЭller")?
+          Using unicode, you can store every human language, and show/print
+          every char correctly, provided that your local charset (and font)
+          is right.
+
+The bad:  in primis, performances will suffer: IMDbPY does _a lot_ (and
+          with _a lot_ I mean _A BLOODY DAMN LOT_) of string operations
+          (moving, copying, splitting, searching, slicing, ...) and moving
+          to unicode the slow down will be measurable (and probably
+          noticeable).
+          Moreover, every IMDbPY-base program will need to be modified,
+          because utf-8 chars must be encoded-back to your local charset
+          before they can be printed on screen or on files.
+
+The ugly: converting to unicode a program so huge, born without unicode
+          support from start, is prone to errors, bugs, spontaneous
+          combustion and eternal damnation!
+          You can't mix bytecode strings (with unknown charset) and unicode
+          with impunity: an exception will be raised because python
+          doesn't know the encoding of the bytecode string, that must be
+          explicitly specified.
+
+
+  INPUT
+  =====
+
+Searching for a movie title or a person name, you (or another program)
+should pass a unicode string. Since input and output are always
+encoded (using some scheme for representing characters using bytes),
+you'll typically need to decode the input into a Python unicode
+string.
+
+The Python builtin function 'unicode' takes an encoded string and the
+name of the charset it's encoded in and returns a Python unicode
+string.
+
+E.g., you're writing on a terminal with iso-8859-1 charset (aka latin-1):
+ >>> from imdb import IMDb
+ >>> ia = IMDb()
+ >>>
+ >>> lat1_str = 'Lina Wertm�ler' # written on a latin-1 terminal
+ >>> unicode_str = unicode(lat1_str, 'iso-8859-1')
+ >>>
+ >>> results = ia.search_person(unicode_str)
+
+If you pass a non-Unicode string to search_person(), search_movie() or
+search_episode() functions, IMDbPY attempts to guess the encoding,
+using the sys.stdin.encoding or the value returned from the
+sys.getdefaultencoding function.  Trust me: you want to provide a
+Unicode string...
+
+Maybe in a future release the IMDb() function can take a "defaultInputEncoding"
+argument or something.
+
+
+  OUTPUT
+  ======
+
+You've searched for a person or a movie, you've retrieved the information you
+wanted.  Cool.  Now you're about to print these information to the screen,
+or send it to a file or over a network socket.  Ok, wait a minute.
+
+Before you proceed, you need to encode the unicode chars to strings
+in the charset you will use to display/save/send it:
+ >>> from imdb import IMDb
+ >>> ia = IMDb()
+ >>>
+ >>> gmv_str = unicode('gian maria volonte', 'ascii') # optional, IT'S ascii...
+ >>> gmv = ia.search_person(gmv_str)[0]
+ >>> ia.update(gmv) # fetch the default set of information.
+ >>>
+ >>> gmv['name']
+ u'Gian Maria Volont\xe9'
+ >>>
+ >>> type(gmv['name'])
+ >>> <type 'unicode'>
+ >>>
+ >>> print gmv['name'] # WRONG: because if you are on an ASCII only terminal...
+ Traceback (most recent call last):
+  File "<stdin>", line 1, in ?
+ UnicodeEncodeError: 'ascii' codec can't encode character u'\xe9' in position 17: ordinal not in range(128)
+ >>>
+ >>> print gmv['name'].encode(yourLocalEncoding, 'replace') # CORRECT.
+ Gian Maria Volonté
+
+
+You have to use the encode() method of unicode strings to obtain a string
+suited for your local configuration.
+The encoding depends on your system and on what you've to do with these
+strings.
+The second (optional) argument of the encode() method specifies what
+to do with the unicode chars that cannot be represented in the encoding
+of your choice.  If not specified, a UnicodeEncodeError exception is
+raised, so be prepared.
+Other values are 'ignore' to skip these chars, 'replace' to substitute
+these chars with question marks ('?'), 'xmlcharrefreplace' to replace
+the chars with XML references (e.g.: "&#233;" for "é").
+
+If at all possible, you're much better off using an encoding like 'utf-8',
+that can handle any unicode char, than older encodings like ASCII
+and Latin-1.
+
+
+  WRITING IMDbPY-based PROGRAMS
+  =============================
+
+In the imdb.helpers module you can find some functions useful to
+manage/translate unicode strings in some common situations.
+
+
+  RULE OF THUMB
+  =============
+
+Always convert to/from unicode at the I/O level: at the first moment
+you've got some strings from the user (terminal) or the net (sockets,
+web forms, whatever).  You need to know the encoding of the input,
+checking sys.stding.encoding, the LANG/LC_* environment variables,
+the headers of the http request and so on.
+Whenever you're outputting information about movies or persons,
+convert these unicode string to bytecode strings using the encoding
+of your output channel (terminal, net, web pages, ...)
+
+Remember: "u = unicode(string, inputEncoding)" convert your encoded input
+          string to unicode,
+
+          "s = u.encode(outputEncoding, manageErrors)" convert unicode
+          strings to strings encoded for your local environment.
+
+
+  LINKS
+  =====
+
+* The Absolute Minimum Every Software Developer Absolutely, Positively Must
+  Know About Unicode and Character Sets (No Excuses!):
+  http://www.joelonsoftware.com/articles/Unicode.html
+
+* Python Unicode HOWTO:
+  http://www.amk.ca/python/howto/unicode
+
+* Dive Into Python, unicode page:
+  http://diveintopython.org/xml_processing/unicode.html
+
+* How to Use UTF-8 with Python:
+  http://evanjones.ca/python-utf8.html
+
+* End to End Unicode Web Applications in Python:
+  http://dalchemy.com/opensource/unicodedoc/
+
+
+  IMDbPY FOR THE USERS
+  ====================
+
+As I've already said, IMDbPY by itself is not really useful if you're
+not a developer; anyway, some simple example scripts are included in
+the ./bin directory.
+You can find other IMDbPY-based programs here:
+    http://imdbpy.sf.net/?page=programs
+
+The 'search_movie.py' script takes a single argument, which must be
+a title of a movie to search; if the title contains spaces or
+other "strange" chars, enclose the title in single or double quotes.
+It will print a list of imdbID and long imdb titles.
+
+The 'get_movie.py' script takes a single argument: a movieID
+and it will print some information about the movie.
+The movieID is a unique identifier for a single movie.
+Notice that, since IMDbPY can take its information from different
+sources, the movieID can take different shapes.
+By default IMDbPY accesses the web using its 'http' data access
+system, and so in this case movieID are the same imdbIDs that you
+can find on the web page for that movie (the same is true using the
+'mobile' data access system).
+On the other hand, if you've configured IMDbPY to use the 'sql'
+data access system, the movieIDs are still unique, but totally
+arbitrary and not related to the imdbIDs used by the web server; this,
+because the list of imdbIDs is not published with the plain text data
+files.  Also notice that these movieIDs generated by 'sql', are only
+valid for your current setup, and will change when you'll update your
+database with a new set of plain text data files.
+
+The 'get_first_movie.py' works like 'search_movie.py', but it will only print
+information about the first matching title.
+
+Now guess what 'get_person.py', 'search_person.py','get_first_person.py',
+'get_character.py', 'search_character.py','get_first_character.py',
+'get_company.py', 'search_company.py', 'get_first_company.py',
+'search_keyword.py', 'get_keyword.py' and 'get_top_bottom_movies.py'
+scripts do... :-)
+
+Remember that you've to be connected to the net, if you want to
+use these scripts!
+If the HTTP_PROXY environment variable is set, the referred proxy
+is used.
+
+Take a look at the scripts; they're somewhat commented; maybe
+you can customize it...
+
+
+Examples:
+
+$ search_movie.py 'the passion'
+    20 results for "the passion":
+Passion of the Christ, The (2004)
+Passion, The (2003/I)
+Passion, The (1999) (TV)
+Patima (1975)
+Andrei Rublyov (1969)
+Passion de Jeanne d'Arc, La (1928)
+Passion of Darkly Noon, The (1996)
+Passion of Ayn Rand, The (1999)
+Passion Béatrice, La (1987)
+Passion, En (1969)
+Pride and the Passion, The (1957)
+"Charles II: The Power & the Passion" (2003) (mini)
+Pasión de María Elena, La (2003)
+Pasión según Berenice, La (1976)
+Passion of Rita Camilleri, The (1993)
+Culture, Water, Money: The Passion of the Frontier (1998)
+Sanguisuga conduce la danza, La (1975)
+Passion of John Ruskin, The (1994)
+Making of 'The Passion of the Christ', The (2004) (TV)
+Scream of the Butterfly (1965)
+
+
+# Here we assumes you've not configured IMDbPY to use a local SQL database,
+# and so we use '0133093' as the movieID.
+$ get_movie.py 0133093
+Movie
+=====
+Title: Matrix, The
+Genres: Action, Thriller, Sci-Fi.
+Director: Andy Wachowski (as The Wachowski Brothers), Larry Wachowski (as The Wachowski Brothers).
+Writer: Andy Wachowski (written by) (as The Wachowski Brothers), Larry Wachowski (written by) (as The Wachowski Brothers).
+Cast: Keanu Reeves (Neo (Thomas A. Anderson)), Laurence Fishburne (Morpheus), Carrie-Anne Moss (Trinity), Hugo Weaving (Agent Smith), Joe Pantoliano (Cypher (Mr. Reagan)).
+Runtime: 136.
+Country: USA.
+Language: English.
+Rating: 8.5
+Votes: 114,264
+Plot: In the near future, a computer hacker named Neo (Keanu Reeves) discovers that all life on Earth may be nothing more than an elaborate facade created by a malevolent cyber-intelligence, for the purpose of placating us while our life essence is "farmed" to fuel the Matrix's campaign of domination in the "real" world. He joins like-minded Rebel warriors Morpheus (Laurence Fishburne) and Trinity (Carrie Ann Moss) in their struggle to overthrow the Matrix.
+
+
+$ get_first_character.py 'Jesse James'
+    Best match for "Jesse James"
+Character
+=====
+Name: Jesse James
+Biography: History::Born: September 5, 1847 in Clay County, Missouri, USA
+
+Died: April 3, 1882 in St. Joseph, Missouri, USA
+
+ [...]
+
+
+

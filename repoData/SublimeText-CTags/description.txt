@@ -1,0 +1,515 @@
+TAG FILE FORMAT
+===============
+
+When not running in etags mode, each entry in the tag file consists of a
+separate line, each looking like this in the most general case::
+
+  tag_name<TAB>file_name<TAB>ex_cmd;"<TAB>extension_fields
+
+The fields and separators of these lines are specified as follows:
+
+#. Tag name
+#. Single tab character
+#. Name of the file in which the object associated with the tag is located
+#. Single tab character
+#. EX command used to locate the tag within the file; generally a search
+   pattern (either ``/pattern/`` or ``?pattern?``) or line number (see 
+   ``−−excmd``). 
+   Tag file format 2 (see ``−−format``) extends this EX command under certain
+   circumstances to include a set of extension fields (described below)
+   embedded in an EX comment immediately appended to the EX command, which
+   leaves it backward-compatible with original ``vi(1)`` implementations.
+
+A few special tags are written into the tag file for internal purposes. These
+tags are composed in such a way that they always sort to the top of the file.
+Therefore, the first two characters of these tags are used a magic number to
+detect a tag file for purposes of determining whether a valid tag file is
+being overwritten rather than a source file. Note that the name of each source
+file will be recorded in the tag file exactly as it appears on the command
+line.
+
+Therefore, if the path you specified on the command line was relative to the
+current directory, then it will be recorded in that same manner in the tag
+file. See, however, the ``−−tag−relative`` option for how this behavior can be
+modified.
+
+Extension fields are tab-separated key-value pairs appended to the end of the
+EX command as a comment, as described above. These key value pairs appear in
+the general form ``key:value``. Their presence in the lines of the tag file
+are controlled by the ``−−fields`` option. The possible keys and the meaning
+of their values are as follows:
+
+access
+  Indicates the visibility of this class member, where value is specific to
+  the language.
+
+file
+  Indicates that the tag has file-limited visibility. This key has no
+  corresponding value.
+
+kind
+  Indicates the type, or kind, of tag. Its value is either one of the
+  corresponding one-letter flags described under the various 
+  ``−−<LANG>−kinds`` options above, or a full name. It is permitted (and is,
+  in fact, the default) for the key portion of this field to be omitted. The
+  optional behaviors are controlled with the ``−−fields`` option.
+
+implementation
+  When present, this indicates a limited implementation (abstract vs. concrete)
+  of a routine or class, where value is specific to the language ("virtual" or
+  "pure virtual" for C++; "abstract" for Java).
+
+inherits
+  When present, value is a comma-separated list of classes from which this
+  class is derived (i.e. inherits from).
+
+signature
+  When present, value is a language-dependent representation of the
+  signature of a routine. A routine signature in its complete form specifies
+  the return type of a routine and its formal argument list. This extension
+  field is presently supported only for C-based languages and does not
+  include the return type.
+
+In addition, information on the scope of the tag definition may be available,
+with the key portion equal to some language-dependent construct name and its
+value the name declared for that construct in the program. This scope entry
+indicates the scope in which the tag was found. For example, a tag generated
+for a C structure member would have a scope looking like ``struct:myStruct``.
+Changes in 0.3.0
+================
+
+- Added support for Sublime Text 3
+  * Rename ``jump_back`` commmand to ``jump_prev`` to prevent conflict in ST3
+  * Remove ``jump_back_to_last_modification`` command
+  * Numerous fixes to ensure Python compatibility
+  * Add abstraction library for ``sublime.view`` edit functions (``begin_edit``
+    and ``end_edit``) for which the API differs between ST2 and ST3
+  * Add calls to ``sublime.error_message`` when errors occur
+  * Apply general changes needed by Python3, i.e. print as a function
+- Major refactoring of code base
+  * Logically reorder number of functions
+  * Add unit tests for number of functions
+  * Update and move existing unit tests to separate files
+  * Add documentation to majority of functions
+  * Add documentation to settings files
+  * Remove unused functions (dead code)
+  * Remove large swathes of text and place in separate files
+  * Move small, one-time functions into inner functions or merge into other
+    other functions
+  * General formatting to abide to PEP-8 coding standards
+- Updated README and other documentation
+  * Port to reStructuredText
+  * Add additional sections for different package managers
+  * Minor rewrites and spelling corrections
+  * General formatting
+- Additional Changes
+  * Remove ``ctags`` executable files
+
+Fixes
+=====
+
+* Broken "Jump Back To Last Modification" command?, #159
+* To support customizable filename of tags file, #157
+* Corrected wrong documentation, added correct instructions for OS X 10.8, #151
+* Error in readme.md, #150
+* CTags can't jump_back in ST3, #148
+* Can't build CTags in OSX Mountain Lion, #146
+* Why does Navigate to Definition (and Jump Back) select text?, #128
+* Jump Back should go back to the line you were on, #127
+* Silently fails if ctags isn't installed, #93
+
+And the big one:
+
+* Incompatibility with ST3 beta, #115
+
+Resolves
+========
+
+N/A
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.2.0..v0.3.0``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.1
+================
+
+- Add option to target specific folders when building CTags
+  * Add quick panel menu to allow building of tags for open file (or parent
+    folder of open file if recursive flag set), all open folders, or one of
+    the open folders
+
+Fixes
+=====
+
+* Fills up entire hard drive (in Linux), #94
+
+Resolves
+========
+
+* Add method to select where tag file should be built, #164
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.0..v0.3.1``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.2
+================
+
+- Resolve issues raised by previous release.
+
+Fixes
+=====
+
+* Ctags 0.3.0, SublimeText 3 build 3056, Error message - ctags: No files specified. Try "ctags --help"., #167
+* Error when rebuilding tags, #168
+* multiple errors wheh building or showing tags, #169
+* Cursor Bug in Jump Back, #172
+* error: ctags: No files specified. Try "ctags --help"., #173
+
+Resolves
+========
+
+* Fix unreference 'err_str' and the subprocess run of ctags, #171
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.1..v0.3.2``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.3
+================
+
+- Bug Fixes
+
+Fixes
+=====
+
+* Fix navigation (especially for forward declarations), #176
+* Pass missing parameter to self.run for SublimeText 2
+* ST3 jumps to correct linebut scrolls off the scree, #160
+* Fix error awk in window in ctagsplugin.py, #158
+* when press ctrl+t,ctrl+t, the cursor jump to the declaration instead of its definition, #122
+
+Resolves
+========
+
+N/A
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.2..v0.3.3``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.4
+================
+
+- Bug Fixes
+
+Fixes
+=====
+
+* README: Fix package name for Debian et al., #186
+* Fix a bug when utilizing additional search paths for tags files., #191
+* Fix a bug "WinError 6", #195
+* Changes to be committed:, #196
+
+Resolves
+========
+
+N/A
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.3..v0.3.4``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.5
+================
+
+- Improve documentation of settings to file
+- Bug Fixes
+
+Fixes
+=====
+
+* overriding of "command" option fails on Windows 7, #207
+* ctags error 2(don't know the reason.), #204
+* Error when trying to rebuild ctags (5 args instead of 6), #203
+* Additional Opts Error, #2030
+* Error building '.tags_sorted_by_file' (UTF-8 issue), #201
+* UnicodeDecodeError: 'utf8' codec can't decode byte 0xf4 in position 13: invalid continuation byte, #194
+
+Resolves
+========
+
+* Fixed an inconsistent option name 'additional_options' to 'opts', #207
+* ignore UnicodeDecodeError for codecs.open() when resorting tags file., #200
+* Improve navigate_to_definition, #197
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.4..v0.3.5``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.6
+================
+
+- Update CTags regex to support tabs in ctags
+- Bug Fixes
+
+Fixes
+=====
+
+* ValueError: dictionary update sequence element #0 has length 1; 2 is required, #209
+* overriding of "command" option fails on Windows 7, #205
+* is_enabled error when trying to navigate to definition, #183
+
+Resolves
+========
+
+N/A
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.5..v0.3.6``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.7
+================
+
+- Resolve regressions caused by multiple previous releases
+- General improvements in error handling and other corner cases
+- Bug Fixes
+
+Fixes
+=====
+
+* Ruby: Exception and ? ignored., #177
+* Can't Jump to the definition which defined by #define, #213
+
+Resolves
+========
+
+* Travis-ci Integration, #218
+* Tests aren't cross platform, #219
+* Better formatted build warnings #220
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.6..v0.3.7``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+Changes in 0.3.8
+================
+
+- Add build ctags options to sidebar
+- Bug Fixes
+
+Fixes
+=====
+
+* Need to keep the tag path order , #227
+
+Resolves
+========
+
+* keep the search order, #239
+* Correctly decode error messages on *nix systems., #232
+* fix cursor after open_file, #231
+
+*******************************************************************************
+
+For more detailed information about these changes, run ``git v0.3.7..v0.3.8``
+on the Git repository found [here](https://github.com/SublimeText/CTags).
+
+=====
+CTags
+=====
+
+.. image:: https://travis-ci.org/SublimeText/CTags.png?branch=development   :target: https://travis-ci.org/SublimeText/CTags
+
+About
+=====
+
+This `Sublime Text 2/3`_ package provides support for working with tags
+generated by `Exuberant CTags`_
+
+.. _Sublime Text 2/3: http://sublimetext.com/
+.. _Exuberant CTags: http://ctags.sourceforge.net/
+
+The ctags command is searched for on the system PATH. It works by doing a
+binary search of a memory-mapped tags file, so it will work efficiently with
+very large (50MB+) tags files if needed.
+
+See this `forum thread`_ for a bit of historical background on the Sublime Text plugin.
+
+.. _forum thread: http://www.sublimetext.com/forum/viewtopic.php?f=5&t=144
+
+Installation
+============
+
+The easiest way to install this plugin, is to use the `Package Control`_ 
+plugin, by `Will Bond`_
+
+.. _Package Control: http://wbond.net/sublime_packages/package_control/
+.. _Will Bond: http://wbond.net/
+
+Alternatively, the plugin can be installed manually using one of the following
+methods.
+
+Using Git
+---------
+Go to your Sublime Text Packages directory and clone the repository
+using the command below::
+
+  $ git clone https://github.com/SublimeText/CTags
+
+Manual Download
+---------------
+
+* Download the files using the .zip download option
+* Unzip the files (and rename the folder to CTags if needed)
+* Copy the folder to your Sublime Text Packages directory
+
+Additional Setup Steps
+======================
+
+OS X
+----
+
+The default ``ctags`` executable in OSX does not support recursive directory
+search (i.e. ``ctags -R``). To get a proper copy of ctags, use one of the
+following options:
+
+* Using `Homebrew`_::
+
+    brew install ctags
+
+* Using `MacPorts`_::
+
+    port install ctags
+
+.. _`Homebrew`: http://mxcl.github.com/homebrew/
+.. _`MacPorts`: http://www.macports.org/
+
+Ensure that the ``PATH`` is updated so the correct version is run:
+
+* If ``which ctags`` doesn't point at ctags in ``/usr/local/bin``, make sure
+  you add ``/usr/local/bin`` to your ``PATH`` ahead of the folder 
+  ``which ctags`` reported.
+* Alternatively, add the path to the new ``ctags`` executable to the settings,
+  under ``command``. If you have Xcode / Apple Developer Tools installed this
+  path will likely be ``/usr/local/bin/ctags``.
+
+Linux
+-----
+
+To install ctags use your package manager. 
+
+* For Debian-based systems (Ubuntu, Mint, etc.)::
+
+    sudo apt-get install exuberant-ctags
+
+* For Red Hat-based systems (Red Hat, Fedora, CentOS)::
+
+    sudo yum install ctags
+
+And so forth
+
+Windows
+-------
+
+* Download the `CTags binary`_ from the `Exuberant CTags`_ site.
+* Extract ``ctags.exe`` from the downloaded zip to 
+  ``C:\Program Files\Sublime Text 2`` or any folder within your PATH so that
+  Sublime Text can run it.
+* Alternatively, extract to any folder and add the path to this folder to
+  the ``command`` setting.
+
+.. _CTags binary: http://prdownloads.sourceforge.net/ctags/ctags58.zip
+
+Usage
+=====
+
+This uses tag files created by the ``ctags -R -f .tags`` command by default
+(although this can be overriden in settings).
+
+The plugin will try to find a ``.tags`` file in the same directory as the
+current view, walking up directories until it finds one. If it can't find one
+it will offer to build one (in the directory of the current view)
+
+If a symbol can't be found in a tags file, it will search in additional
+locations that are specified in the ``CTags.sublime-settings`` file (see 
+below).
+
+If you are a Rubyist, you can build a Ruby Gem's tags with the following
+script::
+
+  require 'bundler'
+  paths = Bundler.load.specs.map(&:full_gem_path)
+  system("ctags -R -f .gemtags #{paths.join(' ')}")
+
+Settings
+========
+
+By default, Sublime will include ctags files in your project, which causes
+them to show up in the file tree and search results. To disable this behaviour
+you should add a ``file_exclude_patterns`` entry to your 
+``Preferences.sublime-settings`` or your project file. For example::
+
+  "file_exclude_patterns": [".tags", ".tags_sorted_by_file", ".gemtags"]
+
+In addition to this setting, there's a ``CTags.sublime-settings`` file, which
+can be edited like any other ``.sublime-settings`` file
+
+* ``filters`` will allow you to set scope specific filters against a field of
+  the tag. In the excerpt above, imports tags like ``from a import b`` are 
+  filtered::
+
+    '(?P<symbol>[^\t]+)\t'
+    '(?P<filename>[^\t]+)\t'
+    '(?P<ex_command>.*?);"\t'
+    '(?P<type>[^\t\r\n]+)'
+    '(?:\t(?P<fields>.*))?'
+
+* ``extra_tag_paths`` is a list of extra places to look for keyed by 
+* ``(selector, platform)``. Note the ``platform`` is tested against 
+  ``sublime.platform()`` so any values that function returns are valid.
+* ``extra_tag_files`` is a list of extra files relative to the original file
+* ``command`` is the path to the version of ctags to use, for example::
+
+    "command" : "/usr/local/bin/ctags"
+
+  or::
+
+    "command" : "C:\Users\<username>\Downloads\CTags\ctag.exe"
+
+The rest of the options are fairly self explanatory.
+
+Support
+=======
+
+If there are any problems or you have a suggestion, `open an issue`_, and we
+will receive a notification.
+
+.. _open an issue: https://github.com/SublimeText/CTags/issues
+
+Thanks :)
+
+Commands Listing
+================
+
+==============================  ================  ===========  ======================
+Command                         Key Binding       Alt Binding  Mouse Binding
+==============================  ================  ===========  ======================
+rebuild_ctags                   ctrl+t, ctrl+r
+navigate_to_definition          ctrl+t, ctrl+t    ctrl+>       ctrl+shift+left_click
+jump_prev                       ctrl+t, ctrl+b    ctrl+<       ctrl+shift+right_click
+show_symbols                    alt+s
+show_symbols (all files)        alt+shift+s
+show_symbols (suffix)           ctrl+alt+shift+s
+==============================  ================  ===========  ======================
+

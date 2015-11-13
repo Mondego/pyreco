@@ -1,0 +1,735 @@
+## v1.0.2
+
+* Add ooniprobe manpage.
+
+* Fix various security issues raised by the least authority audit.
+
+* Add a test that checks for Tor bridge reachability.
+
+* Record the IP address of the exit node being used in torified requests.
+
+* Captive portal test now uses the ooni-probe test templates.
+
+* Have better test naming consistency.
+
+## v1.0.1
+
+* Fix bugs in the traceroute test that lead to not all packets being collected.
+
+* All values inside of http_requests test are now initialized inside of setUp.
+
+* Fix a bug that lead to the input value of the report not being set in some
+  circumstances.
+
+* Add bridge_reachability test
+
+## v1.0.0
+
+* Add bouncer support for discovering test helpers and collectors
+
+* Fix bug that lead to HTTP tests to stall
+
+* Add support for connect_error and connection_lost_error error types
+
+* Add support for additional Tor configuration keys
+
+* Add disclaimer when running ooniprobe
+
+## v0.1.0
+
+Improvements to HTML/JS based user interface:
+
+  * XSRF protection
+
+  * user supplied input specification
+
+Bugfixing and improvements to scheduler.
+
+## v0.0.12
+
+Implement JS/HTML based user interface.
+
+Supports:
+
+  * Starting and stopping of tests
+
+  * Monitoring of test progress
+
+## v0.0.11
+
+* Parametrize task timeout and retry count
+
+* Set the default collector via the command line option
+
+* Add option to disable the default collector
+
+* Add continuous integration with travis
+
+## v0.0.10
+
+### ooniprobe
+
+* Fix bug that made HTTP based tests stall
+
+* Update DNS Test example to not import the DNS Test template If you import the
+	DNS Test template it will be considered a valid test case and command line
+	argument parsing will not work as expected. see:
+	#7795 for more details
+
+* Fix major bug in DNS test template that prevented PTR lookups from working
+	properly I was calling the queryUDP function with the arguments in the wrong
+	order. Twisted, why you API no consistent?
+
+* Add support for specifying the level of parallelism in tests (aka router
+	melt mode)
+
+* Do not swallow failures when a test instance fails to run fixes #7714
+
+### scripts
+
+* Add report archival script
+
+Fix bug in TCP connect test that made it not properly log errors
+
+* Refactor failure handling code in nettest Add function that traps all the
+	supported failure and outputs the failure string representing it.
+
+### documentation
+
+* Add birdseye view of the ooniprobe architecture
+
+* Add details on the current implementation status of ooni*
+
+* Add draft ooniprobe API specification
+
+* Add instructions for supervisord configuration and clean up README.md
+
+## 0.0.9
+
+### ooniprobe
+
+* Set the default ASN to 0
+
+* Make Beautiful soup a soft depedency
+
+* Add support for sending the ASN number of the probe:
+	the ASN number will get sent when creating a new report
+
+* Add support for obtaining the probes IP address via getinfo address as per
+	https://trac.torproject.org/projects/tor/ticket/7447
+
+* Fix bug in ooniprobe test decks
+	https://trac.torproject.org/projects/tor/ticket/7664
+
+### oonib
+
+* Use twisted fdesc when writing to files
+
+* Add support for processing the ASN number of the probe
+
+* Test reports shall follow the specification detailed inside of docs/reports.rst
+
+* Add support for setting the tor binary path in oonib/config.py
+
+### scripts
+
+* Add a very simple example on how to securely parse the ooniprobe reports
+
+### documentation
+
+* Add documentation for the DNSSpoof test
+
+* Add documentation for HTTPHeaderFieldManipulation
+
+* Clean up writing_tests.rst
+
+* Properly use the power of sphinx!
+
+### Tests
+
+* fixup Netalyzr third party plugin
+
+## v0.0.8-alpha
+
+### ooniprobe
+
+* Allow test resolver file to have comments.
+
+* Autostart Tor in default configuration.
+
+* Add support for starting Tor via txtorcon.
+
+* Make the sniffer not run in a separate thread, but use a non blocking fdesc.
+	Do some refactoring of scapy testing, following Factory creational pattern
+	and a pub-sub pattern for the readers and writers.
+
+* Extend TrueHeaders to support calculation of difference between two HTTP headers respectful of
+	capitalization
+
+* Implement test deck system for automating the specification of command line
+	arguments for tests
+
+* Implement sr1 in txscapy
+
+* Include socksproxy address in HTTP based tests
+
+* Include the resolver IP:Port in the report
+
+* Changes to the report format of HTTP Test template derived tests:
+	Requests are now stored inside of an array to allow
+	the storing of multiple request/response pairs.
+
+* Fix bug that lead to httpt based reports to not have the url attribute set
+	properly.
+
+* twisted Headers() class edited to avoid header fix in reference to:
+	https://trac.torproject.org/projects/tor/ticket/7432
+
+* Parametrize tor socksport for usage with modified HTTP Agent
+
+* Update URL List test to take as input also a single URL
+
+* Clean up filenames of reports generated by ooni-probe:
+	they now follow the format $testName_report_$timestamp.yamloo
+
+* Add ooniprobe prefix to logs
+
+* Respect the includeip = false option in ooniprobe.conf for scapyt derivate
+	tests:
+	If the option to not include the IP address of the probe is set,
+	change the source and destination ip address of the sent and received
+	packets to 127.0.0.1.
+
+#### Tests
+
+* Implement basic keyword filtering detection test.
+
+* Add ICMP support to multi protocol traceroute test
+
+* parametrize max_ttl and timeout
+
+* make max_ttl and timeout be included in the report
+
+* Port UK Mobile Network test to new API
+
+* Port daphn3 test
+
+* Randomize source port by default in traceroute test and include source port in
+	report
+
+* Test and Implement HTTP Header Field Manipulation Test (rename it to what we
+	had originally called it since it made most sense)
+
+* Implement test that detects DNS spoofing
+
+* Implement TCP payload sending test template:
+	Example test based on this test template
+
+* Make report IDs include the timestamp of the report
+
+* Add test that detects censorship in HTTP pages based on HTTP body length
+
+* Add socks proxy support to HTTP Test
+
+* Create DNS Test template:
+	Use such template for DNS Tamper test.
+	Add example usage of DNS Test Template.
+
+* Refactor captive portal test to run tests in threads
+
+### oonib
+
+* Implement basic collector for ooniprobe reports.
+	Reports can be submitted over the network via http to a remote collector.
+	Implement the backend component of the collector that writes submitted
+	reports to flat files, following the report_id naming convention.
+
+* Implement very simple HTTP Request backend that does only the part of HTTP we
+	need for testing
+
+* Make oonib a daemon
+
+* Loosen up the oonib regexp to support the timestamp report format
+
+* Add Tor Hidden Service support
+
+* Make the reporting directory of the collector configurable
+
+* Implement TCP Echo test helper.
+
+### scripts
+
+* Add fabfile for automatic deployment of ooni-probe to remote sites
+
+### documentation
+
+* Update documentation on how to setup ooniprobe.
+
+## v0.0.7.1-alpha
+
+* Add software version to the report
+
+* Implement basic oonib reporting to flat files containing the report ID.
+
+* Improve HTTP Host test to work with the HTTP Requests test backend
+
+## v0.0.7-alpha
+
+* Add test_name key to ooniprobe reports
+
+* Port TCP connect test to the new API
+
+## v0.0.4-alpha
+
+* Add multi protocol multi port traceroute for UDP and TCP
+
+* Implement basic HTTP request test that does capitalization variations on the
+HTTP method.
+
+* Bugfixing and refactoring of txscapy for sending and receiving of scapy
+packets.
+
+## v0.0.3-alpha
+
+* Implement logging to PCAP file support
+
+* Remove dependency on trial
+
+* Port china trigger to new API
+
+* Rename keyword filtering test to HTTP keyword filtering
+
+* Refactor install documentation.
+
+* Convert header of ooniprobe script to a non docstring
+
+* Add Makefile to fetch Maxmind geoip database files
+
+* Implement GeoIP lookup support
+
+* From configuration options it is possible to choice what level of privacy
+	the prober is willing to accept. Implement config file support You are able
+	to specify basic and advanced options in YAML format
+
+* Remove raw inputs and move them to a separate repository and add Makefile to
+	fetch such lists
+
+## 0.0.1-alpha
+
+First release of ooni-probe. woot!
+
+
+In here you will find some very simple input lists that are useful for testing
+the correct functionality of the various OONIProbe tests.
+
+# DNS Consistency
+
+./bin/ooniprobe -o dns_tamper_test.yamloo data/nettests/blocking/dns_consistency.py -t
+example_inputs/dns_tamper_test_resolvers.txt -f example_inputs/dns_tamper_file.txt
+
+less dns_tamper_test.yamloo
+
+# Captive Portal
+
+./bin/ooniprobe -o captive_portal_test.yamloo data/nettests/core/captiveportal.py
+
+less captive_portal_test.yamloo
+
+# HTTP Host
+
+./bin/ooniprobe -o http_host.yamloo data/nettests/manipulation/http_host.py -b http://ooni.nu/test -f example_inputs/http_host_file.txt
+
+less http_host.yamloo
+
+# Keyword filtering
+
+./bin/ooniprobe -o keyword_filtering.yamloo data/nettests/core/keyword_filtering.py -b http://ooni.nu/test/ -f test_inputs/keyword_filtering_file.txt
+
+less keyword_filtering.yamloo
+
+# URL List
+
+./bin/ooniprobe -o url_lists.yamloo data/nettests/core/url_list.py -f test_inputs/url_lists_file.txt
+
+less url_lists.yamloo
+
+# Squid transparent proxy
+
+./bin/ooniprobe -o squid.yamloo data/nettests/core/squid.py
+
+less squid.yamloo
+
+# HTTP Requests
+
+Not Implemented
+
+# Traceroute
+
+Not Implemented
+
+bower-angular-resource
+======================
+
+angular-resource bower repo
+Debian package for ooni-probe
+=============================
+
+The Debian package is currently missing the graphical user interface as it
+needs several JavaScript libraries that are currently not available in Debian.
+
+= ooniprobe Bridget Plugin =
+
+== Who's that? ==
+
+Bridget is an OONI plugin for testing the reachability of bridges and relays
+in the Tor network.
+
+== Dependencies == 
+
+In addition to the regular OONI dependencies, bridget requires
+[https://github.com/meejah/txtorcon.git txtorcon]. If you don't already have
+it installed on your system, there is a Makefile in ooni/lib/ which will git
+clone it for you, and copy the API portions to ooni/lib/ and discard the
+rest. If you're seeing errors saying "Bridget requires txtorcon!" or "Unable
+to import libraries from txtorcon!", then you should use the Makefile by
+doing:
+
+    $ cd ooni/lib/ && make txtorcon
+
+== Using Bridget ==
+
+=== Defaults ===
+
+'''Tor Binary Path'''
+By default, Bridget will start a new Tor process from the binary at 
+/usr/sbin/tor. If you have a different Tor binary that you'd like to use,
+you can tell Bridget where it is by using the '--torpath' option.
+
+'''Tor SocksPort and ControlPort'''
+Also, Bridget is configured to start Tor with ControlPort=9052 and
+SocksPort=9049. If you're running a firewall, you should make sure that
+localhost is allowed incoming access to those ports. To use different ports,
+see the '--socks' and '--control' options.
+
+If you're a true Entropist, you can use the '--random' option to randomize
+which ports are used for the SocksPort and ControlPort.
+
+=== Running Tests === 
+
+You'll need some assets first. 
+
+OONI assets are simple text files describing what it is that you want
+tested. Normally, one thing-to-be-tested per line, sometimes with comma
+separated values. The test you're using should tell you what it wants (if it
+doesn't, you should complain to one of the OONI developers). Normally, assets
+look like this:
+
+    [file:assets/things.txt]
+    torproject.org
+    ooni.nu
+    eff.org
+    riseup.net
+    [...]
+
+==== Testing Relays with Bridget ==== 
+
+This doesn't work all the way yet. Eventually, you'll need to give bridget
+an asset with one relay IP address per line, like this:
+
+    [file:assets/relays.txt]
+    123.123.123.123
+    11.22.33.44
+    111.1.111.1
+    [...]
+
+and you'll use it by doing:
+
+    path-to-ooni-probe/ooni/$ ./ooniprobe.py bridget -f assets/relays.txt
+
+Once the relays feature is functional, it will be possible to test bridges and
+relays at the same time: Bridget will try to connect to a bridge, and, if that
+worked, it will try to build a circuit from the provided relays, noting which
+bridges/relays fail and which ones succeed. This will continue until all the
+bridges and relays have been tested.
+
+==== Testing Bridges with Bridget ==== 
+
+Bridget will need an asset file with bridge IPs and ORPorts, one per
+line. Your asset file should look like this:
+
+    [file:assets/bridges.txt]
+    11.22.33.44:443
+    2.3.5.7:9001
+    222.111.0.111:443
+    [...]
+
+and you'll call Bridget like this:
+
+    path-to-ooni-probe/ooni/$ ./ooniprobe.py bridget -b assets/bridges.txt
+    
+==== Testing Bridge Pluggable Transports ====
+
+Bridget can test whether a bridge with a pluggable transport, like obfsproxy,
+is reachable. To reach these bridges, you need to have the pluggable transport
+that you want to test installed. You should look at the documentation for that
+transport to figure out how to do that.
+
+To test a pluggable transport, do this (the quotemarks are important):
+
+    $ ./ooniprobe.py bridget -t "/path/to/PT/binary [options]" \
+          -b assets/bridges.txt
+
+
+These inputs are here to assist the running of before_i_commit.sh that is used to verify proper functioning of ooniprobe.
+
+
+There is no license for NetalyzrCLI.jar; so while we include it, it's just
+for ease of use.
+
+We currently support interfacing with the ICSI Netalyzr system by wrapping
+the NetalyzrCLI.jar client. It was downloaded on August 5th, 2011 from the
+following URL:
+  http://netalyzr.icsi.berkeley.edu/NetalyzrCLI.jar
+
+More information about the client is available on the cli web page:
+  http://netalyzr.icsi.berkeley.edu/cli.html
+
+After looking at NetalyzrCLI.jar, I discovered that '-d' runs it in a
+debugging mode that is quite useful for understanding their testing
+framework as it runs.
+
+[![Build Status](https://travis-ci.org/TheTorProject/ooni-probe.png?branch=master)](https://travis-ci.org/TheTorProject/ooni-probe)
+[![Coverage Status](https://coveralls.io/repos/TheTorProject/ooni-probe/badge.png)](https://coveralls.io/r/TheTorProject/ooni-probe)
+
+![OONI](https://ooni.torproject.org/theme/img/ooni-logo.png)
+
+"The Net interprets censorship as damage and routes around it."
+                - John Gilmore; TIME magazine (6 December 1993)
+
+OONI, the Open Observatory of Network Interference, is a global observation
+network which aims is to collect high quality data using open methodologies,
+using Free and Open Source Software (FL/OSS) to share observations and data
+about the various types, methods, and amounts of network tampering in the
+world.
+
+ooniprobe is the first program that users run to probe their network and to
+collect data for the OONI project. Are you interested in testing your network
+for signs of surveillance and censorship? Do you want to collect data to share
+with others, so that you and others may better understand your network? If so,
+please read this document and we hope ooniprobe will help you to gather
+network data that will assist you with your endeavors!
+
+#### Read this before running ooniprobe!
+
+Running ooniprobe is a potentially risky activity. This greatly depends on the
+jurisdiction in which you are in and which test you are running. It is
+technically possible for a person observing your internet connection to be
+aware of the fact that you are running ooniprobe. This means that if running
+network measurement tests is something considered to be illegal in your country
+then you could be spotted.
+
+Futhermore, ooniprobe takes no precautions to protect the install target machine
+from forensics analysis.  If the fact that you have installed or used ooni
+probe is a liability for you, please be aware of this risk.
+
+## Installation
+
+### Debian based systems
+
+```
+sudo sh -c 'echo "deb http://deb.ooni.nu/ooni wheezy main" >> /etc/apt/sources.list'
+gpg --keyserver pgp.mit.edu --recv-key 0x49B8CDF4
+gpg --export 89AB86D4788F3785FE9EDA31F9E2D9B049B8CDF4 | sudo apt-key add -
+sudo apt-get update && sudo apt-get install ooniprobe
+```
+
+### Linux
+
+We believe that ooniprobe runs reasonably well on Debian GNU/Linux wheezy as
+well as versions of Ubuntu such as natty and later releases. Running ooniprobe
+without installing it is supported with the following commands:
+
+```
+git clone https://git.torproject.org/ooni-probe.git
+cd ooni-probe
+./setup-dependencies.sh
+python setup.py install
+```
+
+### Setting up development environment
+
+On debian based systems this can be done with:
+```
+sudo apt-get install libgeoip-dev python-virtualenv virtualenvwrapper
+mkvirtualenv ooniprobe
+python setup.py install
+pip install -r requirements-dev.txt
+```
+
+### Other platforms (with Vagrant)
+
+0) [Install Vagrant](https://www.vagrantup.com/downloads.html) and [Install Virtualbox](https://www.virtualbox.org/wiki/Downloads)
+
+0.1)
+
+On OSX:
+
+If you don't have it install homebrew http://mxcl.github.io/homebrew/
+
+```
+brew install git
+```
+
+On debian/ubuntu:
+
+```
+sudo apt-get install git
+```
+
+1) Open a Terminal and run:
+
+```
+git clone https://git.torproject.org/ooni-probe.git
+cd ooni-probe/
+vagrant up
+```
+
+2) Login to the box with:
+
+```
+vagrant ssh
+```
+
+ooniprobe will be installed in `/ooni`.
+
+3) You can run tests with:
+
+```
+ooniprobe blocking/http_requests -f /ooni/example_inputs/alexa-top-1k.txt
+```
+
+## Using ooniprobe
+
+**Net test** is a set of measurements to assess what kind of internet censorship is occurring.
+
+**Decks** are collections of ooniprobe nettests with some associated inputs.
+
+**Collector** is a service used to report the results of measurements.
+
+**Test helper** is a service used by a probe for successfully performing its measurements.
+
+**Bouncer** is a service used to discover the addresses of test helpers and collectors.
+
+### Configuring ooniprobe
+
+You may edit the configuration for ooniprobe by editing the configuration file
+found inside of `~/.ooni/ooniprobe.conf`.
+
+By default ooniprobe will not include personal identifying information in the
+test result, nor create a pcap file. This behavior can be personalized.
+
+### Running decks
+
+You will find all the installed decks inside of `/usr/share/ooni/decks`.
+
+You may then run a deck by using the command line option `-i`:
+
+As root:
+```
+ooniprobe -i /usr/share/ooni/decks/mlab.deck
+```
+
+Or as a user:
+```
+ooniprobe -i /usr/share/ooni/decks/mlab_no_root.deck
+```
+
+Or:
+
+As root:
+```
+ooniprobe -i /usr/share/ooni/decks/complete.deck
+```
+
+Or as a user:
+```
+ooniprobe -i /usr/share/ooni/decks/complete_no_root.deck
+```
+
+The above tests will require around 20-30 minutes to complete depending on your network speed.
+
+If you would prefer to run some faster tests you should run:
+As root:
+```
+ooniprobe -i /usr/share/ooni/decks/fast.deck
+```
+
+Or as a user:
+```
+ooniprobe -i /usr/share/ooni/decks/fast_no_root.deck
+```
+
+### Running net tests
+
+You may list all the installed stable net tests with:
+
+```
+ooniprobe -s
+```
+
+You may then run a nettest by specifying its name for example:
+
+```
+ooniprobe manipulation/http_header_field_manipulation
+```
+
+It is also possible to specify inputs to tests as URLs:
+
+```
+ooniprobe blocking/http_requests -f httpo://ihiderha53f36lsd.onion/input/37e60e13536f6afe47a830bfb6b371b5cf65da66d7ad65137344679b24fdccd1
+```
+
+You can find the result of the test in your current working directory.
+
+By default the report result will be collected by the default ooni collector
+and the addresses of test helpers will be obtained from the default bouncer.
+
+You may also specify your own collector or bouncer with the options `-c` and
+`-b`.
+
+## (Optional) Install obfsproxy
+
+Install the latest version of obfsproxy for your platform.
+
+[Download Obfsproxy](https://www.torproject.org/projects/obfsproxy.html.en)
+
+## Bridges and obfsproxy bridges
+
+ooniprobe submits reports to oonib report collectors through Tor to a hidden
+service endpoint. By default, ooniprobe uses the installed system Tor, but can
+also be configured to launch Tor (see the advanced.start_tor option in
+ooniprobe.conf), and ooniprobe supports bridges (and obfsproxy bridges, if
+obfsproxy is installed). The tor.bridges option in ooniprobe.conf sets the path
+to a file that should contain a set of "bridge" lines (of the same format as
+used in torrc, and as returned by https://bridges.torproject.org). If obfsproxy
+bridges are to be used, the path to the obfsproxy binary must be configured.
+See option advanced.obfsproxy_binary, in ooniprobe.conf.
+
+## Setting capabilities on your virtualenv python binary
+
+If your distributation supports capabilities you can avoid needing to run OONI as root:
+
+```
+setcap cap_net_admin,cap_net_raw+eip /path/to/your/virtualenv's/python
+```
+
+
+## Reporting bugs
+
+You can report bugs and issues you find with ooni-probe on The Tor Projec issue
+tracker [filing them under the "Ooni" component](https://trac.torproject.org/projects/tor/newticket?component=Ooni).
+
+You can either register an account or use the group account "cypherpunks" with
+password "writecode".
+
+

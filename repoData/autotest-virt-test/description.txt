@@ -1,0 +1,274 @@
+Drop your test scripts into this directory.
+Make them executable, and with no extension.
+
+The test scripts will run unmodified, with
+no external context, so make them in a way
+that they don't require that extra context.
+
+An example of such a script could be:
+
+#!/bin/sh
+true
+
+Using the option --run-dropin, virt-test
+will run each one of those scripts and,
+if they return 0, they will PASS, if they
+return != 0, they will fail.
+
+======================================
+Linux Virtualization Tests (virt-test)
+======================================
+
+Really quick start guide
+------------------------
+
+The most convenient distro to run virt-test on is Fedora,
+since we have autotest libs officially packaged on this distro [1].
+
+It is similarly easy to set things up on a RHEL box, but then
+you need to enable the EPEL repos [2] to install the needed packages.
+
+The most recent addition to this list is Ubuntu/Debian. New repos were
+set with a new autotest package. Learn how to add the proper repos and
+install your packages on [3].
+
+
+Install dependencies
+--------------------
+
+Install the p7zip file archiver so you can uncompress the JeOS [4] image.
+
+Red Hat based:
+
+# yum install p7zip
+
+Debian based:
+
+# apt-get install p7zip-full
+
+Install the autotest-framework package, to provide the needed autotest libs.
+
+Red Hat based:
+
+# yum install autotest-framework
+
+Debian based (needs to enable repo, see [3]):
+
+# apt-get install autotest
+
+Some tests might need some other dependencies, such as the migrate
+using file descriptors, that requires a working toolchain and python-devel,
+and generating VM videos, that requires python-gstreamer.
+
+For such cases, it is best that you refer to the more complete documentation:
+
+https://github.com/autotest/virt-test/wiki/InstallPrerequesitePackages
+
+https://github.com/autotest/virt-test/wiki/InstallPrerequesitePackagesDebian
+
+
+Execute the bootstrap script
+------------------------
+
+Let's say you're interested in the qemu tests:
+
+./run -t qemu --bootstrap
+
+The script can help you to setup a data dir, copy the sample config files
+to actual config files, and download the JeOS image.
+
+Execute the runner script
+-------------------------
+
+You can execute the main runner script, called run. The script offers you
+some options, all explained in the script help. A really really simple execution
+of the script for qemu tests is:
+
+./run -t qemu
+
+This will execute a subset of the tests available.
+
+Note: If you execute the runner before the bootstrap, things will work,
+but then you won't get prompted and the runner will download the JeOS
+automatically.
+
+Writing your first test
+-----------------------
+
+https://github.com/autotest/virt-test/wiki/WritingSimpleTests
+
+Is your tutorial to write your first test. Alternatively, you
+can copy the simple template test we have under the samples
+directory to the appropriate test directory, and start hacking
+from there. Example: You want to create a qemu specific test
+for the jelly functionality. You have to do:
+
+cp samples/template.py qemu/tests/jelly.py
+
+And then edit the template file accordingly.
+
+[1] If you want to use it without the packaged rpm, you need to have a clone
+of the autotest code (git://github.com/autotest/autotest.git) and set the
+env variable AUTOTEST_PATH pointing to the path of the clone. We do have
+plans to package the libs to more distributions.
+
+[2] http://fedoraproject.org/wiki/EPEL/FAQ#How_can_I_install_the_packages_from_the_EPEL_software_repository.3F
+
+[3] https://github.com/autotest/virt-test/wiki/InstallPrerequesitePackagesDebian
+
+[4] JeOS: Minimal guest OS image (x86_64)
+
+Actual documentation website
+----------------------------
+
+https://github.com/autotest/virt-test/wiki
+
+Description
+-----------
+
+virt-test is a Linux virtualization test suite, intended to be used in
+conjunction with the autotest framework [1], although it can be also used
+separately, on a virt developer's machine, to run tests quicker and smaller
+in scope, as an auxiliary tool of the development process.
+
+This test suite aims to have test tools for a wide range of testing scenarios:
+
+-  Guest OS install, for both Windows (WinXP - Win7) and Linux (RHEL,
+   Fedora, OpenSUSE) and any generic one, through a 'step engine' mechanism.
+-  Serial output for Linux guests
+-  Migration, networking, timedrift and other types of tests
+-  Monitor control for both human and QMP protocols
+-  Build and use qemu using various methods (source tarball, git repo,
+   rpm)
+-  Performance testing
+-  Call other kvm test projects, such as kvm-unit-tests
+
+We support x86\_64 hosts with hardware virtualization support (AMD and
+Intel), and Intel 32 and 64 bit guest operating systems, and work is underway
+to support PPC hosts.
+
+[1] http://autotest.github.com/ - Autotest is a project that aims to
+provide tools and libraries to perform automated testing on the linux
+platform. Autotest is a modular framework, and this suite can be used as
+a submodule of the client module. If you do not want to use or know about
+autotest, this is fine too, and we'll provide documentation and tools to
+perform development style testing with it.
+
+
+Basic Troubleshooting
+---------------------
+
+If you have problems with the basic usage described here, it's possible
+that there's some local change in your working copy of virt-test. These
+changes can come in (at least) two different categories:
+
+- Code changes, which you can check with the git tools (try "git diff"
+  and "git branch" first)
+- Configuration changes that can you reset with "update_config.py"
+
+If you find that you have local changes in the code, please try to reset
+your checked out copy to upstream's master by running::
+
+$ git checkout master
+$ git pull
+
+
+And then, reset you configuration. If you're going to run qemu tests, run::
+
+$ ./run -t qemu --update-config
+
+If you're still having problems after these basic troubleshoot steps,
+please contact us!
+
+You can drop files in this dir to define custom linux guests.
+As an example, you could create a file called foo.cfg with the contents:
+
+FooLinux:
+    image_name = images/foo-linux
+
+Which would make it possible to specify this custom guest using
+
+./run -t qemu -g LinuxCustom.FooLinux
+
+Provided that you have a file called images/foo-linux.qcow2, if using the
+qcow2 format image. If you wish to provide a raw image file, you must use
+
+./run -t qemu -g LinuxCustom.FooLinux --image-type raw
+
+Other useful params to set (not an exaustive list):
+
+    # shell_prompt is a regexp used to match the prompt on aexpect.
+    # if your custom os is based of some distro listed in the guest-os
+    # dir, you can look on the files and just copy shell_prompt
+    shell_prompt = "^\[.*\][\#\$]\s*$"
+    # If you plan to use a raw device, set image_device = yes
+    image_raw_device = yes
+    # Password of your image
+    password = 123456
+    # Shell client used (may be telnet or ssh)
+    shell_client = ssh
+    # Port were the shell client is running
+    shell_port = 22
+    # File transfer client
+    file_transfer_client = scp
+    # File transfer port
+    file_transfer_port = 22
+
+You can drop files in this dir to define custom windows guests.
+As an example, you could create a file called foo.cfg with the contents:
+
+FooWindows:
+    image_name = images/foo-windows
+
+Which would make it possible to specify this custom guest using
+
+./run -t qemu -g WindowsCustom.FooWindows
+
+Provided that you have a file called images/foo-windows.qcow2, if using the
+qcow2 format image. If you wish to provide a raw image file, you must use
+
+./run -t qemu -g WindowsCustom.FooWindows --image-type raw
+
+Other useful params to set (not an exaustive list):
+
+    # If you plan to use a raw device, set image_device = yes
+    image_raw_device = yes
+    # Attention: Changing the password in this file is not supported,
+    # since files in winutils.iso use it.
+    username = Administrator
+    password = 1q2w3eP
+
+
+Test Providers
+
+This directory has test provider config files and download/test
+areas for code. The config files are .ini files that have the
+following structure:
+
+[provider]
+
+# Test provider URI (default is a git repository, fallback to standard dir)
+uri: git://git-provider.com/repo.git
+#uri: file:///path/to/tests/
+#uri: /path-to-my-git-dir/repo.git
+#uri: http://bla.com/repo.git
+#uri: /path-to-my-git-dir/repo/
+#uri: /path-to-my-standard-dir/foobar/tests
+
+# Virt backend
+backend: qemu
+
+# Optional subdir (place inside repo where the actual tests are)
+# This is useful for projects to keep virt tests inside their
+# (larger) test repos. Defaults to ''.
+subdir: tests/src/virt-tests/
+
+# Optional git branch (for git repo type)
+branch: master
+
+# Optionall git commit reference (tag or sha1)
+ref: e44231e88300131621586d24c07baa8e627de989
+
+# Pubkey: File containing public key for signed tags (git)
+pubkey: example.pub
+

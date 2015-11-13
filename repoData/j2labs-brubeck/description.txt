@@ -1,0 +1,1330 @@
+# Learn By Example
+
+Each demo attempts to explain some of the nuances of Brubeck.
+
+Each example should be run from inside the [demos](https://github.com/j2labs/brubeck/blob/master/demos/) directory after Brubeck has been installed.  
+
+This document assumes you have already read the README.  If you have not, please read that and come back after.
+
+## Abstract
+
+We begin by building some knowledge of Mongrel2's internals using `sqlite3` and `m2reader.py`.
+
+Then there are four sets of demos. The first set contains the two demos from the README that build request handlers using classes or functions.  Then we discuss how URL's are mapped to handlers.  Template rendering is then shown for [Jinja2](http://jinja.pocoo.org/), [Tornado templates](http://www.tornadoweb.org/documentation/template.html) and [Mako](http://www.makotemplates.org/).  This doc is then finished with an explanation of authentication over two final demos.
+
+
+## Kicking Mongrel2's Tires
+
+Each of these tests can be run underneath the same Mongrel2 instance. You can bring the handlers down and back up without taking Mongrel2 down.
+
+First, we parse the config file into a sqlite database. Configuring the database this way makes the experience of editing configs as easy as editing text, but the database is stored in a programmatically friendly way too via [SQLite](http://www.sqlite.org/).
+
+There is no need to edit the config so we can just load the config into a database using `m2sh load`.
+
+    $ m2sh load -config mongrel2.conf -db the.db
+    
+Now we have a sqlite database representing our config. If you have sqlite installed, open the database and take a look. You can start by typing `.tables` at the prompt to get a table list.
+
+    $ sqlite3 the.db 
+    sqlite> .tables
+    directory  host       mimetype   route      setting  
+    handler    log        proxy      server     statistic
+    sqlite> select * from route;
+    1|/|0|1|1|handler
+    2|/media/|0|1|1|dir
+    
+We can then turn Mongrel2 on with `m2sh start`.
+
+    $ m2sh start -db the.db -host localhost
+    ... # lots of output
+    [INFO] (src/handler.c:285) Binding handler PUSH socket ipc://127.0.0.1:9999 with identity: 34f9ceee-cd52-4b7f-b197-88bf2f0ec378
+    [INFO] (src/handler.c:311) Binding listener SUB socket ipc://127.0.0.1:9998 subscribed to: 
+    [INFO] (src/control.c:401) Setting up control socket in at ipc://run/control
+    
+OK. Mongrel2 is now listening on port 6767 and sending messages down a ZeroMQ push socket, ipc://127.0.0.1:9999
+
+
+### m2reader.py
+
+Wanna see what Mongrel2 is actually saying? Turn on `m2reader.py`. It won't respond with a proper web request, but you can see the entire JSON message passed to Brubeck from Mongrel2.
+
+    $ ./m2reader.py 
+    34f9ceee-cd52-4b7f-b197-88bf2f0ec378 0 / 571:{"PATH":"/","x-forwarded-for":"127.0.0.1","accept-language":"en-US,en;q=0.8","accept-encoding":"gzip,deflate,sdch","connection":"keep-alive","accept-charset":"ISO-8859-1,utf-8;q=0.7,*;q=0.3","accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8","user-agent":"Mozilla/5.0 (Macintosh; Intel Mac OS X 10_6_8) AppleWebKit/534.30 (KHTML, like Gecko) Chrome/12.0.742.122 Safari/534.30","host":"localhost:6767","METHOD":"GET","VERSION":"HTTP/1.1","URI":"/","PATTERN":"/"},0:,
+    
+Brubeck's job is to generate a response and send it to Mongrel2, which Mongrel2 then then forwards to our user.
+
+
+# The Demos
+
+On the agenda:
+
+* Classes and Functions
+* URL design and handling
+* Template rendering
+* Authentication
+
+
+# Classes And Functions
+
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
+
+As we saw in the README there are two ways of writing message handlers.  `demo_minimal.py` implements a class that implements a `get()` function to answer HTTP GET.  `demo_noclasses.py` implements a function with it's URL mapping specified with the `add_route` decorator.
+
+
+# URL Design And Handling
+
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_urlargs.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_urlargs.py)
+
+URL's are matched by regular expression.  Sometimes parameters we need are part of the URL.  Here is a quick glance at the URL's used for this demo.
+
+    urls = [(r'^/class/(\w+)$', NameHandler),
+            (r'^/fun/(?P<name>\w+)$', name_handler),
+            (r'^/', IndexHandler)]
+
+In spite of being the last URL listed above, `IndexHandler` is the first class defined.  This class responds to HTTP GET with the string `'Take five!'`. That's it.
+
+    class IndexHandler(WebMessageHandler):
+        def get(self):
+            self.set_body('Take five!')
+            return self.render()
+
+The next class, `NameHandler`, defines it's `get()` function differently from `IndexHandler`.  The new definition includes the parameter `name`.  Notice that in the `urls` above we asign `NameHandler` to pattern `'^/class/(\w+)$'`.
+
+Whatever matches `(\w+)` will be the value of the `name` argument below.
+
+    class NameHandler(WebMessageHandler):
+        def get(self, name):
+            self.set_body('Take five, %s!' % (name))
+            return self.render()
+
+The third handler defined is not a class.  This handler is defined as a function.  And notice that it also has a `name` argument tacked on.
+
+    def name_handler(application, message, name):
+        return render('Take five, %s!' % (name), 200, 'OK', {})
+
+We then map all three URL's to the relevant handlers and instantiate a `Brubeck` instance.  
+
+    app = Brubeck(**config)
+
+But hey, we'll add one more function just because we still can.
+
+The `add_route` decorator is now available to us on the Brubeck instance (`app`). Wrap any function with this decorator to assign it to a URL pattern and HTTP method. Passing parameters in URL's works fine here too.
+
+    @app.add_route('^/deco/(?P<name>\w+)$', method='GET')
+    def new_name_handler(application, message, name):
+        return render('Take five, %s!' % (name), 200, 'OK', {})
+
+Then we turn it on by calling `run()` and all four URL's can answer requests.  Try this one: [http://localhost:6767/class/james](http://localhost:6767/class/james).  Or this one: [http://localhost:6767/fun/james](http://localhost:6767/fun/james).  Or this one: [http://localhost:6767/deco/james](http://localhost:6767/deco/james).
+
+The only URL left is the boring one: [http://localhost:6767/](http://localhost:6767/).
+
+
+# Template Rendering
+
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_tornado.py)
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_mako.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_mako.py)
+
+Template rendering is adequately covered as part of the README for now.
+
+
+# Authentication
+
+Authentication comes in many forms.  The first example will cover the basic system for authenticating requests.  The second demo will combine cookies, templates and a hard coded user to demonstrate a full login system.
+
+
+## Auth Over POST
+
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
+
+To place authentication restrictions on any function you can use the `@authenticated` decorator. The purpose of this decorator is tell the web server to fail with errors sent via the relevant protocol. When using a `WebMessageHandler` errors will be sent as HTTP level errors. We will discuss another decorator `@web_authenticated` in the next section.
+
+Here is what using it looks like.
+
+    @authenticated
+    def post(self):
+        ...
+
+For the purpose of the demonstration I hardcode a `User` instance with the username 'jd' and the password 'foo'.  Brubeck comes with a `User` and `UserProfile` model but we only use the `User` model here.
+
+    demo_user = User.create_user('jd', 'foo')
+
+ All `get_current_user` does is check the request arguments for a username and password and validate them.  Brubeck makes the authenticated user available for you as `self.current_user`.
+ 
+ Let's try it using it curl.
+
+    $ curl -d "username=jd&password=foo" localhost:6767/brubeck
+    jd logged in successfully!
+
+Now let's see it fail. We will tell curl to fail silently, meaning it won't print out any returned HTML, so we can see the 401 error Brubeck returns.
+
+    $ curl -f -d "username=jd&password=bar" localhost:6767/brubeck
+    curl: (22) The requested URL returned error: 401
+    
+Someone could build the first draft of an API using this example.  All errors would be passed via HTTP.
+
+
+## Authenticated Website
+
+* [https://github.com/j2labs/brubeck/blob/master/demos/demo_login.py](https://github.com/j2labs/brubeck/blob/master/demos/demo_login.py)
+
+This example is considerably more involved.  Let's look at the URL's before we dig in.
+
+    handler_tuples = [
+        (r'^/login', LoginHandler),
+        (r'^/logout', LogoutHandler),
+        (r'^/', LandingHandler),
+    ]
+    
+We can probably guess that `LoginHandler` logs a user in and `LogoutHandler` logs a user out.  But what happens if we visit [http://localhost:6767/](http://localhost:6767/) before logging in?
+
+### Redirection
+
+Try visiting [http://localhost:6767](http://localhost:6767) and you'll be redirected to [http://localhost:6767/login](http://localhost:6767/login). This happens because we wrapped `LoginHandler`'s `get()` method with the `@web_authenticated` decorator. 
+
+    class LandingHandler(CustomAuthMixin, Jinja2Rendering):
+        @web_authenticated
+        def get(self):
+            ...
+
+Failures to pass authentication are redirected to the application's login_url, as specified in Brubeck's config.
+
+    config = {
+        ...
+        'login_url': '/login',
+    }
+
+If you need to redirect a user to the login url at any point in your code, you could write the following.
+
+    return self.redirect(self.application.login_url)
+
+The implementation of `LoginHandler` is straight forward. The `get()` method renders the login template with fields for a username and password. The implementation of `post()` has the `@web_authenticated` decorator on it, meaning it expects auth credentials to be provided. If the credentials pass `post()` then calls `self.redirect('/')` to send a logged-in user to the landing page.
+
+
+### Authentication Tracking
+
+A cookie was set the first time `@web_authenticated` was called because we provided the correct username and password. This doesn't happen automatically. It happened because of these two lines in `get_current_user`.
+
+    self.set_cookie('username', username) # DEMO: Don't actually put a
+    self.set_cookie('password', password) # password in a cookie...
+
+Notice the comment suggesting you shouldn't actually store a password in the cookie. This is done to keep the demo focused. Secure cookies will be covered soon..
+
+
+### Authenticated Browsing
+
+Now that we're logged in, `LandingHandler` let's us call `get()` and it renders `landing.html`. It simply says hello and offers a logout button.
+
+Clicking logout sends us to [http://localhost:6767/logout](http://localhost:6767/logout) and `LogoutHandler` calls `self.delete_cookies()`. We are no longer authenticated so it sends us the login screen when it's finished.
+
+
+### Secure Cookies
+
+Brubeck also supports secure cookies. This is what it looks like to use them.
+
+Setting one:
+
+    self.set_cookie('user_id', username,
+                    secret=self.application.cookie_secret)
+
+Reading one:
+
+    user_id = self.get_cookie('user_id',
+                              secret=self.application.cookie_secret)
+
+The [List Surf](https://github.com/j2labs/listsurf) project features secure cookies in it's authentication system.
+
+# Authentication
+
+Authentication is provided by decorating functions with the `@web_authenticated` decorator. This decorator expects the handler to have a `current_user` property that returns either an authenticated `User` model or None. 
+
+The `UserHandlingMixin` provides functionality for authenticating a user and creating the `current_user` property. 
+
+The work that's required will depend on how you build your system. The authentication framework uses a DictShield Document to create the `User` model, so you can implement a database query or check user information in a sorted CSV. Either way, you still get the authentication framework you need.
+
+In practice, this is what your code looks like.
+
+    from brubeck.auth import web_authenticated, UserHandlingMixin
+
+    class DemoHandler(WebMessageHandler, UserHandlingMixin):
+        @web_authenticated
+        def post(self):
+            ...
+
+The `User` model in brubeck.auth will probably serve as a good basis for your needs. A Brubeck user looks roughly like below.
+
+    class User(Document):
+        """Bare minimum to have the concept of a User.
+        """
+        username = StringField(max_length=30, required=True)
+        email = EmailField(max_length=100)
+        password = StringField(max_length=128)
+        is_active = BooleanField(default=False)
+        last_login = LongField(default=curtime)
+        date_joined = LongField(default=curtime)        
+        ...
+
+* [Basic Demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_auth.py)
+* [Login System](https://github.com/j2labs/brubeck/blob/master/demos/demo_login.py)
+
+
+# AutoAPI
+
+Brubeck combines the metaprogramming in DictShield along with the assumption
+that REST is generally similar to CRUD to provide a mechanism for generating
+APIs from DictShield models.
+
+There are two things that must be consider: 
+
+1. Data Processing
+2. Persistence
+
+
+## Data Processing
+
+The data processing is essentially to provide GET, POST, PUT and DELETE for a
+document design. The document provides a mechanism for validating the ID of a
+document, which is useful for both GET and DELETE. It also provides the
+mechanism for validating an entire document, as we'd expect to receive with
+either POST or PUT.
+
+We could define a simple model to look like this:
+
+    class Todo(Document):
+        completed = BooleanField(default=False)
+        text = StringField(required=True)
+        class Meta:
+            id_options = {'auto_fill': True}
+
+DictShield provides a way to validate input against this structure. It also
+provides a way to format output, like when we serialize the structure to JSON,
+with some fields removed, based on what permissions are available to the user.
+
+We'll create a `Todo` instance.
+
+    >>> t = Todo(text='This is some text')
+    >>> t.validate()
+    True
+    
+Let's serialize it to a Python dictionary. This is probably what we'd save in
+a database.
+
+    >>> t.to_python()
+    {'_types': ['Todo'], 'text': u'This is some text', 'completed': False, '_id': UUID('c4ac6aff-737c-47db-ab07-fbe402b08d1c'), '_cls': 'Todo'}
+
+Or maybe we're just gonna store JSON in something.
+
+     >>> t.to_json()
+     '{"_types": ["Todo"], "text": "This is some text", "completed": false, "_id": "7e48a600-f599-4a3a-9244-73760841f70e", "_cls": "Todo"}'
+     
+It's useful for APIs too, because you can combine one of it's `make_safe`
+functions with whatever access rights the user has. DictShield provides the 
+concept of *owner* and *public* in the form of a blacklist and a whitelist
+respectively.
+
+    >>> Todo.make_json_ownersafe(t)
+    '{"text": "This is some text", "completed": false}'
+    >>> 
+
+If we provide GET and PUT we will need to handle ID fields. DictShield
+documents let us validate individual fields if we want. That looks like this:
+
+    >>> Todo.id.validate('c4ac6aff-737c-47db-ab07-fbe402b08d1c')
+    UUID('c4ac6aff-737c-47db-ab07-fbe402b08d1c')
+    
+We can see that the returned value is the input coerced into the type of the
+field. 
+
+This is what failed validation looks like, notice that the input is a munged
+version of the input above.
+
+    >>> Todo.id.validate('c4ac6aff-737c-47db-ab07-fbe402b0c')
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "/Users/jd/Projects/dictshield/dictshield/fields/base.py", line 178, in validate
+        self.field_name, value)
+    dictshield.base.ShieldException: Not a valid UUID value - None:c4ac6aff-737c-47db-ab07-fbe402b0c
+    
+
+## Persistence
+
+Persistence is then handled by way of a `QuerySet`. A dict based QuerySet,
+called `DictQueryset`, is provided by default. Other implementations for
+supporting MongoDB, Redis and MySQL are on the way.
+
+The interface to the QuerySets is defined in the `AbstractQueryset`. We see
+some familiar names defined: `create()`, `read()`, `update()` and `destroy()`.
+These functions then either call `create_one` or `create_many` for each CRUD
+operation.
+
+CRUD doesn't map exactly to REST, but it's close, so Brubeck attempts to
+accurately cover REST's behavior using CRUD operations. It's not a 1:1 mapping.
+
+The `DictQueryset` then subclasses `AbstractQueryset` and implements
+`create_one`, `create_many`, etc. These functions are focused primarily around
+a document's ID. The ID, as provided by DictShield, is how we identify which
+documents should be deleted or updated or retrieved.
+
+
+## Putting Both Together
+
+Putting the two together is a simple process.
+
+First we import the persistence layer and define the data's structure:
+
+    from brubeck.queryset import DictQueryset
+
+    class Todo(Document):
+        completed = BooleanField(default=False)
+        text = StringField(required=True)
+        class Meta:
+            id_options = {'auto_fill': True}
+            
+Then we subclass `AutoAPIBase` and define two fields, `queries` and `model`.
+The model is our Document from above. The queries is whichever queryset we're
+using.
+
+    class TodosAPI(AutoAPIBase):
+        queries = DictQueryset()
+        model = Todo
+
+Setup a Brubeck instance as you normally would, but then register the AutoApi
+instance with the app.
+
+    app = Brubeck(...)
+    app.register_api(TodosAPI)
+
+Done.
+
+
+# Examples
+
+Brubeck comes with an AutoAPI example that is slightly more elaborate than what
+we see above.
+
+* [AutoAPI Demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_autoapi.py)
+
+There is also an example where Brubeck's AutoAPI is used in conjunction with
+the well known Todo list javascript demo.
+
+* [Todos](https://github.com/j2labs/todos)
+
+# Concurrency
+
+Brubeck is basically a pipeline of coroutines attempting to fulfill web requests.  Each `MessageHandler` is executed as a coroutine. [Greenlet's](http://packages.python.org/greenlet/), the coroutines in Brubeck, are optimized for fast context-switching.  
+
+Coroutines, combined with a scheduler (aka "a hub"), make for an interesting and lightweight alternative to threads.  Greenlets are so lightweight that we don't have to think too hard on how many we spawn, and Brubeck handles each request as a single coroutine.
+
+Brubeck supports Eventlet and Gevent. They are similar in design. Both use Greenlets for coroutines. Both provide a mechanism for converting blocking network drivers into nonblocking. They both provide a schedular, aka a "hub", to provide *thread-like* behavior.
+
+
+## The Flow
+
+Processing flows from the incoming message to a function that processes that message into the form of a `Request`. This request will operate until it reaches some point of I/O, or, it completes.
+
+Brubeck has a scheduler, like Twisted's Reactor or Tornado's IOLoop, but it's behind the scenes. Being behind the scenes allows it to create a simple interface to nonblocking behavior, but can be confusing upfront.
+
+If you're reaching out to the database, Brubeck might go back and check for incoming messages. If you're reaching out to some http service, Brubeck might check for incoming messages, or complete that other request that now has data from the database. In this sense, the context switching is *implicit*.
+
+Brubeck can offer nonblocking access to:
+
+* SSH w/ [paramiko](http://www.lag.net/paramiko/)
+* MySQL
+* Postgres
+* Redis w/ [redis-py](https://github.com/andymccurdy/redis-py)
+* MongoDB w/ [pymongo](http://api.mongodb.org/python/current/)
+* Riak w/ [riak](https://github.com/basho/riak-python-client)
+* Memcache
+
+
+## Gevent
+
+Gevent was started by Denis Bilenko and is written to use `libevent`. Gevent's performance characteristics suggest it is very fast, stable and efficient on resources.
+
+Install the `envs/gevent.reqs` to use gevent.
+
+* [Gevent](http://gevent.org)
+* [Gevent Introduction](http://gevent.org/intro.html)
+
+Extras:
+
+* MySQL w/ [ultramysql](https://github.com/esnme/ultramysql)
+* Postgres w/ [psychopg](http://wiki.postgresql.org/wiki/Psycopg)
+* Memcache w/ [ultramemcache](https://github.com/esnme/ultramemcache)
+
+
+## Eventlet
+
+Eventlet is distinct for being mostly in Python.  It later added support for libevent too.  Eventlet was started by developers at Linden Labs and used to support Second Life.
+
+Install `envs/eventlet.reqs` to use eventlet.
+
+* [Eventlet](http://eventlet.net).
+* [Eventlet History](http://eventlet.net/doc/history.html)
+
+Extras:
+
+* [Database Connection Pooling](http://eventlet.net/doc/modules/db_pool.html)
+
+
+## Making A Decision
+
+I tend to choose gevent.  My tests have shown that it is significantly faster and lighter on resources than Eventlet. 
+
+If you have virtualenv, try experimenting and seeing which one you like best.
+
+# Data Modeling
+
+Brubeck uses [DictShield](https://github.com/j2labs/dictshield) for modeling. 
+
+DictShield offers input validation and structuring without taking a stance on what database you should be using. There are many good reasons to use all kinds of databases. DictShield only cares about Python dictionaries. If you can get your data into those, DictShield will handle the rest. 
+
+DictShield strives to be database agnostic in the same way that Mongrel2 is language agnostic.
+
+* [DictShield](https://github.com/j2labs/dictshield)
+
+
+## A Look At The Code
+
+Let's say we're going to store a BlogPost and all of it's comments in a single structure. Maybe we'll even keep a copy of the author information there too.
+
+An `Author` will have some information we only want to share with the author, like the email address associated with a post. But we want every user to be able to see the author's username and name, so those will be public fields.
+
+    class Author(EmbeddedDocument):
+        name = StringField()
+        username = StringField()
+        email = EmailField()
+        a_setting = BooleanField()  # private
+        is_active = BooleanField()  # private
+        _private_fields=['is_active']
+        _public_fields=['username', 'name']
+    
+A `Comment` will contain the comment text, username and email address of the commenter. We only show the email address to the owner of the blog though, so it's not listedd as a public field.
+
+    class Comment(EmbeddedDocument):
+        text = StringField()
+        username = StringField()
+        email = EmailField()   
+        _public_fields=['username', 'text']
+
+And now the `BlogPost`. It will have a title, content, author, a post date, the list of comments, and a flag for whether or not it's a deleted entry (eg. a *tombstone*).
+
+    class BlogPost(Document):
+        title = StringField()    
+        content = StringField()
+        author = EmbeddedDocumentField(Author)
+        post_date = DateTimeField(default=datetime.datetime.now)
+        comments = ListField(EmbeddedDocumentField(Comment))
+        deleted = BooleanField()   
+        _private_fields=['personal_thoughts']
+        _public_fields=['author', 'content', 'comments']
+    
+Notice that the `BlogPost` has a `ListField` containing a list of `Comments` objects. It also has an `EmbededDocumentField` anytime it's using another DictShield model as the field's value.
+
+
+## Using It
+
+This is what it might look to instantiate the structures.
+
+    >>> author = Author(name='james', username='j2d2', email='jdennis@gmail.com',
+    ...                 a_setting=True, is_active=True)
+    >>> comment1 = Comment(text='This post was awesome!', username='bro',
+    ...                    email='bru@dudegang.com')
+    >>> comment2 = Comment(text='This post is ridiculous', username='barbie',
+    ...                    email='barbie@dudegang.com')
+    >>> content = """Retro single-origin coffee chambray stumptown, scenester VHS
+    ... bicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free
+    ... trust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed
+    ... """
+    >>> blogpost = BlogPost(title='Hipster Hodgepodge', author=author, content=content,
+    ...                     comments=[comment1, comment2], deleted=False)
+    
+We'd probably call `to_python()` to make the data suitable for saving in a database. This process converts the values exactly as they're found into a dictionary of Python values.
+
+    >>> blogpost.to_python()
+    {
+        '_types': ['BlogPost'], 
+        '_cls': 'BlogPost'
+        'post_date': datetime.datetime(2012, 4, 22, 13, 6, 50, 530609), 
+        'deleted': False, 
+        'title': u'Hipster Hodgepodge', 
+        'content': u'Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n', 
+        'author': {
+            'username': u'j2d2', 
+            '_types': ['Author'], 
+            'name': u'james', 
+            'a_setting': True, 
+            'is_active': True, 
+            '_cls': 'Author', 
+            'email': u'jdennis@gmail.com'
+        }, 
+        'comments': [
+            {
+                'username': u'bro',
+                'text': u'This post was awesome!', 
+                '_types': ['Comment'], 
+                'email': u'bru@dudegang.com', 
+                '_cls': 'Comment'
+            },
+            {
+                'username': u'barbie', 
+                'text': u'This post is ridiculous', 
+                '_types': ['Comment'], 
+                'email': u'barbie@dudegang.com', 
+                '_cls': 'Comment'
+            }
+        ], 
+    }
+    
+DictShield also has the concept of an owner formalized in the `make_*_ownersafe()` function, which can serialize to either Python or JSON. Notice that the date is converted to [iso8601 format](http://en.wikipedia.org/wiki/ISO_8601) too.
+    
+    >>> BlogPost.make_json_ownersafe(blogpost)
+    {
+        "post_date": "2012-04-22T13:06:50.530609", 
+        "deleted": false, 
+        "title": "Hipster Hodgepodge", 
+        "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"
+        "author": {
+            "username": "j2d2", 
+            "a_setting": true, 
+            "name": "james", 
+            "email": "jdennis@gmail.com"
+        }, 
+        "comments": [
+            {
+                "username": "bro",
+                "text": "This post was awesome!", 
+                "email": "bru@dudegang.com"
+            }, 
+            {
+                "username": "barbie", 
+                "text": "This post is ridiculous", 
+                "email": "barbie@dudegang.com"
+            }
+        ],
+    }
+
+This is what the document looks like serialized for the general public. The same basic mechanism is at work as the other serilializations, but this has removed the data that is not for public consumption, like email addresses.
+
+    >>> BlogPost.make_json_publicsafe(blogpost)
+    {
+        "content": "Retro single-origin coffee chambray stumptown, scenester VHS\nbicycle rights 8-bit keytar aesthetic cosby sweater photo booth. Gluten-free\ntrust fund keffiyeh dreamcatcher skateboard, williamsburg yr salvia tattooed\n"
+        "author": {
+            "username": "j2d2", 
+            "name": "james"
+        }, 
+        "comments": [
+            {
+                "username": "bro", 
+                "text": "This post was awesome!"
+            }, 
+            {
+                "username": "barbie", 
+                "text": "This post is ridiculous"
+            }
+        ],
+    } 
+    
+Notice that in all of these cases, the permissions and the serialization was done recursively across the structures and embedded structures.
+
+
+
+../demos/README.md
+# Dependencies
+
+Brubeck leverages a few awesome Python packages and some other stuff, mainly in C, for a significant piece of it's capabilities. Credit must be given where credit is due. 
+
+
+## Web Serving
+
+Brubeck can support Mongrel2 or WSGI. 
+
+### Mongrel2
+
+[Mongrel2](http://mongrel2.org) is an asynchronous and language-agnostic (!!) web server by [Zed Shaw](http://zedshaw.com/). Mongrel2 handles everything relevant to HTTP or Web Sockets and has facilities for passing request handling to external services via [ZeroMQ guide](http://zguide.zeromq.org/) sockets. 
+
+This decoupling of the webserver from the request handling allows for interesting web service topologies. It also allows for easy scaling too, as servers can be added or taken down as necessary with restarting or HUPing anything.
+
+### WSGI
+
+Brubeck also supports WSGI. This means you can put it behind [Gunicorn](http://gunicorn.org/) or run Brubeck apps on [Heroku](http://www.heroku.com/).
+
+WSGI support is provided by each of the concurrency options, which are described next.
+
+
+## Concurrency
+
+Brubeck is basically a pipeline of coroutines attempting to fulfill web requests.  Each `MessageHandler` is executed as a coroutine, implemented as a `greenlet`.
+
+[Greenlet's](http://packages.python.org/greenlet/) are a Python implementation of coroutines optimized for fast context-switching.  Greenlet's can be thought of as similar to generators that don't require a `yield` statement.
+
+Coroutines, combined with a scheduler (aka "a hub"), make for an interesting and lightweight alternative to threads.  Greenlets are so lightweight that we don't have to think too hard on how many we spawn, and Brubeck handlers each request as a single coroutine.
+
+
+### Eventlet
+
+Eventlet is an implementation of a scheduling system.  In addition to scheduling, it will convert your blocking calls into nonblocking automatically as part of it's scheduling.
+
+This makes building nonblocking, asynchronous systems look the same as building blocking, synchronous systems. The kind that normally live in threads.
+
+Eventlet was started by developers at Linden Labs and used to support Second Life.
+
+Install `envs/eventlet.reqs` to use eventlet.
+
+* [Eventlet](http://eventlet.net).
+* [Eventlet History](http://eventlet.net/doc/history.html)
+
+
+### Gevent
+
+Gevent was started by Denis Bilenko as an alternative to Eventlet.  It is similar in design but uses an event loop implemented in C; `libevent`.  It will be soon be on the newer `libev`.
+
+Tests suggest that Gevent's performance characteristics are both lightweight and very fast.
+
+Install the `envs/gevent.reqs` to use gevent.
+
+* [Gevent](http://gevent.org)
+* [Gevent Introduction](http://gevent.org/intro.html)
+
+
+### Alternatives
+
+There are also reasonable arguments for explicit context switching.  Or perhaps even a different language.  If you prefer that model, I recommend the systems below:
+
+* [Twisted Project](http://twistedmatrix.com/)
+* [Node.js](http://nodejs.org)
+* [EventMachine](https://github.com/eventmachine/eventmachine/wiki)
+
+
+## DictShield
+
+DictShield offers input validation and structuring without taking a stance on what database you should be using. There are many good reasons to use all kinds of databases. DictShield only cares about Python dictionaries. If you can get your data into those, DictShield will handle the rest. 
+
+DictShield strives to be database agnostic in the same way that Mongrel2 is language agnostic.
+
+* [DictShield](https://github.com/j2labs/dictshield)
+
+
+
+# Deploying
+
+Brubeck can support Mongrel2 or WSGI. 
+
+
+## Mongrel2
+
+[Mongrel2](http://mongrel2.org) is an asynchronous and language-agnostic (!) web server by [Zed Shaw](http://zedshaw.com/). Mongrel2 handles everything relevant to HTTP or Web Sockets and has facilities for passing request handling to external services via [ZeroMQ guide](http://zguide.zeromq.org/) sockets. 
+
+This decoupling of the webserver from the request handling allows for interesting web service topologies. It also allows for easy scaling too, as servers can be added or taken down as necessary with restarting or HUPing anything.
+
+If you are using Mongrel2, you will need to turn Mongrel2 on in addition to running a Brubeck process. This can be a little tedious while developing, but it leads to efficient production deployment capabilities similar to that of HAProxy or Nginx.
+
+Interacting with Mongrel2 is best done with the `m2sh` command.
+
+    $ m2sh load -config mongrel2.conf -db the.db
+    $ m2sh start -db the.db -every
+
+Mongrel2 is now running.
+
+If you want Mongrel2 to run on port 80 you will need to use sudo. This also causes Mongrel2 to run in the background and detach from the command shell. In this case, you can stop Mongrel2 using another m2sh command.
+
+    $ m2sh stop -db the.db -every
+
+
+## WSGI
+
+Brubeck supports WSGI by way of it's concurrency systems. This means you can put it behind [Gunicorn](http://gunicorn.org/) or run Brubeck apps on [Heroku](http://www.heroku.com/).
+
+From an app design point of view, it is a one line change to specify a WSGI handler instead of a Mongrel2 handler.
+
+* [Gevent WSGI](http://www.gevent.org/gevent.wsgi.html)
+* [Eventlet WSGI](http://eventlet.net/doc/modules/wsgi.html)
+* [Brubeck WSGI Demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_wsgi.py)
+
+
+## Deployment Environments
+
+There are multiple ways to deploy Brubeck. A vanilla Ubuntu system on AWS or
+Linode can work well. A Heroku dyno can work.
+
+
+### Quickness
+
+Quickness is a project for experimenting. It helps experimenters by creating
+a simple environment for deploying big ideas, like Brubeck and all of it's
+dependencies or Erlang or Clojure & Java & any other things worth having when
+using Clojure.
+
+It is built with Ubuntu in mind and works nicely with
+[Vagrant](http://vagranup.com).
+
+A typical Quickness install of Brubeck looks like this:
+
+    $ git clone https://github.com/j2labs/quickness.git
+    $ source quickness/env/profile
+    Q: quick_new
+    Q: quick_install brubeck
+    
+Quickness is developed by the same folks that build Brubeck & DictShield. This deployment strategy uses Mongrel2 as the web server. This involves compiling and installing both ZeroMQ and Mongrel2, but Quickness will handle all of that for you.
+
+* [Quickness](https://github.com/j2labs/quickness)
+
+
+### Heroku
+
+To deploy to Heroku your app needs to be configured to use WSGI, which you'll see in the snippet below, and y
+
+Install [Heroku Toolbelt](https://toolbelt.herokuapp.com/)
+
+Prepare the project directory
+
+	$ mkdir herokuapp && cd herokuapp
+
+Initialize our git repo and pull Brubeck in
+
+	$ git init
+	$ git submodule add git://github.com/j2labs/brubeck.git brubeck
+	$ git submodule init
+	$ git submodule update
+
+Initialize our Heroku app
+
+	$ heroku login
+	$ heroku create --stack cedar
+
+Set up the environment
+
+	$ virtualenv --distribute venv
+	$ source venv/bin/activate
+	$ pip install dictshield ujson gevent
+	$ pip freeze -l > requirements.txt
+ 
+Create .gitignore.
+
+    $ cat .gitignore
+    venv
+	*.pyc
+			
+Create Procfile
+
+    $ cat Procile
+	web: python app.py
+
+Create .env
+
+    $ cat .env
+	PYTHONPATH=brubeck
+
+Create app.py
+
+	import os
+
+	from brubeck.request_handling import Brubeck, WebMessageHandler
+	from brubeck.connections import WSGIConnection
+
+	class DemoHandler(WebMessageHandler):
+		def get(self):
+			self.set_body("Hello, from Brubeck!")
+			return self.render()
+
+	config = {
+		'msg_conn': WSGIConnection(int(os.environ.get('PORT', 6767))),
+		'handler_tuples': [
+			(r'^/', DemoHandler)
+		]
+	}
+
+	if __name__ == '__main__':
+		app = Brubeck(**config)
+		app.run()
+
+Try it out
+
+    $ foreman start
+    
+You should now be able to visit [localhost:5000](http://localhost:5000). Notice
+that this uses port 5000 instead of the usual 6767.
+
+Is it working? Great! Let's put it on Heroku
+
+	git add .
+	git commit -m "init"
+	git push heroku master
+
+Seems like Heroku will clobber whatever PYTHONPATH you set when you first push a Python project, so set it now
+
+	heroku config:add PYTHONPATH=/app/brubeck/:/app/
+
+Navigate to your new Brubeck app on Heroku!
+
+
+### Gunicorn
+
+Instructions coming soon.
+
+# File Uploading
+
+Brubeck supports file uploading as form-urlencoded or as multipart form data.
+It's easy to upload a file to Brubeck using curl.
+
+    $ cd brubeck/demos
+    $ ./demo_multipart.py
+    
+In this demo we see code that finds each file uploaded in a field on the
+request message. That looks like this:
+
+    class UploadHandler(...):
+        def post(self):
+            file_one = self.message.files['data'][0]
+            i = Image.open(StringIO.StringIO(file_one['body']))
+            i.save('word.png')
+            ...
+    
+This demo receives an image and writes it to the file system as `word.png`. It
+wouldn't be much work to adjust this to whatever your needs are.
+
+The demo also uses PIL, so install that if you don't already have it.
+
+    $ pip install PIL
+    
+Use sudo if necessary.
+
+
+## Trying It
+    
+If you're using Mongrel2, you'll need to turn that on too. It works fine with
+WSGI too.
+
+    $ m2sh load -db the.db -config mongrel2.conf
+    $ m2sh start -db the.db -every
+    
+OK. Now we can use curl to upload some image.
+
+    $ curl -F data=@someimage.png http://localhost:6767/
+    
+The end result is that you'll have an image called `word.png` written to the
+same directory as your Brubeck process.
+
+
+# Message Handlers
+
+Let's take a look at that demo handler from before.
+
+    class DemoHandler(WebMessageHandler):
+        def get(self):
+            self.set_body('Take five')
+            return self.render()
+    
+    options = {
+        'handler_tuples': [(r'^/', DemoHandler)],
+        'msg_conn': WSGIConnection(port=6767),
+    }
+
+    app = Brubeck(**options)
+    app.run()
+
+The `DemoHandler` class has a `get()` implementation, so we know that handler answers HTTP GET and that handler is mapped to the root URL, '/'. 
+
+Brubeck is also configured to run as a WSGI server on port 6767. Turn the app on and it will answer requests at http://localhost:6767.
+
+
+## Handling Requests
+
+The framework can be used for different requirements. It can be lean and lightweight for high throughput or you can fatten it up and use it for rendering pages in a database backed CMS.
+
+The general architecture of the system is to map requests for a specific URL to some [callable](http://docs.python.org/library/functions.html#callable) for processing the request. The configuration attempts to match handlers to URL's by inspecting a list of `(url pattern, callable)` tuples. First regex to match provides the callable.
+
+Some people like to use classes as handlers. Some folks prefer to use functions. Brubeck supports both.
+
+The HTTP methods allowed are: GET, POST, PUT, DELETE, HEAD, OPTIONS, TRACE, CONNECT. 
+
+
+### MessageHandler Classes
+
+When a class model is used, the class will be instantiated for the life of the request and then thrown away. This keeps our memory requirements nice and light.
+
+Brubeck's `MessageHandler` design is similar to what you see in [Tornado](https://github.com/facebook/tornado), or [web.py](http://webpy.org/). 
+
+To answer HTTP GET requests, implement `get()` on a WebMessageHandler instance.
+
+    class DemoHandler(WebMessageHandler):
+        def get(self):
+            self.set_body('Take five!')
+            return self.render()
+
+Then we add `DemoHandler` to the routing config and instantiate a Brubeck instance. 
+
+    urls = [(r'^/brubeck', DemoHandler)]
+    config = {
+        'handler_tuples': urls,
+        ...
+    }
+    
+    Brubeck(**config).run()
+    
+Notice the url regex is `^/brubeck`. This will put our handler code on `http://hostname/brubeck`. (Probably [http://localhost:6767/brubeck](http://localhost:6767/brubeck)).
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_minimal.py)
+
+
+### Functions and Decorators
+
+If you'd prefer to just use a simple function, you instantiate a Brubeck instance and wrap your function with the `add_route` decorator. 
+
+Your function will be given two arguments. First, is the `application` itself. This provides the function with a hook almost all the information it might need. The second argument, the `message`, provides all the information available about the request.
+
+That looks like this:
+
+    app = Brubeck(mongrel2_pair=('ipc://127.0.0.1:9999', 
+                                 'ipc://127.0.0.1:9998'))
+
+    @app.add_route('^/brubeck', method='GET')
+    def foo(application, message):
+        return http_response('Take five!', 200, 'OK', {})
+
+    app.run()
+
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_noclasses.py)
+
+../README.md
+# Installing The Environment
+
+First, we have to install a few things.  Brubeck depends on Mongrel2, ZeroMQ and a few python packages.
+
+All three packages live in github, so we'll clone the repos to our Desktop.
+
+    $ cd ~/Desktop/
+    $ git clone https://github.com/j2labs/brubeck.git
+    $ git clone https://github.com/zedshaw/mongrel2.git
+    $ wget http://download.zeromq.org/historic/zeromq-3.2.2.tar.gz 
+    $ tar zxf zeromq-3.2.2.tar.gz
+
+
+## ZeroMQ
+
+ZeroMQ, from a Python perspective, is actually two pieces: libzmq and pyzmq. libzmq must be installed by hand like you see below.
+
+    $ cd ~/Desktop/zeromq-3.2.2
+    $ ./autogen.sh
+    $ ./configure  ## for mac ports use: ./configure --prefix=/opt/local
+    $ make 
+    $ sudo make install
+
+
+## Mongrel2
+
+Mongrel2 is also painless to setup.
+
+    $ cd ~/Desktop/mongrel2
+    $ make  ## for mac ports use: make macports
+    ## Mongrel 2 requires sqlite3 and dev libraries of sqlite3
+    $ sudo apt-get install sqlite3
+    $ sudo apt-get install libsqlite3-dev
+    $ sudo make install
+
+There are a few compile options available at the bottom of Mongrel2's `Makefile`. Take a look if the code above doesn't compile successfully.
+
+
+## Virtualenv & Virtualenvwrapper
+
+Brubeck works great with virtualenv. I highly recommend using it. 
+
+Virtualenv is a way to construct isolated python environments. Very handy for managing multiple environments in a single machine.
+
+Install both virtualenv and virtualenvwrapper with `pip`.
+
+    pip install virtualenv virtualenvwrapper
+
+Then, we must configure our shell to know where to store our virtualenv's. While we're there, we'll source the virtualenvwrapper shell script.
+
+Open your `.profile` or `.bashrc` and add the following two lines.
+
+    export WORKON_HOME="~/.virtualenvs"
+    source /usr/local/bin/virtualenvwrapper.sh
+
+By sourcing virtualenvwrapper, you get a simple interface for creating, managing and removing virutalenv environments.
+
+    $ mkvirtualenv <env_name> # Creates a virtual environment
+    $ deactivate              # Turn off a virtual environment
+    $ workon <env_name>       # Turn on a virtual environment
+
+For more information, see my quick & dirty howto.
+
+* [Quick & Dirty Virtualenv & Virtualenvwrapper](http://j2labs.tumblr.com/post/5181438807/quick-dirty-virtualenv-virtualenvwrapper)
+    
+
+## Python Packages & Brubeck
+
+If you have pip installed, you can install everything with the requirements file. 
+
+    $ cd ~/Desktop/brubeck
+    $ pip install -I -r ./envs/brubeck.reqs
+    
+We now choose either eventlet or gevent and install the relevent requirements file in the same directory.
+
+To install `eventlet` support:
+
+    $ pip install -I -r ./envs/eventlet.reqs
+
+To install `gevent` support:
+
+    $ pip install -I -r ./envs/gevent.reqs
+
+Note that gevent requires `libevent`, which should be available on the package-manager of your choice.
+
+### Brubeck Itself
+
+As the last step, install Brubeck.
+
+    $ cd ~/Desktop/brubeck
+    $ python setup.py install
+
+
+# A Demo
+
+Assuming the environment installation went well we can now turn on Brubeck.
+
+First, we setup the Mongrel2 config.
+
+    $ cd ~/Desktop/brubeck/demos
+    $ m2sh load -config mongrel2.conf -db the.db
+    $ m2sh start -db the.db -host localhost
+
+Now we'll turn on a Brubeck instance.
+
+    $ cd ~/Desktop/brubeck/demos
+    $ ./demo_minimal.py
+
+If you see `Brubeck v0.x.x online ]------------` we can try loading a URL in a browser. 
+Now try [a web request](http://localhost:6767/brubeck).
+
+
+## Mongrel2 Configuration
+
+Mongrel2 is a separate process from Brubeck, so it is configured separately.
+
+This is what the Mongrel2 configuration looks like for the demo project.
+
+    brubeck_handler = Handler(
+        send_spec='ipc://127.0.0.1:9999',
+        send_ident='34f9ceee-cd52-4b7f-b197-88bf2f0ec378',
+        recv_spec='ipc://127.0.0.1:9998', 
+        recv_ident='')
+
+    brubeck_host = Host(
+        name="localhost", 
+        routes={'/': brubeck_handler})
+    
+    brubeck_serv = Server(
+        uuid="f400bf85-4538-4f7a-8908-67e313d515c2",
+        access_log="/log/mongrel2.access.log",
+        error_log="/log/mongrel2.error.log",
+        chroot="./",
+        default_host="localhost",
+        name="brubeck test",
+        pid_file="/run/mongrel2.pid",
+        port=6767,
+        hosts = [brubeck_host])
+    
+    settings = {"zeromq.threads": 1}
+    
+    servers = [brubeck_serv]
+    
+In short: any requests for `http://localhost:6767/` should be sent to the Brubeck handler. 
+
+Don't forget that our Brubeck handler is only configured to answer `http://localhost:6767/brubeck` for now. You could add another route once you're comfortable building `MessageHandler`'s
+
+The web server answers requests on port `6767`. It logs to the `./log` directory. It also writes a pidfile in the `./run` directory. 
+
+# Copyright 2012 J2 Labs LLC. All rights reserved.
+
+Redistribution and use in source and binary forms, with or without
+modification, are permitted provided that the following conditions are met:
+
+  1. Redistributions of source code must retain the above copyright notice,
+     this list of conditions and the following disclaimer.
+
+  2. Redistributions in binary form must reproduce the above copyright notice,
+     this list of conditions and the following disclaimer in the documentation
+     and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY J2 Labs LLC ``AS IS'' AND ANY EXPRESS OR IMPLIED
+WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO
+EVENT SHALL J2 Labs LLC OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
+NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
+EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+The views and conclusions contained in the software and documentation are
+those of the authors and should not be interpreted as representing official
+policies, either expressed or implied, of J2 Labs LLC.
+
+# QuerySets
+
+There are times when a carefully crafted query is right and there are times 
+when a simple CRUD interface can do the trick. Brubeck provides querysets that
+implement a simple CRUD interface. This is useful for the AutoAPI, support for
+basic caching and a consistent way of handling database connections.
+
+A `Queryset` is then an implementation of CRUD functions for a single item or
+multiple items. This type of interface makes the system consistent with the
+idea that data should be stored in a simple manner, eg. a key that maps to a
+particular document.
+
+If you need anything more complicated than that, it's easy enough to go from
+the DictShield model into something that will fit nicely with your custom
+query.
+
+Querysets are an area of active development but are still young in
+implementation.
+
+# Templates
+
+Brubeck currently supports [Jinja2](http://jinja.pocoo.org/), [Tornado](http://www.tornadoweb.org/documentation#templates), [Mako](http://www.makotemplates.org/) or [Pystache](https://github.com/defunkt/pystache) templates.
+
+Template support is contained in `brubeck.templates` as rendering handlers. Each handler will attach a `render_template` function to your handler and overwrite the default `render_error` to produce templated errors messages.
+
+Using a template system is then as easy as calling `render_template` with the template filename and some context, just like you're used to.
+
+
+## Jinja2 Example
+
+Using Jinja2 template looks like this.
+
+    from brubeck.templating import Jinja2Rendering
+    
+    class DemoHandler(WebMessageHandler, Jinja2Rendering):
+        def get(self):
+            context = {
+                'name': 'J2D2',
+            }
+            return self.render_template('success.html', **context)
+            
+The corresponding HTML looks like this:
+
+    <html>
+    <head>
+        <title>Jinja2 Render</title>
+    </head>
+    <body>
+        <p>Take five, {{ name }}!</p>
+    </body>
+    </html>
+    
+* [Runnable demo](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py)
+* [Demo templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/jinja2)
+
+
+### Template Loading
+
+In addition to using a rendering handler, you need to provide the path to your
+templates.
+
+That looks like this:
+
+    from brubeck.templating import load_jinja2_env
+
+    config = {
+        template_loader=load_jinja2_env('./templates/jinja2')
+        ...
+    }
+
+Using a function here keeps the config lightweight and flexible.
+`template_loader` needs to be some function that returns an environment. 
+
+
+## Demos
+
+* Jinja2 ([Code](https://github.com/j2labs/brubeck/blob/master/demos/demo_jinja2.py), [Templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/jinja2))
+* Mako ([Code](https://github.com/j2labs/brubeck/tree/master/demos/demo_mako.py), [Templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/mako))
+* Tornado ([Code](https://github.com/j2labs/brubeck/tree/master/demos/demo_tornado.py), [Templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/tornado))
+* Mustache ([Code](https://github.com/j2labs/brubeck/tree/master/demos/demo_mustache.py), [Templates](https://github.com/j2labs/brubeck/tree/master/demos/templates/mustache))
+
+Is your favorite template system not in this list? Please take a look at the other implementations. It's probably easy to add support.
+
+* [brubeck.templating](https://github.com/j2labs/brubeck/blob/master/brubeck/templating.py)
+
+
+
+
+# ZeroMQ
+
+ZeroMQ, aka ZMQ, is essentially a sockets framework. It makes it easy to build
+messaging topologies across different types of sockets. They also are language
+agnostic by way of having driver implementations in every language: Scheme, 
+Java, C, Ruby, Haskell, Erlang; and Brubeck uses the Python driver.
+
+It is common for service oriented architectures to be constructed with HTTP
+interfaces, but Brubeck believes ZMQ is a more suitable tool. It provides
+multiple message distribution patterns and lets you open multiple types of
+sockets. 
+
+
+## Simple Examples
+
+Here is a simple job distributor. It passes messages round-robin to any
+connected hosts.
+
+    import zmq
+    import time
+
+    ctx = zmq.Context()
+    s = ctx.socket(zmq.PUSH)
+    s.bind("ipc://hellostream:5678")
+
+    while True:
+        s.send("hello")
+        print 'Sending a hello'
+        time.sleep(1)
+
+This what a simple consumer could look like. See what happens if you hook up
+multiple consumers.
+
+    import zmq
+    import datetime
+
+    ctx = zmq.Context()
+    s = ctx.socket(zmq.PULL)
+    s.connect("ipc://hellostream:5678")
+    
+    while True:
+        msg = s.recv()
+        print 'Received:', msg
+        
+
+# Brubeck and ZMQ
+
+Brubeck can uses this system when it communicates with Mongrel2. It can also
+use this to talk to pools of workers, or AMQP servers, or data mining engines.
+
+ZMQ is part of Brubeck's concurrency pool, so working with it is just like
+working with any networked system. When you use Brubeck with Mongrel2, you
+communicate with Mongrel2 over two ZMQ sockets.
+
+There is a PUSH/PULL socket that Mongrel2 uses to send messages to handlers,
+like Brubeck. An added bonus is that PUSH/PULL sockets automatically load balance
+requests between any connected handlers. Add another handler and it is
+automatically part of the round robin queue.
+
+When the handlers are ready to respond, they use a PUB/SUB socket, meaning
+Mongrel2 subscribes to responses from Brubeck handlers. This can be interesting
+for multiple reasons, such as having media served from a single Brubeck handler
+to multiple Mongrel2 frontends. 
+
+Having two sockets allows for an interesting messaging topology between Mongrel2
+and Brubeck. All of ZeroMQ is available to you for communicating with workers too.
+You might enjoy building an image processing system in Scheme and can do so by
+opening a ZeroMQ socket in your Scheme process to connect with a Brubeck socket.
+ZeroMQ is mostly language agnostic.
+
+# What Is Brubeck?
+
+__Brubeck__ is down for maintenance.  It has been in disrepair while I was off doing other things and it's kind of ridiculous.
+
+If you want to follow along, check out the [nubeck branch](https://github.com/j2labs/brubeck/tree/nubeck).
+

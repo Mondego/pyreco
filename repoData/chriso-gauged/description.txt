@@ -1,0 +1,400 @@
+## Backends
+
+MySQL requires either [mysql-python][mysql-python] or [pymysql][pymysql]
+
+```python
+gauged = Gauged('mysql://root@localhost/gauged')
+```
+
+PostgreSQL requires [psycopg2][psycopg2]
+
+```python
+gauged = Gauged('postgresql://postgres@localhost/gauged')
+```
+
+SQLite uses the bindings compiled with your interpreter
+
+```python
+gauged = Gauged('sqlite:////tmp/gauged.db')
+```
+
+Omit the URL to use a SQLite-based in-memory database
+
+```python
+gauged = Gauged()
+```
+
+On first run you'll need to create the schema
+
+```python
+gauged.sync()
+```
+
+## Writing data
+
+The library has no concept of data types when writing. Rather, you store your counter, gauge and timer data in the same way, as a `(key, float_value)` pair, and then use the appropriate method when reading the data back
+
+```python
+with gauged.writer as writer:
+    writer.add({ 'requests': 1, 'response_time': 0.45, 'memory_usage': 145.6 }, timestamp=1389747759902)
+    writer.add({ 'requests': 1, 'response_time': 0.25, 'memory_usage': 148.3 }, timestamp=1389747760456)
+```
+
+The timestamp can be omitted (it defaults to now). Note that Gauged is append-only; data must be written in chronological order.
+
+You can also write data to separate namespaces
+
+```python
+with gauged.writer as writer:
+    writer.add('requests', 1, namespace=1)
+    writer.add('requests', 1, namespace=2)
+```
+
+For more information, see the [technical overview][technical-overview].
+
+## Reading data
+
+##### gauged.aggregate(key, aggregate, start=None, end=None, namespace=None, percentile=None)
+
+Fetch all values associated with the key during the specified date range (`[start, end)`), and then aggregate them using one of `Gauged.MIN`, `Gauged.MAX`, `Gauged.SUM`, `Gauged.COUNT`, `Gauged.MEAN`, `Gauged.MEDIAN`, `Gauged.STDDEV` or `Gauged.PERCENTILE`.
+
+The `start` and `end` parameters can be either a timestamp in milliseconds, a `datetime` instance or a negative timestamp in milliseconds which is interpreted as relative to now. If omitted, both parameters default to the boundaries of all data that exists in the `namespace`. Note that the `Gauged.SECOND`, `Gauged.MINUTE`, `Gauged.HOUR`, `Gauged.DAY`, `GAUGED.WEEK` and `Gauged.NOW` constants can also be used.
+
+Here's some examples
+
+```python
+# Count the total number of requests
+requests = gauged.aggregate('requests', Gauged.SUM)
+
+# Count the number of requests between 2014/01/01 and 2014/01/08
+requests = gauged.aggregate('requests', Gauged.SUM, start=datetime(2014, 1, 1),
+    end=datetime(2014, 1, 8))
+
+# Get the 95th percentile response time from the past week
+response_time = gauged.aggregate('response_time', Gauged.PERCENTILE,
+    percentile=95, start=-Gauged.WEEK)
+```
+
+##### gauged.aggregate_series(key, aggregate, interval=Gauged.DAY, **kwargs)
+
+The time series variant of `aggregate()`. This method takes the same kwargs as `aggregate()` and also accepts an `interval` in milliseconds.
+
+This method returns a `TimeSeries` instance. See [gauged/results/time_series.py][time_series.py] for the result API.
+
+The method is approximately equal to
+
+```python
+from gauged.results import TimeSeries
+points = []
+for timestamp in xrange(start, end, interval):
+    aggregate = gauged.aggregate(key, aggregate, start=timestamp, end=timestamp+interval)
+    points.append(( timestamp, aggregate ))
+result = TimeSeries(points)
+```
+
+##### gauged.value(key, timestamp=None, namespace=None)
+
+Read the value of a key at the specified time (defaults to now). Unlike `aggregate()` which looks at all values between the two timestamps, this method starts at the specified timestamp (defaults to now if omitted) and then goes back in time until a measurement for the specified key is found. The config key `max_look_behind` determines how far the method will look before returning `None`.
+
+```python
+facebook_likes = gauged.value('facebook_likes', timestamp=datetime(2014, 1, 23))
+```
+
+##### gauged.value_series(key, start=None, end=None, interval=Gauged.DAY, namespace=None)
+
+The time series variant of `value()` which reads the `value()` of a key at each `interval` steps in the range `[start, end)`.
+
+##### gauged.keys(prefix=None, limit=None, offset=None, namespace=None)
+
+Get a list of keys, optionally filtered by namespace or prefix.
+
+##### gauged.namespaces()
+
+Get a list of namespaces.
+
+##### gauged.statistics(start=None, end=None, namespace=None)
+
+Get write statistics for the specified namespace during the specified date range. The statistics include number of data points and the number of bytes they consume. See [gauged/results/statistics.py][statistics.py] for the result API.
+
+## Plotting
+
+The data can be plotted easily with [matplotlib][matplotlib]
+
+```python
+import pylab
+
+series = gauged.aggregate_series('requests', gauged.SUM, interval=gauged.DAY,
+    start=-gauged.WEEK)
+pylab.plot(series.dates, series.values, label='Requests per day for the past week')
+pylab.show()
+```
+
+## Configuration
+
+Configuration should be passed to the constructor
+
+```python
+gauged = Gauged('mysql://root@localhost/gauged', **config)
+```
+
+Configuration keys
+
+- **key_whitelist** - a list of allowed keys. Default is `None`, i.e. allow all keys.
+- **flush_seconds** - whether to periodically flush data when writing, e.g. `10` would cause a flush every 10 seconds. Default is `0` (don't flush).
+- **namespace** - the default namespace to read and write to. Defaults to `0`.
+- **key_overflow** - what to do when the key size is greater than the backend allows, either `Gauged.ERROR` (default) or `Gauged.IGNORE`.
+- **gauge_nan** - what to do when attempting to write a `NaN` value, either `Gauged.ERROR` (default) or `Gauged.IGNORE`.
+- **append_only_violation** - what to do when writes aren't done in chronological order, either `Gauged.ERROR` (default), `Gauged.IGNORE`, or `Gauged.REWRITE` which rewrites out-of-order timestamps in order to maintain the chronological constraint.
+- **max_look_behind** - how far a `value(key, timestamp)` call will traverse when looking for the nearest measurement before `timestamp`. Default is `Gauged.WEEK`.
+- **min_cache_interval** - time series calls with intervals smaller than this will not be cached. Default is `Gauged.HOUR`.
+- **max_interval_steps** - throw an error if the number of interval steps is greater than this. Default is `31 * 24`.
+- **block_size** - see the [technical overview][technical-overview]. Defaults to `Gauged.DAY`.
+- **resolution** - see the [technical overview][technical-overview]. Defaults to `Gauged.SECOND`.
+
+
+[mysql-python]: http://mysql-python.sourceforge.net/
+[pymysql]: https://github.com/PyMySQL/PyMySQL
+[psycopg2]: http://initd.org/psycopg/
+[technical-overview]: https://github.com/chriso/gauged/blob/master/docs/technical-overview.md
+[time_series.py]: https://github.com/chriso/gauged/blob/master/gauged/results/time_series.py
+[statistics.py]: https://github.com/chriso/gauged/blob/master/gauged/results/statistics.py
+[matplotlib]: http://matplotlib.org/
+
+Here's some example measurements to the `foo` gauge
+
+```python
+with gauged.writer as writer:
+	writer.add('foo', 100, timestamp=1388534400000)
+	writer.add('foo', 200, timestamp=1388534400100)
+	writer.add('foo', 300, timestamp=1388534401000)
+	writer.add('foo', 400, timestamp=1388624400000)
+```
+
+The first step in the write process is key translation. The key `foo` is mapped to a unique integer ID that's persisted in the database. In this example we'll use `1` as the ID.
+
+Our data for `foo` looks like this
+
+```python
+key_1_data = [
+    (1388534400000, 100),
+    (1388534400100, 200),
+    (1388534401000, 300),
+    (1388624400000, 400)
+]
+```
+
+The `resolution` configuration key specifies how fine-grained our storage is and determines the smallest unit of time that we can aggregate/roll-up measurements by. The default resolution is `1000` (1 second).
+
+We round down each timestamp so that it is a multiple of `resolution` and then we group together measurements to the same key at the same time
+
+```python
+key_1_data = {
+    1388534400000: (100, 200),
+    1388534401000: (300),
+    1388624400000: (400)
+}
+```
+
+Each measurement is stored as an array of C floats (see [include/array.h](https://github.com/chriso/gauged/blob/master/include/array.h)).
+
+The next step is to break our data down into blocks determined by the `block_size` configuration key which defaults to `86400000` (1 day).
+
+We divide each timestamp by the `block_size` and extract a block_offset. Our data now looks like this
+
+```python
+key_1_offset_16071_data = {
+    0: (100, 200),
+    1: (300)
+}
+key_1_offset_16072_data = {
+	3600: (300)
+}
+```
+
+Using the defaults of `block_size = 1 day, resolution = 1 second` you can intuitively see that the offset represents the number of days (since 1970/1/1) while the positions (the dict keys) represent the number of seconds into that day. You can reconstruct the timestamp by taking `(offset * block_size) + (position * resolution)`
+
+```python
+16072 * 86400000 + 3600 * 1000 = 1388624400000
+```
+
+The next step is to efficiently encode our data. For this we use a `SparseMap` (see [include/map.h](https://github.com/chriso/gauged/blob/master/include/map.h)) which encodes positions and measurement arrays into a single buffer to improve cache locality.
+
+We encode the array's position and length into a 4 or 8 byte header using one of the following formats
+
+```
+Short encoding: 1LLLLLLL LLPPPPPP PPPPPPPP PPPPPPPP
+ Long encoding: 0LLLLLLL LLLLLLLL LLLLLLLL LLLLLLLL
+                PPPPPPPP PPPPPPPP PPPPPPPP PPPPPPPP
+```
+
+We then pack each array and header contiguously
+
+```
+<header1><array1><header2><array2>...<headerN><arrayN>
+```
+
+Our data now looks like this
+
+```python
+key_1_offset_16071_data = buffer(...)
+key_1_offset_16072_data = buffer(...)
+```
+
+Finally, we store the key, offset and buffer into our data table. We also store a namespace ID (allowing you to store data in separate namespaces) and flags (for future extension, e.g. to signal to the reader that the block is compressed)
+
+```
+gauged_data = { namespace, offset, key, data, flags }
+```
+
+It's safe to append additional data to each `SparseMap` buffer in the database provided that chronological writes are enforced. This allows the writer to flush data periodically to keep memory usage low.
+
+## Gauged
+
+[![tests][travis]][travis-builds]
+
+A fast, append-only storage layer for gauges, counters, timers and other numeric data types that change over time.
+
+Features:
+
+- Comfortably handle billions of data points on a single node.
+- Support for sparse data (unlike the fixed-size RRDtool).
+- Cache-oblivious data structures and algorithms for speed and memory-efficiency.
+- Efficient range queries and roll-ups of any size down to the configurable resolution of 1 second.
+- Use either **MySQL**, **PostgreSQL** or **SQLite** as a backend.
+- Runs on Mac, Linux & Windows
+
+## Installation
+
+The library can be installed with **easy_install** or **pip**
+
+```bash
+$ pip install gauged
+```
+
+Python 2.7.x (CPython or PyPy) is required.
+
+## Example
+
+Writing
+
+```python
+from gauged import Gauged
+
+gauged = Gauged('mysql://root@localhost/gauged')
+
+with gauged.writer as writer:
+    writer.add({ 'requests': 1, 'response_time': 0.45, 'memory_usage': 145.6 })
+    writer.add({ 'requests': 1, 'response_time': 0.25, 'cpu_usage': 148.3, 'api_requests': 3 })
+```
+
+Reading
+
+```python
+# Count the total number of requests
+requests = gauged.aggregate('requests', Gauged.SUM)
+
+# Count the number of requests between 2014/01/01 and 2014/01/08
+requests = gauged.aggregate('requests', Gauged.SUM, start=datetime(2014, 1, 1),
+    end=datetime(2014, 1, 8))
+
+# Get the 95th percentile response time from the past week
+response_time = gauged.aggregate('response_time', Gauged.PERCENTILE,
+    percentile=95, start=-Gauged.WEEK)
+
+# Get latest memory usage
+memory_usage = gauged.value('memory_usage')
+```
+
+Plotting (using [matplotlib][matplotlib])
+
+```python
+import pylab
+series = gauged.aggregate_series('requests', gauged.SUM, interval=gauged.DAY,
+    start=-gauged.WEEK)
+pylab.plot(series.dates, series.values, label='Requests per day for the past week')
+pylab.show()
+```
+
+## Documentation
+
+See the [documentation][documentation] or [technical overview][technical-overview].
+
+## Tests
+
+You can run the test suite using an in-memory driver with `make check-quick`.
+
+To run the full suite, first edit the configuration in `test_drivers.cfg` so that PostgreSQL and Mysql both point to existing (and empty) databases, then run
+
+```bash
+$ make check
+```
+
+You can run coverage analysis with `make coverage` and run a lint tool `make lint`.
+
+## Benchmarks
+
+Use `make build` followed by `python benchmark [OPTIONS]` to run benchmarks using a SQLite-based in-memory database. Your mileage will vary once you add I/O.
+
+**python benchmark.py --number 1000000 --days 365**
+
+```
+Writing to sqlite:// (block_size=86400000, resolution=1000)
+Spreading 1M measurements to key "foobar" over 365 days
+Wrote 1M measurements in 5.388 seconds (185.6K/s) (rss: 12.7MB)
+Gauge data uses 7.6MB (8B per measurement)
+min() in 0.024s (read 41.9M measurements/s) (rss: 12.8MB)
+max() in 0.023s (read 43.4M measurements/s) (rss: 12.8MB)
+sum() in 0.023s (read 42.7M measurements/s) (rss: 12.8MB)
+count() in 0.024s (read 42.1M measurements/s) (rss: 12.8MB)
+mean() in 0.028s (read 36.1M measurements/s) (rss: 12.8MB)
+stddev() in 0.05s (read 20.1M measurements/s) (rss: 12.8MB)
+median() in 0.06s (read 16.8M measurements/s) (rss: 27.7MB)
+```
+
+**python benchmark.py --number 100000000 --days 365**
+
+```
+Writing to sqlite:// (block_size=86400000, resolution=1000)
+Spreading 100M measurements to key "foobar" over 365 days
+Wrote 100M measurements in 405.925 seconds (246.4K/s) (rss: 21.7MB)
+Gauge data uses 502.2MB (5.26601144B per measurement)
+min() in 0.818s (read 122.3M measurements/s) (rss: 21.7MB)
+max() in 0.79s (read 126.6M measurements/s) (rss: 21.7MB)
+sum() in 0.785s (read 127.4M measurements/s) (rss: 21.7MB)
+count() in 0.766s (read 130.5M measurements/s) (rss: 21.7MB)
+mean() in 0.891s (read 112.3M measurements/s) (rss: 21.7MB)
+stddev() in 1.697s (read 58.9M measurements/s) (rss: 21.7MB)
+median() in 3.547s (read 28.2M measurements/s) (rss: 1007.9MB)
+```
+
+## License (MIT)
+
+```
+Copyright (c) 2014 Chris O'Hara <cohara87@gmail.com>
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+```
+
+[travis]: https://api.travis-ci.org/chriso/gauged.png?branch=master
+[travis-builds]: https://travis-ci.org/chriso/gauged
+[technical-overview]: https://github.com/chriso/gauged/blob/master/docs/technical-overview.md
+[documentation]: https://github.com/chriso/gauged/blob/master/docs/documentation.md
+[matplotlib]: http://matplotlib.org/
+

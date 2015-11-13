@@ -1,0 +1,324 @@
+==========================
+The Nengo neural simulator
+==========================
+
+Nengo is a software package for simulating large-scale neural systems.
+
+Homepage: http://nengo.ca/
+
+
+Eclipse setup
+=============
+
+Brief setup instructions
+------------------------
+
+The important details of the Eclipse setup are as follows. See the next section for detailed setup instructions.
+
+#) Add the projects to Eclipse using "File->New->Java project...", and creating the project from the source directory. Add "simulator" first, and then "simulator-ui".
+#) To run the program, add a new run configuration ("Run->Run configurations"). The configuration should be a "Java Application", the project "simulator-ui", and the main class "ca.nengo.ui.NengoLauncher".
+
+
+Detailed setup instructions
+---------------------------
+
+The following instructions should get you up and running the GUI from within
+Eclipse. These instructions are valid for Eclipse version 3.7.2 (and hopefully
+other versions too!)
+
+#) If you are in linux or OSX, open a terminal and check out the nengo source
+into the current working directory.
+
+    git clone https://github.com/jaberg/nengo.git
+
+#) Now start the eclipse IDE in the nengo root directory:
+
+    cd nengo
+    eclipse
+
+#) If this is the first time you are running Eclipse, then it will ask you to
+"Select a workspace". Eclipse stores *projects* in a workspace, and uses the
+workspace to store temporary files. Choose a workspace path with "nengo" in it
+somewhere to remind you what it is for, but don't make it a subdirectory of
+the source you just checked out using git. A good choice would be
+`~/.eclipse_workspaces/nengo`
+
+#) Eclipse will finish loading up at this point and load a welcome screen,
+which you can feel free to close.
+
+#) At this point you're looking at an empty project view: there are menus and
+a toolbar across the top of the window, and four panes in the main part of the
+window. One of the panes (for me it's the top left) is labeled "Project
+Explorer". We are going to add two projects to it: "simulator" and
+"simulator-ui".
+
+#) Add the "simulator" project by right clicking within the "Project Explorer"
+window and selecting "import".  Expand the "General" tree and choose "Existing
+Projects into Workspace". Where it gives the option to "Select root directory"
+use the search button to browse to the "simulator" subdirectory of the nengo
+project you checked out using git. Alternately, you can just type that path
+into the text box. Press finish.
+
+#) Add the "simulator-ui" project by repeating these steps but select the
+"simulator-ui" subdirectory this time, when it asks you to "Select root directory".
+
+#) Back in the "Project Explorer" pane, right-click your new "simulator-ui"
+project and select "Run as -> Java Application" from the drop-down menu.  You'll be presented with
+a huge list of options, but type "Nengo" into the search bar at the top,
+and that should narrow the selection down to just one: NengoLauncher. Click
+it, and you should be looking at the Nengo GUI running from within Eclipse.
+You're done!
+
+
+Increasing Java heap size
+-------------------------
+
+If you receive errors about running out of memory while running Nengo, you can increase the heap size that Eclipse allocates for the program. Simply add the command "-Xmx4g" to the "Arguments->VM arguments" box in the run configurations dialog. (The "4g" specifies 4 gigabytes of memory. You can replace this with any integer and either "m" for megabytes or "g" for gigabytes, e.g., "512m" or "2g". The default is "384m".)
+
+README
+======
+
+The files in this folder accompany the book "How to build a brain: A neural 
+architecture for biological cognition" from Oxford University Press by Chris
+Eliasmith.  Many chapters in the book have Nengo demos, which these files
+implement, or are referenced by.
+
+Enjoy!  
+NengoGPU is a shared library written in C and nVidia's CUDA API that permits using nVidia GPU's
+for running simulations in Nengo. 
+
+For detailed instructions on using a GPU with Nengo, see http://nengo.ca/docs/html/advanced/gpu.html.
+
+Instructions are currently only available for Linux. Windows instructions are coming soon.
+
+NengoUtilsGPU is a shared library written in C and nVidia's CUDA API that permits using nVidia GPU's
+for creating models in Nengo. It also requires CULA, a 3rd party GPU library of linear algebra routines.
+
+For detailed instructions on using a GPU with Nengo, see http://nengo.ca/docs/html/advanced/gpu.html.
+
+Instructions are currently only available for Linux. Windows instructions are coming soon.
+
+Thank you for using the Nengo neural simulator! For full details on Nengo and
+the Neural Engineering Framework, please go to
+ http://nengo.ca/
+ http://compneuro.uwaterloo.ca/cnrglab/
+
+                       ==============
+                       =INSTALLATION=
+                       ==============
+
+Nengo requires no installation; simply unzip the associated archive, which
+you have likely already done if you're reading this readme.
+
+On an operating system with file-level access permissions (e.g. Linux) you
+should also ensure that you have read and execute permissions on the file
+ external/pseudoInverse
+
+This can be done by executing the following command from a terminal in the
+main nengo directory.
+ chmod +x external/pseudoInverse
+
+You may also need to mark nengo-ui and nengo-cl as executable.
+ chmod +x nengo nengo-cl
+
+                       =======
+                       =USAGE=
+                       =======
+
+The Nengo neural simulator is written in Java with Python bindings through the
+Jython library. To run Nengo, a Java virtual machine (JVM) version 1.5 or above
+must be installed. The most recent version of Java can be found at
+ http://java.com/en/download/index.jsp
+
+There are two ways to use Nengo: through its graphical interface, or from the
+command-line.
+
+                       =====================
+                       =GRAPHICAL INTERFACE=
+                       =====================
+
+Nengo has a graphical user interface built using Java's Swing API and the
+Piccolo graphical framework.
+
+Beginning users and those who aren't sure what to use should use the graphical
+interface. To start it:
+
+(Windows)
+run nengo.bat
+(Linux, Mac OS X)
+run nengo
+
+                       ==============
+                       =COMMAND-LINE=
+                       ==============
+
+Advanced users, or those running Nengo in restricted environments, can use a
+command-line environment through which to run simulations.
+
+1. Running interactively
+
+To get an interactive shell, where models can be run and later examined:
+(Windows) Run nengo-cl.bat
+(Linux, Mac OS X) Run nengo-cl
+
+In this environment, you can run pre-written scripts using the command
+ execfile('directory/script.py')
+
+If you are not running in a headless environment, and you're using the
+nef.Network class, you can see interactive plost with the command
+ net.view()
+
+2. Running a single script
+
+To generate simulation results, it is often useful to run a single script many
+times in a non-interactive environment. This can be done by passing the path
+to the script as an argument to nengo-cl or nengo-cl.bat. For example,
+
+(Windows) nengo-cl.bat my_scripts/simulation.py
+(Linux, Mac OS X) nengo-cl my_scripts/simulation.py
+
+                       ==============
+                       =GETTING HELP=
+                       ==============
+
+If you have encounter any bugs when running Nengo, please report them on the
+bug tracker at
+ http://sourceforge.net/tracker/?group_id=216267&atid=1036998
+
+For general inquiries and support, please contact one of the project
+administrators through sourceforge at
+ http://sourceforge.net/project/memberlist.php?group_id=216267
+
+
+This directory contains only a subset of the Distutils, specifically
+the Python modules in the 'distutils' and 'distutils.command'
+packages.  This is all you need to distribute and install Python
+modules using the Distutils.  There is also a separately packaged
+standalone version of the Distutils available for people who want to
+upgrade the Distutils without upgrading Python, available from the
+Distutils web page:
+
+    http://www.python.org/sigs/distutils-sig/
+
+The standalone version includes all of the code in this directory,
+plus documentation, test scripts, examples, etc.
+
+The Distutils documentation is divided into two documents, "Installing
+Python Modules", which explains how to install Python packages, and
+"Distributing Python Modules", which explains how to write setup.py
+files.  Both documents are part of the standard Python documentation
+set, and are available from http://www.python.org/doc/current/ .
+
+        Greg Ward (gward@python.net)
+
+$Id: README 29650 2002-11-13 13:26:59Z akuchling $
+
+Icons are normally selected from the Gnome Tango set
+
+They are viewable at
+http://commons.wikimedia.org/wiki/GNOME_Desktop_icons
+
+You can get a 32x32.png from that website.  For example, by going to 
+http://upload.wikimedia.org/wikipedia/commons/thumb/8/89/Gnome-edit-cut.svg/32px-Gnome-edit-cut.svg.png you get the Gnome-edit-cut icon at 32x32.
+
+(change the "32px" to "48px" or other numbers to get different sizes)
+
+To get the slightly shaded version (used on mouseover), use ImageMagik as follows:
+
+convert clear.png -fill black -colorize 20%% clear-pressed.png
+
+================================================================
+ DALEKX.MD2 (mark one travel machine)                      v1.40
+ Improved Sounds, skin, vwep, animation, and model. 
+ An almost total rebuild
+ by J. G. Watt                                      26 July 1998
+ Last updated					17 december 1998
+................................................................
+
+================================================================
+Title                   : Quake2 Dalek Player Model
+Author                  : J.G.Watt (2 aditional skins by zaxxon
+			  <ZaXXoN@mars-command.demon.co.uk>)
+
+Homepage                : http://www.kinetic-arts.demon.co.uk
+
+Email Address           : jim@kinetic-arts.demon.co.uk
+
+
+
+Build Time              : 6 Days + 5 months of tweeking.
+================================================================
+
+DESCRIPTION
+
+   This is a quake2 player model that allows you to play Quake2 
+   as a DALEK. The file also includes 12 dalek skins. See also
+   PREVIEW.JPG
+
+
+INSTALLATION
+
+   Copy the directory called DALEKX and its content to your 
+   quake2\baseq2\players\
+   directory.
+
+TO USE
+
+   Run quake2 go to Multiplay / PlayerSetup / Model and select
+   DALEK. You can then choose a skin
+   DALEKS also works well with some of the BOT programs like
+   Eraser Bot by Ryan Feltrin (aka Ridah)
+   Happy Exterminating.
+
+WHAT'S NEW
+
+   I've extensively updated dalekx since the last version.
+   The model now has 52 fewer polygons in it.
+   The skins are now nice efficiant 256x256 bitmaps.
+   I added grenn CTF skins and a nice BRIT skin 
+   (and a very ugly hippy skin).
+   I've finished off all the animations.
+   I've redone the viewable weapons. 
+
+TO DO
+
+   Can't think of anything right now.
+   
+ABOUT
+
+   This is not only my first ever quake2 model but it's also my
+   first ever 3DstudioMAX model. I picked a dalek because I didn't
+   know how difficult it would be to create and animate a quake2 
+   model so a Dalek would be a simple first project. It turned
+   out to be quite easy so I'm going to attempt something a little
+   more ambitious next (something with arms and legs).
+
+   After writing the above I created MARTIAN for q2. See it on my 
+   web page. 
+
+DISCLAIMER
+
+   I will not take responsibility for anything bad. Use at you 
+   own risk bla de bla.
+
+   You may freely distribute this archive, as long as it remains
+   intact. If you want to add a skin then go for it but send me 
+   a copy. You may not use these files for commercial purposes 
+   without my permission (and probably that of the BBC and ID). 
+   If you do so you will be EXTERMINATED. 
+
+Additional Credits to   : id Software, the BBC.
+
+Thanks to            : 	Ewan and Marcus for playtesting :-)
+
+			Charles Caffrey author of 'Daleky.wad' 
+			(for Doom2) for aditional .wav files
+
+			Christopher Haynes for aditional .wav files
+
+
+If you use the model then please email me your thoughts.
+Terry Nation 4 ever.
+*CPython* ui-related code
+
+

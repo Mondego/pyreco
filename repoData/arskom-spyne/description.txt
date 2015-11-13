@@ -1,0 +1,365 @@
+This is an example for using Flask and Spyne together. It is very simple,
+and does nothing useful.
+
+Create virtualenv and install requirements: ::
+
+    pip install Flask
+    pip install -e . # install Spyne from working directory
+
+Run Flask web server: ::
+
+    ./examples/flask/manage.py
+
+Try Flask views to make sure it works: ::
+
+    curl -s http://127.0.0.1:5000/hello | python -m json.tool
+
+Here is a Spyne views call example: ::
+
+    curl -s http://localhost:5000/soap/hello?name=Anton\&times=3 | python -m json.tool
+
+The same view call, but without explicit name argument, to read default from
+Flask config: ::
+
+    curl -s http://localhost:5000/soap/hello?times=3 | python -m json.tool
+
+
+About
+=====
+
+Spyne projects do not have to adhere to any specific file layout. However, the
+file layout in this example project seems to be quite tidy and comfortable to
+work with as most of the boilerplate for a propery Python project is already
+here.
+
+To start hacking on this project:
+
+#. Copy the template directory to a different folder.
+
+#. Do: ::
+
+    find -name "*.py" | xargs sed -i s/template/your_project/g
+    mv template your_project
+
+#. Tweak the requirements in setup.py according to the protocols and transports
+   you choose to work with. You can look at Spyne's own README to see which
+   protocol or transport requires which package.
+
+#. Tweak the database credentials and exception handling.
+
+#. Hack away!
+
+Installation
+============
+
+1. Bootstrap distribute if needed: ::
+
+       wget http://python-distribute.org/distribute_setup.py
+
+   (yes, wget, not ``curl | python`` because setup script tries to import it)
+
+2. Run: ::
+
+       python setup.py develop --user
+
+   The template_daemon executable is now installed at $HOME/.local/bin. You
+   may need to add that path to your $PATH.
+
+Usage
+=====
+
+1. Run: ::
+
+        template_deamon
+
+2. In a separate console, run: ::
+
+        curl "http://localhost:8000/put_user?user_user_name=jack&user_full_name=jack%20brown&user_email=jack@spyne.io"
+        curl "http://localhost:8000/get_all_user"
+
+
+The scripts in this file illustrate how libxml's validation break when the Xml
+parser has resolve_entities disabled.
+
+.. image:: https://travis-ci.org/arskom/spyne.png?branch=master
+        :target: http://travis-ci.org/arskom/spyne
+
+**WARNING:** This is from spyne's development branch. This version is not released
+yet! Latest stable release can be found in the ``2_10`` branch.
+
+About
+=====
+
+Spyne aims to save the protocol implementers the hassle of implementing their
+own remote procedure call api and the application programmers the hassle of
+jumping through hoops just to expose their services using multiple protocols and
+transports.
+
+In other words, Spyne is a framework for building distributed
+solutions that strictly follow the MVC pattern, where Model = `spyne.model`,
+View = `spyne.protocol` and Controller = `user code`.
+
+Spyne comes with the implementations of popular transport, protocol and
+interface document standards along with a well-defined API that lets you
+build on existing functionality.
+
+Spyne currently supports the WSDL 1.1 interface description standard, along with
+SOAP 1.1 and the so-called HttpRpc, XmlDocument, JsonDocument, YamlDocument,
+MessagePackDocument and MessagePackRpc protocols which can be transported via
+Http or ZeroMQ. The transports can be used in both a client or server setting.
+
+The following are the primary sources of information about spyne:
+
+* Spyne's home page is: http://spyne.io/
+* The latest documentation for all releases of Spyne can be found at: http://spyne.io/docs
+* The official source code repository is at: https://github.com/arskom/spyne
+* The official spyne discussion forum is at: people@spyne.io. Subscribe either
+  via http://lists.spyne.io/listinfo/people or by sending an empty message to:
+  people-subscribe at spyne dot io.
+* You can download Spyne releases from
+  `github <http://github.com/arskom/spyne/downloads>`_ or
+  `pypi <http://pypi.python.org/pypi/spyne>`_.
+
+Spyne is a generalized version of a Soap library known as soaplib. The following
+legacy versions of soaplib are also available in the source repository at github
+as branches:
+
+* Soaplib-0.8 branch: http://github.com/arskom/spyne/tree/soaplib-0_8
+* Soaplib-1.0 branch: http://github.com/arskom/spyne/tree/soaplib-1_0
+* Soaplib-2.0 was never released as a stable package, but the branch is still
+  available: http://github.com/arskom/spyne/tree/soaplib-2_0
+
+Requirements
+============
+
+Spyne is known to work on Python versions 2.6 and 2.7. We're also looking for
+volunteers to test Python 3.x.
+
+The only hard requirement is `pytz <http://pytz.sourceforge.net/>`_ which is
+available via pypi.
+
+Additionally the following software packages are needed for various subsystems
+of Spyne:
+
+* A Wsgi server of your choice is needed to wrap
+  ``spyne.server.wsgi.WsgiApplication``
+* `lxml>=3.2.5 <http://lxml.de>`_ is needed for any xml-related protocol.
+* `lxml>=3.3.0 <http://lxml.de>`_ is needed for any html-related protocol.
+* `SQLAlchemy <http://sqlalchemy.org>`_ is needed for
+  ``spyne.model.complex.TTableModel``.
+* `pyzmq <https://github.com/zeromq/pyzmq>`_ is needed for
+  ``spyne.client.zeromq.ZeroMQClient`` and
+  ``spyne.server.zeromq.ZeroMQServer``.
+* `Werkzeug <http://werkzeug.pocoo.org/>`_ is needed for using
+  ``spyne.protocol.http.HttpRpc`` under a wsgi transport.
+* `PyParsing<2.0 <http://pypi.python.org/pypi/pyparsing>`_ is needed for
+  using ``HttpPattern``'s with ``spyne.protocol.http.HttpRpc``\. (PyParsing>=2.x
+  is Python 3 only).
+* `Twisted <http://twistedmatrix.com/>`_ is needed for
+  ``spyne.server.twisted.TwistedWebResource`` and
+  ``spyne.client.twisted.TwistedHttpClient``.
+* `Django <http://djangoproject.com/>`_ (tested with 1.2 and up) is needed for
+  :class:`spyne.server.django.DjangoApplication` and :class:`spyne.server.django.DjangoServer`.
+* `Pyramid <http://pylonsproject.org/>`_ is needed for
+  ``spyne.server.pyramid.PyramidApplication``.
+* `msgpack-python <http://github.com/msgpack/msgpack-python/>`_ is needed for
+  ``spyne.protocol.msgpack``.
+* `PyYaml <https://bitbucket.org/xi/pyyaml>`_ is needed for
+  ``spyne.protocol.yaml``.
+* `simplejson <http://github.com/simplejson/simplejson>`_ is used when found
+  for ``spyne.protocol.json``.
+
+You are advised to add these as requirements to your own projects, as these are
+only optional dependencies of Spyne, thus not handled in its setup script.
+
+Installing
+==========
+
+You can get spyne via pypi: ::
+
+    easy_install spyne
+
+or you can clone the latest master tree from github: ::
+
+    git clone git://github.com/arskom/spyne.git
+
+To install from source distribution, you should run the setup script as usual: ::
+
+    python setup.py install [--user]
+
+If you want to make any changes to the Spyne code, just use ::
+
+    python setup.py develop [--user]
+
+so that you can painlessly test your patches.
+
+Finally, to run the tests use: ::
+
+    pyhon setup.py test
+
+The test script should first install every single library that Spyne integrates
+with to the current directory. You should have a python development envrionment
+already set up so that packages like lxml can be compiled.
+
+
+Getting Support
+===============
+
+The official mailing list for both users and developers alike can be found at
+http://lists.spyne.io/listinfo/people.
+
+You can also use the 'spyne' tag to ask questions on
+`Stack Overflow <http://stackoverflow.com>`_.
+
+
+Contributing
+============
+
+Please see the CONTRIBUTING.rst file in the Spyne source distribution for
+information about how you can help Spyne get more awesome.
+
+Acknowledgments
+===============
+
+.. image:: http://www.jetbrains.com/img/logos/pycharm_logo142x29.gif
+        :target: http://www.jetbrains.com/pycharm/
+
+Spyne committers get a free license for PyCharm Professional Edition, courtesy
+of JetBrains.
+
+.. image:: http://www.cloudbees.com/sites/default/files/Button-Built-on-CB-1.png
+        :target: https://spyne.ci.cloudbees.com/
+
+CloudBees generously hosts our Jenkins installation and gives us a ton of
+compute time for free.
+
+
+Thanks a lot guys!..
+
+
+*********************
+Running Tests Locally
+*********************
+
+While the test coverage for Spyne is not that bad, we always accept new tests
+that cover new use-cases. Please consider contributing tests even if your
+use-case is working fine! Given the nature of open-source projects, Spyne may
+shift focus or change maintainers in the future. This can result in patches
+which may cause incompatibilities with your existing code base. The only way to
+detect such corner cases is to have a great test suite.
+
+Spyne's master repository is already integrated with travis-ci.org. Head over
+to http://travis-ci.org/arskom/spyne to see it for yourself.
+
+As the necessary configuration is already done, it's very simple to integrate
+your own fork of Spyne with travis-ci.org, which should come in handy even if
+you don't plan to be a long-time contributor to Spyne. Just sign in with your
+Github account and follow instructions.
+
+If you want to run the tests locally, just run: ::
+
+    python setup.py test
+
+This call will install *every* possible dependency of Spyne in the current
+working directory, which takes care of most of the tedium of setting up a
+testing environment. The last thing you need to do is to make sure there is a
+live PostgreSQL instance, so that all of the db integration tests also work.
+
+Spyne's generic test script does not run WS-I tests. Also see the related
+section below.
+
+If you don't want this or just want to run a specific test,
+`pytest <http://pytest.org/latest/>`_  is a nice tool that lets you do just
+that: ::
+
+    py.test -v --tb=short spyne/test/protocol/test_json.py
+
+You can run tests directly by executing them as well. This will use Python's
+builtin ``unittest`` package which is less polished, but just fine. ::
+
+    spyne/test/protocol/test_json.py
+
+Note that just running ``py.test`` or similar powerful test-juggling software
+naively in the root directory of tests won't work. Spyne runs some
+interoperability tests by starting an actual daemon listening to a particular
+port and then making (or processing) real requests, so running all tests in one
+go is problematic. The rather specialized logic in setup.py for running tests
+is the result of these quirks. Patches are welcome!
+
+
+SOAP Interoperability Tests
+===========================
+
+The interoperability servers require twisted.web.
+
+Python
+------
+
+Python interop tests currently use Spyne's own clients and suds. The suds test
+is the first thing we check and try not to break.
+
+Ruby
+----
+
+You need Ruby 1.8.x to run the ruby interop test against soap_http_basic.
+Unfortunately, the Ruby Soap client does not do proper handling of namespaces,
+so you'll need to turn off strict validation if you want to work with ruby
+clients.
+
+Ruby test module is very incomplete, implementing only two (echo_string and
+echo_integer) tests. We're looking for volunteers who'd like to work on
+increasing test coverage for other use cases.
+
+.Net
+----
+
+There isn't any .Net tests for Spyne. WS-I test compliance reportedly covers
+.Net use cases as well. Patches are welcome!
+
+Java
+----
+
+The WS-I test is written in Java. But unfortunately, it only focuses on Wsdl
+document and not the Soap functionality itself. We're looking for volunteers
+who'd like to work on writing Java interop tests for spyne.
+
+To run the Wsdl tests, you should first get wsi-interop-tools package from
+http://ws-i.org and unpack it next to test_wsi.py. Here are the relevant links:
+
+http://www.ws-i.org/deliverables/workinggroup.aspx?wg=testingtools
+http://www.ws-i.org/Testing/Tools/2005/06/WSI_Test_Java_Final_1.1.zip
+
+See also test_wsi.py for more info.
+
+Now run the soap_http_basic interop test server and run test_wsi.py. If all goes
+well, you should get a new wsi-report-spyne.xml file in the same directory.
+
+Here's the directory tree from a working setup:
+
+::
+
+    |-- README.rst
+    |-- (...)
+    |-- interop
+    |   |-- (...)
+    |   |-- test_wsi.py
+    |   `-- wsi-test-tools
+    |       |-- License.htm
+    |       |-- README.txt
+    |       `-- (...)
+    `-- (...)
+
+
+***************************
+Integrating with CI systems
+***************************
+
+Spyne is already integrated with Jenkins and travis-ci.org.
+
+The travis configuration file is located in the root of the source repository,
+under its standard name: .travis.yml
+
+A script for running Spyne test suite inside Jenkins can also be found in the
+same directory as this README file, under the name jenkins.sh. Paste it to the
+"executable script" section in Jenkins configuration page.
+

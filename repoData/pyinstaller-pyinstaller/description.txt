@@ -1,0 +1,258 @@
+Bootloader
+==========
+Bootloader bootstraps Python for the frozen application. It is written in C 
+and the code is very platform specific. The bootloader has to be kept
+standalone without any dependencies on 3rd party libraries.
+
+Directory Structure
+-------------------
+* common
+  Shared code for Unix/Windows.
+* linux
+  Code specific to Linux/Unix/OS X.
+* windows
+  Code specific to Windows.
+* zlib
+  Library to unzip Python modules. This library is included in bootloader
+  for Windows.
+* images
+  PyInstaller icons for Windows bootloaders and the .app bundle on Mac OS X.
+
+This directory contains an extract of zlib 1.2.7. It is the minimum set of
+files necessary to decompress data from a zip file with the inflate compression
+scheme.
+
+#
+# About doc/tools
+#
+
+These tools require docutils available from http://docutils.sourceforge.net
+
+These file are available from docutils respository but since they are not
+installed by default as on "Sep  8 2005" we are including them here as
+reference. If any of them has been modified it is specified in the file header.
+
+We use these and other tools from docutils to generate the documentation on
+different formats
+
+#
+# END OF FILE
+#
+
+NextID.py
+
+  ../../MakeCOMServer.py [options] NextID.py
+  ../../Build.py DriveNextID.spec
+  distdriveNextID\driveNextID --register
+  testNextID.vbs
+  python
+  >>> import win32com.client
+  >>> import pythoncom
+  >>> o = win32com.client.Dispatch('MEInc.NextID', clsctx = pythoncom.CLSCTX_LOCAL_SERVER)
+  >>> o.getNextID()
+  'aaaab0000003'
+  >>> ^Z
+  distdriveNextID\driveNextID --unregister
+
+the others:
+
+  ../../Makespec [options] <script>
+  <run it>
+  <run it again - esp the genpy stuff>
+
+The shell stuff doesn't work on my W2k box (permissions) or NT (old shell, old extensions).
+testEnsureDispatch doesn't work under old versions (no EnsureDispatch).
+
+This directory contains old files that should be sorted out.
+
+This directory contain scripts that are executed by PyInstaller.hook.hookutils
+module to do some detection for some import hooks.
+
+In PyInstaller we cannot directly import modules that the application depend on.
+These scripts do some necessary detection in a subprocess.
+
+
+Custom modifications of 3rd party libraries
+===========================================
+
+macholib
+--------
+
+- add fixed version string to ./macholib/__init__.py::
+
+    # For PyInstaller/lib/ define the version here, since there is no
+    # package-resource.
+    __version__ = '1.5.0'
+
+- add fixed version string to ./modulegraph/__init__.py::
+
+    # For PyInstaller/lib/ define the version here, since there is no
+    # package-resource.
+    __version__ = '0.9.1'
+
+- remove the following line from ./macholib/utils.py, ./macholib/MachO.py,
+  ./macholib/MachOGraph.py. Otherwise macholib complains about 
+  missing altgraph module::
+
+    from pkg_resources import require
+    require("altgraph")
+
+- remove the following line from ./macholib/utils.py::
+
+    from modulegraph.util import *
+
+
+junitxml
+--------
+
+- hacked to support ignored tests in junit xml test report.
+
+.. image:: http://www.pyinstaller.org/chrome/site/logo.png
+   :align: right
+   :target: http://www.pyinstaller.org
+
+PyInstaller
+===========
+.. image:: http://img.shields.io/pypi/v/PyInstaller.png
+   :target: https://pypi.python.org/pypi/PyInstaller
+
+.. image:: http://img.shields.io/pypi/dm/PyInstaller.png
+   :target: https://pypi.python.org/pypi/PyInstaller
+
+.. image:: http://img.shields.io/travis/pyinstaller/pyinstaller.png
+   :target: https://travis-ci.org/pyinstaller/pyinstaller/
+
+
+| Official website: http://www.pyinstaller.org
+| Full manual: http://pythonhosted.org/PyInstaller
+| Full changelog: `changelog`_
+
+
+Requirements
+------------
+- Python: 
+   * 2.4 - 2.7 (Python 3 is not supported)
+
+- Windows (32bit/64bit):
+   * Windows XP or newer.
+   * pywin32_ when using Python 2.6+
+    
+- Linux (32bit/64bit)
+   * ldd: Console application to print the shared libraries required
+     by each program or shared library. This typically can by found in
+     the distribution-package `glibc` or `libc-bin`.
+   * objdump: Console application to display information from 
+     object files. This typically can by found in the
+     distribution-package `binutils`.
+
+- Mac OS X (32/64bit):
+   * Mac OS X 10.4 (Tiger) or newer.
+
+
+Installation
+------------
+PyInstaller is available on PyPI. You can install it through `pip`::
+
+      pip install pyinstaller
+
+Usage
+-----
+Basic usage is very simple, just run it against your main script::
+
+      pyinstaller /path/to/yourscript.py
+
+For more details, see the `manual`_.
+
+
+Experimental ports
+------------------
+- Solaris
+   * ldd
+   * objdump
+
+- AIX
+   * AIX 6.1 or newer.
+     Python executables created using PyInstaller on AIX 6.1 should
+     work on AIX 5.2/5.3. PyInstaller will not work with statically
+     linked Python libraries which has been encountered in Python 2.2
+     installations on AIX 5.x.
+   * ldd
+   * objdump
+
+- FreeBSD
+   * ldd
+   * objdump
+
+
+Before using experimental ports, you need to build the PyInstaller
+bootloader, as we do not ship binary packages. Download PyInstaller
+sources, and build the bootloader::
+     
+        cd bootloader
+        python ./waf configure build install
+
+then install PyInstaller::
+
+        python setup.py install
+        
+or simply use it direclty from the source (pyinstaller.py).
+
+
+
+.. _pywin32: http://sourceforge.net/projects/pywin32/
+.. _`manual`: http://pythonhosted.org/PyInstaller
+.. _`changelog`: https://github.com/pyinstaller/pyinstaller/blob/develop/doc/CHANGES.txt
+
+
+There is no __init__.py in this directory, so pkg2.a refers to ../a.py, not this.
+
+This is a package for testing eggs in `PyInstaller`_
+
+:Author:    Hartmut Goebel <h.goebel@goebel-consult.de>
+:Copyright: 2012 by Hartmut Goebel
+:Licence:   GNU Public Licence v3 (GPLv3)
+
+_PyInstaller: www.pyinstaller.org
+
+=======================
+Testing PyInstaller
+=======================
+
+The test wokflow is not yet documented, but:
+
+ * If those tests will be interactive (user has to click on a button),
+   then it should go into `./tests/interactive/`, test for hooks (and
+   suchlike) go into `./tests/libraries/`. If you are working on a
+   core function, `./tests/basic/` or `./tests/import/` are
+   appropriate.
+
+ * If you have more test files, create them with file name prefix
+   ``test_yourtest_``.
+
+ * To run all tests::
+
+    cd tests
+    python runtests.py
+
+ * To run a single test::
+
+    cd tests
+    python runtests.py libraries/test_yourtest
+
+ * To run all interactive tests::
+
+    cd tests
+    python runtests.py -i
+
+ * Test success depends on zero exit status of created binary.
+
+
+For more information pleas see
+http://www.pyinstaller.org/wiki/Development/HowtoContribute.
+
+..
+  Local Variables:
+  mode: rst
+  ispell-local-dictionary: "american"
+  End:
+

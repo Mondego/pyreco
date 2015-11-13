@@ -1,0 +1,387 @@
+                    PyQt - Python Bindings for the Qt Toolkit
+
+
+INTRODUCTION
+
+These are the Python bindings for Qt.  You must also have the SIP Python
+bindings generator installed.
+
+The homepage is http://www.riverbankcomputing.co.uk/pyqt/.
+
+The homepage of SIP is http://www.riverbankcomputing.co.uk/sip/.
+
+
+COMMERCIAL VERSION
+
+If you have the Commercial version of PyQt then you should also have a
+license file that you downloaded separately.  The license file must be copied
+to the "sip" directory before starting to build PyQt.
+
+
+INSTALLATION
+
+Check for any other README files in this directory that relate to your
+particular platform.  Feel free to contribute a README for your platform or to
+provide updates to any existing documentation.
+
+The first step is to configure PyQt by running the following command.
+
+	python configure.py
+
+This assumes that the correct Python interpreter is on your path.  Something
+like the following may be appropriate on Windows.
+
+	c:\python23\python configure.py
+
+If you have multiple versions of Python installed then make sure you use the
+interpreter for which you wish to generate bindings for.
+
+The configure.py script takes many options.  Use the "-h" command line option
+to display a full list of the available options.
+
+The next step is to build PyQt using your platform's make command.
+
+	make
+
+The final step is to install PyQt by running the following command.  (Depending
+on your system you may require root or administrator privileges.)
+
+	make install
+
+
+THE REST OF THE DISTRIBUTION
+
+The "examples2" and "examples3" directories contain some examples (for Qt v2.x
+and Qt v3.x respectively) of Python scripts, including versions of the standard
+Qt tutorials and examples.
+
+The "doc" directory contains SGML and HTML documentation for the bindings.
+This documentation includes a section describing the differences visible to
+the Python programmer between this and the previous version - please read it.
+
+
+Phil Thompson
+phil@riverbankcomputing.co.uk
+
+This file describes some things to be aware of when building SIP (and PyQt)
+under AIX.
+
+I had success building SIP V3/V4 (and PyQt) on AIX 4.3.3 and on AIX 5.1 with
+VisualAge C++ and with gcc.
+ 
+VisualAge C++ was version 6.0 but it should also work with version 5.x.
+The GNU compiler was version 3.3.2 downloaded as a binary from
+http://aixpdslib.seas.ucla.edu/aixpdslib.html
+
+The Qt-Version was 3.2.3 but it should also work with previous versions.
+
+If you are using Python version 2.3.3 or higher, SIP (and PyQt) should build
+out of the box without any changes.
+
+If you are using a Python version before 2.3.3, you have to patch Python,
+because until this version, Python uses the system calls load() and
+loadbind() to load and bind shared objects. These system calls cannot load
+and bind C++ shared objects properly (constructors and destructors for static
+classes are not called with these system calls). Since AIX version 4.2 the
+system calls dlopen() and dlsym() are available and should be used in
+preference.
+
+The following patch changes the configure script of Python to use dlopen()
+and dlsym() if they are available. It also fixes a bug with the definition of
+_XOPEN_SOURCE:
+
+---8<-------------------------------------------------------------------->8---
+diff -uNr Python-2.3.2.orig/configure Python-2.3.2/configure
+--- Python-2.3.2.orig/configure	2003-09-27 10:58:55.000000000 +0200
++++ Python-2.3.2/configure	2003-10-28 11:33:58.000000000 +0100
+@@ -1452,6 +1452,11 @@
+   # but used in struct sockaddr.sa_family. Reported by Tim Rice.
+   SCO_SV/3.2)
+     define_xopen_source=no;;
++  # On AIX 4, mbstate_t is defined only when _XOPEN_SOURCE == 500 but used in
++  # wcsnrtombs() and mbsnrtowcs() even if _XOPEN_SOURCE is not defined or
++  # has another value. By not (re)defining it, the defaults come in place.
++  AIX/4)
++    define_xopen_source=no;;
+ esac
+ 
+ if test $define_xopen_source = yes
+@@ -12965,7 +12970,12 @@
+ if test -z "$DYNLOADFILE"
+ then
+ 	case $ac_sys_system/$ac_sys_release in
+-	AIX*) DYNLOADFILE="dynload_aix.o";;
++	AIX*) # Use dynload_shlib.c and dlopen() if we have it.
++	if test "$ac_cv_func_dlopen" = yes
++	then DYNLOADFILE="dynload_shlib.o"
++	else DYNLOADFILE="dynload_aix.o"
++	fi
++	;;
+ 	BeOS*) DYNLOADFILE="dynload_beos.o";;
+ 	hp*|HP*) DYNLOADFILE="dynload_hpux.o";;
+ 	Darwin/*) DYNLOADFILE="dynload_next.o";;
+---8<-------------------------------------------------------------------->8---
+
+Note: I did not mix the compilers when building Qt, Python, SIP and PyQt. At
+least Qt, SIP and PyQt must be built with the same compiler because of
+different name mangling schemes.
+
+If you have any problems or questions on building SIP or PyQt on AIX, either
+send an email to ulrich.berning@desys.de or use the PyKDE mailing list.
+
+Ulrich Berning
+DESYS GmbH
+
+
+ o Compiler Error: CC -DHAVE_CONFIG_H -I. -I. -I..
+   -I/users/toollib/include/python2.0 -I/users/pyqt/install/sip-3.2.1/include
+   -I/users/pyqt/install/qt-x11-commercial-3.0.4/include -I/usr/openwin/include 
+   -c qtcmodule.cpp  -KPIC -DPIC -o qtcmodule.o
+   "sipqtProxyqt.h", line 113: Error: Multiple declaration for
+   sipProxyqt::proxySlot(int).
+   "qtcmodule.cpp", line 5393: Error: sipProxyqt::proxySlot(int) already had a
+   body defined.
+
+   This occurs because the Sun Workshop C++ 4.2 compiler (and the Sun Forte
+   C++ 6.x compiler with -compat) can not distinguish between 'bool' and 'int'
+   types in overloaded method signatures and issues a compiler error.
+   In this case bool is declared in qt/include/qglobal.h as
+   'typedef int bool;'.  To workaround this '#if 0' out the the declaration
+   and body of 'proxySlot(bool)' in PyQt/qt/sipqtProxyqt.h and
+   PyQt/qt/qtcmodule.cpp.  This resolves the compiler error but breaks
+   any 'sig(bool)' type signals.  To workaround this, save the
+   PyQt/qt/sipqtProxyqt.moc generated after fixing the compiler error and
+   add the following bits of code:
+
+    ...
+    static const QUParameter param_slot_42[] = {
+             { 0, &static_QUType_bool, 0, QUParameter::In }
+    };
+    static const QUMethod slot_42 = {"proxySlot", 1, param_slot_42 };
+    static const QMetaData slot_tbl[] = {
+        ...
+        { "proxySlot(bool)", &slot_42, QMetaData::Public }
+    };
+    metaObj = QMetaObject::new_metaobject(
+             "sipProxyqt", parentObject,
+             slot_tbl, 43,
+        ...
+    case 42: proxySlot(static_QUType_bool.get(_o+1)); break;
+
+   You will need to comment out the line in PyQt/qt/Makefile that re-generates
+   PyQt/qt/sipqtProxyqt.moc with moc to avoid the above changes from being
+   overwritten.
+
+   In order to test that everything has been done correctly, create a 
+   toggle button and connect it's 'toggled(bool)' signal to a python slot,
+   if it works, your done!
+
+
+This is Qt version 3.3.8
+
+Qt is a multiplatform C++ GUI application framework.
+
+Qt 3.3 introduces new features and many improvements over the 3.2.x
+series. See the changes file for details.
+
+The Qt version 3.3 series is binary compatible with the 3.2.x series -
+applications compiled for 3.2 will continue to run with 3.3.
+
+For this release, the following platforms have been tested:
+
+win32-borland
+win32-g++
+win32-icc
+win32-msvc
+win32-msvc.net
+win32-msvc2005
+
+aix-g++
+aix-xlc
+aix-xlc-64
+freebsd-g++
+freebsd-icc
+hpux-acc
+hpux-g++
+irix-cc
+irix-cc-64
+irix-g++
+linux-ecc-64
+linux-g++
+linux-g++-64
+linux-icc
+solaris-cc
+solaris-cc-64
+solaris-g++
+solaris-g++-64
+tru64-g++
+
+macx-g++
+macx-pbuilder
+
+If you want to use Qt 3 on an unsupported version of Unix, please
+contact us at qt-bugs@trolltech.com so that we can assist you.
+
+
+How to get the release:
+
+Qt Open Source Edition: Download the .tar.gz archive from
+ftp.trolltech.com. For faster download times, use ftpsearch and search
+for qt-x11-free-3.3.8 to find it on a mirror ftp site
+near you.
+
+Qt Professional Edition, Qt Enterprise Edition: Holders of valid
+licenses should have received an email with instructions on how to
+get the new release. Contact sales@trolltech.com if you are a
+Professional or Enterprise Edition licensee and have not received this
+email.
+
+Any problems encountered with Qt 3.3 should be reported to
+qt-bugs@trolltech.com.
+
+Qt is a trademark of Trolltech ASA.
+
+This software was developed with the Open Source Edition of Qt, the
+cross-platform C++ graphical user interface toolkit. 
+
+Qt is a product of Trolltech (see http://www.trolltech.com).  Qt is
+released in two different editions:
+
+- The Qt Open Source Edition, which may be used free of charge for
+  developing free (non-proprietary) software on X11, embedded Linux,
+  and Mac OS X. This version is available for download from
+  http://www.trolltech.com/dl/ and is used by this program.
+
+- The Qt Commercial Edition, which may be used to develop
+  commercial/proprietary software on X11, Microsoft Windows, embedded
+  Linux, and Mac OS X. For pricing and availability of the Commercial
+  Edition, please see http://www.trolltech.com/pricing.html or contact
+  Trolltech at sales@trolltech.com
+
+For further information about Qt, please see the Trolltech web site
+(http://www.trolltech.com) or email info@trolltech.com.
+
+ Faraday Embeeded Licenses
+===========================
+
+In this directory you will find the Licenses of the libraries used in this project.
+
+
+
+SIP - C/C++ Bindings Generator for Python v2 and v3
+===================================================
+
+The SIP documentation (including installation instructions) can be found in the
+``doc`` directory.
+
+
+Building from the Mercurial Repository
+--------------------------------------
+
+If you are using a copy of SIP cloned from the Mercurial repository, or are
+using a Mercurial archive, then you have to prepare it first before you follow
+the normal installation instructions.
+
+The preparation is done using the ``build.py`` script which can be found in the
+same directory as this ``README`` file.  If it isn't there then you probably
+have a packaged release and should just follow the normal installation
+instructions.
+
+The ``build.py`` script requires that ``flex`` and ``bison``, and the Mercurial
+Python bindings are installed.  If you want to create the HTML documentation
+then Sphinx must also be installed.
+
+To prepare run the following::
+
+    python build.py prepare
+
+Note that ``build.py`` is a Python v2 script.
+
+Now you can follow the normal installation instructions.
+
+The ``build.py`` script has other useful commands, use the ``--help`` option to
+see the details.
+
+![Faraday Logo](https://raw.github.com/wiki/infobyte/faraday/images/Faraday-Logo.png)
+
+Faraday introduces a new concept (IPE) Integrated Penetration-Test Environment a multiuser Penetration test IDE. Designed for distribution, indexation and analysis of the generated data during the process of a security audit.
+
+The main purpose of Faraday is to re-use the available tools in the community to take advantage of them in a multiuser way.
+
+Design for simplicity, users should feel no difference between their own terminal application and the one included in Faraday. Developed with a specialized set of functionalities that help users improve their own work. Do you remember yourself programming without an IDE? Well, Faraday does the same an IDE does for you when programming, but from the perspective of a penetration test.
+
+![Faraday Logo](https://raw.github.com/wiki/infobyte/faraday/images/Faraday-Mainwindow.png)
+
+Please read the [RELEASE notes](https://github.com/infobyte/faraday/RELEASE.md)!
+
+Requirements
+----
+Modern Linux (Tested Debian / Ubuntu  * / Kali / Backtrack)
+* Python 2.6.x and 2.7.x
+* Qt3
+* CouchDB >= 1.2.0  
+* The following python libs:
+  * mockito 
+  * couchdbkit 
+  * whoosh 
+  * argparse 
+  * psycopg2
+  * IPy
+  * requests
+
+Installation
+---
+
+Download the latest tarball by clicking [here] (https://github.com/infobyte/faraday/tarball/master) 
+
+Preferably, you can download faraday by cloning the [Git] (https://github.com/infobyte/faraday) repository:
+
+    $ git clone https://github.com/infobyte/faraday.git faraday-dev
+    $ cd faraday-dev
+    $ ./install
+    
+Usage 
+----- 
+
+To get started, simply execute faraday and use the new console to start working in the pentest: 
+
+       $ ./faraday
+    
+
+Links
+---
+
+* Homepage: http://faradaysec.com
+* User's manual: https://github.com/infobyte/faraday/wiki
+* Download: [.tar.gz] (https://github.com/infobyte/faraday/tarball/master)
+* Commits RSS feed: https://github.com/infobyte/faraday/commits/master.atom
+* Issue tracker: https://github.com/infobyte/faraday/issues
+* Frequently Asked Questions (FAQ): https://github.com/infobyte/faraday/wiki/FAQ
+* Mailing list subscription: https://groups.google.com/forum/#!forum/faradaysec
+* Twitter: [@faradaysec] (https://twitter.com/faradaysec)
+* [Demos] (https://github.com/infobyte/faraday/wiki/Demos)
+* IRC: [ircs://irc.freenode.net/faraday-dev] (ircs://irc.freenode.net/faraday-dev)
+* Screenshots: https://github.com/infobyte/faraday/wiki/Screenshots
+
+
+Notes
+--------
+
+IMPORTANT
+===========
+
+Please be kind to remove all your pyc files before running faraday if you are updating this piece of software.  
+We made a big refactor in the latest iteration moving some code into a diferent package.
+
+
+New features in the latest update
+=====================================
+
+We are proud to present two new features that will enhace the Faraday experience.
+Taking feedback from our users we took account that each of them had particular needs from their consoles (completion, size, fonts, so on so forth)  and their need to be able to know what commands where run during an engagement.
+
+    * A brand new ZSH based Terminal UI
+    * The Command Run execution history
+
+
+

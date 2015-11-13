@@ -1,0 +1,164 @@
+# Changelog for django-wordpress
+
+## 0.10.1
+
+* fix issue where attachment view refered to old parent model field
+
+## 0.10.0
+
+* remove parent foreign key field and replace with parent_id integer field
+* add parent property methods to mimic functionality of foreign key field
+
+## 0.9.6
+
+* allow hyphens in author usernames
+* remove direct call to model in manager methods
+
+## 0.9.5
+
+* fix error handling in author archive when author does not exist
+
+## 0.9.4
+
+* prefetch term objects when getting taxonomies
+
+## 0.9.3
+
+* add child post cache
+
+## 0.9.2
+
+* add tag cache
+
+## 0.9.1
+
+* fix call to Preview view
+
+## 0.9
+
+* add post_archive_author template
+* change default templates (except year archive) to extend from post_archive template
+
+## 0.8
+
+* add User to context when displaying author archive
+
+## 0.7
+
+* honor order of term taxonomy relationships
+
+## 0.6
+
+* remove wp_options.blog_id field as it no longer exists in WP 3.5.x
+
+## 0.5
+
+* Django 1.5 support
+* fixed incorrect lookups for term views
+* added Post.objects.from_path(path) method to load post from WordPress-style URL path
+
+## 0.4
+
+* add class-based views
+* deprecate method-based views
+
+## 0.3
+
+* fix multi-database support
+
+## 0.2
+
+* disabled support for Link.category_id and Post.category_id (WordPress 3.x)
+* added the *WP_DATABASE* setting to specify which database the wordpress content is coming from
+* added mapping for TermTaxonomyRelationship so there is no more hand-crafted SQL being run
+* PostManager.term() now supports multiple terms
+* added Term.get_absolute_url()
+* ensured that WordPress tables are not created or deleted by Django by marking them as unmanaged
+
+Thanks to [twig](https://github.com/twig) for this release!
+
+## 0.1
+
+*   initial release
+
+================
+django-wordpress
+================
+
+Models and views for reading a WordPress database. Compatible with WordPress version 3.5+.
+
+django-wordpress is a project of `Sunlight Foundation <http://sunlightfoundation.com>`_.
+
+
+--------
+Features
+--------
+
+Read-only models to protect your content
+========================================
+
+This package is **designed to be read-only**. Writing is enabled by adding ``WP_READ_ONLY = False`` to settings.py. None of the WordPress specific logic is included while writing to the database so there is a good chance you will break your WordPress install if you enable writing.
+
+WordPress table prefix
+======================
+
+The default table prefix is *wp*. To change the table prefix, add ``WP_TABLE_PREFIX = 'yourprefix'`` to settings.py.
+
+Multiple database support
+=========================
+
+Added the ability to specify which database the WordPress content is coming from. Set it using the *WP_DATABASE* setting. Defaults to "default".
+
+Database routers need be set to::
+
+    DATABASE_ROUTERS = ['wordpress.router.WordpressRouter']
+
+Default templates
+=================
+
+Default templates are provided only for development purposes so you can see content in your browser! Please override these with customized templates for your application.
+
+Export Management Commands
+==========================
+
+* *wpexport* Dump published posts in WXR format.
+* *wpexportauthors* Export authors as CSV.
+
+-----------------------------
+Working With WordPress Models
+-----------------------------
+
+Ten most recent published posts::
+
+    Posts.objects.published()[:10]
+
+Posts tagged *wordpress*::
+
+    Posts.objects.term("wordpress")
+
+Post attachments::
+
+    for attachment in post.attachments():
+        pass
+
+Post tags::
+
+    post.tags()
+
+
+------------
+Installation
+------------
+
+::
+
+    pip install the-real-django-wordpress
+
+Add to INSTALLED_APPS in settings.py::
+
+    'wordpress'
+
+Include the following in urls.py::
+
+    url(r'^path/to/blog/', include('wordpress.urls')),
+

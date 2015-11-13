@@ -1,0 +1,399 @@
+# LLRT: Low Level Runtime
+
+## Why?
+
+The same reason for LLVM compiler-rt.  LLVM generates libgcc symbols, such as
+__divdi3 for 64-bit division on 32-bit platform.  They are not also available.
+We need to ship compiler-rt but it is not Windows ready.
+This subproject aims to provide a small portable subset of compiler-rt.
+Start small and add only the things we really needed.
+Performance is not crucial but should not be terrible.
+Functionality and usefullness should be more important than performance.
+
+## Developer Instructions
+
+LLRT implements some functionalities in compiler-rt in ANSI C.
+The C files are compiled using clang to produce LLVM IR which are shipped.
+The IR files are committed in the repository.
+So, remember to build the IR files commit them after modifying the C files.
+
+## Build Requirement
+
+- Make
+- Clang
+- Python
+
+
+# README
+
+This is a reimplementation of the LLVM binding, aiming to provide a more 
+familiar interface to the C++ API whenever possible.
+
+The implementation uses a custom DSL in python to describe the interface. 
+The DSL serves as input to *gen/gen.py* for generation of the .cpp and .py files 
+for the actual binding.
+
+# How to Add New Class
+
+Let's use the `llvm::Module` as an example because it should be one of the most
+familiar class in LLVM.
+
+Reference code in https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/Module.py
+and see LLVM documentation at http://llvm.org/docs/doxygen/html/classllvm_1_1Module.html
+
+1) Import binding helpers
+
+```python
+from binding import *
+# Yes, it is bad practice to import star.
+# I will fix it one day.
+```
+
+2) Import LLVM namespace
+
+```python
+from .namespace import llvm
+```
+
+3) Declare the class
+
+```python
+Module = llvm.Class()
+```
+
+4) Import all the dependencies for the definition
+
+5) Define the class
+
+```python
+@Module
+class Module:
+    ...
+```
+
+## Inside the definition...
+
+5.1) Use the ``_include_`` attribute to add include files.
+
+5.2) Use ``Enum`` to create an enumerator type.
+
+5.3) Make constructor 
+
+Not every class needs to have a binding for the constructor.
+Only add things that will be used.
+
+```python
+new = Constructor(cast(str, StringRef), ref(LLVMContext))
+```
+
+The constructor must be named as "new".
+
+The args to ``Constructor`` are parameters of the signature.
+The first parameter means cast Python string to a StringRef.
+The second parameter means pass LLVMContext object as a value reference.
+
+5.4) Make destructor
+
+Not every class needs to have a binding for the destructor.
+Only add things that will be used.
+If it is always owned by another object, it usually does not need to have one.
+
+```python
+delete = Destructor()
+```
+
+The destructor must be named as "delete".
+
+5.5) Add Simple Methods
+
+```python
+getFunction = Method(ptr(Function), cast(str, StringRef))
+```
+
+The first arg is the return type: a ponter to Function.
+The rest of the args are for the parameters.
+
+Note: ``cast(fromtype, totype)`` can be used as return-type as well.
+In that case, the ``fromtype`` will usually refer to a LLVM object
+and the ``totype`` will refer to the Python object.
+
+5.6) Add custom methods defined in C++
+
+The ``list_functions`` is created as a ``CustomMethod``.
+
+```python
+list_functions = CustomMethod('Module_list_functions', PyObjectPtr)
+```
+
+The first arg is the name that appears in C++.
+The second argument is the return-type.
+The rest of the arguments are parameters.
+
+The definition of ``Module_list_functions`` is located in 
+"include/llvm_binding/extra.h".
+
+5.7) Add custom python method
+
+One can also add custom methods in Python, e.g. ``__str__``.
+
+```python
+@CustomPythonMethod
+def __str__(self):
+    from llvmpy import extra
+    os = extra.make_raw_ostream_for_printing()
+    self.print_(os, None)
+    return os.str()
+```
+
+The body of ``__str__`` is directly copied to the Python output file.
+Thus, it can't reference to anything in current file scope.
+
+# Static Methods
+
+``StaticMethod`` https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/PassRegistry.py
+
+``CustomStaticMethod`` https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/Support/TargetRegistry.py
+
+
+# Namespace
+
+``Namespace`` https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/Support/CodeGen.py
+
+# Functions
+
+``Function`` https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/Assembly/Parser.py
+
+``CustomFunction`` https://github.com/llvmpy/llvmpy/blob/master/llvmpy/src/Bitcode/ReaderWriter.py
+
+
+
+
+
+# Other Things from the binding.py
+
+https://github.com/llvmpy/llvmpy/blob/master/llvmpy/gen/binding.py
+
+The list of C++ types: https://github.com/llvmpy/llvmpy/blob/master/llvmpy/gen/binding.py#L218
+
+
+================================
+llvmpy: Python bindings for LLVM
+================================
+
+Home page
+---------
+
+http://www.llvmpy.org
+
+Versions
+--------
+
+This package has been tested with LLVM 3.2, Python 2.6, 2.7 and 3.3.
+Other Python versions may work.
+
+Quickstart
+----------
+
+1. Get and extract LLVM 3.2 source tarball from
+   `llvm.org <http://llvm.org/releases/download.html#3.2>`_.  Then, ``cd`` into
+   the extracted directory.
+
+2. Run ``./configure --enable-optimized --prefix=LLVM_INSTALL_PATH``.
+
+    **Note**: Without the ``--enable-optimized`` flag, debug build will be
+    selected.  Unless you are developing LLVM or llvmpy, it is recommended
+    that the flag is used to reduce build time and binary size.
+    
+    **Note**: Use prefix to select the installation path.  It is recommended
+    to separate your custom build from the default system package.  Please
+    replace ``LLVM_INSTALL_PATH`` with your own path.
+
+3. Run ``REQUIRES_RTTI=1 make install`` to build and install.
+
+    **Note**: With LLVM 3.2, the default build configuration has C++ RTTI 
+    disabled.  However, llvmpy requires RTTI.
+    
+    **Note**: Use ``make -j2 install`` to enable concurrent build.  
+    Replace ``2`` with the actual number of processor you have. 
+
+4. Get llvm-py and install it::
+
+   $ git clone git@github.com:llvmpy/llvmpy.git
+   $ cd llvmpy
+   $ LLVM_CONFIG_PATH=LLVM_INSTALL_PATH/bin/llvm-config python setup.py install
+
+   Run the tests::
+
+   $ python -c "import llvm; llvm.test()"
+
+5. See documentation at 'http://www.llvmpy.org' and examples
+   under 'test'.
+   
+Common Build Problems
+---------------------
+
+1. If llvmpy cannot be imported due to "undefined symbol:
+   _ZTIN4llvm24PassRegistrationListenerE", it is because RTTI is not enabled
+   when building LLVM.  "_ZTIN4llvm24PassRegistrationListenerE" is the typeinfo
+   of PassRegistrationListener class.
+
+LICENSE
+-------
+
+llvmpy is distributed under the new BSD license, which is similar to the LLVM
+license itself.
+See the file called LICENSE for the full license text.
+
+LLVM CBuilder
+=============
+
+A few short examples:
+(TODO: add more later)
+
+```python
+from llvm.core import *
+from llvm_cbuilder import *
+import llvm_cbuilder.shortnames as C
+```
+
+```python
+class Square(CDefinition):
+    _name_ = 'square'
+    _retty_ = C.double
+    _argtys_ = [ ('x', C.double) ]
+
+    def body(self, x):
+        y = x * x
+        self.ret(y)
+```
+
+```python
+m = Module.new('my_module')
+llvm_square = Square()(m)
+print(m)
+```
+
+```
+; ModuleID = 'my_module'
+
+define double @square(double %x) {
+decl:
+  %0 = fmul double %x, %x
+  ret double %0
+}
+```
+
+
+```python
+class IsPrime(CDefinition):
+    _name_ = 'isprime'
+    _retty_ = C.int
+    _argtys_ = [('x', C.int)]
+
+    def body(self, x):
+        false = zero = self.constant(C.int, 0)
+        true = one = self.constant(C.int, 1)
+
+        two = self.constant(C.int, 2)
+
+        with self.ifelse( x <= two ) as ifelse:
+            with ifelse.then():
+                self.ret(true)
+
+        with self.ifelse( (x % two) == zero ) as ifelse:
+            with ifelse.then():
+                self.ret(false)
+
+        idx = self.var(C.int, 3, name='idx')
+
+        with self.loop() as loop:
+            with loop.condition() as setcond:
+                setcond( idx < x )
+
+            with loop.body():
+                with self.ifelse( (x % idx ) == zero ) as ifelse:
+                    with ifelse.then():
+                        self.ret(false)
+                idx += two
+
+        self.ret(true)
+```
+
+
+
+```
+define i32 @isprime(i32 %x) {
+decl:
+  %0 = icmp sle i32 %x, 2
+  br i1 %0, label %if.then, label %if.end
+
+if.then:                                          ; preds = %loop.body, %loop.cond, %if.end, %decl
+  %merge = phi i32 [ 1, %decl ], [ 0, %if.end ], [ 1, %loop.cond ], [ 0, %loop.body ]
+  ret i32 %merge
+
+if.end:                                           ; preds = %decl
+  %1 = srem i32 %x, 2
+  %2 = icmp eq i32 %1, 0
+  br i1 %2, label %if.then, label %if.end4
+
+if.end4:                                          ; preds = %if.end
+  br label %loop.cond
+
+loop.cond:                                        ; preds = %if.end7, %if.end4
+  %idx.0 = phi i32 [ 3, %if.end4 ], [ %6, %if.end7 ]
+  %3 = icmp slt i32 %idx.0, %x
+  br i1 %3, label %loop.body, label %if.then
+
+loop.body:                                        ; preds = %loop.cond
+  %4 = srem i32 %x, %idx.0
+  %5 = icmp eq i32 %4, 0
+  br i1 %5, label %if.then, label %if.end7
+
+if.end7:                                          ; preds = %loop.body
+  %6 = add i32 %idx.0, 2
+  br label %loop.cond
+}
+
+; ModuleID = 'my_module'
+
+define i32 @isprime(i32 %x) {
+decl:
+  %0 = icmp sle i32 %x, 2
+  br i1 %0, label %if.then, label %if.end
+
+if.then:                                          ; preds = %loop.body, %loop.cond, %if.end, %decl
+  %merge = phi i32 [ 1, %decl ], [ 0, %if.end ], [ 1, %loop.cond ], [ 0, %loop.body ]
+  ret i32 %merge
+
+if.end:                                           ; preds = %decl
+  %1 = srem i32 %x, 2
+  %2 = icmp eq i32 %1, 0
+  br i1 %2, label %if.then, label %if.end4
+
+if.end4:                                          ; preds = %if.end
+  br label %loop.cond
+
+loop.cond:                                        ; preds = %if.end7, %if.end4
+  %idx.0 = phi i32 [ 3, %if.end4 ], [ %6, %if.end7 ]
+  %3 = icmp slt i32 %idx.0, %x
+  br i1 %3, label %loop.body, label %if.then
+
+loop.body:                                        ; preds = %loop.cond
+  %4 = srem i32 %x, %idx.0
+  %5 = icmp eq i32 %4, 0
+  br i1 %5, label %if.then, label %if.end7
+
+if.end7:                                          ; preds = %loop.body
+  %6 = add i32 %idx.0, 2
+  br label %loop.cond
+}
+```
+
+The files herein serve as examples.
+
+All tests should be part of the llvm.test() function (i.e. part of
+llvm.test_llvmpy), such that they can be easily run when llvmpy is deployed.
+
+Everything here is checked to be working before release. All files are
+self-contained.
+

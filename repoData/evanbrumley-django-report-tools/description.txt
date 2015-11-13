@@ -1,0 +1,124 @@
+django-report-tools
+===================
+
+Django Report Tools aims to take the pain out of putting charts, graphs 
+and tables into your Django projects. It provides a nice class-based
+framework to restore a little bit of elegance to your application's 
+complex data views.
+
+
+Features
+--------
+
+* Define your reports using the same syntax as Django forms and models
+* Use built-in 'renderers' to avoid the hassle of dealing with various 
+  charting technologies (currently only the Google Visualization Toolkit is supported)
+* Enter chart data in a standardised format
+* Build a simple API, allowing for the creation of chart exports or a 'save to dashboard' feature.
+
+
+Release Notes - 0.2.2
+---------------------
+
+* Updated for Django 1.6 compatibility
+* Increased tox coverage
+
+
+Release Notes - 0.2.1
+---------------------
+
+* Fixed a JSON encoding bug that broke Python 2.6 compatibility.
+* Added a tox.ini and setup.py test support so I can test and prevent these sorts of
+  bug in the future.
+
+Release Notes - 0.2
+-------------------
+
+* Updated for Django 1.5 compatibility
+* Fixed an XSS vector in the Google Charts renderer
+* Updated to the most recent GViz API
+
+
+A fully-functional example report
+-----------------
+
+The following example implements a report with a simple pie chart, rendered
+using the Google Visualization Toolkit.
+
+::
+
+    from report_tools.reports import Report
+    from report_tools.chart_data import ChartData
+    from report_tools.renderers.googlecharts import GoogleChartsRenderer
+    from report_tools import charts
+
+
+    class MyReport(Report):
+        renderer = GoogleChartsRenderer
+
+        pie_chart = charts.PieChart(
+            title="A nice, simple pie chart",
+            width=400,
+            height=300
+        )
+
+        def get_data_for_pie_chart(self):
+            data = ChartData()
+
+            data.add_column("Pony Type")
+            data.add_column("Population")
+
+            data.add_row(["Blue", 20])
+            data.add_row(["Pink", 20])
+            data.add_row(["Magical", 1])
+
+            return data
+
+Read on in the documentation for a full explanation and lots more examples.
+
+
+Links
+-----
+
+Project Home: http://github.com/evanbrumley/django-report-tools
+
+Documentation: http://django-report-tools.readthedocs.org
+
+
+Installation
+------------
+
+To install django-report-tools simply use: ::
+
+    $ pip install django-report-tools
+
+Or alternatively: ::
+
+    $ easy_install django-report-tools
+
+Copyright (C) 2009 Google Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+     http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Installing the library:
+  python ./setup.py install
+  (You might need root privileges to do this)
+
+Testing the library:
+  python ./setup.py test
+
+Dependencies:
+  On Python <2.6 you will need to have simplejson[1] installed on your system.
+
+  [1]: http://pypi.python.org/pypi/simplejson/
+

@@ -1,0 +1,395 @@
+= Using Alembic for schema migrations =
+
+To use Alembic for your next schema change:
+
+Enable your virtualenv.
+
+Create an initial database using setupdb_app.py. See the Makefile for examples of usage.
+
+Make a change to:
+
+    socorro/external/postgresql/models.py
+
+And then:
+
+    PYTHONPATH=. alembic revision --autogenerate -m "Making an important change to the schema"
+
+A migration script will be put into:
+
+    alembic/versions
+
+Now you can modify it to meet your needs.
+
+Then, to apply the migration:
+
+    PYTHONPATH=. alembic upgrade head
+
+Downgrade to previous revision:
+
+    PYTHONPATH=. alembic downgrade -1
+
+
+== Dealing with unsupported or custom TYPEs ==
+
+We use a few types not currently supported by SQLAlchemy, so you may
+need to modify the migration slightly.
+
+
+== Helper functions in socorro.lib.migrations
+
+We have a couple helper functions for doing cleanup tasks, and adding custom
+types. These functions and classes are imported by the default template for
+a migration.
+
+=== Fixing permissions after adding a table
+
+This is hardcoded to change the owner of a table to `breakpad_rw`.
+
+Example:
+
+    fix_permissions(op, u'tablename')
+
+=== Loading a new stored proc
+
+Example:
+
+    load_stored_proc(op, ['update_matviews.sql', 'backfill_matviews.sql'])
+
+=== JSON datatype example
+
+Modify to import JSON type from socorro's model:
+
+    sa.Column(u'raw_crash', jsontype.JsonType(), nullable=False),
+
+=== CITEXT datatype example
+
+    sa.Column(u'new_stuff', citexttype.CitextType(), nullable=False),
+
+
+== Adding an index
+
+    sa.Column(u'uuid', postgresql.UUID(), nullable=False, index=True, unique=True),
+
+
+The documentation is generated using doxygen (http://www.doxygen.org).
+
+* Introduction:
+  =============
+
+JSON (JavaScript Object Notation) is a lightweight data-interchange format. 
+It can represent integer, real number, string, an ordered sequence of 
+value, and a collection of name/value pairs.
+
+JsonCpp is a simple API to manipulate JSON value, handle serialization 
+and unserialization to string.
+
+It can also preserve existing comment in unserialization/serialization steps,
+making it a convenient format to store user input files.
+
+Unserialization parsing is user friendly and provides precise error reports.
+
+
+* Building/Testing:
+  =================
+
+JsonCpp uses Scons (http://www.scons.org) as a build system. Scons requires
+python to be installed (http://www.python.org).
+
+You download scons-local distribution from the following url:
+http://sourceforge.net/project/showfiles.php?group_id=30337&package_id=67375
+
+Unzip it in the directory where you found this README file. scons.py Should be 
+at the same level as README.
+
+python scons.py platform=PLTFRM [TARGET]
+where PLTFRM may be one of:
+	suncc Sun C++ (Solaris)
+	vacpp Visual Age C++ (AIX)
+	mingw 
+	msvc6 Microsoft Visual Studio 6 service pack 5-6
+	msvc70 Microsoft Visual Studio 2002
+	msvc71 Microsoft Visual Studio 2003
+	msvc80 Microsoft Visual Studio 2005
+	linux-gcc Gnu C++ (linux, also reported to work for Mac OS X)
+	
+adding platform is fairly simple. You need to change the Sconstruct file 
+to do so.
+	
+and TARGET may be:
+	check: build library and run unit tests.
+
+    
+* Running the test manually:
+  ==========================
+
+cd test
+# This will run the Reader/Writer tests
+python runjsontests.py "path to jsontest.exe"
+
+# This will run the Reader/Writer tests, using JSONChecker test suite
+# (http://www.json.org/JSON_checker/).
+# Notes: not all tests pass: JsonCpp is too lenient (for example,
+# it allows an integer to start with '0'). The goal is to improve
+# strict mode parsing to get all tests to pass.
+python runjsontests.py --with-json-checker "path to jsontest.exe"
+
+# This will run the unit tests (mostly Value)
+python rununittests.py "path to test_lib_json.exe"
+
+You can run the tests using valgrind:
+python rununittests.py --valgrind "path to test_lib_json.exe"
+
+
+* Building the documentation:
+  ===========================
+
+Run the python script doxybuild.py from the top directory:
+
+python doxybuild.py --open --with-dot
+
+See doxybuild.py --help for options. 
+
+
+* Adding a reader/writer test:
+  ============================
+
+To add a test, you need to create two files in test/data:
+- a TESTNAME.json file, that contains the input document in JSON format.
+- a TESTNAME.expected file, that contains a flatened representation of 
+  the input document.
+  
+TESTNAME.expected file format:
+- each line represents a JSON element of the element tree represented 
+  by the input document.
+- each line has two parts: the path to access the element separated from
+  the element value by '='. Array and object values are always empty 
+  (e.g. represented by either [] or {}).
+- element path: '.' represented the root element, and is used to separate 
+  object members. [N] is used to specify the value of an array element
+  at index N.
+See test_complex_01.json and test_complex_01.expected to better understand
+element path.
+
+
+* Understanding reader/writer test output:
+  ========================================
+
+When a test is run, output files are generated aside the input test files. 
+Below is a short description of the content of each file:
+
+- test_complex_01.json: input JSON document
+- test_complex_01.expected: flattened JSON element tree used to check if 
+    parsing was corrected.
+
+- test_complex_01.actual: flattened JSON element tree produced by 
+    jsontest.exe from reading test_complex_01.json
+- test_complex_01.rewrite: JSON document written by jsontest.exe using the
+    Json::Value parsed from test_complex_01.json and serialized using
+    Json::StyledWritter.
+- test_complex_01.actual-rewrite: flattened JSON element tree produced by 
+    jsontest.exe from reading test_complex_01.rewrite.
+test_complex_01.process-output: jsontest.exe output, typically useful to
+    understand parsing error.
+
+Test suite from http://json.org/JSON_checker/.
+
+If the JSON_checker is working correctly, it must accept all of the pass*.json files and reject all of the fail*.json files.
+
+Socorro
+A server for collecting, processing, and displaying crash reports from
+clients using the [Breakpad libraries](http://code.google.com/p/google-breakpad/)
+
+Documentation:
+http://socorro.readthedocs.org
+
+Source code:
+https://github.com/mozilla/socorro
+
+Releases:
+https://github.com/mozilla/socorro/releases
+
+Installation instructions:
+http://socorro.readthedocs.org/en/latest/installation.html
+
+Socorro mailing list:
+https://lists.mozilla.org/listinfo/tools-socorro
+
+Socorro/Breakpad IRC channel:
+irc://irc.mozilla.org/breakpad
+
+.. This Source Code Form is subject to the terms of the Mozilla Public
+.. License, v. 2.0. If a copy of the MPL was not distributed with this
+.. file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+View Restore Scripts for Staging
+================================
+
+This directory contains SQL scripts for views which depend on matviews, and generally fail to load during backup/restore as part of the MiniDB database-shrinking process.  The new LoadMiniDB.py script will load these views, one at a time, at the end of restoring the database.
+
+If loadMiniDB.py does not run these scripts because it cannot find the file location, then they can be run with the one-line shell script, loadviews.sh:
+
+loadviews.sh {databasename}
+
+Default databasename is "breakpad".  This script must be run as the database superuser.
+
+
+.. This Source Code Form is subject to the terms of the Mozilla Public
+.. License, v. 2.0. If a copy of the MPL was not distributed with this
+.. file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
+MiniDB Scripts
+==============
+
+docs moved to docs/databasescripts.rst
+
+Silk icon set 1.3
+
+_________________________________________
+Mark James
+http://www.famfamfam.com/lab/icons/silk/
+_________________________________________
+
+This work is licensed under a
+Creative Commons Attribution 2.5 License.
+[ http://creativecommons.org/licenses/by/2.5/ ]
+
+This means you may use it for any purpose,
+and make any changes you like.
+All I ask is that you include a link back
+to this page in your credits.
+
+Are you using this icon set? Send me an email
+(including a link or picture if available) to
+mjames@gmail.com
+
+Any other questions about this icon set please
+contact mjames@gmail.com
+
+Clone socorro-crashstats
+------------------------
+
+    git clone https://github.com/mozilla/socorro
+    cd socorro/webapp-django
+
+Clone vendor repositories
+-------------------------
+
+    git submodule update --init --recursive
+
+Add the LESS Preprocessor
+-------------------------
+
+You need to [install less](http://lesscss.org/#-server-side-usage) and
+make sure it's available on your `PATH`.
+
+
+Create virtualenv and populate it
+---------------------------------
+
+    virtualenv --python=python2.6 .virtualenv
+    source .virtualenv/bin/activate
+    pip install -r requirements.txt
+
+Copy default config file and customize it
+-----------------------------------------
+
+    cp crashstats/settings/local.py-dist crashstats/settings/local.py
+
+Run unit tests
+--------------
+
+Before running the tests, you will have to make sure your configuration has the
+CACHES key set to use LocMemCache as a backend. See
+``crashstats/settings/local.py-dist`` for a working example. Then you will need to compress static files, using the
+following:
+
+    ./manage.py collectstatic --noinput && ./manage.py compress_jingo --force
+
+First running `collectstatic` and `compress_jingo` is more realistic compared
+to how the production server is run. Also, it's faster.
+If you want to disable static file compression you can add
+``COMPRESS_OFFLINE = False`` to your ``settings/local.py``.
+
+To run a specific test file, use for example:
+
+    ./manage.py test crashstats/crashstats/tests/test_views.py
+
+And to run a specific testcase, use for example:
+
+    ./manage.py test crashstats/crashstats/tests/test_views.py:TestViews
+
+And lastly, to run a specific test, use for example:
+
+    ./manage.py test crashstats/crashstats/tests/test_views.py:TestViews.test_plot_signature
+
+Run the dev server, by default will listen on http://localhost:8000
+-------------------------------------------------------------------
+
+    ./manage.py runserver
+
+How to pretend you're Jenkins running the tests
+-----------------------------------------------
+
+If jenkins is failing and you might want to debug it locally to try to
+find out what's going on. Then follow these steps:
+
+1. `cd /tmp`
+2. `git clone git://github.com/mozilla/socorro.git`
+3. `cd socorro`
+4. `git submodule update --init --recursive`
+5. `cd webapp-django`
+6. `WORKSPACE=/tmp/socorro/webapp-django ./bin/jenkins.sh`
+
+It will take care of creating and using a virtualenv for you.
+
+
+How to run coverage tests
+-------------------------
+
+There are more options available if you run `./manage.py test --help`
+but this is the basic command to run coverage tests on the
+`crashstats` package:
+
+    ./manage.py test --cover-erase --with-coverage \
+    --cover-package=crashstats --cover-html
+
+That'll create `./cover/index.html` for your viewing pleasures.
+
+
+Enable your pre-commit hook
+---------------------------
+
+Paste this into `.git/hooks/pre-commit`:
+
+    check.py | grep "\s" | grep -v 'unable to detect undefined names'
+    if [ "$?" -ne "1" ]
+    then
+        echo "Aborting commit.  Fix above errors or do 'git commit --no-verify'."
+        exit 1
+    fi
+
+Then, make the file executable:
+
+    chmod +x .git/hooks/pre-commit
+
+
+Production notes
+----------------
+Do not use locmem cache, as it will break work of an anonymous CSRF on servers
+with more than one web-server thread.
+[More details](https://github.com/mozilla/django-session-csrf#differences-from-django)
+
+
+reporter
+=======
+A webapp for Mozilla's [Socorro][gh-socorro] infrastructure written in Python using [Django][django] and [Playdoh][gh-playdoh]
+
+Please file bugs at [Bugzilla][bugzilla] under product Socorro
+
+Or, fork and send us a pull request!
+
+[django]: http://www.djangoproject.com/
+[gh-playdoh]: https://github.com/mozilla/playdoh
+[gh-socorro]: https://github.com/mozilla/socorro
+[bugzilla]: https://bugzilla.mozilla.org/enter_bug.cgi?product=Socorro&component=Webapp
+

@@ -1,0 +1,146 @@
+### The MIT License
+
+Copyright (c) 2013 Andrew R. Hawker
+https://github.com/ahawker/crython
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+# crython  
+[![Build Status](https://travis-ci.org/ahawker/crython.png)](https://travis-ci.org/ahawker/crython)
+[![Coverage Status](https://coveralls.io/repos/ahawker/crython/badge.png?branch=master)](https://coveralls.io/r/ahawker/crython)
+
+crython is a lightweight task (function) scheduler using [cron](http://en.wikipedia.org/wiki/Cron) expressions written in python.
+
+### Status
+This module is currently under development.
+
+### Installation
+To install crython from [pip](https://pypi.python.org/pypi/pip):
+```bash
+    $ pip install crython
+```
+
+To install crython from source:
+```bash
+    $ git clone git@github.com:ahawker/crython.git
+    $ python setup.py install
+```
+
+### Usage
+Crython supports seven fields (seconds, minutes, hours, day of month, month, weekday, year).
+
+Call a function once a minute:
+```python
+    import crython
+    
+    #Fire once a minute.
+    @crython.job(second=0)
+    def foo():
+        print "... while heavy sack beatings are up a shocking nine hundred percent? - Kent Brockman"
+```
+        
+Call a function every ten seconds:  
+```python
+    #Fire every 10 seconds.
+    @crython.job(second=range(0,60,10))
+    def foo():
+        print "I'm a big four-eyed lame-o and I wear the same stupid sweater every day. - Homer's Brain"
+```
+
+Call a function with a single cron expression:
+```python
+    #Fire every 10 seconds.
+    @crython.job(second='*/10')
+    def foo():
+        print "Hail to the thee Kamp Krusty... - Kampers"
+```
+        
+Call a function with a full cron expression:
+```python
+    #Fire once a week.
+    @crython.job(expr='0 0 0 * * 0 *')
+    def foo():
+        print "Back in line, maggot! - Kearny"
+```
+
+Call a function with positional and/or keyword arguments:
+```python
+    #Fire every second.
+    @job('safety gloves', second='*', name='Homer Simpson')
+    def foo(item, name):
+        print "Well, I don't need {0}, because I'm {1}. -- Grimey".format(item, name)
+```
+
+Call a function using [predefined keywords](https://github.com/ahawker/crython#keywords):
+```python
+    #Fire once a day.
+    @crython.job(expr='@daily')
+    def foo():
+        print "That's where I saw the leprechaun. He tells me to burn things! - Ralph Wiggum"
+```
+
+```python
+    #Fire once immediately after scheduler starts.
+    @crython.job(expr='@reboot')
+    def foo():
+        print "I call the big one bitey. - Homer Simpson"
+```
+
+Call a function and run it within a separate process:
+```python
+    #Fire every hour.
+    @crython.job(expr='@hourly', ctx='process')
+    def foo():
+        print "No, no, dig up stupid. - Chief Wiggum"
+```
+
+Start the global job scheduler:  
+```python
+    if __name__ == '__main__':
+        crython.tab.start()
+```
+
+### Keywords
+| Entry | Description | Equivalent To |
+| --- | --- | --- |
+| @yearly/@annually | Run once a year at midnight in the morning of January 1 | 0 0 0 0 1 1 * |
+| @monthly | Run once a month at midnight in the morning of the first of the month | 0 0 0 0 1 * * |
+| @weekly | Run once a week at midnight in the morning of Sunday | 0 0 0 0 * 0 * |
+| @daily | Run once a day at midnight | 0 0 0 * * * * |
+| @hourly | Run once an hour at the beginning of the hour | 0 0 * * * * * |
+| @minutely | Run once a minute at the beginning of the minute | 0 * * * * * * |
+| @reboot | Run once at startup | @reboot |
+
+### TODO
+- Support "L", "W" and "#" specials.
+- Determine time delta from now -> next time expression is valid.
+
+### Contributing
+If you would like to contribute, simply fork the repository, push your changes and send a pull request.
+
+### License
+Crython is available under the [MIT license](https://github.com/ahawker/crython/blob/master/LICENSE.md).
+
+### See Other
+There are similar python cron libraries out there.
+See:
+[pycron](http://www.kalab.com/freeware/pycron/pycron.htm),
+[python-crontab](http://pypi.python.org/pypi/python-crontab/),
+[cronex](https://github.com/jameseric/cronex).
+

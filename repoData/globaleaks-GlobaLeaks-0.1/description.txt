@@ -1,0 +1,412 @@
+                         TorCtl Python Bindings
+
+
+TorCtl is a python Tor controller with extensions to support path
+building and various constraints on node and path selection, as well as
+statistics gathering.
+
+Apps can hook into the TorCtl package at whatever level they wish.
+
+The lowest level of interaction is to use the TorCtl module
+(TorCtl/TorCtl.py). Typically this is done by importing TorCtl.TorCtl
+and creating a TorCtl.Connection and extending from TorCtl.EventHandler.
+This class receives Tor controller events packaged into python classes
+from a TorCtl.Connection.
+
+The next level up is to use the TorCtl.PathSupport module. This is done
+by importing TorCtl.PathSupport and instantiating or extending from
+PathSupport.PathBuilder, which itself extends from TorCtl.EventHandler.
+This class handles circuit construction and stream attachment subject to
+policies defined by PathSupport.NodeRestrictor and
+PathSupport.PathRestrictor implementations.
+
+If you are interested in gathering statistics, you can instead
+instantiate or extend from StatsSupport.StatsHandler, which is
+again an event handler with hooks to record statistics on circuit
+creation, stream bandwidth, and circuit failure information.
+
+All of these modules are pydoced. For more detailed information than
+the above overview, you can do:
+
+# pydoc TorCtl
+# pydoc PathSupport
+# pydoc StatsSupport
+
+There is a minimalistic example of usage of the basic TorCtl.Connection
+and TorCtl.EventHandler in run_example() in TorCtl.py in this directory.
+Other components also have unit tests at the end of their source files.
+
+For more extensive examples of the PathSupport and StatsSupport
+interfaces, see the TorFlow project at git url:
+
+git clone git://git.torproject.org/git/torflow.git
+
+SocksiPy version 1.00
+A Python SOCKS module.
+(C) 2006 Dan-Haim. All rights reserved.
+See LICENSE file for details.
+
+
+WHAT IS A SOCKS PROXY?
+A SOCKS proxy is a proxy server at the TCP level. In other words, it acts as
+a tunnel, relaying all traffic going through it without modifying it.
+SOCKS proxies can be used to relay traffic using any network protocol that
+uses TCP.
+
+WHAT IS SOCKSIPY?
+This Python module allows you to create TCP connections through a SOCKS
+proxy without any special effort.
+
+PROXY COMPATIBILITY
+SocksiPy is compatible with three different types of proxies:
+1. SOCKS Version 4 (Socks4), including the Socks4a extension.
+2. SOCKS Version 5 (Socks5).
+3. HTTP Proxies which support tunneling using the CONNECT method.
+
+SYSTEM REQUIREMENTS
+Being written in Python, SocksiPy can run on any platform that has a Python
+interpreter and TCP/IP support.
+This module has been tested with Python 2.3 and should work with greater versions
+just as well.
+
+
+INSTALLATION
+-------------
+
+Simply copy the file "socks.py" to your Python's lib/site-packages directory,
+and you're ready to go.
+
+
+USAGE
+------
+
+First load the socks module with the command:
+
+>>> import socks
+>>>
+
+The socks module provides a class called "socksocket", which is the base to
+all of the module's functionality.
+The socksocket object has the same initialization parameters as the normal socket
+object to ensure maximal compatibility, however it should be noted that socksocket
+will only function with family being AF_INET and type being SOCK_STREAM.
+Generally, it is best to initialize the socksocket object with no parameters
+
+>>> s = socks.socksocket()
+>>>
+
+The socksocket object has an interface which is very similiar to socket's (in fact
+the socksocket class is derived from socket) with a few extra methods.
+To select the proxy server you would like to use, use the setproxy method, whose
+syntax is:
+
+setproxy(proxytype, addr[, port[, rdns[, username[, password]]]])
+
+Explaination of the parameters:
+
+proxytype - The type of the proxy server. This can be one of three possible
+choices: PROXY_TYPE_SOCKS4, PROXY_TYPE_SOCKS5 and PROXY_TYPE_HTTP for Socks4,
+Socks5 and HTTP servers respectively.
+
+addr - The IP address or DNS name of the proxy server.
+
+port - The port of the proxy server. Defaults to 1080 for socks and 8080 for http.
+
+rdns - This is a boolean flag than modifies the behavior regarding DNS resolving.
+If it is set to True, DNS resolving will be preformed remotely, on the server.
+If it is set to False, DNS resolving will be preformed locally. Please note that
+setting this to True with Socks4 servers actually use an extension to the protocol,
+called Socks4a, which may not be supported on all servers (Socks5 and http servers
+always support DNS). The default is True.
+
+username - For Socks5 servers, this allows simple username / password authentication
+with the server. For Socks4 servers, this parameter will be sent as the userid.
+This parameter is ignored if an HTTP server is being used. If it is not provided,
+authentication will not be used (servers may accept unauthentication requests).
+
+password - This parameter is valid only for Socks5 servers and specifies the
+respective password for the username provided.
+
+Example of usage:
+
+>>> s.setproxy(socks.PROXY_TYPE_SOCKS5,"socks.example.com")
+>>>
+
+After the setproxy method has been called, simply call the connect method with the
+traditional parameters to establish a connection through the proxy:
+
+>>> s.connect(("www.sourceforge.net",80))
+>>>
+
+Connection will take a bit longer to allow negotiation with the proxy server.
+Please note that calling connect without calling setproxy earlier will connect
+without a proxy (just like a regular socket).
+
+Errors: Any errors in the connection process will trigger exceptions. The exception
+may either be generated by the underlying socket layer or may be custom module
+exceptions, whose details follow:
+
+class ProxyError - This is a base exception class. It is not raised directly but
+rather all other exception classes raised by this module are derived from it.
+This allows an easy way to catch all proxy-related errors.
+
+class GeneralProxyError - When thrown, it indicates a problem which does not fall
+into another category. The parameter is a tuple containing an error code and a
+description of the error, from the following list:
+1 - invalid data - This error means that unexpected data has been received from
+the server. The most common reason is that the server specified as the proxy is
+not really a Socks4/Socks5/HTTP proxy, or maybe the proxy type specified is wrong.
+4 - bad proxy type - This will be raised if the type of the proxy supplied to the
+setproxy function was not PROXY_TYPE_SOCKS4/PROXY_TYPE_SOCKS5/PROXY_TYPE_HTTP.
+5 - bad input - This will be raised if the connect method is called with bad input
+parameters.
+
+class Socks5AuthError - This indicates that the connection through a Socks5 server
+failed due to an authentication problem. The parameter is a tuple containing a
+code and a description message according to the following list:
+
+1 - authentication is required - This will happen if you use a Socks5 server which
+requires authentication without providing a username / password at all.
+2 - all offered authentication methods were rejected - This will happen if the proxy
+requires a special authentication method which is not supported by this module.
+3 - unknown username or invalid password - Self descriptive.
+
+class Socks5Error - This will be raised for Socks5 errors which are not related to
+authentication. The parameter is a tuple containing a code and a description of the
+error, as given by the server. The possible errors, according to the RFC are:
+
+1 - General SOCKS server failure - If for any reason the proxy server is unable to
+fulfill your request (internal server error).
+2 - connection not allowed by ruleset - If the address you're trying to connect to
+is blacklisted on the server or requires authentication.
+3 - Network unreachable - The target could not be contacted. A router on the network
+had replied with a destination net unreachable error.
+4 - Host unreachable - The target could not be contacted. A router on the network
+had replied with a destination host unreachable error.
+5 - Connection refused - The target server has actively refused the connection
+(the requested port is closed).
+6 - TTL expired - The TTL value of the SYN packet from the proxy to the target server
+has expired. This usually means that there are network problems causing the packet
+to be caught in a router-to-router "ping-pong".
+7 - Command not supported - The client has issued an invalid command. When using this
+module, this error should not occur.
+8 - Address type not supported - The client has provided an invalid address type.
+When using this module, this error should not occur.
+
+class Socks4Error - This will be raised for Socks4 errors. The parameter is a tuple
+containing a code and a description of the error, as given by the server. The
+possible error, according to the specification are:
+
+1 - Request rejected or failed - Will be raised in the event of an failure for any
+reason other then the two mentioned next.
+2 - request rejected because SOCKS server cannot connect to identd on the client -
+The Socks server had tried an ident lookup on your computer and has failed. In this
+case you should run an identd server and/or configure your firewall to allow incoming
+connections to local port 113 from the remote server.
+3 - request rejected because the client program and identd report different user-ids - 
+The Socks server had performed an ident lookup on your computer and has received a
+different userid than the one you have provided. Change your userid (through the
+username parameter of the setproxy method) to match and try again.
+
+class HTTPError - This will be raised for HTTP errors. The parameter is a tuple
+containing the HTTP status code and the description of the server.
+
+
+After establishing the connection, the object behaves like a standard socket.
+Call the close method to close the connection.
+
+In addition to the socksocket class, an additional function worth mentioning is the
+setdefaultproxy function. The parameters are the same as the setproxy method.
+This function will set default proxy settings for newly created socksocket objects,
+in which the proxy settings haven't been changed via the setproxy method.
+This is quite useful if you wish to force 3rd party modules to use a socks proxy,
+by overriding the socket object.
+For example:
+
+>>> socks.setdefaultproxy(socks.PROXY_TYPE_SOCKS5,"socks.example.com")
+>>> socket.socket = socks.socksocket
+>>> urllib.urlopen("http://www.sourceforge.net/")
+
+
+PROBLEMS
+---------
+
+If you have any problems using this module, please first refer to the BUGS file
+(containing current bugs and issues). If your problem is not mentioned you may
+contact the author at the following E-Mail address:
+
+negativeiq@users.sourceforge.net
+
+Please allow some time for your question to be received and handled.
+
+
+Dan-Haim,
+Author.
+
+<i>the message following is an html source taken by 'templates/tip_off_description_for_receiver.html'</i>.<br>
+This Tip-off has been sent to you by an anonymous whistleblower.<br>
+She/He would like it for you to pay special attention to the information and material contained therein.<br>
+Please consider that whistleblowers often expose themselves to high personal risks in order to protect the public good. Therefore the material that they provide with this Tip-off should be considered of high importance.<br>
+
+# General configuration
+The first place where you should look for customization is the GlobaLeaks config file.
+It is located in globaleaks/applications/globaleaks/models/gleaks.cfg.
+From here you are able to set the following parameters:
+
+    [global]
+    title = <the title of your site>
+    subtitle = <subtitle>
+    author = <author>
+    description = <description of site>
+    disclaimer = <submission page disclaimer>
+    layout_theme = Default
+    author_email = <email address of site maintainer>
+
+    # must be changed to random string
+    email_server =
+    email_sender = node@globaleaks.org
+    email_login =
+    login_method =
+    login_config =
+
+    [tulip]
+    max_access = 1
+    expire = 2
+
+    [logging]
+    server = True
+    client = True
+    logfile = /tmp/globaleaks.log
+
+    [database]
+    uri = sqlite://storage.sqlite
+
+* To add custom FORM elements you should edit the XML file
+    * globaleaks/applications/globaleaks/models/extrafields.xml
+
+An example of how custom form elements look like is:
+    <fields>
+        <field>
+            <name>extratext</name>
+            <label>Text</label>
+            <description>This is a text field</description>
+            <type>string</type>
+        </field>
+        <field>
+            <name>textarea</name>
+            <label>Text Area</label>
+            <description>This is a text area</description>
+            <type>text</type>
+        </field>
+        <field>
+            <name>enable</name>
+            <label>Enable something</label>
+            <description>Enable the thing by checking the box</description>
+            <type>boolean</type>
+        </field>
+        <field>
+            <name>date</name>
+            <label>Date</label>
+            <description>Enter a date realted to your submission</description>
+            <type>date</type>
+        </field>
+        <field>
+            <name>menu</name>
+            <label>Menu</label>
+            <description>Select something from the drop down menu</description>
+            <type>list</type>
+            <list>
+                <el>Element1</el>
+                <el>Element2</el>
+                <el>Element3</el>
+            </list>
+        </field>
+    </fields>
+
+# Presentation
+For customizing the look of your site you should be looking at globaleaks/applications/globaleaks/views/.
+
+* layout.html - Contains the main layout included in every page
+
+    * For customizing the logo in every page look for "header" and replace the image with your own logo.
+
+Inside globaleaks/applications/globaleaks/static you will find all the .css files.
+
+* base.css - the main .css file
+
+
+
+GlobaLeaks
+==========
+
+GlobaLeaks is the first Open Source Whistleblowing Framework.
+
+It empowers anyone to easily setup and maintain their own Whistleblowing platform. It is also a collection of what are the best practices for people receiveiving and submitting material. GlobaLeaks works in various environments: media, activism, corporations, public agencies.
+
+                                        DISCLAIMER
+                                GlobaLeaks is under Development
+                                
+
+Installation
+------------
+
+Follow the howto on the wiki for a setup https://github.com/globaleaks-0.1/GlobaLeaks/wiki and get on irc #globaleaks to let us know about your deployment! :-)
+
+Then you will find running as a web service the following:
+
+*  whistleblowing interface binds to http://127.0.0.1:8000
+*  node administrator targets configuratation http://127.0.0.1:8000/globaleaks/admin/
+*  debug only global view interface: http://127.0.0.1:8000/globalview
+*  web2py developer access: http://127.0.0.1:8000/admin password "globaleaks"
+
+
+
+
+How to hack on it
+-----------------
+
+We moved to GlobaLeaks 0.2 development, for which you can find all the pointers and new git repo on http://wiki.globaleaks.org .
+
+GlobaLeaks 0.1 is feature-freeze, support only bugfixing.
+
+To hack on it
+
+* You need to get a copy of [web2py](http://www.web2py.com/) and install it (that means get the necessary gluons into $PYTHON_PATH)
+* You need to know the MVC programming model, and the [web2py framework documentation](http://web2py.com/book).
+* Read & understand the issue list https://github.com/globaleaks/GlobaLeaks/issues
+* When globaleaks is running, you could check the reachable pages, this is the expanded list get from routes.py:
+1. http://127.0.0.1:8000/globalview
+2. http://127.0.0.1:8000/tulip
+3. http://127.0.0.1:8000/targets
+4. http://127.0.0.1:8000/submit
+5. http://127.0.0.1:8000/subscribe
+6. http://127.0.0.1:8000/unsubscribe
+7. http://127.0.0.1:8000/groups
+
+You are invited to develop, using the web admin interface, because apply automatic checks before saving the code.
+
+updated link-o-graphy
+---------------------
+
+* [GlobaLeaks website](http://www.globaleaks.org)
+* [code repository](https://github.com/globaleaks)
+* [GL's blogroll](http://planet.globaleaks.org)
+* [mailing list "people"](http://box549.bluehost.com/mailman/listinfo/people_globaleaks.org)
+* [GL's twitter](https://twitter.com/#!/globaleaks)
+* [GlobaLeaks documentation](https://github.com/globaleaks/advocacy)
+
+older pages: reference, documentation
+-------------------------------------
+
+* [launchpad old project page](https://launchpad.net/globaleaks)
+* [old list of features](https://blueprints.launchpad.net/globaleaks)
+* [old site, old ideas, old goals](http://www.globaleaks.org/old/)
+* [old trac, old ideas, old goals](http://sourceforge.net/apps/trac/globaleaks/)
+
+GlobaLeaks hackathon soundtrack
+-------------------------------
+
+* [Enter the Ninja](http://www.youtube.com/watch?v=cegdR0GiJl4)
+* the Target's lament: [don't make me a target](http://www.youtube.com/watch?v=CBtXw6CPwg4)
+
+

@@ -1,0 +1,183 @@
+# python函数 #
+
+* dec(app, cfg)
+
+指定一个python函数时，可以用`file:function_name`的格式指定。或者只指名function_name，file在config中指定。
+
+下载函数的一般性形态有以下几种：
+
+* url(worker, req, params) -> return True to continue next steps
+* http(worker, res, resp, params)
+* lxml(worker, res, doc, params)
+
+resp为下载到的原始内容，doc为lxml解析后的结果。m为匹配时的正则表达式结果（如果是正则的话）。
+
+* result(worker, req)
+
+map in txt filter
+
+* map(node, s) -> node, s
+
+# worker对象 #
+
+worker对象是和队列有关的对象，一般包括以下几个方法。
+
+* append(req)
+
+# reqinfo对象 #
+
+reqinfo是请求有关的内容，一般包括以下几个方法。
+
+* procname
+* url
+* params
+* headers
+* body
+* method
+* result
+
+和request一一对应。
+
+# 文件级配置 #
+
+* file: 用于下面加载python function用。
+* download: 指明下载的处理函数。
+* downdir: 未指明下载函数时以文件名下载到该目录。注意，同名文件会互相覆盖。
+* result: 指明结果数据的处理函数。
+* disable_robots: disable robots limitation.
+* headers: default headers.
+* timeout: timeout setup
+* interval: crawl-delay * not support yet
+
+# 匹配模式 #
+
+* name: 使用callto指令，提交一个链接的时候可以同时指明用于处理的配置。
+* desc:
+
+# action #
+
+* sitemap: download a sitemap and add all them into queue. txt filter and link filter can be used.
+* parsers: ...
+* lxml: 使用request下载内容，使用lxml.html解析，然后调用后面所指定的python函数。并且将结果一并传递。
+* download: 将url下载，使用指定函数处理。如果指定函数为空，使用config中的download函数进行存储。
+* http: 使用request下载内容，然后调用后面所指定的python函数。并且将结果一并传递。
+* url: 将url直接传递给后面所指定的python函数，没有下载行为。用户可以自行选择下载方式。
+* result: result function.
+
+有关python函数的指定，请看[api](API.md)。
+
+# html parser #
+
+这是基础parser，用于处理html对象。这里的内容既可以用于link处理也可以用于result处理。但是必须保证对象为html，否则会在lxml解析时出错。
+
+* css: 一个css选择器，选中一组内容。
+* xpath: 一个xpath选择器，选中一组内容。
+* attr: 获得选中节点的某个属性，例如href。
+* text: 获得选中节点的文本内容。
+* html: 获得选中节点的html源码。
+* html2text: 将选中节点的html源码转换为text。
+* regex: get a string from regex
+
+以上头两个被成为source属性，指名处理哪个节点。后续的称为tostr，将节点转换为字符串。
+
+# txt filter #
+
+这些是文本过滤器，可以辅助处理一些文本。
+
+* is: 一个正则表达式，命中则通过。
+* isnot: 一个正则表达式，不命中才通过。
+* map: map source node, s to node, s. pass if s is False
+* dictreplace: 一个列表，里面两个元素。第一个会被按正则解析，并且匹配出一些命名结果。这些结果会被送入第二个做字符串format合成。
+
+# link filter #
+
+* call: 使用callto指定的name执行该link的解析。
+* headers: request headers
+* method: GET/POST/PUT...
+
+TODO: 还没开始写。
+
+# 简介 #
+
+siren是一套以配置为基础的爬虫系统，他的基本配置和解析系统是yaml。借助yaml的语法，他可以很轻松的定义爬虫，而不需要编写大量代码。
+
+# 背景知识 #
+
+使用siren，你需要了解css或者xpath，能够用css或xpath表述你需要获得的内容。知道正则表达式，能够使用正则处理简单的过滤和替换。
+
+要良好的使用siren，你还可能需要了解robots.txt协议相关的内容。遵循别人的意愿，礼貌的获取数据，做一只绅(bian)士(tai)的爬虫。
+
+# 原理简述 #
+
+siren维护一个爬虫队列。在爬虫工作时，每次从队列中取出一个request。而后开始按照匹配规则进行匹配。
+
+当匹配规则命中某个项目时，爬虫会执行一种action。例如把url下载下来，调用python代码处理。或者解析下载下来的html，再调用python代码。
+
+siren的特殊之处在于，定义了一组预定义的爬虫处理程序。这组程序被称为parsers。通过配置，可以直接处理结果，而不需要编写python代码。
+
+# 范例 #
+
+	name: wenku8
+	timeout: 10
+	interval: 5
+	result: novel:result
+	output: output.txt
+	patterns:
+	 
+	  - name: main
+		desc: table of content
+		parsers:
+		  - css: a
+			attr: href
+			is: "[0-9]+\\.htm"
+			call: node
+	 
+	  - name: node
+		desc: node
+		parsers:
+		  - css: div#title
+			text: yes
+			result: title
+		  - css: div#content
+			html2text: yes
+			result: content
+
+# 配置讲解 #
+
+细节请参考[config](config.md)。
+
+# 入门指引 #
+
+请看[guide](GUIDE.md)。
+
+# TODO #
+
+* do something
+  * bilibili
+  * bt.ktxp.com
+  * jd
+
+* regex
+* js runner
+
+* cookie在redis中保存：加速存取效率。
+* 队列防回环(in redis)：已经爬过的维护一份列表。
+* parser in css or xpath
+
+# 授权 #
+
+    Copyright (C) 2012 Shell Xu
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

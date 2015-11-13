@@ -1,0 +1,532 @@
+# Contributing to Mardown Test Suite
+
+1. [Getting Involved](#getting-involved)
+2. [Discussion](#discussion)
+3. [How To Report an Issue](#how-to-report-an-issue)
+4. [Editing Markdown Specification](#editing-markdown-specification)
+5. [Test Suite Guidelines](#test-suite-guidelines)
+6. [Pull Request Guidelines](#pull-request-guidelines)
+
+## Getting Involved
+
+There are a number of ways to get involved with the development of the Markdown Test Suite. If you are a first time contributor to an open source project, you can still add value to this project. You may identify grammar issues, write prose, examples or documentation for the project. You may flag some errors and open new issues.
+
+Read all bits of this document and that will guide you on how to participate.
+
+## Discussion
+
+### Mailing List
+
+The Markdown Test Suite has been started a little bit after the start of the [Markdown Community Group](http://www.w3.org/community/markdown/). You may want to discuss about Markdown and this project on the [group mailing-list](http://lists.w3.org/Archives/Public/public-markdown/).
+
+## How to Report an Issue
+
+Don't be afraid to add details to your issue. The more context you give, the better for people participating to the project. Make a short summary, add a description with the context and give links to places which will help to understand.
+
+## Editing Markdown Specification
+
+There is much needed work on the [Markdown Specification](http://htmlpreview.github.io/?https://github.com/karlcow/markdown-testsuite/blob/master/markdown-spec.html). It doesn't require strong competences in coding. Be systematic in the markup and follow the way it is already organized. Each time you added a new atomic section, create a commit for this specific part.
+
+## Test Suite Guidelines
+
+When proposing new tests, make sure they do not already exist in the current test suite. You will notice that there is a separate section dedicated to the specific extensions that some markdown generators have created. Keep them separate. We want to keep the core clean and close to the original specification of Markdown.
+
+If you are not sure, create an issue.
+
+### Markdown Extensions
+
+Markdown extension tests are accepted. Use the following rules:
+
+- place all extension tests under the `test/extensions/ENGINE` directory with filename equal to the feature name
+- for each `ENGINE` and add a `README.markdown` under the engine directory with a link to its specification
+
+where `ENGINE` is either of:
+
+- a command line utility. E.g. `pandoc`, `kramdown`.
+- a programming API. E.g. `Redcarpet::Markdown.new()`.
+- a programmatically accessible web service. E.g.: GFM via the GitHub API.
+- a non programmatically accessible web service. E.g.: Stack Overflow flavored markdown.
+
+To avoid test duplication for common features, use the following rules:
+
+- if file `tests/extensions/ENGINE/FEATURE.md` is empty or not present, use `tests/extensions/FEATURE.md` instead
+- if file `tests/extensions/ENGINE/FEATURE.out` not present, use `tests/extensions/FEATURE.out` instead
+- for a given `ENGINE`, only features which have either a `.md` or a `.out` are implemented by that engine.
+- in case of different outputs for a single feature input, keep directly under `extensions/` only the output case that happens across the most engines
+
+**version**
+
+Only the latest stable version of each `ENGINE` is considered.
+
+**options**
+
+The IO behavior tested is for engine defaults, without any options (command line options, extra JSON parameters, etc.) passed to the engine.
+
+**external state**
+
+Tests that use external state not present in the markdown input shall not be included in this test suite.
+
+For example, what GFM `@user` user tags render to also depends on the state of GitHub's databases (only render to a link if user exists), not only on the input markdown.
+
+#### Examples
+
+GFM and the "fenced code block" use the following file structure:
+
+    tests/extensions/gfm/README.markdown
+    tests/extensions/gfm/fenced-code-block.md
+    tests/extensions/gfm/fenced-code-block.out
+
+where `README.markdown` contains:
+
+    https://help.github.com/articles/github-flavored-markdown
+
+To avoid duplication with other engines, if the input / output (normalized to DOM) is the same across multiple engines use:
+
+    tests/extensions/gfm/fenced-code-block.md       [empty]
+    tests/extensions/fenced-code-block.md
+    tests/extensions/fenced-code-block.out
+
+If the input is the same, and outputs are DOM different, but represent the same idea (e.g. both represent computer code) use:
+
+    tests/extensions/gfm/fenced-code-block.md       [empty]
+    tests/extensions/gfm/fenced-code-block.out
+    tests/extensions/fenced-code-block.md
+    tests/extensions/fenced-code-block.out
+
+#### New Extensions
+
+Tests are modular, and if you want to test a new engine for your project, that should be easy to do.
+
+If you feel that the new engine is reasonably popular, please send a pull request adding it.
+
+## Commits and Pull Requests
+
+* Keep your commits clean and commented
+* Do not mix in one commit different things. Keep modifications related.
+* Do not mix everything in one giant pull request. Create separate pull requests for different topic. That will help to have a more meaningful debate about the pull requests and will help to review the code.
+* If it relates to a specific issue, add the number of the issue in the commit message.
+
+Thanks for Contributing
+
+The MIT License (MIT)
+
+Copyright (c) 2013 Karl Dubost
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# Markdown Test Suite
+
+Inspired by questions on [W3C Markdown Community Group](http://www.w3.org/community/markdown).
+
+Pull Requests are welcome. See the [CONTRIBUTING Guidelines](https://github.com/karlcow/markdown-testsuite/blob/master/CONTRIBUTING.md)
+
+## Design goals
+
+- Comprehensive.
+- Small modularized tests.
+- Easy to run tests using any programming language. In particular, data representations must have an implementation on all major languages.
+- Develop a consensus based markdown specification at [markdown-spec.html](markdown-spec.html). Visualize it [here](http://htmlpreview.github.io/?https://github.com/karlcow/markdown-testsuite/blob/master/markdown-spec.html).
+
+## Test Scripts
+
+Markdown Test Suite already includes tests for many important markdown engines.
+
+To see what the scripts do run:
+
+    ./cat-all.py -h
+    ./run-tests.py -h
+
+To configure the scripts do:
+
+	cp config_local.py.example config_local.py
+
+and edit `config_local.py`. It is already gitignored.
+
+Sample output from `run-tests.py`:
+
+    blackfriday   |......FFF..............FF...F....................................F....................................|   0.93s  102    7   6%
+	gfm           |FF.....F.....F...FFFF..F....F........................FFFF...FF...............FF...F.......F...........| 262.88s  102   20  19%
+    hoedown       |..............................F.................................................F.....................|   0.36s  102    2   1%
+	kramdown      |......FFF.....FF.......FF.......FF.FFFFFFFFFFFFF.......................F..............................|  30.69s  102   23  22%
+    lunamark      |FFFFFF.F.FFFFFFFFFFFF.F.....FFFF..FF............FFFFF..FFFFFFFFFF..............F...FFFFFFFFFFF........|   1.58s  103   53  51%
+    markdown_pl   |.....................FFFF...............................F...............F.............................|   2.56s  102    6   5%
+    markdown2     |......................................................................................................|   5.39s  103    0   0%
+    marked        |..............F.................FFFFFFFFFFFFFFFF......................F.F.............................|   6.22s  102   19  18%
+    maruku        |......FFF......F.......F.FFF...............................................FF.........................|  37.02s  102   10   9%
+    md2html       |.........................FFF...F............................................FF........................|   7.42s  102    6   5%
+    multimarkdown |......FFF....FF...F............FFF.FFFFFFFFFFFFF.....FFFF.........F...................................|   0.58s  102   27  26%
+    pandoc        |FF...........F.F.FFFF..FFFFF....FF.FFFFFFFFFFFFF.....FFFF.....FF............FFF.FFF..................F|   1.11s  102   41  40%
+    peg_markdown  |.................................................................F....................................|   0.46s  102    1   0%
+    rdiscount     |.......F.........................................................F....................................|  25.19s  102    3   2%
+    redcarpet     |......................................................................................................|  21.49s  102    0   0%
+    showdown      |.......................................................................F..............................|   6.85s  102    1   0%
+
+	Extensions:
+
+    blackfriday   |F..|  0.04s    3    1  33%
+	gfm           |F.|   2.37s    2    1  50%
+    hoedown       |.|    0.00s    1    0   0%
+    lunamark      |F.F|  0.05s    3    2  66%
+    kramdown      |..|   0.62s    2    0   0%
+    markdown_pl   ||     0.00s    0    0   0%
+    markdown2     |F.|   0.14s    2    1  50%
+    marked        |F.|   0.13s    2    1  50%
+    maruku        |F..|  1.06s    3    1  33%
+    md2html       |F.|   0.14s    2    0   0%
+    multimarkdown |F.|   0.01s    2    1  50%
+    pandoc        |F.|   0.02s    2    1  50%
+    peg_markdown  |...|  0.02s    3    0   0%
+    rdiscount     |F..|   0.74s    3    1  33%
+    redcarpet     |..|   0.42s    2    0   0%
+    showdown      |F..|  0.20s    3    1  33%
+
+Where `F` indicates a failing test.
+
+This is a first paragraph,
+on multiple lines.
+     
+This is a second paragraph.
+There are spaces in between the two.
+This is a first paragraph,
+on multiple lines.
+
+This is a second paragraph
+which has multiple lines too.
+A first paragraph.
+
+
+
+A second paragraph after 3 CR (carriage return).
+This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph on 1 line.
+     
+A few spaces and a new long long long long long long long long long long long long long long long long paragraph on 1 line.
+This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph on 1 line.
+	
+1 tab to separate them and a new long long long long long long long long long long long long long long long long paragraph on 1 line.
+This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph on 1 line.
+
+A new long long long long long long long long long long long long long long long long paragraph on 1 line.
+An ampersand & in the text flow is escaped as an html entity.
+There is an [ampersand](http://validator.w3.org/check?uri=http://www.w3.org/&verbose=1) in the URI.
+This is \*an asterisk which should stay as is.
+This is * an asterisk which should stay as is.
+\\   backslash
+\`   backtick
+\*   asterisk
+\_   underscore
+\{\}  curly braces
+\[\]  square brackets
+\(\)  parentheses
+\#   hash mark
+\+   plus sign
+\-   minus sign (hyphen)
+\.   dot
+\!   exclamation mark
+> # heading level 1
+> 
+> paragraph
+>A blockquote with a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long line.
+
+>and a second very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long line.
+>This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph in a blockquote.
+> A blockquote
+> on multiple lines
+> like this.
+>A blockquote 
+>on multiple lines 
+>like this. 
+>A blockquote
+>on multiple lines
+>like this.
+>
+>But it has
+>two paragraphs.
+>A blockquote
+>on multiple lines
+>like this
+> This is the first level of quoting.
+>
+> > This is nested blockquote.
+>
+> Back to the first level.
+
+> This is the first level of quoting.
+>
+> > This is nested blockquote.
+> This is the first level of quoting.
+> > This is nested blockquote.
+> Back to the first level.
+
+> This is the first level of quoting.
+> > This is nested blockquote.
+
+	10 PRINT HELLO INFINITE
+	20 GOTO 10
+    10 PRINT < > &
+    20 GOTO 10
+    10 PRINT HELLO INFINITE
+    20 GOTO 10
+as*te*risks
+*single asterisks*
+_single underscores_
+HTML entities are written using ampersand notation: &copy;
+These lines all end with end of line (EOL) sequences.
+
+Seriously, they really do.
+
+If you don't believe me: HEX EDIT!
+
+
+These lines all end with end of line (EOL) sequences.Seriously, they really do.If you don't believe me: HEX EDIT!
+These lines all end with end of line (EOL) sequences.
+
+Seriously, they really do.
+
+If you don't believe me: HEX EDIT!
+
+
+http://a.com
+
+
+
+https://github.com/russross/blackfriday-tool
+
+
+```
+a
+```
+
+
+
+https://help.github.com/articles/github-flavored-markdown
+
+
+
+https://github.com/hoedown/hoedown
+
+
+
+
+http://kramdown.gettalong.org/syntax.html
+
+
+[a]
+
+[a]: b
+
+
+
+https://github.com/jgm/lunamark
+
+
+
+https://github.com/trentm/python-markdown2
+
+
+http://daringfireball.net/projects/markdown/syntax
+
+
+
+
+https://github.com/chjj/marked
+
+
+
+
+https://github.com/bhollis/maruku
+
+
+
+
+https://github.com/evilstreak/markdown-js
+
+
+
+
+http://fletcher.github.io/MultiMarkdown-4/syntax
+
+
+
+
+http://johnmacfarlane.net/pandoc/demo/example9/pandocs-markdown.html
+
+
+
+
+https://github.com/jgm/peg-markdown
+
+
+
+
+https://github.com/davidfstr/rdiscount
+
+
+
+
+https://github.com/vmg/redcarpet
+
+
+
+
+https://github.com/coreyti/showdown
+
+
+€
+This is an H1
+=============
+# This is an H1 #
+ # This is an H1
+# this is an h1 with two trailing spaces  
+A new paragraph.
+# This is an H1
+This is an H2
+-------------
+## This is an H2 ##
+## This is an H2
+### This is an H3 ###
+### This is an H3
+#### This is an H4 ####
+#### This is an H4
+##### This is an H5 #####
+##### This is an H5
+###### This is an H6  ######
+###### This is an H6
+- - -
+---
+***
+___
+-------
+![HTML5][h5]
+
+[h5]: http://www.w3.org/html/logo/img/mark-word-icon.png "HTML5 for everyone"
+![HTML5][h5]
+
+[h5]: http://www.w3.org/html/logo/img/mark-word-icon.png
+![HTML5](http://www.w3.org/html/logo/img/mark-word-icon.png "HTML5 logo for everyone")
+![HTML5](http://www.w3.org/html/logo/img/mark-word-icon.png)
+We love `<code> and &` for everything
+``We love `code` for everything``
+``We love `code` for everything``
+A first sentence  
+and a line break.
+A first sentence     
+and a line break.
+This is an automatic link <http://www.w3.org/>
+[W3C](http://www.w3.org/ "Discover w3c")
+[W3C](http://www.w3.org/)
+[World Wide Web Consortium][w3c]
+
+[w3c]: <http://www.w3.org/>
+[World Wide Web Consortium][]
+
+[World Wide Web Consortium]: http://www.w3.org/
+[w3c][]
+
+[w3c]: http://www.w3.org/
+[World Wide Web Consortium] [w3c]
+
+[w3c]: http://www.w3.org/
+[World Wide Web Consortium][w3c]
+
+[w3c]: http://www.w3.org/
+   "Discover W3C"
+[World Wide Web Consortium][w3c]
+
+[w3c]: http://www.w3.org/ (Discover w3c)
+[World Wide Web Consortium][w3c]
+
+[w3c]: http://www.w3.org/ 'Discover w3c'
+[World Wide Web Consortium][w3c]
+
+[w3c]: http://www.w3.org/ "Discover w3c"
+[World Wide Web Consortium][w3c]
+
+[w3c]: http://www.w3.org/
+*   a list containing a blockquote
+
+    > this the blockquote in the list
+* a
+
+        b
+
+*   a list containing a block of code
+
+	    10 PRINT HELLO INFINITE
+	    20 GOTO 10
+*   This is a list item with two paragraphs. Lorem ipsum dolor
+	sit amet, consectetuer adipiscing elit. Aliquam hendrerit
+	mi posuere lectus.
+
+	Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+	vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
+	sit amet velit.
+
+*   Suspendisse id sem consectetuer libero luctus adipiscing.
+*   This is a list item with two paragraphs. Lorem ipsum dolor
+    sit amet, consectetuer adipiscing elit. Aliquam hendrerit
+    mi posuere lectus.
+
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet
+    vitae, risus. Donec sit amet nisl. Aliquam semper ipsum
+    sit amet velit.
+
+*   Suspendisse id sem consectetuer libero luctus adipiscing.
+1\. ordered list escape
+1. 1
+
+    - inner par list
+
+2. 2
+
+1. list item 1
+8. list item 2
+1. list item 3
+1. list item 1
+2. list item 2
+3. list item 3
+This is a paragraph
+on multiple lines
+with hard return.
+This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph on 1 line.
+ This is a paragraph with a trailing and leading space. 
+This is a paragraph with 1 trailing tab.	
+  This is a paragraph with 2 leading spaces.
+   This is a paragraph with 3 leading spaces.
+ This is a paragraph with 1 leading space.
+This is a paragraph with a trailing space. 
+as**te**risks
+**double asterisks**
+__double underscores__
+* list item 1
+* list item 2
+* list item 3
+
+- list item 1
+- list item 2
+- list item 3
+ * list item 1
+ * list item 2
+ * list item 3
+  * list item 1
+  * list item 2
+  * list item 3
+   * list item 1
+   * list item 2
+   * list item 3
++ list item 1
++ list item 2
++ list item 3
+* list item in paragraph
+
+* another list item in paragraph
+*   This a very long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long long paragraph in a list.
+*   and yet another long long long long long long long long long long long long long long long long long long long long long long line.
+*   This is a list item
+    with the content on
+    multiline and indented.
+*   And this another list item
+    with the same principle.

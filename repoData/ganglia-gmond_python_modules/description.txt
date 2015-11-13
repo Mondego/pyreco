@@ -1,0 +1,1628 @@
+apache_status
+===============
+
+python module for ganglia 3.1.
+
+"apache_status" sends metrics on Apache process status refering to
+server-status(mod_status.so).
+
+To use this you will need to enable mod_status in Apache. For example you
+add following to your Apache config. 
+
+Listen 8001
+<VirtualHost *:8001>
+    ServerName health.site
+    <Location /server-status>
+        SetHandler server-status
+        Order deny,allow
+        Deny from all
+        Allow from 127.0.0.1
+    </Location>
+</VirtualHost>
+
+Restart Apache. Now you should be able to hit
+
+http://localhost:8001/server-status
+
+on the box and get a web page with Apache status.
+
+
+## AUTHOR
+
+HIROSE Masaaki <hirose31@gmail.com>
+
+Modified by Vladimir Vuksan
+apc_status
+===============
+
+python module for ganglia 3.1.
+
+"apc_status" sends metrics on Another PHP Cache process status refering to
+apc-json.php.
+
+To use this you will need to copy apc-json.php to your webdir.
+
+## AUTHOR
+
+Jacob V. Rasmussen <jacobvrasmussen@gmail.com>
+
+beanstalk
+===============
+
+python module for ganglia 3.1.
+
+*NOTE*: [beanstalkc](https://github.com/earl/beanstalkc/) *must* be in your python path.
+
+This module connects to a [beanstalkd](http://kr.github.com/beanstalkd/) instance and grabs some metrics:
+
+ * current-connections
+ * total-jobs
+ * current-jobs-ready
+ * current-jobs-buried
+ * current-jobs-delayed
+ * current-waiting
+ * job-timeouts
+ * cmd-bury
+ 
+ In addition it grabs the following metrics about individual tubes:
+ 
+ * total-jobs
+ * current-watching
+ * current-jobs-buried
+ * current-jobs-ready
+ * current-waiting
+ 
+ It should be fairly easy to add a custom metric
+
+## AUTHOR
+
+[Stephen Holiday](http://stephenholiday.com) <stephen.holiday@gmail.com>
+## Overview
+
+Provides statistics (memory use, query counts) using the xml
+statistics from BIND versions >= 9.5.  Parsing of the xml is done
+using [pybindxml](https://github.com/jforman/pybindxml).
+
+BIND configuration to enable looks something like:
+
+    statistics-channels {
+        inet 127.0.0.1 port 8053 allow {127.0.0.1;};
+    };
+
+## System Dependencies
+
+yum-rhel6: libxml2-devel libxslt-devel
+
+pip: pybindxml beautifulsoup4 lxml
+
+blueeyes_service
+===============
+
+Python module for ganglia 3.1.
+
+This module parses health statistics from a BlueEyes service and creates
+"blueeyes_*" metrics:
+
+ * DELETE/GET/POST/PUT requests per second
+ * DELETE/GET/POST/PUT errors per second
+
+## AUTHOR
+
+Author: Michael T. Conigliaro &lt;mike [at] conigliaro [dot] org&gt;
+
+celery
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect from Celery Distributed Task Queue
+from http://docs.celeryproject.org.
+
+Prerequisite
+============
+
+Make sure Celery exposes it's API over HTTP e.g.
+
+curl http://localhost:8989/api/worker/
+
+or similar needs to succeed for this module to work.
+
+
+Install
+===============
+
+Copy ganglia_celery.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and celery.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+couchdb
+=======
+
+python module for ganglia 3.1.
+
+## Metrics
+ * Number of authentication cache hits
+ * Number of authentication cache misses
+ * Number of times a document was read from a database
+ * Number of times a document was changed
+ * Number of open databases
+ * Number of file descriptors CouchDB has open
+ * Request time
+ * Number of bulk requests
+ * Number of clients for continuous _changes
+ * Number of HTTP requests
+ * Number of temporary view reads
+ * Number of view reads
+ * Number of HTTP COPY requests
+ * Number of HTTP DELETE requests
+ * Number of HTTP GET requests
+ * Number of HTTP HEAD requests
+ * Number of HTTP POST requests
+ * Number of HTTP PUT requests
+ * Number of HTTP 200 OK responses
+ * Number of HTTP 201 Created responses
+ * Number of HTTP 202 Accepted responses
+ * Number of HTTP 301 Moved Permanently responses
+ * Number of HTTP 304 Not Modified responses
+ * Number of HTTP 400 Bad Request responses
+ * Number of HTTP 401 Unauthorized responses
+ * Number of HTTP 403 Forbidden responses
+ * Number of HTTP 404 Not Found responses
+ * Number of HTTP 405 Method Not Allowed responses
+ * Number of HTTP 409 Conflict responses
+ * Number of HTTP 412 Precondition Failed responses
+ * Number of HTTP 500 Internal Server Error responses
+
+## Parameters
+ * stats_url (The URL to query for CouchDB _stats. Default: 'http://127.0.0.1:5984/_stats'
+ * refresh_rate (The time in seconds between polling the stats. Either 60, 300 or 900. Default: 60)
+
+## Notes
+ * This has been tested with:
+  - python 2.7.1 on Mac OS X
+  - python 2.7.3 on Ubuntu 12.04
+
+## AUTHORS
+
+Andreas Lappe <nd@kaeufli.ch>
+
+diskfree
+===============
+
+Python module for ganglia 3.1.
+
+This module reads a list of mountpoints from the "mounts" parameter (probably
+/proc/mounts) and creates a "disk_free_(absolute|percent)_*" metric for each
+mountpoint it finds.
+
+## AUTHOR
+
+Author: Michael T. Conigliaro &lt;mike [at] conigliaro [dot] org&gt;
+
+diskpart
+===============
+
+python module for ganglia 3.1.
+
+"diskpart" send metrics on disk pattition.
+
+ * total size [GB]
+ * used  size [GB]
+ * total number of inode
+ * used  number of inode
+
+## AUTHOR
+
+HIROSE Masaaki <hirose31@gmail.com>
+
+
+diskstat
+===============
+
+python module for ganglia 3.1.
+
+"diskstat" report disk stat metrics to ganglia.
+
+This module can monitor multiple disk block devices including specific partitions instead of the entire device.
+
+## Metrics
+  * diskstat_XXX_io_time
+  * diskstat_XXX_read_kbytes_per_sec
+  * diskstat_XXX_read_time
+  * diskstat_XXX_reads
+  * diskstat_XXX_reads_merged
+  * diskstat_XXX_weighted_io_time
+  * diskstat_XXX_write_kbytes_per_sec
+  * diskstat_XXX_write_time
+  * diskstat_XXX_writes
+  * diskstat_XXX_writes_merged
+
+## Params
+  * devices (The disk block device(s) to monitor. Example: "sda1 sda2")
+
+## NOTES
+	This module has the option of explicitly setting which devices
+	to check using the "devices" option in your configuration. You
+	can monitor specific partitions instead of the entire device.
+	Example value: "sda1 sda2".
+	Example value: "sda sdb sdc".
+
+## Example Graphs
+  * Available in the examples directory.
+
+## AUTHOR
+
+Jamie Isaacs <pdt256@gmail.com>
+
+elasticsearch
+===============
+
+python module for ganglia 3.1.
+
+"elasticsearch" sends metrics on ElasticSearch nodes using the stats api
+
+http://(node-ip):9200/_cluster/nodes/(node-ip)/stats
+
+This module requires that jsonpath python module be installed on the machine.
+
+
+## AUTHORS
+
+Jeremy Carroll <phobos182@gmail.com>
+Matt Radtke <matthew.radtke@gmail.com>
+Dave Rawks <dave@pandora.com>
+
+Brocade FibreChannel
+This is gmond python module that allows SNMP polling of Fibrechannel switches to get interface packet and throughput metrics.
+
+  * It works for Brocade FC switches, and probably for any other SNMP enabled switch.
+  * It requires pysnmp (available in debian repositorys)
+  * Now executes SNMP queries as a separate thread
+  * Handles polling multiple switches from a single gmond.
+  * Spoofs the switch hostname, so each switch shows up separately in ganglia
+
+## DEPENDS
+  * python pysnmp
+
+## USAGE
+  * Save the fibrechannel.pyconf into directory and update the switch(s) name & IP's
+  * Save the fibrechannel.py into your ganglia python module dir eg:  /usr/lib/ganglia/python_modules
+  * Update SNMP community / ports if necessary
+  * If FC metrics aren't appearing, increase your net.core.rmem_max and default settings as below:
+
+net.core.rmem_max=104857600
+
+net.core.rmem_default=104857600
+
+vm.dirty_ratio=100
+
+vm.dirty_background_ratio=100
+
+vm.dirty_expire_centisecs=720000
+
+## AUTHOR
+
+Author: Evan Fraser &lt;evan.fraser@trademe.co.nz&gt;
+
+
+======
+pyNVML
+======
+
+------------------------------------------------
+Python bindings to the NVIDIA Management Library
+------------------------------------------------
+
+Provides a Python interface to GPU management and monitoring functions.
+
+This is a wrapper around the NVML library.
+For information about the NVML library, see the NVML developer page
+http://developer.nvidia.com/nvidia-management-library-nvml
+
+Download the latest package from:
+http://pypi.python.org/pypi/nvidia-ml-py/
+
+Note this file can be run with 'python -m doctest -v README.txt'
+although the results are system dependent
+
+REQUIRES
+--------
+Python 2.5, or an earlier version with the ctypes module.
+
+INSTALLATION
+------------
+sudo python setup.py install
+
+USAGE
+-----
+
+    >>> from pynvml import *
+    >>> nvmlInit()
+    >>> print "Driver Version:", nvmlSystemGetDriverVersion()
+    Driver Version: 295.00
+    >>> deviceCount = nvmlDeviceGetCount()
+    >>> for i in range(deviceCount):
+    ...     handle = nvmlDeviceGetHandleByIndex(i)
+    ...     print "Device", i, ":", nvmlDeviceGetName(handle)
+    ... 
+    Device 0 : Tesla C2070
+    
+    >>> nvmlShutdown()
+
+Additionally, see nvidia_smi.py.  A sample application.
+
+FUNCTIONS
+---------
+Python methods wrap NVML functions, implemented in a C shared library.
+Each function's use is the same with the following exceptions:
+
+- Instead of returning error codes, failing error codes are raised as 
+  Python exceptions.
+
+    >>> try:
+    ...     nvmlDeviceGetCount()
+    ... except NVMLError as error:
+    ...     print error
+    ... 
+    Uninitialized
+
+- C function output parameters are returned from the corresponding
+  Python function left to right.
+
+::
+    
+    nvmlReturn_t nvmlDeviceGetEccMode(nvmlDevice_t device,
+                                      nvmlEnableState_t *current,
+                                      nvmlEnableState_t *pending);
+
+    >>> nvmlInit()
+    >>> handle = nvmlDeviceGetHandleByIndex(0)
+    >>> (current, pending) = nvmlDeviceGetEccMode(handle)
+
+- C structs are converted into Python classes.
+
+::
+    
+    nvmlReturn_t DECLDIR nvmlDeviceGetMemoryInfo(nvmlDevice_t device,
+                                                 nvmlMemory_t *memory);
+    typedef struct nvmlMemory_st {
+        unsigned long long total;
+        unsigned long long free;
+        unsigned long long used;
+    } nvmlMemory_t;
+
+    >>> info = nvmlDeviceGetMemoryInfo(handle)
+    >>> print "Total memory:", info.total
+    Total memory: 5636292608
+    >>> print "Free memory:", info.free
+    Free memory: 5578420224
+    >>> print "Used memory:", info.used
+    Used memory: 57872384
+
+- Python handles string buffer creation.
+
+::
+    
+    nvmlReturn_t nvmlSystemGetDriverVersion(char* version,
+                                            unsigned int length);
+
+    >>> version = nvmlSystemGetDriverVersion();
+    >>> nvmlShutdown()
+
+For usage information see the NVML documentation.
+
+VARIABLES
+---------
+All meaningful NVML constants and enums are exposed in Python.
+
+The NVML_VALUE_NOT_AVAILABLE constant is not used.  Instead None is mapped to the field.
+
+RELEASE NOTES
+-------------
+Version 2.285.0
+- Added new functions for NVML 2.285.  See NVML documentation for more information.
+- Ported to support Python 3.0 and Python 2.0 syntax.
+- Added nvidia_smi.py tool as a sample app.
+Version 3.295.0
+- Added new functions for NVML 3.295.  See NVML documentation for more information.
+- Updated nvidia_smi.py tool
+  - Includes additional error handling
+
+COPYRIGHT
+---------
+Copyright (c) 2011-2012, NVIDIA Corporation.  All rights reserved.
+
+LICENSE
+-------
+Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
+
+- Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
+
+- Neither the name of the NVIDIA Corporation nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+
+NVIDIA GPU monitoring plugin for gmond
+======================================
+
+Installation instructions:
+* First install the Python Bindings for the NVIDIA Management Library:
+  $ cd nvidia-ml-py-*
+  $ sudo python setup.py install
+  For the latest bindings see: http://pypi.python.org/pypi/nvidia-ml-py/ 
+  You can do a site install or place it in {libdir}/ganglia/python_modules
+* Copy python_modules/nvidia.py to {libdir}/ganglia/python_modules
+* Copy conf.d/nvidia.pyconf to /etc/ganglia/conf.d
+* Copy graph.d/* to {ganglia_webroot}/graph.d/
+* Patch Ganglia Web (3.1.x) to see custom graphs (ganglia_web.patch)
+* A demo of what the GPU graphs look like is available here:
+  http://ac.ncsa.uiuc.edu/ganglia/?m=load_one&r=hour&s=descending&c=AC&h=ac22&sh=1&hc=4&z=small
+
+By default all metrics that the management library could detect for your GPU
+are collected.  For more information on what metrics are supported on what
+models, please refer to NVML documentation.
+
+The following metrics have been implemented:
+* gpu_num
+* gpu_driver
+* gpu_type
+* gpu_uuid
+* gpu_pci_id
+* gpu_mem_total
+* gpu_graphics_speed
+* gpu_sm_speed
+* gpu_mem_speed
+* gpu_max_graphics_speed
+* gpu_max_sm_speed
+* gpu_max_mem_speed
+* gpu_temp
+* gpu_util
+* gpu_mem_util
+* gpu_mem_used
+* gpu_fan
+* gpu_power_usage
+* gpu_perf_state
+* gpu_ecc_mode
+
+Version 2:
+
+The following metrics have been implemented:
+* gpu_max_graphics_speed
+* gpu_max_sm_speed
+* gpu_max_mem_speed
+* gpu_serial
+* gpu_power_man_mode
+* gpu_power_man_limit
+
+
+ipmi
+===============
+
+Python module for ganglia 3.1+
+
+This module allows you to collect system statistics from IPMI e.g.
+
+  ipmi_cpu2_temp = 42.0
+  ipmi_vdimm_ef = 1.52
+  ipmi_vdimm_gh = 1.52
+  ipmi_vbat = 3.216
+  ipmi_12v = 11.978
+  ipmi_vdimm_ab = 1.504
+  ipmi_fana = 2850.0
+  ipmi_5v = 5.056
+  ipmi_3.3v = 3.36
+  ipmi_vtt = 1.04
+  ipmi_1.5_v = 1.488
+  ipmi_cpu1_temp = 41.0
+  ipmi_cpu1_vcore = 1.008
+  ipmi_5vsb = 5.056
+  ipmi_cpu2_vcore = 1.104
+  ipmi_pch_temp = 43.0
+  ipmi_1.1_v = 1.088
+  ipmi_peripheral_temp = 35.0
+  ipmi_system_temp = 28.0
+  ipmi_vdimm_cd = 1.52
+  ipmi_3.3vsb = 3.36
+  ipmi_fan1 = 2775.0
+  ipmi_fan3 = 4275.0
+  ipmi_fan2 = 2850.0
+  ipmi_fan5 = 3750.0
+
+
+Install 
+=============== 
+
+It requires installation of the timeout binary e.g.
+
+  apt-get install timeout
+
+Copy ipmi.py from python_modules to your python modules directory e.g.
+
+  /usr/lib64/ganglia/python_modules
+
+and ipmi.pyconf to
+
+  /etc/ganglia/conf.d/
+
+In ipmi.pyconf adjust IPMI interface IP, username and password.
+
+Restart Gmond and you are done.
+
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+jenkins
+=======
+
+python module for ganglia 3.1.
+
+## Metrics
+* Number of total executors
+* Number of busy executors
+* Length of the queue
+* Total number of jobs
+* Number of jobs with blue status
+* Number of jobs with red status
+* Number of jobs with yellow status
+* Number of jobs with grey status
+* Number of jobs with aborted status
+* Number of jobs with not-built status
+* Number of jobs with disabled status
+
+## Parameters
+ * base_url (The URL to query for Jenkins statistics. Default: 'http://127.0.0.1:8080'
+ * username (Your Jenkins username. Default: ''
+ * apitoken (Your personal Jenkins API token. Default: ''
+
+## Notes
+ * This has been tested with:
+  - python 2.7.1 on Mac OS X
+  - python 2.7.3 on Ubuntu 12.04
+
+## AUTHORS
+
+Andreas Lappe <nd@kaeufli.ch>
+
+## CONTRIBUTORS
+
+Nils Juenemann <nils.juenemann@bitplaces.com>
+
+To use this package do following
+
+1. Copy extra/jmxsh.jar to a location of your choice e.g. /usr/share/java/jmxsh.jar
+  Module expects JMX without authentication. If you use auth you will need to modify
+  jmxsh.py script in python_modules. To test you can connect via JMX type
+  java -jar jmxsh.jar -h localhost -p 1099
+2. Copy python_modules/jmxsh.py to where your Ganglia Python modules are e.g. /usr/lib64/ganglia/python_modules/
+3. Copy one of the config files from conf.d/ directory to /etc/ganglia/conf.d
+
+It is advisable to run gmond in debug mode to make sure everything is OK. You can do following
+
+gmond -m | grep jmx
+
+You should get output similar to this
+
+# gmond -m | grep jmx
+jmx_tomcat_heap_init	heap_init (module python_module)
+jmx_tomcat_total_started_thread_count	total_started_thread_count (module python_module)
+jmx_tomcat_thread_count	thread_count (module python_module)
+jmx_tomcat_heap_max	heap_max (module python_module)
+jmx_tomcat_heap_used	heap_used (module python_module)
+jmx_tomcat_daemon_threads	daemon_threads (module python_module)
+jmx_tomcat_peak_thread_count	peak_thread_count (module python_module)
+jmx_tomcat_heap_committed	heap_committed (module python_module)
+
+Also try running gmond with debug e.g.
+
+# gmond -d 5
+
+make sure output is clean
+
+Enabling JMX
+============
+
+To enable the JMX interface in your servlet container (tomcat, jetty-web, et al.) add the 
+following options to the JAVA_OPTS environment variable defined in the rc startup script:
+
+-Dcom.sun.management.jmxremote  -Dcom.sun.management.jmxremote.port=8887  \ 
+  -Dcom.sun.management.jmxremote.ssl=false  -Dcom.sun.management.jmxremote.authenticate=false
+
+For instance, here's what JAVA_OPTS looks like in our /etc/init.d/tomcat-55 file:
+
+export JAVA_OPTS='-server -Xmx256M -XX:MaxPermSize=256m -Dsun.net.inetaddr.ttl=300 \ 
+-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.port=8887 \
+-Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false'
+
+kestrel
+===============
+
+python module for ganglia 3.1.
+
+This module sends metrics on kestrel protocol "stats".
+
+## AUTHOR
+
+Matt Erkkila <merkkila@empowercampaigns.com>
+
+
+kumofs
+===============
+
+python module for ganglia 3.1.
+
+This module sends metrics on kumofs protocol "stats".
+
+## kumofs
+
+Kumofs is a simple and fast distributed key-value store. You can use a memcached client library to set, get, CAS or delete values from/into kumofs. Backend storage is Tokyo Cabinet and it will give you great performance.
+
+* Data is partitioned and replicated over multiple servers.
+* Extreme single node performance; comparable with memcached.
+* Both read and write performance got improved as servers added.
+* Servers can be added without stopping the system.
+* Servers can be added without modifying any configuration files.
+* The system does not stop even if one or two servers crashed.
+* The system does not stop to recover crashed servers.
+* Automatic rebalancing support with a consistency control algorithm.
+* Safe CAS operation support.
+* memcached protocol support.
+
+<http://kumofs.sourceforge.net/>
+
+## AUTHOR
+
+HIROSE Masaaki <hirose31@gmail.com>
+
+
+memcached
+===============
+
+python module for ganglia 3.1.
+
+This module sends metrics on memcached protocol "stats".
+
+## AUTHOR
+
+HIROSE Masaaki <hirose31@gmail.com>
+
+
+python-memcached-gmond
+======================
+
+
+This is a Python Gmond module for Memcached, compatible with both Python 2 and
+3. In addition to the usual datapoints provided by "stats", this module
+aggregates max age metrics from "stats items". All metrics are available in a
+"memcached" collection group.
+
+If you've installed ganglia at the standard locations, you should be able to
+install this module by copying `memcached.pyconf` to `/etc/ganglia/conf.d` and
+`memcached.py`, `memcached_metrics.py`, and 'every.py' to
+`/usr/lib/ganglia/python_modules`. The memcached server's host and port can be
+specified in the configuration in memcached.pyconf.
+
+For more information, see the section [Gmond Python metric modules][1] in the
+Ganglia documentation.
+
+Author: Ori Livneh <ori@wikimedia.org>
+
+  [1]: http://sourceforge.net/apps/trac/ganglia/wiki/ganglia_gmond_python_modules
+
+mongodb
+===============
+
+Python module for ganglia 3.1.
+
+This module parses output from the db.serverStatus() and rs.status() commands
+and creates "mongodb_*" metrics:
+
+ * Inserts per Second
+ * Queries per Second
+ * Updates per Second
+ * Deletes per Second
+ * Getmores per Second
+ * Commands per Second
+ * Flushes per Second
+ * Memory-mapped Data
+ * Process Virtual Size
+ * Process Resident Size
+ * Page Faults per Second
+ * Global Write Lock Ratio
+ * BTree Page Miss Ratio
+ * Total Operations Waiting for Lock
+ * Readers Waiting for Lock
+ * Writers Waiting for Lock
+ * Total Active Clients
+ * Active Readers
+ * Active Writers
+ * Open Connections
+ * Open Connections (as a percentage of total available)
+ * Replica Set Slave Delay
+ * Asserts per Second
+
+## AUTHOR
+
+Author: Michael T. Conigliaro &lt;mike [at] conigliaro [dot] org&gt;
+
+multi_nginx_status
+===============
+
+python module for ganglia 3.1.
+
+"multi_nginx_status" gathers metrics from remote nginx status pages, handles multiple nginx servers from a single gmond. [status stub module](http://wiki.nginx.org/HttpStubStatusModule).
+
+
+## Metrics
+ * nginx_active_connections
+ * nginx_accepts
+ * nginx_handled
+ * nginx_requests
+ * nginx_reading
+ * nginx_writing
+ * nginx_waiting
+
+## Params
+ * server_# (nginxhostname:statusportnumber)
+
+## NOTES
+ * Ensure that the status stub module is setup correctly when using this module.
+ * Save the multi_nginx_status.pyconf file into /etc/ganglia/conf.d/ and update it with your nginx servers hostname and nginx_status port number
+ * Save the multi_nginx_status.py file into your gmond python module dir (eg: /usr/lib/ganglia/python_modules)
+
+## AUTHOR
+Evan Fraser <evan.fraser@trademe.co.nz>
+Reused code from Patrick Ting's nginx_status module <pcting@gmail.com>
+
+mysql
+===============
+
+python module for ganglia 3.1.
+
+"mysql" send metrics on MySQL
+
+## AUTHOR
+
+HIROSE Masaaki <hirose31@gmail.com>
+
+
+NetApp Filer API metrics
+========================
+
+These are GMOND Python Modules that gathers metrics from NetApp appliances via the Netapp Data ONTAP APIs.
+There are two modules, one for 7-mode filers, and one for Clusters running Clustered ONTAP.
+The c-mode module now polls clusters as separate threads.  This speeds up polling and gmond reliability.
+
+The API allows counter access to many more metrics than available through SNMP.
+
+This module currently gathers per volume Read/Write/Average IOPs and Latency and handles multiple filers/clusters
+
+## Changelog
+  * 03/04/2014 c-mode script now retrieves qtree quota metrics
+  * 02/04/2014 c-mode script now gathers volume file and space metrics
+  * 26/03/2014 c-mode script now does cluster api calls as separate threads
+
+## DEPENDS
+  * For the 7-mode module: Netapp Manageability SDK 5.0 (download from now.netapp.com to /opt/netapp)
+  * For the c-mode module: Netapp Manageability SDK 5.2 (download from now.netapp.com to /opt/netapp/sdk)
+
+## USAGE
+  * Save the netapp_api.pyconf or netapp_api_cmode.pyconf into /etc/ganglia/conf.d
+  * Save the netapp_api.py or netapp_api_cmode.py into your ganglia python module dir eg: /usr/lib/ganglia/python_modules.
+  * Update the Username, password, IP and name for the Filers/clusters. 
+  * Restart gmond and the volume latency & iop metrics should appear in ganglia.
+
+## AUTHOR
+  * Author: Evan Fraser &lt;evan.fraser@trademe.co.nz&gt;
+
+conntrack
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect conntrack stats. These values that are collected by
+executing
+
+conntrack -S
+
+
+Install
+===============
+
+Copy conntrack.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and conntrack.pyconf to
+
+/etc/ganglia/conf.d/
+
+If you would like only specific metrics emitted you will need to comment out the name_match section
+and replace it with a specific set of metrics e.g.
+
+  metric {
+    name = "conntrack_entries"
+    title = "Conntrack entries"
+    value_threshold = 1.0
+  }
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+iface
+=====
+
+
+Install 
+-------
+
+Copy iface.py from python_modules to your python modules directory, e.g. :
+
+ - /usr/lib/ganglia/python_modules
+ - /usr/lib64/ganglia/python_modules
+
+Copy iface.pyconf to the gmond conf.d directory, e.g. :
+
+ - /etc/ganglia/conf.d/
+
+Tune the iface.pyconf file to match your server interfaces and then restart gmond.
+
+## AUTHOR
+
+Author: Sylvain Rabot https://github.com/sylr
+
+multi_interface
+===============
+
+Python module for ganglia 3.1+
+
+This module allows you to collect per network interface network stats. Out
+of the box Ganglia provides only aggregate network metrics. This module will
+give you rx (receive) and tx (transmit) stats for every interface it encounters
+e.g.
+
+value for rx_bytes_lo is 21847.3723
+value for rx_pkts_lo is 17.5771
+value for rx_errs_lo is 0.0000
+value for rx_drops_lo is 0.0000
+value for tx_bytes_lo is 21847.3723
+value for tx_pkts_lo is 17.5771
+value for tx_errs_lo is 0.0000
+value for tx_drops_lo is 0.0000
+value for rx_bytes_eth0 is 0.0000
+value for rx_pkts_eth0 is 0.0000
+value for rx_errs_eth0 is 0.0000
+value for rx_drops_eth0 is 0.0000
+value for tx_bytes_eth0 is 0.0000
+value for tx_pkts_eth0 is 0.0000
+value for tx_errs_eth0 is 0.0000
+value for tx_drops_eth0 is 0.0000
+value for rx_bytes_eth1 is 0.0000
+value for rx_pkts_eth1 is 0.0000
+value for rx_errs_eth1 is 0.0000
+value for rx_drops_eth1 is 0.0000
+value for tx_bytes_eth1 is 0.0000
+value for tx_pkts_eth1 is 0.0000
+value for tx_errs_eth1 is 0.0000
+value for tx_drops_eth1 is 0.0000
+
+You can run the multi_interface.py script by hand to see all of the metrics.
+
+In addition this script can be used to override "default" bytes_in, bytes_out, pkts_in and pkts_out
+metrics. To do that you will need to 
+
+* set send_aggregate_bytes_packets to True in multi_interface.pyconf
+* Uncomment bytes_in, bytes_out metrics to be sent in in multi_interface.pyconf
+* Comment out those same metrics you uncommented in step above in gmond.conf so they don't override 
+ each other
+
+
+Install 
+=============== 
+
+Copy multi_interface.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and multi_interface.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you are done. If you want only specific interfaces add a space
+delimited list of interfaces in multi_interface.pyconf e.g.
+
+    param interfaces {
+      value = "eth0 eth2"
+    }
+
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+This is gmond python module that allows SNMP polling of network switches to get interface packet and throughput metrics.
+
+  * It works for Foundry NetIrons, and probably for any other SNMP enabled switch.
+  * It requires pysnmp (available in debian repositorys)
+  * Handles polling multiple switches from a single gmond.
+  * Spoofs the switch hostname, so each switch shows up separately in ganglia
+
+If you're handling a large number of metrics, you may wish to set your sysctl settings as below:
+
+net.core.rmem_max=104857600
+net.core.rmem_default=104857600
+vm.dirty_ratio=100
+vm.dirty_background_ratio=100
+vm.dirty_expire_centisecs=720000
+
+
+netstats
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect network stats. These values that are collected from
+
+/proc/net/netstat
+
+
+Install
+===============
+
+Copy netstats.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and netstats.pyconf to
+
+/etc/ganglia/conf.d/
+
+If you would like only specific metrics emitted you will need to comment out the name_match section
+
+  metric {
+    name = "vm_numa_interleave"
+    title = "NUMA interleave"
+    value_threshold = 1.0
+  }
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+nfsstats
+========
+
+Python module for ganglia 3.1.
+
+This module reads NFS client and server statistics out of /proc and
+creates a nfs_v3_* and nfsd_v3_* metric for each. 
+
+Originally based on Vladimir Vuksan's perl scripts, this version differs
+in the following significant respects:
+
+1) it is written as a python plugin
+2) the code is structured in a way intended to make it easy to repurpose
+   the code for extracting other information out of /proc
+   
+## AUTHOR
+
+Author: Alexis Huxley &lt;ahuxley [at] gmx [dot] net&gt;
+
+nginx_status
+===============
+
+python module for ganglia 3.1.
+
+"nginx_status" send metrics on nginx's [status stub module](http://wiki.nginx.org/HttpStubStatusModule).
+
+## Metrics
+ * nginx_server_version
+ * nginx_active_connections
+ * nginx_accepts
+ * nginx_handled
+ * nginx_requests
+ * nginx_reading
+ * nginx_writing
+ * nginx_waiting
+
+## Params
+ * status_url (The url to query for nginx status. Default: 'http://localhost/nginx_status')
+ * nginx_bin (The full path to the nginx binary. Default '/usr/sbin/nginx')
+ * refresh_rate (The time in seconds between polling nginx. Default: 15)
+
+## NOTES
+ * This has only been tested on python 2.6.5 on Ubuntu 10.04.
+ * Ensure that the status stub module is setup correctly when using this module.
+
+## AUTHOR
+
+Patrick Ting <pcting@gmail.com>
+
+
+Ganglia Python Modules for Nova
+-------------------------------
+
+These plugins are for use with the Ganglia monitoring system. For more details:
+
+  http://ganglia.sourceforge.net/
+
+They allow various components of Nova to be monitored using simple python
+modules.
+
+You will need to enable ganglia's modpython.  On Ubuntu, this is easy:
+
+  mkdir /etc/ganglia/conf.d
+  cp conf.d/modpython.conf /etc/ganglia/conf.d
+  service ganglia-monitoring restart
+
+On most systems, these can easily be configured by copying the desired
+components from conf.d and python_modules to the same location in /etc/ganglia.
+
+For instance, to install compute-metrics:
+
+  mkdir /etc/ganglia/conf.d
+  mkdir /etc/ganglia/python_modules
+  cp conf.d/compute-metrics.pyconf /etc/ganglia/conf.d
+  cp python_modules/compute-metrics.py /etc/ganglia/python_modules
+  service ganglia-monitoring restart
+
+To use custom graphics, copy graph.d contents in your system-specific
+graph.d directory:
+
+on Ubuntu:
+
+  cp graph.d/nova_services_report.php /usr/share/ganglia-webfrontend/graph.d/
+
+on RHEL 6.1:
+
+ cp graph.d/nova_services_report.php /usr/share/ganglia/graph.d/
+
+and enable it in conf.php:
+
+ $optional_graphs = array('nova_services');
+
+passenger
+===============
+
+a python module for ganglia 3.1.
+
+[Passenger](http://www.modrails.com/) is a Ruby on Rails / Rack Application server.
+
+This module collects metrics from the passenger-status command, including:
+
+* Active Processes
+* Idle Processes
+* Global Queue Depth
+* Max Pool Size
+
+## Installation
+
+Metrics are collected using the `passenger-status` and
+`passenger-memory-stats` commands via `sudo`. Assuming the `ganglia` user is
+running your gmond process, you'll have to add this to sudoers:
+
+    Cmnd_Alias STATS = /usr/bin/passenger-status, \
+                       /usr/bin/passenger-memory-stats
+
+    ganglia ALL=(ALL) NOPASSWD: STATS
+
+## AUTHOR
+
+Jesse Newland <jnewland@gmail.com>
+
+
+php_fpm
+===============
+
+python module for ganglia 3.1.
+
+"php_fpm" send metrics on PHP's [FPM](http://www.php.net/manual/en/install.fpm.php) status.
+
+This module can monitor multiple php-fpm pools by passing in multiple ports separated by commas into the ports parameter.
+
+## Metrics
+ * php_fpm_server_version
+ * php_fpm_pool_name
+ * php_fpm_process_manager
+ * php_fpm_accepted_connections
+ * php_fpm_active_processes
+ * php_fpm_idle_processes
+ * php_fpm_total_processes
+
+## Params
+  * status_path (The path to query for php-fpm status. Default: '/status')
+  * host (The hostname/ip of the server running php-fpm. Default: localhost)
+  * ports (The list of ports of which the php-fpm pool are running on. Default: 9000)
+  * php_fpm_bin (The full path to the php_fpm binary. Default '/usr/sbin/php5-fpm')
+  * refresh_rate (The time in seconds between polling php-fpm. Default: 15)
+  * prefix (The string to prefix the metric name. Default: 'php_fpm_')
+
+## NOTES
+ * This has only been tested on python 2.6.5 on Ubuntu 10.04.
+ * If more than one port is specified in the ports param, the port number will be appended onto the mectric's prefix. IE, given prefix = 'php_fpm_' and ports = '9000,9001,9002', your metric name will include 'php_fpm_9000_active_processes', 'php_fpm_9001_active_processes' and 'php_fpm_9002_active_processes'.
+ * Ensure your PHP-FPM configuration has a pm.status_path set to the same value as this module's status_path param.
+ * This module uses the [flup python module](http://pypi.python.org/pypi/flup/1.0) as the fastcgi client library. Please ensure it's installed.
+
+## AUTHOR
+
+Patrick Ting <pcting@gmail.com>
+
+
+Python module for Ganglia 3.4
+Postgresql metrics.  Compatible with version 9.2 and above.
+
+Author: MBroers
+
+rabbit
+===============
+
+python module for ganglia 3.1.
+
+"rabbit" sends metrics on RabbitMQ nodes using the stats api. It is based off the very similar ElasticSearch module.
+
+http://(node-ip):55672/api/queues (or nodes, or exchanges)
+
+Please see http://hg.rabbitmq.com/rabbitmq-management/raw-file/rabbitmq_v2_7_1/priv/www/api/index.html for more info on the management API. That's a good place to start if you want to extend this module and include new metrics.
+
+This module requires simplejson, or if using a 2.6 interpreter with mod_python, the json module. Modify accordingly.
+
+The digItUp function, and the keyToPath syntax, were borrowed from the ElasticSearch module.
+
+To use multiple vhosts, separate them by comma in the vhosts file.
+
+To get metrics besides nodes or queues, either check out how the buildQueueDescriptors and buildNodeDescriptors were set up and make a new descriptor builder/modify stats at the top of the python file and contribute the changes, or ask for my assistance and I'll see what I can do.
+
+## UPDATE
+
+Just added Port parameter to the pyconf. If your broker is pre-3.0, use 55672. If you're on 3.0, use 15672.
+
+## AUTHORS
+
+Gregory Rice <gregrice@gmail.com>
+
+This is the official repository for hosting all user-contributed Gmond Python DSO metric modules.
+
+To have your modules added here, please fork the repository, create separate sub-directories for each module
+and submit a pull request.
+
+If you have any questions, you could reach us at:
+
+ganglia-developers@lists.sourceforge.net
+
+(subscription required: http://lists.sourceforge.net/lists/listinfo/ganglia-developers)
+
+Alternatively, you could join our IRC channel on irc.freenode.net #ganglia and
+ping one of the developers.
+
+Thank you for your contribution!
+
+  -- Ganglia Development Team
+
+EMC RecoverPoint
+===============
+
+This is a GMOND Python Module that gets metrics from EMC RecoverPoint replication appliances.
+
+Currently gathers:
+  * Per RPA WAN/SAN traffic and Latency
+  * Per Consistency Group Write, Data, Time and Journal Lags, as well as WAN and SAN traffic.
+  * Per Consistency Group Protection Window metrics.
+
+## Compatibility
+  * Compatible with Recoverpoint 3.5
+
+## DEPENDS
+  * python YAML
+  * paramiko modules
+  * ssh access to the recoverpoint appliance (paramiko can use ssh keys if required)
+
+## USAGE
+  * Save the recoverpoint.pyconf into /etc/ganglia/conf.d directory and update the management IP and sitenames (the sitenames have been lowercase'd)
+  * Save the recoverpoint.py into your ganglia python module dir eg: /usr/lib/ganglia/python_modules.  Update the username/passwords if necessary.
+  * Restart gmond and a "recoverpoint" host should appear in ganglia.
+
+## UPDATE
+  * 21/03/2014 - Now performs SSH queries asynchronously as a separate thread.  (This should stop it slowing and breaking gmond)
+  * 24/03/2014 - Corrected a bug in reporting SAN traffic when SAN traffic is sometimes reported by recoverpoint in units less than Mbit/s
+
+## AUTHOR
+
+Author: Evan Fraser &lt;evan.fraser@trademe.co.nz&gt;
+
+ganglia-redis(7) -- Redis in Ganglia
+====================================
+
+## SYNOPSIS
+
+Place `redis.py` and `redis.pyconf` in the appropriate directories and restart `gmond`(1).
+
+## DESCRIPTION
+
+Redis plugin for Ganglia that exposes most of the counters in the Redis `INFO` command to Ganglia for all your graphing needs.  The metrics it comes with are pretty rudimentary but they get the job done.
+
+## FILES
+
+* `/etc/ganglia/conf.d/modpython.conf`:
+  Configures Ganglia for Python plugins.
+* `/usr/lib/ganglia/python_modules/redis.py`:
+  Redis plugin.
+* `/etc/ganglia/conf.d/redis.pyconf`:
+  Redis plugin configuration.
+
+## THEME SONG
+
+The Arcade Fire - "Wake Up"
+
+## AUTHOR
+
+Richard Crowley <richard@devstructure.com>
+
+## SEE ALSO
+
+`gmond`(1), the Ganglia monitor.
+
+The Redis `INFO` command is described at <http://code.google.com/p/redis/wiki/InfoCommand>.
+
+The original blog post on this plugin is at <http://rcrowley.org/2010/06/24/redis-in-ganglia.html>.  Gil Raphaelli's MySQL plugin, on which this one is based can be found at <http://g.raphaelli.com/2009/1/5/ganglia-mysql-metrics>.
+
+riak
+===============
+
+a python module for ganglia 3.1.
+
+[Riak](https://wiki.basho.com/display/RIAK/Riak) is a Dynamo-inspired
+key/value store.
+
+This module collects metrics from the JSON stats interface of riak, available
+at http://localhost:8098/stats. The statistics-aggregator must be enabled in
+your riak configuration for this to work:
+
+    {riak_kv, [
+
+      %% ...
+
+      {riak_kv_stat, true},
+
+      %% ...
+
+    ]},
+
+You'll want to edit the url key in riak.conf to point at the interface your
+riak install is listening on:
+
+    param url {
+        value = "http://10.0.1.123:8098/stats"
+    }
+
+
+## AUTHOR
+
+Jesse Newland <jnewland@gmail.com>
+
+
+
+squid
+========
+
+Python module for ganglia 3.1.
+
+This module uses squidclient to get statistics from a running squid proxy.
+It attempts to parse the output into key/value pairs, it will need to be
+updated if new metrics are added to squidclient. The metric names are based
+on those returned by the squid snmp module, new ones were created with 
+similar names where there were values in the output that didn't map directly
+to existing snmp metrics.
+
+It has been tested on squid 2.6 and 2.7, I believe it should work on 3.1
+as well.
+
+## NOTES
+    The user running gmond will need to have the rights to run
+    "squidclient mgr:info".
+
+    The python module may be run as a standalone script to see the 
+    metrics that generated when included into gmond.
+   
+## AUTHOR
+
+Author: Daniel Rich &lt;drich [at] employees [dot] org&gt;
+
+
+entropy
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect available entropy on your system. Why is
+entropy important.
+
+[http://www.chrissearle.org/node/326]
+
+  There are two random number sources on linux - /dev/random and /dev/urandom.
+  /dev/random will block if there is nothing left in the entropy bit bucket.
+  /dev/urandom uses the same bucket - but will not block
+  (it can reuse the pool of bits).
+
+Therefore if you are running SSL on the box you want to know this.
+
+Install
+===============
+
+Copy entropy.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and entropy.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you should be set.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+cpu_stats
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect CPU stats that have been left out of stock
+Ganglia gmond. 
+
+/proc/meminfo
+
+
+Install
+===============
+
+Copy cpu_stats.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and cpu_stats.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you should be set. If you would like only specific metrics
+instead of all replace the name_match stanza with entries like these
+
+  metric {
+    name = "procs_blocked"
+    title = "Blocked processes"
+    value_threshold = 1.0
+  }
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+hwmon
+=====
+
+Python module for ganglia 3.1.
+
+This module collects system temperature data (and anything else) 
+from the devices in `/sys/class/hwmon`.
+
+Install
+=======
+
+1. Copy `hwmon.py` to your python modules directory (often `/usr/lib/ganglia/python_modules`).
+2. Copy `hwmon.pyconf` to your ganglia config directory (often `/etc/ganglia/conf.d`).
+3. Restart gmond.
+
+## AUTHOR
+
+Author: Adam Compton <comptona@gmail.com>
+
+mem_stats
+===============
+
+Python module for ganglia 3.1+.
+
+This module allows you to collect buddy info from
+
+/proc/buddyinfo
+
+
+Install
+===============
+
+Copy mem_fragmentation.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and mem_fragmentation.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+mem_stats
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect memory metrics that have been left out of stock
+Ganglia gmond. For example I have it memory dirty and memory writeback. These
+are values that are collected from 
+
+/proc/meminfo
+
+
+Install
+===============
+
+Copy mem_stats.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and mem_stats.pyconf to
+
+/etc/ganglia/conf.d/
+
+Restart Gmond and you should be set. If you would like additional memory stats collected
+look through mem_stats.py for the metric you want then add it to mem_stats.pyconf e.g.
+if you wanted to keep track of unevictable memory you would add
+
+  metric {
+    name = "mem_unevictable"
+    title = "Unevictable memory"
+    value_threshold = 1.0
+  }
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+vm_stats
+===============
+
+Python module for ganglia 3.1.
+
+This module allows you to collect VM metrics.
+are values that are collected from
+
+/proc/vmstat
+
+
+Install
+===============
+
+Copy vm_stats.py from python_modules to your python modules directory e.g.
+
+/usr/lib64/ganglia/python_modules
+
+and vm_stats.pyconf to
+
+/etc/ganglia/conf.d/
+
+If you would like only specific metrics emitted you will need to comment out the name_match section
+
+  metric {
+    name = "vm_numa_interleave"
+    title = "NUMA interleave"
+    value_threshold = 1.0
+  }
+
+Restart Gmond and you are done.
+
+## AUTHOR
+
+Author: Vladimir Vuksan https://github.com/vvuksan
+
+tokyo_tyrant
+===============
+
+Python module for ganglia 3.1.
+
+This module parses output from the tcrmgr command and creates "tokyo_tyrant_*"
+metrics:
+
+ * Record number
+ * File size
+ * Replication delay
+ * Put operations / missed per second
+ * Out operations / missed per second
+ * Get operations / missed per second
+
+## AUTHOR
+
+Author: Michael T. Conigliaro &lt;mike [at] conigliaro [dot] org&gt;
+
+varnish
+===============
+
+Python module for ganglia 3.1.
+
+This module parses output from the varnishstat command and creates "varnish_*"
+metrics:
+
+ * Client Requests per second
+ * Backend Requests per second
+ * Cache Hit Ratio
+ * Objects in Cache
+ * Allocated Storage
+ * Worker Threads
+
+## AUTHOR
+
+Author: Michael T. Conigliaro &lt;mike [at] conigliaro [dot] org&gt;
+
+xenstats
+===============
+
+Python module for ganglia 3.1.
+
+This module parses output from the xenserver command and creates "xen_*"
+metrics:
+
+ * xen_vms - VMs Running
+ * xen_mem - Xen Memory availability
+ * xen_cpu - Number of CPUs
+ * xen_mem_use - Memory usage
+
+## DEPENDS
+ Python Libvirt
+ libvirtd Daemon
+
+## AUTHOR
+
+Author: Marcos M. Amorim &lt;marcosmamorim@gmail.com&gt;
+
+
+ZeroMQ PUB Monitor for Ganglia
+==============================
+
+This is a gmond metric-gathering module which reports a cumulative count
+of messages published by ZeroMQ publishers.
+
+Endpoints are specified as configuration parameters in zpubmon.pyconf.
+Each configuration key name is used as an endpoint name and its
+corresponding value as the endpoint's URI. The configuration param
+`groups` is special-cased: if present, its value specifies the group
+name for the metrics generated by the module. Otherwise the default
+group name ('ZeroMQ') is used.
+
+To test, invoke with one or more pairs of (endpoint name, endpoint URI)
+pairs specifying ZMQ publishers to poll. For example::
+
+  $ python zpubmon.py system-events tcp://localhost:8006
+
+Message counts will be logged to the console every five seconds.
+
+For more information about configuring Python modules for gmond, see the
+`official documentation <http://sourceforge.net/apps/trac/ganglia/wiki
+/ganglia_gmond_python_modules>`_.
+
+Copyright (c) 2012 by Ori Livneh <ori@wikimedia.org>
+
+Licensed under the GNU General Public Licence, version 2.0 or later.
+

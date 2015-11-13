@@ -1,0 +1,260 @@
+For the HTML files in the lconline directory to work, your web server
+must have mod_negotiation enabled.
+Or you can just remove the .XY suffixes from the language-specific files.
+
+title: "Donations"
+---
+Hopefully LinkChecker has been useful for you and your projects.
+In case you are considering to give something back, feel free to
+send me some money over paypal or klick the flattr button on the right.
+
+If you already donated something I herebay say thanks!
+
+
+title: "Frequently asked questions"
+---
+**Q: LinkChecker produced an error, but my web page is ok with
+Mozilla/IE/Opera/... Is this a bug in LinkChecker?**
+
+A: Please check your web pages first. Are they really ok?
+Often the major browsers are very forgiving and good at handling HTML
+of HTTP errors, while LinkChecker complains in most cases of invalid
+content.
+
+Use the `--check-html` option, or check if you are using a proxy
+which produces the error.
+
+**Q: I still get an error, but the page is definitely ok.**
+
+A: Some servers deny access of automated tools (also called robots)
+like LinkChecker. This is not a bug in LinkChecker but rather a
+policy by the webmaster running the website you are checking. Look in
+the ``/robots.txt`` file which follows the
+[robots.txt exclusion standard](http://www.robotstxt.org/robotstxt.html).
+
+If you yourself are the webmaster, consider allowing LinkChecker to
+check your web pages by adding the following to your robots.txt file:
+
+    User-Agent: LinkChecker
+    Allow: /
+
+**Q: How can I tell LinkChecker which proxy to use?**
+
+A: LinkChecker works automatically with proxies. In a Unix or Windows
+environment, set the http_proxy, https_proxy, ftp_proxy environment
+variables to a URL that identifies the proxy server before starting
+LinkChecker. For example
+
+    $ http_proxy="http://www.example.com:3128"
+    $ export http_proxy
+
+
+**Q: The link "mailto:john@company.com?subject=Hello John" is reported
+as an error.**
+
+A: You have to quote special characters (e.g. spaces) in the subject field.
+The correct link should be "mailto:...?subject=Hello%20John"
+Unfortunately browsers like IE and Netscape do not enforce this.
+
+
+**Q: Has LinkChecker JavaScript support?**
+
+A: No, it never will. If your page is only working with JS, it is
+better to use a browser testing tool like [Selenium](http://seleniumhq.org/).
+
+
+**Q: Is the LinkCheckers cookie feature insecure?**
+
+A: Potentially yes. This depends on what information you specify in the
+cookie file. The cookie information will be sent to the specified
+hosts.
+
+Also, the following restrictions apply for cookies that LinkChecker
+receives from the hosts it check:
+
+- Cookies will only be sent back to the originating server (ie. no
+  third party cookies are allowed).
+- Cookies are only stored in memory. After LinkChecker finishes, they
+  are lost.
+- The cookie feature is disabled as default.
+
+
+**Q: LinkChecker retrieves a /robots.txt file for every site it
+checks. What is that about?**
+
+A: LinkChecker follows the
+[robots.txt exclusion standard](http://www.robotstxt.org/robotstxt.html).
+To avoid misuse of LinkChecker, you cannot turn this feature off.
+See the [Web Robot pages](http://www.robotstxt.org/robotstxt.html) and the
+[Spidering report](http://www.w3.org/Search/9605-Indexing-Workshop/ReportOutcomes/Spidering.txt)
+for more info.
+
+If you yourself are the webmaster, consider allowing LinkChecker to
+check your web pages by adding the following to your robots.txt file:
+
+    User-Agent: LinkChecker
+    Allow: /
+
+
+**Q: How do I print unreachable/dead documents of my website with
+LinkChecker?**
+
+A: No can do. This would require file system access to your web
+repository and access to your web server configuration.
+
+
+**Q: How do I check HTML/XML/CSS syntax with LinkChecker?**
+
+A: Use the `--check-html` and `--check-css` options.
+
+
+**Q: I want to have my own logging class. How can I use it in LinkChecker?**
+
+A: A Python API lets you define new logging classes.
+Define your own logging class as a subclass of _Logger or any other
+logging class in the log module.
+Then call the add_logger function in Config.Configuration to register
+your new Logger.
+After this append a new Logging instance to the fileoutput.
+
+```python
+import linkcheck
+class MyLogger(linkcheck.logger._Logger):
+    LoggerName = 'mylog'
+    LoggerArgs = {'fileoutput': log_format, 'filename': 'foo.txt'}
+
+    # ...
+
+cfg = linkcheck.configuration.Configuration()
+cfg.logger_add(MyLogger)
+cfg['fileoutput'].append(cfg.logger_new(MyLogger.LoggerName)) 
+```
+
+title: Check websites for broken links
+---
+
+Introduction
+-------------
+LinkChecker is a free, [GPL](http://www.gnu.org/licenses/gpl-2.0.html)
+licensed website validator.
+LinkChecker checks links in web documents or full websites.
+
+Features
+---------
+
+- recursive and multithreaded checking and site crawling
+- output in colored or normal text, HTML, SQL, CSV, XML or a sitemap
+  graph in different formats
+- HTTP/1.1, HTTPS, FTP, mailto:, news:, nntp:, Telnet and local file
+  links support
+- restriction of link checking with regular expression filters for URLs
+- proxy support
+- username/password authorization for HTTP and FTP and Telnet
+- honors robots.txt exclusion protocol
+- Cookie support
+- HTML5 support
+- [Plugin support](plugins.html)
+  allowing custom page checks. Currently available are 
+  HTML and CSS syntax checks, Antivirus checks, and more.
+- Different interfaces: command line, GUI and web interface
+- ... and a lot more check options documented in the
+  [manual page](man1/linkchecker.1.html).
+
+
+Screenshots
+------------
+
+[![CLI screenshot](images/shot1_thumb.jpg)](images/shot1.png) | [![GUI screenshot](images/shot2_thumb.jpg)](images/shot2.png) | [![CGI screenshot](images/shot3_thumb.jpg)](images/shot3.png)
+--------------------------------------------------------------|---------------------------------------------------------------|--------------------------------------------------------------
+Commandline interface                                         | GUI client                                                    | CGI web interface
+
+Basic usage
+------------
+To check a URL like `http://www.example.org/myhomepage/` it is enough to
+enter `http://www.example.org/myhomepage/` in the GUI client or
+web interface, or execute
+`linkchecker http://www.example.org/myhomepage/` on the command line.
+
+This check will validate recursively all pages starting with
+`http://www.example.org/myhomepage/`. Additionally, all external links
+pointing outside of `www.example.org` will be checked but not recursed
+into.
+
+Other linkcheckers
+-------------------
+If this software does not fit your requirements, you can check out
+[other free linkcheckers](other.html).
+
+
+Test suite status
+------------------
+Linkchecker has extensive unit tests to ensure code quality.
+[Travis CI](https://travis-ci.org/) is used for continuous build
+and test integration.
+
+[![Build Status](https://travis-ci.org/wummel/linkchecker.png)](https://travis-ci.org/wummel/linkchecker)
+
+
+title: "Other free link checkers"
+---
+All of the programs below have an
+[Open Source license](http://www.opensource.org/licenses/) like LinkChecker.
+Programs without an Open Source license are not mentioned here for
+security and copyright reasons.
+
+Also not mentioned are programs which have not been updated for
+more than 10 years.
+
+- [gURLChecker](http://labs.libre-entreprise.org/projects/gurlchecker/)
+  written in C, last updated February 22, 2011 (version 0.13.1)
+- [W3C Link Checker](http://validator.w3.org/checklink/)
+  is an online service, but source is available, last updated 2011
+- [webcheck](http://arthurdejong.org/webcheck/)
+  written in Python, last updated September 11, 2010 (version 1.10.4)
+- [webgrep](http://cgi.linuxfocus.org/~guido/index.html#webgrep)
+  written in Perl, last updated April 2004 (version 2.12)
+
+title: Plugin support
+---
+
+Plugin documentation
+=====================
+
+Standard plugins
+=================
+
+Custom plugins
+===============
+
+linkchecker
+===========
+Install documentation is at doc/install.txt
+Usage documentation is at doc/html/index.txt or execute
+linkchecker --help
+
+Hello.
+
+This package is the networking modules (async.py and telnet.py) from the
+Python based MUD I've been working on.  I've had a couple folks ask if I
+would be willing to release them under a more permissive license than the
+GPL.  While I believe in the GPL for growing a community around a project,
+but I also understand the appeal of non-copyleft for maximum flexibility
+with regards to support modules.  I removed all the non-network dependencies,
+cleaned up the code a bit, re-licensed it, and added a small chat server to
+demo it in action.  Please note that the Apache 2.0 license only applies to
+these three files (given the chaotic state of the MUD, you're not missing
+much).
+
+I wanted to use the Python License but, apparently, that is designed for use
+only by the Python Software Foundation.  Their FAQ page listed the Apache 2.0
+license as compatible so I'm using that instead.
+
+Please note that I have not tested these modules under Windows -- it being
+all icky and stuff.  I would appreciate any fixes you find necessary.
+
+Enjoy Miniboa and please let me know if you build anything cool.
+
+Regards,
+Jim Storch
+'wvzfgbepu@tznvy.pbz'.encode('rot13')
+

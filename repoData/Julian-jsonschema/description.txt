@@ -1,0 +1,214 @@
+JSON Schema Test Suite [![Build Status](https://travis-ci.org/json-schema/JSON-Schema-Test-Suite.png?branch=develop)](https://travis-ci.org/json-schema/JSON-Schema-Test-Suite)
+======================
+
+This repository contains a set of JSON objects that implementors of JSON Schema
+validation libraries can use to test their validators.
+
+It is meant to be language agnostic and should require only a JSON parser.
+
+The conversion of the JSON objects into tests within your test framework of
+choice is still the job of the validator implementor.
+
+Structure of a Test
+-------------------
+
+If you're going to use this suite, you need to know how tests are laid out. The
+tests are contained in the `tests` directory at the root of this repository.
+
+Inside that directory is a subdirectory for each draft or version of the
+schema. We'll use `draft3` as an example.
+
+If you look inside the draft directory, there are a number of `.json` files,
+which logically group a set of test cases together. Often the grouping is by
+property under test, but not always, especially within optional test files
+(discussed below).
+
+Inside each `.json` file is a single array containing objects. It's easiest to
+illustrate the structure of these with an example:
+
+```json
+    {
+        "description": "the description of the test case",
+        "schema": {"the schema that should" : "be validated against"},
+        "tests": [
+            {
+                "description": "a specific test of a valid instance",
+                "data": "the instance",
+                "valid": true
+            },
+            {
+                "description": "another specific test this time, invalid",
+                "data": 15,
+                "valid": false
+            }
+        ]
+    }
+```
+
+So a description, a schema, and some tests, where tests is an array containing
+one or more objects with descriptions, data, and a boolean indicating whether
+they should be valid or invalid.
+
+Coverage
+--------
+
+Draft 3 and 4 should have full coverage. If you see anything missing or think
+there is a useful test missing, please send a pull request or open an issue.
+
+Who Uses the Test Suite
+-----------------------
+
+This suite is being used by:
+
+  * [json-schema-validator (Java)](https://github.com/fge/json-schema-validator)
+  * [jsonschema (python)](https://github.com/Julian/jsonschema)
+  * [aeson-schema (haskell)](https://github.com/timjb/aeson-schema)
+  * [direct-schema (javascript)](https://github.com/IreneKnapp/direct-schema)
+  * [jsonschema (javascript)](https://github.com/tdegrunt/jsonschema)
+  * [JaySchema (javascript)](https://github.com/natesilva/jayschema)
+  * [z-schema (javascript)](https://github.com/zaggino/z-schema)
+  * [jassi (javascript)](https://github.com/iclanzan/jassi)
+  * [json-schema-valid (javascript)](https://github.com/ericgj/json-schema-valid)
+  * [jesse (Erlang)](https://github.com/klarna/jesse)
+  * [json-schema (PHP)](https://github.com/justinrainbow/json-schema)
+  * [gojsonschema (Go)](https://github.com/sigu-399/gojsonschema) 
+  * [json_schema (Dart)](https://github.com/patefacio/json_schema) 
+  * [tv4 (JavaScript)](https://github.com/geraintluff/tv4)
+  * [Jsonary (JavaScript)](https://github.com/jsonary-js/jsonary)
+
+If you use it as well, please fork and send a pull request adding yourself to
+the list :).
+
+Contributing
+------------
+
+If you see something missing or incorrect, a pull request is most welcome!
+
+There are some sanity checks in place for testing the test suite. You can run
+them with `bin/jsonschema_suite check`. They will be run automatically by
+[Travis CI](https://travis-ci.org/) as well.
+
+==========
+jsonschema
+==========
+
+``jsonschema`` is an implementation of `JSON Schema <http://json-schema.org>`_
+for Python (supporting 2.6+ including Python 3).
+
+.. code-block:: python
+
+    >>> from jsonschema import validate
+
+    >>> # A sample schema, like what we'd get from json.load()
+    >>> schema = {
+    ...     "type" : "object",
+    ...     "properties" : {
+    ...         "price" : {"type" : "number"},
+    ...         "name" : {"type" : "string"},
+    ...     },
+    ... }
+
+    >>> # If no exception is raised by validate(), the instance is valid.
+    >>> validate({"name" : "Eggs", "price" : 34.99}, schema)
+
+    >>> validate(
+    ...     {"name" : "Eggs", "price" : "Invalid"}, schema
+    ... )                                   # doctest: +IGNORE_EXCEPTION_DETAIL
+    Traceback (most recent call last):
+        ...
+    ValidationError: 'Invalid' is not of type 'number'
+
+
+Features
+--------
+
+* Full support for
+  `Draft 3 <https://python-jsonschema.readthedocs.org/en/latest/validate/#jsonschema.Draft3Validator>`_
+  **and** `Draft 4 <https://python-jsonschema.readthedocs.org/en/latest/validate/#jsonschema.Draft4Validator>`_
+  of the schema.
+
+* `Lazy validation <https://python-jsonschema.readthedocs.org/en/latest/validate/#jsonschema.IValidator.iter_errors>`_
+  that can iteratively report *all* validation errors.
+
+* Small and extensible
+
+* `Programmatic querying <https://python-jsonschema.readthedocs.org/en/latest/errors/#module-jsonschema>`_
+  of which properties or items failed validation.
+
+
+Release Notes
+-------------
+
+``v2.3.0`` removes the (improper) limitation of ``format`` to strings. It also
+adds the `jsonschema.exceptions.best_match <https://python-jsonschema.readthedocs.org/en/latest/errors/#best-match-and-by-relevance>`_
+function which can be used to guess at the best matching single validation
+error for a given instance.
+
+
+.. code-block:: python
+
+    >>> from jsonschema.validators import Draft4Validator
+    >>> from jsonschema.exceptions import best_match
+
+    >>> schema = {
+    ...     "properties" : {
+    ...         "foo" : {"type" : "string"},
+    ...         "bar" : {"properties" : {"baz": {"type": "string"}}},
+    ...     },
+    ... }
+    >>> instance = {"foo" : 12, "bar": {"baz" : 19}}
+    >>> print(best_match(Draft4Validator(schema).iter_errors(instance)).path)
+    deque(['foo'])
+
+
+where the error closer to the top of the instance in ``foo`` was selected
+as being more relevant.
+
+Also, URI references are now properly rejected by the URI format validator
+(i.e., it now only accepts full URIs, as defined in the specification).
+
+
+Running the Test Suite
+----------------------
+
+``jsonschema`` uses the wonderful `Tox <http://tox.readthedocs.org>`_ for its
+test suite. (It really is wonderful, if for some reason you haven't heard of
+it, you really should use it for your projects).
+
+Assuming you have ``tox`` installed (perhaps via ``pip install tox`` or your
+package manager), just run ``tox`` in the directory of your source checkout to
+run ``jsonschema``'s test suite on all of the versions of Python ``jsonschema``
+supports. Note that you'll need to have all of those versions installed in
+order to run the tests on each of them, otherwise ``tox`` will skip (and fail)
+the tests on that version.
+
+Of course you're also free to just run the tests on a single version with your
+favorite test runner. The tests live in the ``jsonschema.tests`` package.
+
+
+Community
+---------
+
+There's a `mailing list <https://groups.google.com/forum/#!forum/jsonschema>`_
+for this implementation on Google Groups.
+
+Please join, and feel free to send questions there.
+
+
+Contributing
+------------
+
+I'm Julian Berman.
+
+``jsonschema`` is on `GitHub <http://github.com/Julian/jsonschema>`_.
+
+Get in touch, via GitHub or otherwise, if you've got something to contribute,
+it'd be most welcome!
+
+You can also generally find me on Freenode (nick: ``tos9``) in various
+channels, including ``#python``.
+
+If you feel overwhelmingly grateful, you can woo me with beer money on
+`Gittip <https://www.gittip.com/Julian/>`_ or via Google Wallet with the email
+in my GitHub profile.
+

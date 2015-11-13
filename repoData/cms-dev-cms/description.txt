@@ -1,0 +1,305 @@
+{% extends base.html %}
+{% block core %}
+
+{% from cms.server import format_token_rules, format_size %}
+{% from cms.grading.tasktypes import get_task_type %}
+{% import json %}
+
+{% if actual_phase == 0 %}
+
+<div class="span9 task_description">
+
+
+<div class="page-header">
+    <h1>{% raw _("%(name)s (%(short_name)s) <small>description</small>") % {"name": task.title, "short_name": task.name} %}</h1>
+</div>
+
+
+<h2>{{ _("Statement") }}</h2>
+
+{% if len(task.statements) == 0 %}
+<div class="row statement no_statements">
+    <div class="span9">
+        {{ _("no statement available") }}
+    </div>
+</div>
+{% elif len(task.statements) == 1 %}
+<div class="row statement one_statement">
+    <div class="span9">
+    {% for lang_code in task.statements %}
+        <a href="{{ url_root }}/tasks/{{ encode_for_url(task.name) }}/statements/{{ encode_for_url(lang_code) }}" class="btn btn-large btn-success">{{ _("Download task statement") }}</a>
+    {% end %}
+    </div>
+</div>
+{% else %}
+<div class="statement many_statements">
+    <div class="main_statements">
+        <p>
+            {{ _("The statement for this task is available in multiple versions, in different languages.") }}
+            {{ _("You can see (and download) all of them using the list on the right.") }}
+            {{ _("Some suggested translations follow.") }}
+        </p>
+    {% set task_primary = json.loads(task.primary_statements) %}
+    {% for statement in sorted(task.statements.itervalues(), key=lambda x: x.language_name) %}
+        {% if statement.language in task_primary %}
+        <a href="{{ url_root }}/tasks/{{ encode_for_url(task.name) }}/statements/{{ encode_for_url(statement.language) }}" class="btn btn-large btn-success">
+            {% if statement.language != statement.language_name %}
+                {% raw _("Statement in <b>%s</b>") % escape(statement.language_name) %}
+            {% else %}
+                {% raw _("Statement in %s") % escape(statement.language_name) %}
+            {% end %}
+        </a>
+        {% end %}
+    {% end %}
+    {% set user_primary = json.loads(current_user.primary_statements).get(task.name, []) %}
+    {% for statement in sorted(task.statements.itervalues(), key=lambda x: x.language_name) %}
+        {% if statement.language in user_primary and statement.language not in task_primary %}
+        <a href="{{ url_root }}/tasks/{{ encode_for_url(task.name) }}/statements/{{ encode_for_url(statement.language) }}" class="btn btn-large">
+            {% if statement.language != statement.language_name %}
+                {% raw _("Statement in <b>%s</b>") % escape(statement.language_name) %}
+            {% else %}
+                {% raw _("Statement in %s") % escape(statement.language_name) %}
+            {% end %}
+        </a>
+        {% end %}
+    {% end %}
+    </div>
+    <div class="all_statements well">
+        <div>
+            <ul>
+    {% for statement in sorted(task.statements.itervalues(), key=lambda x: x.language_name) %}
+                <li>
+                    <a href="{{ url_root }}/tasks/{{ encode_for_url(task.name) }}/statements/{{ encode_for_url(statement.language) }}">
+        {% if statement.language != statement.language_name %}
+            {% raw _("<b>%s</b>") % escape(statement.language_name) %}
+        {% else %}
+            {% raw _("%s") % escape(statement.language_name) %}
+        {% end %}
+                    </a>
+                </li>
+    {% end %}
+            </ul>
+        </div>
+    </div>
+</div>
+{% end %}
+
+
+<h2>{{ _("Some details") }}</h2>
+
+<table class="table table-bordered table-nohover" style="table-layout: fixed">
+    <colgroup>
+        <col style="width: 20%"/>
+        <col style="width: 20%"/>
+        <col style="width: 60%"/>
+    </colgroup>
+    <tbody>
+        <tr>
+            <th>{{ _("Type") }}</th>
+            <td colspan="2">{% set task_type = get_task_type(dataset=task.active_dataset) %}{{ task_type.name }}</td>
+        </tr>
+{% if task.active_dataset.time_limit is not None %}
+        <tr>
+            <th>{{ _("Time limit") }}</th>
+            <td colspan="2">
+    {% if task.active_dataset.time_limit == 1.0 %}
+        {{ _("%(seconds)g second") % {"seconds": task.active_dataset.time_limit} }}
+    {% else %}
+        {{ _("%(seconds)g seconds") % {"seconds": task.active_dataset.time_limit} }}
+    {% end %}
+            </td>
+        </tr>
+{% end %}
+{% if task.active_dataset.memory_limit is not None %}
+        <tr>
+            <th>{{ _("Memory limit") }}</th>
+            <td colspan="2">{{ _("%(mb)d MiB") % {"mb": task.active_dataset.memory_limit} }}</td>
+        </tr>
+{% end %}
+{% set compilation_commands = task_type.get_compilation_commands([x.filename for x in task.submission_format]) %}
+{% if compilation_commands is not None %}
+{% set compilation_commands = {lang: compilation_commands[lang] for lang in contest.languages} %}
+<tr>
+    <th rowspan="{{ len(compilation_commands) }}">{{ _("Compilation commands") }}</th>
+    {% for i, (l, c) in enumerate(sorted(compilation_commands.iteritems())) %}
+        {% if i > 0 %}
+</tr>
+<tr>
+        {% end %}
+    <td>{{ LANGUAGE_NAMES[l] }}</td>
+    <td class="compilation_command_cell">
+{% for cmd in c %}
+        <code class="compilation_command">{{ " ".join(cmd) }}</code>
+{% end %}
+    </td>
+    {% end %}
+</tr>
+{% end %}
+
+{% if tokens_contest != 0 and tokens_tasks != 0 %}
+<tr>
+    <th>{{ _("Tokens") }}</th>
+    <td colspan="2" class="token_rules">
+    {% if tokens_contest == 2 and tokens_tasks == 2 %}
+        <p>
+        {{ _("You have an infinite number of tokens.") }}
+        </p>
+    {% elif tokens_contest == 2 %}
+        <p>
+        {% set tokens = {k[6:]: v for k, v in task.__dict__.iteritems() if k.startswith("token_")} %}
+        {{ format_token_rules(tokens, locale=locale) }}
+        </p>
+    {% elif tokens_tasks == 2 %}
+        <p>
+        {% raw _("You can find the rules for the %(type_pl)s on the <a href=\"%(url_root)s/\">contest overview page</a>.") % {"type_pl": _("tokens"), "url_root": url_root} %}
+        </p>
+    {% else %}
+        <p>
+        {% set tokens = {k[6:]: v for k, v in task.__dict__.iteritems() if k.startswith("token_")} %}
+        {{ format_token_rules(tokens, t_type="task", locale=locale) }}
+        </p>
+
+        <p>
+        {{ _("Remeber that to see the detailed result of a submission you need to use both a contest-token and a task-token.") }}
+        {% raw _("You can find the rules for the %(type_pl)s on the <a href=\"%(url_root)s/\">contest overview page</a>.") % {"type_pl": _("contest-tokens"), "url_root": url_root} %}
+        </p>
+    {% end %}
+    </td>
+</tr>
+{% end %}
+    </tbody>
+</table>
+
+
+
+{% if task.attachments != {} %}
+    <h2>{{ _("Attachments") }}</h2>
+    <div id="attachments">
+        <ul>
+    {% from cmscommon import mimetypes %}
+    {% for filename, attachment in sorted(task.attachments.items()) %}
+        {% set mime_type = mimetypes.get_type_for_file_name(filename) %}
+        {% if mime_type is not None %}
+            {% set type_name = mimetypes.get_name_for_type(mime_type) %}
+            {% set type_icon = mimetypes.get_icon_for_type(mime_type) %}
+        {% else %}
+            {% set type_name = None %}
+            {% set type_icon = None %}
+        {% end %}
+        {% set file_size = handler.application.service.file_cacher.get_size(attachment.digest) %}
+            <li>
+                <a href="{{ url_root }}/tasks/{{ encode_for_url(task.name) }}/attachments/{{ encode_for_url(filename) }}" class="btn">
+            {% if type_icon is not None %}
+                    <img src="{{ url_root }}/static/img/mimetypes/{{ type_icon }}.png"/>
+            {% else %}
+                    <img src="{{ url_root }}/static/img/mimetypes/unknown.png"/>
+            {% end %}
+                    <span class="first_line">
+                        <span class="name">{{ filename }}</span>
+                        <span class="size">{{ format_size(file_size) }}</span>
+                    </span>
+            {% if type_icon is not None %}
+                    <span class="type">{{ _(type_name) }}</span>
+            {% end %}
+                </a>
+            </li>
+    {% end %}
+        </ul>
+    </div>
+{% end %}
+
+</div>
+{% end %}
+
+{% end %}
+
+CMS - Contest Management System
+=================================
+
+
+Introduction
+------------
+
+CMS, or Contest Management System, is a distributed system for running
+and (to some extent) organizing a programming contest.
+
+CMS has been designed to be general and to handle many different types
+of contests, tasks, scorings, etc. Nonetheless, CMS has been
+explicitly build to be used in the 2012 International Olympiad in
+Informatics, held in September 2012 in Italy.
+
+
+Support
+-------
+
+The complete CMS documentation is at <https://cms.readthedocs.org/>.
+
+The mailing list for announcements, user support and general discussion
+is <contestms@freelists.org>. You can subscribe at
+<http://www.freelists.org/list/contestms>. So far, it is an extremely
+low traffic mailing list.
+
+The mailing list for development discussion (to submit feedback,
+proposals and critics, get opinions and reviews, etc.) is
+<contestms-dev@freelists.org>. You can subscribe at
+<http://www.freelists.org/list/contestms-dev>.
+
+To help with the troubleshooting, you can collect the complete log
+files that are placed in /var/local/log/cms/ (if CMS was running
+installed) or in ./log (if it was running from the local copy).
+
+
+Testimonials
+------------
+
+CMS has been used in several official and unofficial contests. In
+particular we are aware of the following.
+
+- International competitions:
+    - [IOI 2012](http://www.ioi2012.org) (International Olympiad in
+      Informatics), Sirmione and Montichiari, Italy, September 2012;
+    - [IOI 2013](http://www.ioi2013.org), Brisbane, Australia, July
+      2013;
+    - [FARIO 2012](http://orac.amt.edu.au/fario/fario12results.html)
+      (French-Australian Regional Informatics Olympiad), March 2012.
+    - [APIO 2014](http://olympiads.kz/apio2014/) (Asia-Pacific
+      Informatics Olympiad), Almaty, Kazakhstan, May 2014.
+- National competitions:
+    - OII 2011 ([Italian Olympiad in Informatics]
+      (http://www.olimpiadi-informatica.it)), Sirmione, September
+      2011;
+    - OII 2012, Sirmione, October 2012;
+    - OII 2013, Salerno, September 2013;
+    - [AIIO 2012](http://orac.amt.edu.au/aiio/aiio12results.html)
+      (Australian Invitational Informatics Olympiad), February 2012;
+    - Croatian high school programming contest 2013, March 2013;
+    - FIT 2013 (Festival of Innovative Technologies; national high school
+      programming contest), Slovenia, April 2013;
+    - FIT 2014, Slovenia, April 2014;
+    - OCI 2013 (Chilean Olympiads in Informatics), May 2013;
+    - Slovenian Invitational Informatics Olympiad, May 2013;
+    - [JOI Open Contest 2013]
+      (http://cms.ioi-jp.org/open-2013/index.html), Japan, June 2013;
+    - Taiwan High School Programming Contest, December 2013;
+    - beOI 2014 ([Belgian Olympiad in Informatics]
+      (http://www.be-oi.be/fr/)), Belgium, February 2014;
+    - TOP'2014 (Tunisian Olympiad in Programming), March 2014.
+    - LMIO 2014 (Lithuanian Olympiad in Informatics), March 2014;
+    - Argentinian IOI Selection Contest, April 2014.
+- Local competitions:
+    - Taipei High School Programming Contest, Taiwan, October 2012;
+    - ABC 2013 (Algoritmi Bergamo Contest), Bergamo, Italy, May
+      2013;
+    - Taipei High School Programming Contest, Taiwan, November 2013.
+- Training:
+    - training camps for the selections of the national IOI teams of
+      Australia, Egypt, India, Italy, Japan, Latvia, Serbia and Taiwan.
+- Other:
+    - laboratory exercises and exams of the course "Algorithms and
+      data structures" at University of Trento, Italy (year
+      2011-2012).
+
+If you used CMS for a contest, selection, or a similar event, and want
+to publicize this information, we would be more than happy to hear
+from you and add it to this list.
+

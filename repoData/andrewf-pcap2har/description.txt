@@ -1,0 +1,68 @@
+pcap2har: converts .pcap network capture files to HTTP Archive files.
+
+mailing list: http://groups.google.com/group/pcap2har
+
+The HAR format is still not completely supported, but the main parts are there
+and features are being added.
+
+To run the program, run main.py with two arguments: the name of the capture
+file, and the HAR output filename. For example:
+
+./main.py my.pcap my_pcap.har
+
+The HTTP Archive (HAR) file format specification is here:
+http://groups.google.com/group/http-archive-specification/web/har-1-1-spec?hl=en
+It is a fairly straightforward JSON format.
+
+pcap2har includes BeautifulSoup.py, by Leonard Richardson. It only uses the
+class UnicodeDammit, for unicode encoding detection. Its capabilities will be
+improved if the chardet library is also available. It can be gotten from here:
+http://chardet.feedparser.org/
+
+pcap2har is written in Python, and depends on the dpkt packet-parsing library
+(http://code.google.com/p/dpkt/).
+
+What we have in this director is a set of pcaps to be used as tests for
+pcap2har. Many of them exhibited specific previous bugs in pcap2har.
+Also included are HAR's that are expected from the pcaps. They thus 
+serve as a primitive regression test suite.
+
+To run the tests, just run the bash script run_tests.sh. This iterates
+through all the pcaps in the directory, runs pcap2har on them, and diffs
+the output with saved hars to check for errors. If either pcap2har or the diff
+fails, the log is saved and the script continues to check files.
+
+Here is a list of pcaps, their properties, and where they came from.
+
+http.pcap
+Previously http.cap. A simple http pageload. It has some awkward feature
+I forgot.
+
+fhs.pcap
+A complete pageload of andrewfleenor.users.sourceforge.net/fhs/fhs.xml.
+Streams are gzip compressed.
+
+fhs_ncomp.pcap
+Above, but not compressed.
+
+empty.pcap
+Empty file. dpkt doesn't like it, but we have to handle it.
+
+out-of-order.pcap
+From from Dekel Amrani. A big pcap, with out-of-order starting packet on
+incoming stream of tcp port 59743.
+
+github.pcap
+A pageload of github.
+
+pcapr.net.pcap
+A pageload of pcapr.net, an online pcap repository. Includes a redirect
+from pcapr.net to pcapr.net/home
+
+missing_response.pcap:
+A flow from fhs.pcap with one of the responses missing, to test -k functionality
+
+request_only.pcap:
+Flow with a request and nothing else, to handle a different failure case of -k
+
+

@@ -1,0 +1,294 @@
+### Make sure required packages are installed.
+
+    sudo apt-get install git python python-dev python-virtualenv libssl-dev libpcre3-dev;
+
+### Get, compile and install nginx.
+     # Download and unpack the latest stable nginx.
+    mkdir -p ~/src; cd ~/src;
+    NGINX_VERSION='nginx-1.4.4';
+    wget http://nginx.org/download/${NGINX_VERSION}.tar.gz;
+    tar xvfz ${NGINX_VERSION}.tar.gz;
+    cd ${NGINX_VERSION};
+     # Get auth-request module.
+    git clone https://github.com/PiotrSikora/ngx_http_auth_request_module.git;
+     # Configure nginx. If your site needs any additional modules add them here.
+    ./configure --add-module=./ngx_http_auth_request_module/ \
+      --with-http_ssl_module --with-http_sub_module --user=www-data \
+      --group=www-data --prefix=/usr/local/nginx/ --sbin-path=/usr/local/sbin
+     # Compile and install nginx.
+    make; sudo make install;
+
+### Install wwwhisper.
+     # Add a system user to run the wwwhisper service.
+    sudo adduser --system --ingroup www-data wwwhisper;
+     # Become the user.
+    cd ~wwwhisper; sudo su --shell /bin/bash wwwhisper;
+     # Clone wwwhisper project to the wwwhisper home dir.
+    git clone https://github.com/wrr/wwwhisper.git .;
+     # Create and activate virtual environment.
+    virtualenv virtualenv;
+    source virtualenv/bin/activate;
+     # Install required packages in the virtual environment.
+    pip install -r ./requirements.txt;
+     # Generate configurations files for a site to protect. You need to
+     # specify your email as admin_email to be able to access the
+     # admin web application. This step can be later repeated to enable
+     # protection for multiple sites.
+    ./add_site_config.py --site-url  http[s]://your.domain[:port] --admin-email your@email;
+
+### Configure nginx.
+Edit /usr/local/nginx/conf/nginx.conf and enable wwwhisper
+authorization. In the server section put:
+
+    set $wwwhisper_root /home/wwwhisper/;
+    set $wwwhisper_site_socket unix:$wwwhisper_root/sites/$scheme.$server_name.$server_port/uwsgi.sock;
+    include /home/wwwhisper/nginx/wwwhisper.conf;
+
+See [a sample configuration
+file](https://github.com/wrr/wwwhisper/blob/master/nginx/sample_nginx.conf)
+for a detailed explanation of wwwhisper related configuration
+directives.
+
+### Configure supervisord.
+
+Supervisord can be used to automatically start nginx and uwsgi managed
+wwwhisper process. Alternatively you can use a little harder to
+configure [init.d scripts](http://wiki.nginx.org/Nginx-init-ubuntu).
+
+     sudo apt-get install supervisor;
+
+ Edit /etc/supervisor/supervisord.conf and extend existing include directive to include `/home/wwwhisper/sites/*/supervisor/site.conf` and `/home/wwwhisper/nginx/supervisor.conf`. The directive should now look something like:
+
+    [include]
+    files = /etc/supervisor/conf.d/*.conf /home/wwwhisper/sites/*/supervisor/site.conf \
+            /home/wwwhisper/nginx/supervisor.conf
+
+Note that supervisord does not allow multiple include directives, you need to extend the existing one.
+
+Finally, restart the supervisor
+
+    sudo /etc/init.d/supervisor stop;
+    sleep 20;
+    sudo /etc/init.d/supervisor start;
+
+Point your browser to http[s]://your.site.address/admin, you should be
+presented with a login page. Sign in with the admin email and use the
+admin application to define which locations can be accessed by which
+visitors.
+
+### Make sure required packages are installed.
+
+    sudo apt-get install git python python-dev python-virtualenv libssl-dev libpcre3-dev;
+
+### Get, compile and install nginx.
+     # Download and unpack the latest stable nginx.
+    mkdir -p ~/src; cd ~/src;
+    NGINX_VERSION='nginx-1.4.4';
+    wget http://nginx.org/download/${NGINX_VERSION}.tar.gz;
+    tar xvfz ${NGINX_VERSION}.tar.gz;
+    cd ${NGINX_VERSION};
+     # Get auth-request module.
+    git clone https://github.com/PiotrSikora/ngx_http_auth_request_module.git;
+     # Configure nginx. If your site needs any additional modules add them here.
+    ./configure --add-module=./ngx_http_auth_request_module/ \
+      --with-http_ssl_module --with-http_sub_module --prefix=$HOME/local/nginx/
+     # Compile and install nginx.
+    make install;
+
+### Install wwwhisper.
+     # Choose where to put wwwhisper files.
+    cd ~/local;
+    git clone https://github.com/wrr/wwwhisper.git; cd wwwhisper;
+     # Create and activate virtual environment.
+    virtualenv virtualenv;
+    source virtualenv/bin/activate;
+     # Install required packages in the virtual environment.
+    pip install -r ./requirements.txt;
+     # Generate configurations files for a site to protect. You need to
+     # specify your email as admin_email to be able to access the
+     # admin web application. This step can be later repeated to enable
+     # protection for multiple sites.
+    ./add_site_config.py --site-url  http[s]://your.domain[:port] --admin-email your@email;
+
+### Configure nginx.
+
+Edit ~/local/nginx/conf/nginx.conf and enable wwwhisper
+authorization. In directives below /home/alice/local/wwwhisper must be
+replaced with a path where wwwhisper is installed. In the server
+section put:
+
+    set $wwwhisper_root /home/alice/local/wwwhisper;
+    set $wwwhisper_site_socket unix:$wwwhisper_root/sites/$scheme.$server_name.$server_port/uwsgi.sock;
+    include /home/alice/local/wwwhisper/nginx/wwwhisper.conf;
+
+See [a sample configuration
+file](https://github.com/wrr/wwwhisper/blob/master/nginx/sample_nginx.conf)
+for a more detailed explanation of wwwhisper related configuration
+directives.
+
+### Start nginx and wwwhisper.
+    ~/local/bin/nginx;
+    cd ~/local/wwwhisper; source virtualenv/bin/activate;
+    ./run_wwwhisper_for_site.sh -d sites/http[s].your.domain.port
+
+Point your browser to http[s]://your.domain[:port]/admin, you should
+be presented with a login page. Sign in with the admin email and use
+the admin application to define which locations can be accessed by
+which visitors.
+
+wwwhisper simplifies sharing of Web resources that are not intended
+for everyone. It is a generic access control layer for HTTP server
+that allows to specify which resources can be accessed by which
+visitors. At the moment wwwhisper works with nginx, there is also a
+[Heroku add-on](https://addons.heroku.com/wwwhisper) that provides
+wwwhisper as a service for any Ruby Rack based application on Heroku.
+
+* wwwhisper grants access to HTTP resources based on users' email
+  addresses, which enables sharing with almost every Internet user.
+  [Persona](http://persona.org) is used to prove that a visitor owns
+  an allowed email, no site-specific password is needed. Persona UI
+  makes the authentication process really smooth.
+
+* wwwhisper is application independent. It can be used for anything
+  that HTTP server returns - dynamic content, static files, content
+  generated by back-end servers. No support from applications or
+  back-ends is needed.
+
+* wwwhisper provides an admin web application that gives a convenient
+  UI for manipulating permissions. Access to the admin is protected by
+  wwwhisper, this allows to easily authenticate, add and remove admin
+  users.
+
+[![Build Status](https://travis-ci.org/wrr/wwwhisper.png?branch=master)](https://travis-ci.org/wrr/wwwhisper)
+
+Quick tour
+-----------
+
+You can preview [a wwwhisper demo
+site](https://io-mixedbit.rhcloud.com/wiki). The site is configured to
+allow everyone access. If you want to see the demo but don't want to
+create a real Persona account, sign-in with an address like:
+PutAnythingHere@mockmyid.com (Such addresses use [mock Persona
+id](https://mockmyid.com/) and should not be used for anything important).
+
+You can also check [a demo version of the admin
+UI](http://mixedbit.org/admin/).
+
+Upon visiting a wwwhisper protected site, a user is presented with a
+login prompt:
+
+![Login prompt](https://raw.github.com/wrr/www/master/mixedbit.org/wwwhisper_screens/login_required.png)
+
+'Sign in' button opens Mozilla Persona authentication dialog. Persona
+allows the user to smoothly and securely prove that she owns a
+given email address:
+
+![Login prompt](https://raw.github.com/wrr/www/master/mixedbit.org/wwwhisper_screens/persona_dialog.png)
+
+After successful authentication, wwwhisper checks that the user is
+allowed to visit the URL. If this is the case, the user is taken
+to the site:
+
+![Access granted](https://raw.github.com/wrr/www/master/mixedbit.org/wwwhisper_screens/access_granted.png)
+
+Usually authentication systems are built into web applications. With
+wwwhisper this is not required. The photo album above consist of
+static HTML and JavaScript files with no dynamic code executed at the
+server side and with no awareness of wwwhisper.
+
+HTTP server inserts a small overlay in the lower-right corner of each
+protected HTML document. The overlay contains an email of the current
+user and a 'Sign out' button.
+
+If the user visits a location that she is not allowed to access, an
+error is displayed:
+![Access denied](https://raw.github.com/wrr/www/master/mixedbit.org/wwwhisper_screens/access_denied.png)
+
+Finally, the admin application allows to easily grant and revoke
+access and to check who can access what. It also helps to compose
+invitation emails to allowed users:
+
+![Admin](https://raw.github.com/wrr/www/master/mixedbit.org/wwwhisper_screens/admin.png)
+
+The admin users need to only specify emails of people allowed to
+access a given location. There is no need to create, distribute and
+manage passwords. Also, unlike in case of URL encoded credentials,
+URLs of protected resources do not need to be kept private. A person
+that discovers a protected URL won't be able to access the resource
+without proving ownership of an allowed email.
+
+Technical details
+-----------------
+
+wwwhisper is a service that runs along HTTP server. Each time a
+request is made to a protected location of the server, the server
+sends a sub-request to wwwhisper to determine if the original request
+should be allowed. For Nginx, an [auth-request
+module](https://github.com/perusio/nginx-auth-request-module) is used
+to send the sub-request. For Rack, a [wwwhisper
+middleware](https://github.com/wrr/rack-wwwhisper) is used.
+
+The sub-request carries a path and headers of the original request.
+wwwhisper responds to the sub-request in one of three possible ways:
+
+1. If a user is not authenticated (authentication cookie not set or
+   invalid), HTTP status code 401 is returned. HTTP server intercepts
+   this code and returns a login page to the user.
+
+2. If a user is authenticated and is authorized to access the
+   requested resource (user's email is on a list of allowed users),
+   sub-request returns HTTP status code 200. HTTP server intercepts
+   this code and allows the original request.
+
+3. If a user is authenticated but is not authorized to access the
+   requested resource, sub-request returns HTTP status code 403, which
+   is returned to the user.
+
+The login page asks the user to sign-in with Persona. Sign-in process
+returns a cryptographically-secure assertion that is sent to the
+wwwhisper and that allows to determine a verified email address of the
+user. The assertion does not carry user's password and is valid only
+for the current domain, because of this, a malicious site can not use
+the assertion to authenticate with other sites. After extracting the
+email from the assertion, wwwhisper determines if any resources are
+shared with the user. If yes, a session cookie is set and the user is
+successfully logged in. If no resources are shared, a 403 error is
+returned to the user and a session cookie is not set.
+
+Setup
+-----
+
+Heroku users can use the [wwwhisper
+add-on](https://addons.heroku.com/wwwhisper) with any Rack based
+application (Rails, Sinatra). This is the fastest and easiest way to
+setup wwwhisper authorization, it requires only 3 lines of config.
+
+Another easy way is to setup a standalone wwwhisper instance on
+OpenShift cloud platform by RedHat. Follow [these
+steps](https://github.com/wrr/wwwhisper-openshift) to have wwwhisper
+protected site in few minutes, with SSL and for free. The scripts also
+automatically install some useful applications (a wiki and a blog).
+
+Following steps demonstrate how to install and configure nginx with
+wwwhisper authentication on Debian-derivative distributions (including
+Ubuntu). The steps should be easy to adjust to work on other POSIX
+systems. [Unprivileged
+installation](https://github.com/wrr/wwwhisper/blob/master/doc/unprivileged_install.md)
+is good for experiments, development or if you don't have
+administrative privileged on the machine. [System-wide
+installation](https://github.com/wrr/wwwhisper/blob/master/doc/system_wide_install.md)
+is recommended for more serious deployments.
+
+If you are already using nginx, you may use these steps as guidance
+and adjust them to fit your current configuration.
+
+Final remarks
+-----------------
+
+1. Make sure content you are protecting can not be accessed through
+other channels. If you are using a multi-user server, set
+correct file permissions for protected static files and
+communication sockets. If nginx is delegating requests to back-end
+servers, make sure the back-ends are not externally accessible.
+
+2. Use SSL for anything important.

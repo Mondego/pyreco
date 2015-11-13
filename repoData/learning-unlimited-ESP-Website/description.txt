@@ -1,0 +1,2527 @@
+This directory contains admin user documentation for the ESP Website.
+
+
+============================================
+ ESP Website Stable Release 04 release notes
+============================================
+
+.. contents:: :local:
+
+Changelog
+=========
+
+Schema Simplification
+~~~~~~~~~~~~~~~~~~~~~
+
+In this release, we made a major architectural change in how we store
+program-related information in the database. This particular project introduced
+no front-end behavioral changes. However, it did involve updating a significant
+percentage of our code, which means there are many potential sources of bugs.
+We believe everything works, but we may discover features that are broken
+because of an improperly coded upgrade to the new schema. As such, please make
+sure to test all parts of the website before you need them.  Don't assume,
+until you have tested it, that an important feature that worked last year will
+still work now. Report any bugs you find, and we will fix them ASAP.
+
+If you previously knew about User Bits and the Data Tree, or if you are
+otherwise interested in the scope of these changes, read
+`<schema_simplification.rst>`_.
+
+Themes - front end design
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To simplify front end design, there is now an app for configuring the front end
+(appearance and navigation) of your site.  It can be accessed at /themes/.  You
+can select from pre-defined themes (/themes/select), configure page contents
+(/themes/setup), or adjust aesthetic parameters (/themes/customize).  Behind
+the scenes, the app is generating template overrides and CSS stylesheets based
+on your configuration.  More details can be found at
+`</docs/admin/generic_templates.rst>`_ or
+`<http://wiki.learningu.org/Generic_Templates>`_.
+
+Check Availability Page
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If you add the "Check Teacher Availability" module for your program, the
+page at /manage/[program url]/check_availability will allow you to see a
+teacher's availability for that program. It shows all of the program's
+timeslots in order, and colors each one based on the teacher's status. Gray
+indicates unavailable, blue indicates available, black indicates available and
+already scheduled to teach, and orange indicates scheduled to teach but not
+marked as available, which probably means something went wrong.
+
+The name and room of each of the teacher's scheduled classes are shown below
+the corresponding timeslot, and the name and duration of each of the teacher's
+unscheduled classes are shown in a list at the bottom of the page.
+
+This page can also be accessed by clicking "Show Complete Module List" and then
+"Check Teacher Availability" on the program's manage page.
+
+Userview Page
+~~~~~~~~~~~~~
+
+The page at /manage/userview?username=[username] (accessible from the "user
+search" widget visible in the left corner of any page if you are logged in as
+an administrator) shows information about users on the website. The page has
+been redesigned, featuring selectable email addresses, and buttons to take
+various actions on a user that are useful before and during a program. From
+here:
+
+- "Morph into this user" temporarily logs you in as that user, to view the
+  website from that user's perspective.
+
+- "Onsite for [program]" allows you to access the onsite class changes portal
+  for a student, to add and remove classes from the student's schedule.
+
+- "Student schedule for [program]" allows you to view and print a student's
+  schedule for the most recent program. There are several options: "print
+  locally" pulls up the schedule in your browser; if you have set up printing
+  through the website, you will also see a "print to [printer]" option for each
+  printer available.
+
+- For teacher users, "Teacher schedule for [program]" allows you to view a
+  schedule showing all the classes a teacher is teaching.
+
+All of this functionality can be quickly accessed by using the "user search"
+widget, visible in the left corner of any page if you are logged in as an
+administrator. You can search for any user by name, username, or user ID
+number.
+
+Scheduling Checks Program Module
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Add the "Scheduling Diagnostics" module to your program, and you will see a
+link to "Run Scheduling Diagnostics"
+(/manage/[program]/[instance]/scheduling_checks) on the main program management
+page.  This page may take a few minutes to load, but when it does it will
+provide information on potential problem classes (inappropriate classrooms or
+resources, not enough time) and teachers (scheduling conflicts, admins
+teaching, back-to-back classes in different rooms).  We recently added the
+check for "hungry teachers" (those who are teaching during lunch), and
+corrected some errors in the diagnostic output.
+
+Class flags
+~~~~~~~~~~~
+
+This is a new feature for tracking the review of classes.  The idea is that you
+can create various types of class flags, like "needs safety review" or
+"description has been proofread", and then get a list of classes with (or
+without) some set of flags.
+
+To set up class flags, first add some flag types from the admin panel at
+/admin/program/classflagtype/, then add them to your program by choosing your
+program in /admin/program/program/ and scrolling to the bottom of the page.
+(There is also a place to add them at program creation.) Now you can add and
+view class flags from the edit class or manage class pages.  To create a list
+of classes with(out) some flag, go to the manage page for the program, and in
+the complete list of modules, choose "Manage class flags".
+
+This is still a work in progress; everything should work fine, but if there are
+more interfaces you would like to see, let the web team know!
+
+Emailing Program Guardians From the Communications Panel
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+The communications panel can now send mail to the listed guardian and emergency
+contact email address for students. On the first screen of the commpanel
+(/manage/<program>/<instance>/commpanel), after you select that you are
+emailing students, you can select which combination of students, guardians, and
+emergency contacts you wish to address. On the next screen, you can narrow down
+your query (for example, for all students who are enrolled in the program).
+When you send the message, it will go to the types of contacts (students and/or
+guardians and/or emergency contacts) that you specified.
+
+Accounting System
+~~~~~~~~~~~~~~~~~
+
+The administrative interfaces for financial aid and payments have changed.  To
+review financial aid applications, go to "Financial aid requests" under
+"Program"; if you would like to grant financial aid, fill out the form at the
+bottom of the page under "Financial aid grant."  To change the costs for a
+program, go to "Line Item Types" under "Accounting."  You can change the
+"amount_dec" field on the "Program Admission" type.  If you would like to offer
+items for purchase via the "Student Extra Costs" program module, you can create
+additional line item types for your program and set the "Max quantity" field
+appropriately; do not check the "for payments" or "for finaid" boxes.  If you
+are using the "SplashInfo Module" to offer lunch, the size of the sibling
+discount is set as a line item type, but the lunch options and their costs are
+still controlled by the splashinfo_choices and splashinfo_costs Tags.  Items no
+longer have a separate cost for financial aid students; the amount these
+students are charged is determined by the financial aid grant.
+
+All transactions appear as "Transfers" under "Accounting" in the admin
+interface. Transactions move money from one account from another.  By default,
+you are given one account for each program and three global accounts
+(receivable, payable, and financial aid).  The balance of an account is the sum
+of the incoming transfers minus the outgoing transfers; you can see the balance
+of each account at /accounting/.
+
+Please let us know what accounting functionality you would like to see added or
+changed in the next release.  If you would like to use credit cards to collect
+payments, please contact us.
+
+Redirects
+~~~~~~~~~
+
+You can create redirects from/to arbitrary URLs. For example, I can make /lu
+redirect to https://learningu.org, and I can make /splashstudentreg redirect to
+/learn/Splash/2013_Fall/studentreg. The interface to create redirects is at
+/admin/redirects/redirect/.  You may want to use this to create "clean" URLs
+for publicly accessible media files (such as liability and medical forms) or
+URLs you expect people to type (such as /survey for a student survey, when you
+want to print a link on student schedules).
+
+Class Cap Multipliers
+~~~~~~~~~~~~~~~~~~~~~
+
+The website allows you to specify a multiplier and constant offset for class
+capacities in each program. This option is disabled by default. If you want to
+use it, there are two different options: multiply/offset each section's
+capacity as specified by the teacher at teacher registration, or
+multiply/offset room capacity for this program only. These are useful if you
+want to account for the fact that many students register and then don't show up
+to programs, leaving even popular classes with empty spots. The option to
+affect room capacity instead of the teacher's chosen section capacity was
+recently added as a way to avoid the risk of too many students showing up to a
+materials-limited class by only relaxing constraints imposed by rooms.
+
+To change these options, go to /admin/modules/studentclassregmoduleinfo/ and
+click on the link for your program. Type the multiplier and offset into the
+respective boxes. For example, type 1.1 and 5 to increase each class or room
+size by 10% plus 5 additional spots. If you want to use the option to affect
+room capacity instead, check the "Apply multiplier to room cap" box.
+
+Formstack Medical
+~~~~~~~~~~~~~~~~~
+
+The website has a pair of modules that direct students to an external site to
+submit medical information before they can continue with registration. The
+modules are "Formstack Med-liab Module" and "Formstack Med-liab Bypass Page"
+(the latter allows administrators to grant a "bypass" to students, allowing
+them to opt-out of online submission). A separate program, hosted at
+`<https://github.com/btidor/esp-medical>`_, is used to collect the encrypted
+information and store it locally. If your chapter is considering implementing
+online collection of medical information, please talk to MIT ESP at
+esp-webmasters@mit.edu for aid and suggested security considerations.
+
+AJAX Scheduler upgrades
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Numerous improvements have been made to the AJAX class scheduler. These are
+outlined below.
+
+- Two-column user interface: this increases the vertical space so that more
+rooms are displayed, and the frames are resizable.
+
+- Changelog: a changelog of scheduled classes is stored in the database. This
+is used to facilitate periodic incremental updates on the client-side interface
+of the scheduling matrix (currently every ten seconds). Synchronization between
+multiple users works decently.
+
+- Filtering: several filtering modes exist now that can be used to filter the
+list of classes. This is accessible from the right-hand-side frame.
+
+Two-phase student registration
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This is a new mode of student registration which functions much like the lottery
+(in the back-end) but has a new front-end interface.  In the first step,
+students are asked to "star" the classes they are interested in, using a
+searchable interactive catalog.  In the second step, students can select which
+classes to mark as "priority" and which to mark as "interested" for each time
+slot.
+
+To make use of this module, enable Two-Phase Student Registration from the admin
+panel. This module will replace the student registration landing page (the page
+with the checkboxes) until it is disabled. This is something we would ideally
+fix in a future release, but for now the recommended workflow is to enable the
+module for the Two-Phase portion of registration, then disable it and allow
+students to land at the normal landing page to complete registration and change
+classes after the lottery has been run.
+
+Full documentation can be found in the program modules docs:
+`</docs/admin/program_modules.rst#two-phase-student-registration-studentregtwophase>`_.
+
+Markdown Version Upgrade
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Markdown, the software package that we used to render the quasi-static content,
+has been upgraded to the latest version, 2.3.1
+(`<https://pypi.python.org/pypi/Markdown/2.3.1>`_). This may have affected the
+visual appearance of your existing pages. Please double-check your web-content
+throughout the site to ensure that it appears correctly. The documentation for
+Markdown syntax is at `<http://daringfireball.net/projects/markdown/syntax>`_.
+
+Teacher training creation and sign-up
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+An interface for teacher training and interviews management has been added,
+accessible from Program manage page -> Complete module list -> Teacher Training
+and Interviews. Once there, the page has a form with instructions that allows
+the creation of a teacher training or interview. As before, the same page
+displays a list of users who have signed up for a given slot.
+
+Open classes (walk-in seminars/activities)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some programs have been hosting open classes or walk-in seminars, which operate
+in parallel with normal classes; information about them is displayed on the Web
+site, but students cannot register for them.  Examples of walk-in seminars
+include card games, origami, or other activities without a fixed schedule or
+curriculum; students may come and leave at any time.
+
+To allow open classes, you can create a category for them ("Class categories"
+under "Program" in the admin interface).  Make sure that this category has been
+added to the list of categories for the program.  Associate this category with
+"open classes" by creating an open_class_category Tag, whose value is the ID of
+the specific category you are using (an integer). You must also select "Open
+class registration" for the program's ClassRegModuleInfo object, which you can
+edit from /admin/modules/classregmoduleinfo/.
+
+Teachers can create an open class (as opposed to a normal class) by clicking
+"Add a new [category name] for this program…" on the main teacher registration
+page.  If you allow teachers to create these classes, please provide them with
+explicit instructions on the differences between these and normal classes.
+
+Program email addresses
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The director email address option has been split up into three mailing lists in
+this release: a normal director address used for most communications and
+displayed on the website, a confidential address used for private data
+(currently only financial aid requests), and a carbon-copy email that is
+included in class registration, class change, and interview registration
+notifications. If either or both of the latter two are not set, then the main
+director address is used instead as a default.
+
+Class status button on dashboard
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+In the dashboard next to each class there exists a "Status" button, in addition
+to the "Delete", "Edit", and "Manage" buttons. This is a quick interface for
+updating the status of the class without having to load a new page. Clicking
+"Status" brings up a pop-up with the class vitals: current status, logistical
+details, description, prerequisites, and grade range. At the bottom are the
+options to approve the class as a whole, reject the class as a whole, or mark
+it unreviewed (if it was previously approved or rejected). If going through
+lots of classes and approving before a program, we can use this to keep the
+dashboard page loaded and scroll through approving a class at a time without
+having to load any new pages.
+
+Versioned QSD
+~~~~~~~~~~~~~
+QSD pages are now versioned, so that changes can be tracked, old versions can
+be accessed, and you can revert if necessary. The versioning can be managed
+from Admin Panel (/admin) -> Quasi static datas. To recover a deleted QSD, use
+"Recover deleted quasi static datas" in the top right. To view the changelog,
+select a QSD page (you can search by URL or title) and select "History" in the
+top right. To revert to an old version of the page, select a version from the
+History page and press Save at the bottom.
+
+Uploading / managing media files
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+We are no longer using Dropbox to share media files with admins.  If you would
+like to customize your images and stylesheets, or manage uploaded files, you
+now have full control through your site's admin interface.  Go to
+/admin/filebrowser/browse/.  The server has the only authoritative copy of
+these files; the Dropbox accounts will be closed following the release.
+
+Smarter user autocomplete
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+User autocomplete fields no longer expect the format "Last, First". You can now
+search "Last, First" or "username" or "user_id".
+
+Allow full-page letterhead
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+You can now use arbitrary letterhead for the "student completion letters"
+(accessible from program printables).  It should be a full-page-sized PDF file,
+uploaded to /esp/public/media/latex_media/letterhead.pdf (this should be
+accessable from the new filebrowser, by clicking on "latex_media" then
+uploading it as letterhead.pdf). That said, there are still some issues with our
+LaTeX generation scripts that may get in your way; we'll be working on fixing
+those for the final version of the stable release.
+
+Obfuscated uploaded file names
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+A set of allow file extensions is defined to prevent XSS attacks, and files can
+now be downloaded with the original filename again. These changes are
+transparent to users -- the old /download/file_hash URL's still work and the
+new URL's are displayed on documents pages.
+
+Grade change requests
+~~~~~~~~~~~~~~~~~~~~~
+
+Students can now request to have their current grade changed through the
+website, by filling out the new grade and a reason that it needs to be changed.
+The page to do this is /myesp/grade_change_request.
+After the student confirms the change, an email will be sent to the admin
+contact address notifying that the change was requested. An admin page exists
+where admins can approve the requests (after which an email will be sent to the
+student notifying them of the approval).
+
+Minor feature additions
+~~~~~~~~~~~~~~~~~~~~~~~
+
+- The number of students who applied to a class in the lottery is now visible
+  in the "status" popup on the program dashboard.
+
+- You can ask for students' gender on the profile form by enabling the
+  'student_profile_gender_field' Tag.  This feature is disabled by default.
+
+- The user view page now shows the times of each class a student is taking.
+
+- The main teacher registration page makes the approval status of classes more
+  clearly, so that teachers only see section information if their class is
+  approved.
+
+- The notification e-mails sent out when teachers register or edit classes now
+  has a link you can click to directly approve the class.
+
+- When importing classrooms from a previous program, you can now specify that
+  all classrooms should be available for all of the timeslots of the new
+  program, instead of trying to match up timeslots from one program to the next.
+
+- You can now import timeslots from a previous program, specifying only the
+  start date of the new program.
+
+- The US Zip codes are now populated by default, so new sites can send e-mails
+  based on location without any additional setup.
+
+- The "User list generator" program module now uses the newer interface that
+  was provided for the comm panel in the last stable release.
+
+- Mass emails (i.e., emails sent from the communication panel) will now be
+  resent if the first attempt fails, and failure reports will be sent to the
+  director email. Some other stability changes made too.
+
+- The dashboard now shows some new statistics: the "Categories" section now
+  includes the number of class-hours per category, and there is a new "Grades"
+  section that shows the number of students per grade enrolled in at least one
+  class and number of subjects and sections available to the students in that
+  grade.
+
+- You can now filter for students in particular grades using the comm panel.
+  The grade filtering options will show up at the bottom of the list (below
+  "States" and "School") on step 3 when you are creating a list of students.
+  You will also see an option to filter teachers by graduation year.
+
+- Credit card transaction refunds are now easier to accomplish as the credit
+card transaction ID is now stored in the transaction model.
+
+Django debug toolbar (developers only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If you are running a development site, a developer toolbar will appear on the
+right side of your screen.  This toolbar allows you to view the SQL queries
+incurred by the page load (helpful for improving performance) and which
+templates were used, among other things.  You can enable or disable it via the
+debug_toolbar GET variable, for example http://localhost:8000/?debug_toolbar=f,
+or with the DEBUG_TOOLBAR setting in local_settings.py.  There are more
+configuration options defined in django_settings.py.  For more information see
+`<http://django-debug-toolbar.readthedocs.org/en/1.0/>`_.
+
+virtualenv (developers only)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The code has been modified to utilize a virtual environment for Python files.
+The virtualenv is a requirement for external scripts, and it is recommended
+that web servers running ESP-Website now be configured to also utilize the
+virtual environment. A script is included to automatically do the configuration
+(specifically, make_virtualenv.sh).
+
+=============
+Release notes
+=============
+
+.. contents:: :local:
+
+Release notes for the official ESP Website releases. Each release note will
+tell you what's new and changed in each version.
+
+Stable releases
+===============
+
+These releases occur every four to twelve months, usually during the Splash
+off-season and after many site improvements. At some point prior to the
+release, the new code is be declared semi-stable, and is deployed to all of the
+live sites. There is then a period of manual testing and bugfixing on the live
+sites before the code is declared stable. At this point, the code on the live
+sites is frozen until the next release.
+
+`SR04 - January 2014 <04/>`_
+----------------------------
+
+SR03 (tag: stable-release-3) - March 2013
+-----------------------------------------
+
+SR02 - July 2012
+----------------
+
+SR01 - January 2012
+-------------------
+
+Security and bugfix releases
+============================
+
+Whenever a security problem or other major bug is discovered, the code is
+temporarily unfrozen in order to deploy a hotfix to all the live sites. No
+other changes are made at this time. These releases are not scheduled,
+announced, named, or otherwise recorded.
+
+Development releases
+====================
+
+A site that requests newer features not yet available in the latest stable
+release may elect to be updated to a later version of the code, with the caveat
+that the code is not necessarily stable or well-tested.
+
+
+This directory contains developer documentation for the ESP Website.
+
+
+This directory contains documentation for the ESP Website.
+
+- The `<admin/>`_ directory is for admin user documentation.
+
+- The `<dev/>`_ directory is for developer documentation.
+
+
+initial_zipcode_data.json is installed by the install_initial_zipcode_data
+migration.
+
+It is purposely not named initial_data.json. If it were, then it would
+installed on every syncdb and migration, which is undesirable since it takes a
+few minutes to install.
+
+
+To use the list management stuff in this directory:
+
+Install listadmin: sudo aptitude install listadmin
+Save the password: echo 'password "password"' > listadmin.ini.local
+
+When necessary, remove the cached list of lists: rm esp-lists.txt
+When necessary, run listadmin: make
+
+make will automatically download the current list of Mailman lists
+from the server if you don't already have that list saved. (Note 
+that this runs ls appropriately on esp.mit.edu using ssh, so you'll
+either need your esp.mit.edu password, or have public keys or Kerberos
+authentication set up.)
+
+make will then run listadmin with a suitable configuration file.
+Any changes you make will be logged into listadmin.log.
+
+This directory contains images generated by the e-mail-address obfuscation code.  It should be writable by the web server.
+
+This is a placeholder for the django-filebrowser media directory.
+It is no longer used by django-filebrowser (which has migrated to using
+staticfiles) but is still checked by the tests.
+It will be removed in a future release.
+
+
+This directory contains .png images of rendered LaTeX used on the server.  It should be writable by the server.
+
+Media setup instructions
+------------------------
+
+This directory contains all media files required for a generic ESP Web site.  Top level subdirectories of note include images, scripts, styles, and uploaded.
+
+The media directories 'images' and 'styles' should be created as symbolic links to the actual directories 'default_images' and 'default_styles'.  This is an artifact of a previous (Dropbox-based) scheme for file customization that is no longer being used.  The symbolic links will be removed in a future release.
+
+The entire directory tree may be edited by administrators through the admin interface:
+    /admin/filebrowser/browse/
+This the preferred method for customizing image files such as logos.
+
+Some of the files in this area are also written by the Web site itself.  For example, the themes system generates CSS stylesheets and writes image files and scripts particular to the selected theme.  It can be accessed by administrators at:
+    /themes/
+
+
+Select2
+=======
+
+Select2 is a jQuery-based replacement for select boxes. It supports searching, remote data sets, and infinite scrolling of results.
+
+To get started, checkout examples and documentation at http://ivaynberg.github.com/select2
+
+Use cases
+---------
+
+* Enhancing native selects with search.
+* Enhancing native selects with a better multi-select interface.
+* Loading data from JavaScript: easily load items via ajax and have them searchable.
+* Nesting optgroups: native selects only support one level of nested. Select2 does not have this restriction.
+* Tagging: ability to add new items on the fly.
+* Working with large, remote datasets: ability to partially load a dataset based on the search term.
+* Paging of large datasets: easy support for loading more pages when the results are scrolled to the end.
+* Templating: support for custom rendering of results and selections.
+
+Browser compatibility
+---------------------
+* IE 8+
+* Chrome 8+
+* Firefox 10+
+* Safari 3+
+* Opera 10.6+
+
+Integrations
+------------
+
+* [Wicket-Select2](https://github.com/ivaynberg/wicket-select2) (Java / [Apache Wicket](http://wicket.apache.org))
+* [select2-rails](https://github.com/argerim/select2-rails) (Ruby on Rails)
+* [AngularUI](http://angular-ui.github.com/#directives-select2) ([AngularJS](angularjs.org))
+* [Django](https://github.com/applegrew/django-select2)
+* [Symfony](https://github.com/19Gerhard85/sfSelect2WidgetsPlugin)
+* [Bootstrap](https://github.com/t0m/select2-bootstrap-css) (CSS skin)
+* [Yii](https://github.com/tonybolzan/yii-select2)
+
+Internationalization (i18n)
+---------------------------
+
+Select2 supports multiple languages by simply including the right
+language JS file (`select2_locale_it.js`, `select2_locale_nl.js`, etc.).
+
+Missing a language? Just copy `select2_locale_en.js.template`, translate
+it, and make a pull request back to Select2 here on GitHub.
+
+Bug tracker
+-----------
+
+Have a bug? Please create an issue here on GitHub!
+
+https://github.com/ivaynberg/select2/issues
+
+Mailing list
+------------
+
+Have a question? Ask on our mailing list!
+
+select2@googlegroups.com
+
+https://groups.google.com/d/forum/select2
+
+
+Copyright and license
+---------------------
+
+Copyright 2012 Igor Vaynberg
+
+This software is licensed under the Apache License, Version 2.0 (the "Apache License") or the GNU
+General Public License version 2 (the "GPL License"). You may choose either license to govern your
+use of this software only upon the condition that you accept all of the terms of either the Apache
+License or the GPL License.
+
+You may obtain a copy of the Apache License and the GPL License in the LICENSE file, or at:
+
+http://www.apache.org/licenses/LICENSE-2.0
+http://www.gnu.org/licenses/gpl-2.0.html
+
+Unless required by applicable law or agreed to in writing, software distributed under the Apache License
+or the GPL License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND,
+either express or implied. See the Apache License and the GPL License for the specific language governing
+permissions and limitations under the Apache License and the GPL License.
+
+Reference Implementation
+------------------------
+
+This directory contains John Gruber's original Perl implementation of Markdown.  Smart diff programs like Araxis Merge will be able to match up this file with markdown.pl.
+
+A little tweaking helps.  In markdown.pl:
+
+  - replace `#` with `//`
+  - replace `$text` with `text`
+
+Be sure to ignore whitespace and line endings.
+
+Note: This release of Showdown is based on `markdown1.0.2b7.pl`, but uses the HTML parser from `markdown1.0.2b2.pl`.
+
+
+Showdown -- A JavaScript port of Markdown
+=========================================
+
+Showdown Copyright (c) 2007 John Fraser.
+<http://www.attacklab.net/>
+
+Original Markdown Copyright (c) 2004-2005 John Gruber
+<http://daringfireball.net/projects/markdown/>
+
+Redistributable under a BSD-style open source license.
+See license.txt for more information.
+
+
+What's it for?
+--------------
+
+Developers can use Showdown to:
+
+ * Add in-browser preview to existing Markdown apps
+
+    Showdown's output is (almost always) identical to
+    markdown.pl's, so the server can reproduce exactly
+    the output that the user saw.  (See below for
+    exceptions.)
+
+ * Add Markdown input to programs that don't support it
+
+    Any app that accepts HTML input can now be made to speak
+    Markdown by modifying the input pages's HTML.  If your
+    application lets users edit documents again later,
+    then they won't have access to the original Markdown
+    text.  But this should be good enough for many
+    uses -- and you can do it with just a two-line
+    `onsubmit` function!
+
+ * Add Markdown input to closed-source web apps
+
+    You can write bookmarklets or userscripts to extend
+    any standard textarea on the web so that it accepts
+    Markdown instead of HTML.  With a little more hacking,
+    the same can probably be done with  many rich edit
+    controls.
+
+ * Build new web apps from scratch
+
+    A Showdown front-end can send back text in Markdown,
+    HTML or both, so you can trade bandwidth for server
+    load to reduce your cost of operation.  If your app
+    requires JavaScript, you won't need to do any
+    Markdown processing on the server at all.  (For most
+    uses, you'll still need to sanitize the HTML before
+    showing it to other users -- but you'd need to do
+    that anyway if you're allowing raw HTML in your
+    Markdown.)
+
+
+Browser Compatibility
+---------------------
+
+Showdown has been tested successfully with:
+
+ - Firefox 1.5 and 2.0
+ - Internet Explorer 6 and 7
+ - Safari 2.0.4
+ - Opera 8.54 and 9.10
+ - Netscape 8.1.2
+ - Konqueror 3.5.4
+
+In theory, Showdown will work in any browser that supports ECMA 262 3rd Edition (JavaScript 1.5).  The converter itself might even work in things that aren't web browsers, like Acrobat.  No promises.
+
+
+Known Differences in Output
+---------------------------
+
+In most cases, Showdown's output is identical to that of Perl Markdown v1.0.2b7.  What follows is a list of all known deviations.  Please email me if you find more.
+
+
+ *  This release uses the HTML parser from Markdown 1.0.2b2,
+    which means it fails `Inline HTML (Advanced).text` from
+    the Markdown test suite:
+
+        <div>
+        <div>
+        unindented == broken
+        </div>
+        </div>
+
+
+ *  Showdown doesn't support the markdown="1" attribute:
+
+        <div markdown="1">
+             Markdown does *not* work in here.
+        </div>
+
+    This is half laziness on my part and half stubbornness.
+    Markdown is smart enough to process the contents of span-
+    level tags without screwing things up; shouldn't it be
+    able to do the same inside block elements?  Let's find a
+    way to make markdown="1" the default.
+
+
+ *  You can only nest square brackets in link titles to a
+    depth of two levels:
+
+        [[fine]](http://www.attacklab.net/)
+        [[[broken]]](http://www.attacklab.net/)
+
+    If you need more, you can escape them with backslashes.
+
+
+ *  When sublists have paragraphs, Showdown produces equivalent
+    HTML with a slightly different arrangement of newlines:
+
+        + item
+
+             - subitem
+
+               The HTML has a superfluous newline before this
+               paragraph.
+
+             - subitem
+
+               The HTML here is unchanged.
+
+             - subitem
+
+               The HTML is missing a newline after this
+               list subitem.
+
+
+
+ *  Markdown.pl creates empty title attributes for
+    inline-style images:
+
+        Here's an empty title on an inline-style
+        ![image](http://w3.org/Icons/valid-xhtml10).
+
+    I tried to replicate this to clean up my diffs during
+    testing, but I went too far: now Showdown also makes
+    empty titles for reference-style images:
+
+        Showdown  makes an empty title for
+        reference-style ![images][] too.
+
+        [images]: http://w3.org/Icons/valid-xhtml10
+
+
+ *  With crazy input, Markdown will mistakenly put
+    `<strong>` or `<em>` tags in URLs:
+
+        <a href="<*Markdown adds em tags in here*>">
+           improbable URL
+        </a>
+
+    Showdown won't.  But still, don't do that.
+
+Animation Release Notes
+
+*** version 0.12.0 ***
+
+* added boolean finish argument to Anim.stop()
+
+*** version 0.11.3 ***
+
+* no changes
+
+*** version 0.11.1 ***
+
+* changed "prototype" shorthand to "proto" (workaround firefox < 1.5 scoping
+bug)
+
+*** version 0.11.0 ***
+
+* ColorAnim subclass added
+* Motion and Scroll now inherit from ColorAnim
+* getDefaultUnit method added
+* defaultUnit and defaultUnits deprecated
+* getDefault and setDefault methods deprecated
+
+*** version 0.10.0 ***
+
+* Scroll now handles relative ("by") animation correctly
+
+* Now converts "auto" values of "from" to appropriate initial values
+
+*** version 0.9.0 ***
+
+* Initial release
+
+
+
+AutoComplete Release Notes
+
+*** version 0.12.0 ***
+
+* The following constants must be defined as static class properties and are no longer
+available as instance properties:
+
+YAHOO.widget.DataSource.ERROR_DATANULL
+YAHOO.widget.DataSource.ERROR_DATAPARSE
+YAHOO.widget.DS_XHR.TYPE_JSON
+YAHOO.widget.DS_XHR.TYPE_XML
+YAHOO.widget.DS_XHR.TYPE_FLAT
+YAHOO.widget.DS_XHR.ERROR_DATAXHR
+
+* The property minQueryLength now supports zero and negative number values for
+DS_JSFunction and DS_XHR objects, to enable null or empty string queries and to disable
+AutoComplete functionality altogether, respectively.
+
+* Enabling the alwaysShowContainer feature will no longer send containerExpandEvent or
+containerCollapseEvent.
+
+
+
+**** version 0.11.3 ***
+
+* The iFrameSrc property has been deprecated. Implementers no longer need to
+specify an https URL to avoid IE security warnings when working with sites over
+SSL.
+
+
+
+*** version 0.11.0 ***
+
+* The method getListIds() has been deprecated for getListItems(), which returns
+an array of DOM references.
+
+* All classnames have been prefixed with "yui-ac-".
+
+* Container elements should no longer have CSS property "display" set to "none".
+
+* The useIFrame property can now be set after instantiation.
+
+* On some browsers, the unmatchedItemSelectEvent may not be fired properly when
+delimiter characters are defined.
+
+* On some browsers, defining delimiter characters while enabling forceSelection
+may result in unexpected behavior.
+
+
+
+*** version 0.10.0 ***
+
+* Initial release
+
+* In order to enable the useIFrame property, it should be set in the
+constructor.
+
+* On some browsers, defining delimiter characters while enabling forceSelection
+may result in unexpected behavior.
+
+Calendar Release Notes
+
+*** version 0.12 ***
+
+	- New documentation format implemented
+	- Calendar2up and Calendar_Core are now deprecated. Now, Calendar alone
+	represents the single Calendar instance, and CalendarGroup represents an
+	n-up instance, defaulting to 2up
+	- Added semantic style classes to Calendar elements to allow for custom
+	styling solely using CSS.
+	- Remapped all configuration properties to use the Config object
+	(familiar to those who use the Container collection of controls).
+	Property names are the same as their previous counterparts, but wrapped
+	into Calendar.cfg, allowing for runtime reconfiguration of most
+	properties.
+	- Added "title" property for setting the Calendar title
+	- Added "close" property for enabling and disabling the close icon
+	- Added "iframe" property for enabling an iframe shim in Internet
+	Explorer 6 and below to fix the select bleed-through bug
+	- pageDate moved to property:  "pagedate"
+	- selectedDates moved to property:  "selected"
+	- minDate moved to property : "mindate", which accepts a JavaScript Date
+	object like its predecessor, but also supports string dates
+	- maxDate moved to property : "maxdate", which accepts a JavaScript Date
+	object like its predecessor, but also supports string dates
+	- Moved style declarations to initStyles function
+	- Optimized event handling in
+	doSelectCell/doCellMouseOver/doCellMouseOut by only attaching the
+	listener to the outer Calendar container, and only reacting to events on
+	cells with the "selectable" CSS class.
+	- Added domEventMap field for applying DOM event listeners to cells
+	containing specific class and tag combinations.
+	- Moved all cell DOM event attachment to applyListeners function
+	- Added getDateByCellId / getDateFieldsByCellId helper functions
+	- Corrected DateMath.getWeekNumber to comply with ISO week number
+	handling
+	- Separated renderCellDefault style portions into styleCellDefault
+	function for easy extension
+	- Deprecated onBeforeSelect. Created beforeSelectEvent which
+	automatically subscribes to its deprecated predecessor.
+	- Deprecated onSelect. Created selectEvent, which automatically
+	subscribes to its deprecated predecessor.
+	- Deprecated onBeforeDeselect. Created beforeSelectEvent which
+	automatically subscribes to its deprecated predecessor.
+	- Deprecated onDeselect. Created beforeDeselectEvent, which
+	automatically subscribes to its deprecated predecessor.
+	- Deprecated onChangePage. Created changePageEvent, which automatically
+	subscribes to its deprecated predecessor.
+	- Deprecated onRender. Created renderEvent, which automatically
+	subscribes to its deprecated predecessor.
+	- Deprecated onReset. Created resetEvent, which automatically subscribes
+	to its deprecated predecessor.
+	- Deprecated onClear. Created clearEvent, which automatically subscribes
+	to its deprecated predecessor.
+	- Corrected setMonth documentation to refer to 0-11 indexed months.
+	- Added show and hide methods to Calendar for setting the Calendar's
+	display property.
+	- Optimized internal render classes to use innerHTML and string buffers
+	- Removed wireCustomEvents function
+	- Removed wireDefaultEvents function
+	- Removed doNextMonth / doPreviousMonth
+	- Removed all buildShell (header, body, footer) functions, since the
+	Calendar shell is now built dynamically on each render
+	- Wired all CalendarGroup events and configuration properties to be
+	properly delegated to Calendar
+	- Augmented CalendarGroup with all built-in renderers, label functions,
+	hide, show, and initStyles, creating API transparency between Calendar
+	and CalendarGroup.
+	- Made all tagName, createElement, and entity references XHTML compliant
+	- Fixed Daylight Saving Time bug for Brazilian time zone
+
+*** version 0.11.3 ***
+
+	- Calendar_Core: Added arguments for selected/deselected dates to
+	onSelect/onDeselect
+	- CalendarGroup: Fixed bug where selected dates passed to constructor
+	were not represented in selectedDates
+	- Calendar2up: Now displays correctly in Opera 9
+
+*** version 0.11.0 ***
+
+	- DateMath: DateMath.add now properly adds weeks
+	- DateMath: between() function added
+	- DateMath: getWeekNumber() fixed to take starting day of week into
+	account
+	- All references to Calendar's built in CSS class handlers are removed,
+	replaced with calls to Dom utility (addClass, removeClass)
+	- Several CSS class constants now have clearer names
+	- All CSS classes are now properly namespaced to avoid CSS conflicts
+	- Fixed table:hover bug in CSS
+	- Calendar no longer requires the container ID and variable name to
+	match in order for month navigation to function properly
+	- Calendar month navigation arrows are now represented as background
+	images
+
+*** version 0.10.0 ***
+
+	- Major performance improvements from attaching DOM events to associated
+	table cells only once, when the Calendar shell is built
+	- DOM events for mouseover/mouseout are now fired for all browsers (not
+	just Internet Explorer)
+	- Reset functionality bug fixed for 2-up Calendar view
+
+*** version 0.9.0 ***
+
+* Initial release
+
+
+Connection Manager Release Notes
+
+*** version 0.12.0 ***
+
+* When uploading files via setForm() and asyncRequest includes a POST data
+argument, appendPostData() will create hidden input fields for each postData
+label/value and append each field to the form object.
+
+* setForm() returns the assembled label/value string of the parsed HTML form
+fields.
+
+* NOTE: Opera 9.02 does not allow for more than 12 concurrent Connection Manager
+objects.
+
+The following example creates 12 requests in a loop:
+for(var n=0; n<=12; i++){
+  conn[n] = YAHOO.util.Connect.asyncRequest('GET', sUrl, callback);
+}
+
+If n > 13, Opera 9.02 will crash.  Connection manager objects count n must be <=
+12 at all times.  This condition was not present in Opera version 9.01.
+
+This condition does not apply to other A-Grade browsers (
+http://developer.yahoo.com/yui/articles/gbs/gbs_browser-chart.html)
+
+*** version 0.11.3 ***
+
+* YUI Event dependency for file uploading is now optional.
+
+* uploadFile() now sets unique IDs for each file upload transaction to prevent
+iframe collisions with parallel uploads.
+
+* The callback object now has property responseXML to provide support for file
+upload transactions that return an XML document.
+
+* setForm() will verify if a select option value attribute is present and use
+its value, including empty string, before using the text node value.
+
+* Modified polling mechanism in handleReadyState() and
+handleTransactionResponse() to prevent infinite polling if JavaScript errors
+occur in the user-defined callback.
+
+* createFrame() will now accept a boolean argument of true to set the frame
+source to "javascript:false" to prevent IE from throwing security warnings in an
+HTTPS environment.
+
+* setHeader() now enumerates through the _http_header object using
+hasOwnProperty() to prevent collisions with members added to Object via
+prototype.
+
+* If using setForm() and asyncRequest includes a POST data argument, the data
+will be concatenated to the HTML form POST message.
+
+*** version 0.11.2 ***
+
+* No revisions.
+
+*** version 0.11.1 ***
+
+* uploadFile() now verifies the existence of callback.upload before invoking
+callback, with or without object scope.
+
+*** version 0.11.0 ***
+
+* Each transaction can be defined with a timeout threshold, in milliseconds,
+through the callback object.  If the threshold is reached, and the transaction
+hasn't yet completed, the transaction will call abort().
+
+* abort() will now accept a callback object as the second argument.  The
+failure callback will receive a response object to indicate the transaction was
+aborted.
+
+* setForm() will now support file uploads by setting the second argument to
+true (e.g., YAHOO.util.Connect.setForm(formObject, true).  File upload does not
+use the callback success or failure handler.  Instead, it uses a new callback
+object handler: upload.
+
+* HTML form submit will no longer submit form fields without a defined name
+attribute.
+
+* The default POST header of 'Content-Type','application/x-www-form-urlencoded'
+can be overridden by calling setDefaultPostHeader(false).  This
+will remove the default header from non-HTML form, POST submissions.
+
+* setHeader() now enumerates through the _http_header object with
+propertyIsEnumerable to prevent collisions with members added to Object via
+prototype.
+
+*** version 0.10.0 ***
+
+* handleTransactionResponse() now treats the full HTTP 2xx range as a success
+case, instead of just HTTP 200.
+
+* To accommodate multiple field values in Mozilla/Firefox, multiple initHeader
+calls with the same label will now result in the values concatenated to a
+comma- delimited string value.
+Example:
+Setting Content-Type:'application/x-www-form-urlencoded' and Content-
+Type:'text/xml' will result in Content-Type:'application/x-www-form-urlencoded,
+text/xml'.
+
+* Default polling interval lowered to 50ms.
+
+* YAHOO.util.Connect.setPollingInterval() will allow you to set a polling
+interval -- in milliseconds -- to override the default value.
+
+* YAHOO.util.Connect.getResponseHeader[headerLabel] now supported as a response
+object property to provide symmetry with the native XHR object's property.
+Example:
+YAHOO.util.Connect.getResponseHeader['Content-Length'] will return the value
+for the Content-Length header, if the header is available.
+
+* YAHOO.util.Connect.allResponseHeaders property renamed to
+getAllResponseHeaders to provide symmetry with the native XHR object's
+property.
+
+* YAHOO.util.Connect.setForm() now supports HTTP GET as well as HTTP POST.
+
+* YAHOO.util.Connect.setForm() now accepts an HTML form object as well as its
+name attribute value.
+
+* YAHOO.util.Connect.setForm() will not submit HTML form fields that are
+disabled or do not have a name attribute value.
+
+* [FIXED] Response exceptions result in infinite callback loop in
+Mozilla/Firefox.
+
+* [FIXED] YAHOO.util.Connect.abort() now properly clears polling interval.
+
+* [FIXED] isCallInProgress() now verifies whether XHR instance still exists,
+and returns false if the connection object is no longer available.
+
+*** version 0.9.0 ***
+
+* Initial release
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Container Release Notes
+
+*** version 0.12.0 ***
+
+	All Classes
+	   - New documentation format implemented, and removed unnecessary
+	   prototype null references previously used for generating
+	   documentation
+	   - Modified the
+
+	Config
+	   - Added 'undefined' check when reading initial properties for
+	   .reset()
+	   - Fixed Firefox warning on .resetProperty()
+	   - Fixed issue preventing resetProperty() from resetting values
+	   correctly
+
+	Module
+	   - Removed unused "childNodesInDom" property
+
+	Overlay
+	   - Converted center() to use Dom utility
+	   - Fixed configVisible() to properly detect actual visible/hidden
+	   status in Internet Explorer, which reports "inherit" for all elements
+	   by default.
+	   - Updated onDomResize to properly reapply "context" property
+	   - Unified scroll/resize handlers so that they fire properly (when the
+	   event has completed) as opposed to constantly (as seen in Mozilla-
+	   based browsers)
+
+	Panel
+	   - Modified modality mask to show before Panel is shown (prior to any
+	   animation)
+	   - Modified buildWrapper to eliminate cloning of the initial markup
+	   module, which fixes issues with select options not maintaining their
+	   default selections in IE
+	   - Modality mask is now z-indexed properly so that the mask z-index is
+	   always one less than the Panel z-index
+
+	Dialog
+	   - Fixed Connection to get "action" attribute using getAttribute, to
+	   allow for form fields named "action"
+	   - Added support for "GET" by retrieving the form "method" rather than
+	   always defaulting to "POST"
+
+	KeyListener
+	   - Fixed to work properly with Safari 2.0 by matching against keyCode
+	   or charCode
+
+*** version 0.11.4 ***
+
+	- Panel: Modality mask is now properly removed from DOM on Panel
+	destroy.
+
+*** version 0.11.3 ***
+
+	- Module: Fixed SSL warning issue in IE
+	- Overlay: Fixed memory leak related to iframe shim in IE
+	- Panel: No focusable elements under the mask can now be tabbed to
+	- Panel: Set Panel container overflow to hidden to fix scrolling issue
+	in Opera 9
+
+*** version 0.11.2 ***
+
+	- All: JsLint optimization
+	- Overlay: Fixed SSL issues with monitorresize property
+	- OverlayManager: Fixed z-index incrementing issues
+	- Dialog: Form elements called "name" will now function properly
+	- Dialog: Removed unnecessary scope:this reference
+
+*** version 0.11.1 ***
+
+	- Tooltip: Removed incorrect logger statement
+	- Dialog: Corrected logic that was causing browser lockup in IE for
+	SimpleDialog
+	- Dialog: Fixed "firstButtom" typo
+
+*** version 0.11.0 ***
+
+	- toString function added to all classes for easy logging
+	- YAHOO.extend is now being used for inheritance on all container
+	classes
+	- Module: monitorresize feature now works on all browsers
+	- Module: Fixed bug with image root and isSecure
+	- Overlay: Fixed bugs related to IFRAME shim positioning
+	- Overlay: center() now works in quirks mode
+	- Overlay: Overlay now has a custom destroy() method that also removes
+	the IFRAME shim
+	- OverlayManager: Fixed bug in the prototype that was preventing
+	multiple Managers on one page
+	- OverlayManager: focusEvent now fires at all appropriate times
+	- Tooltip: context can now be specified as an array, so Tooltips can be
+	reused across multiple context elements
+	- Tooltip: preventoverlap now functions properly for large context
+	elements (i.e, images)
+	- Tooltip: fixed bugs regarding setTimeout
+	- Tooltip: added mousemove event to allow for more accurate Tooltip
+	positioning
+	- Panel: added dragEvent for monitoring all event handlers for drag and
+	drop
+	- Panel: modality mask is now resized on scroll
+	- Panel: KeyListeners are now properly destroyed when the Panel is
+	destroyed
+	- Panel: Header is now sized properly in quirks mode
+	- Dialog: Blinking cursor issue is fixed for Firefox
+	- Dialog: callback object for Connection is now public (this.callback)
+	- Dialog: onsuccess/onfailure properties removed (as a result of the
+	public callback object)
+	- Dialog: Dialog is now invisible by default
+	- Dialog: Buttons are now properly cleaned up on destroy
+
+*** version 0.10.0 ***
+
+* Initial release
+
+
+Dom Release Notes
+
+*** version .12.0 ***
+
+* fixed getXY for IE null parent
+* branching set/getStyle at load time instead of run time 
+
+*** version 0.11.3 ***
+
+* fixed getX and getY returning incorrect values for collections 
+* fixed getXY incorrectly calculated for Opera inline elements
+* fixed isAncestor failure in safari when 2nd arg is document.documentElement
+* fixed infinite loop in replaceClass when oldClassName == newClassName 
+* getDocumentWidth no longer includes scrollbars 
+
+
+*** version 0.11.2 ***
+* limit depth of parent.document crawl to 1 for getXY
+* test offsetParent instead of parentNode for getXY
+* return null if no el fo r get
+* just addClass if no class to replace for replaceClass
+
+
+*** version 0.11.1 ***
+
+* return null if el is null for get()
+* test offsetParent rather than parentNode for getXY()
+* limit depth of parent.document crawl for IE getXY() to 1
+* if no oldClassName to replace, just addClass for replaceClass()
+
+
+*** version 0.11.0 ***
+* Work around Opera 9 broken currentStyle
+* Removed timeout wrapper from setXY retry
+* Tagname tests now case-insensitive
+* Internal "this" references changed to allow for method shorthand
+* get/setStyle now accept both camel and hyphen case
+* Gecko reverted to crawling offsets for getXY
+ 
+
+*** version 0.10.0 ***
+
+* Safari now fails gracefully when querying computedStyle of an unavailable element 
+
+* Class management functions added (hasClass, addClass, removeClass, replaceClass, getElementsByClassName) 
+
+* All methods that accept HTMLElements or IDs now also accept arrays of HTMLElements and/or IDs
+
+* GenerateId method added
+
+* isAncestor method added
+
+* inDocument method added
+
+* getElementsBy method added
+
+* batch method added
+
+* getClientHeight/Width deprecated in favor of getViewportHeight/Width
+
+* getDocumentHeight/Width methods added 
+
+*** version 0.9.0 ***
+
+* Initial release
+
+
+Drag and Drop Release Notes
+
+0.12.0
+
+   * The logic to determine if a drag should be initiated has been isolated
+     to the clickValidator method.  This method can be overridden to provide
+     custom valdiation logic.  For example, it is possible to specify hotspots
+     of any dimension or shape.  The provided example shows how to make only
+     a circular region in the middle of the element initiate a drag.
+
+   * Added a new drag and drop event: onInvalidDrop.  This is executed when
+     the dragged element in dropped in a location without a target.  Previously
+     this condition could only detected by implementing handlers for three 
+     other events.
+
+   * Now accepts an element reference in lieu of an id.  Ids will
+     be generated if the element does not have one.
+
+   * Fixed horizontal autoscroll when scrollTop is zero.
+
+   * Added hasOuterHandles property to bypass the isOverTarget check in the
+     mousedown validation routine.  Fixes setOuterHandleElId.
+
+0.11.4
+
+   * YAHOO.util.DragDropMgr.swapNode now handles adjacent nodes properly
+   
+   * Fixed missing variable declarations
+
+0.11.3
+ 
+   * Fixed a JavaScript error that would be generated when trying to implement
+     DDProxy using the default settings and a tiny element.
+
+   * Fixed an error that resulted when constraints were applied to DragDrop 
+     instances.
+
+0.11.2
+
+   * Drag and drop will no longer interfere with selecting text on elements
+     that are not involved in drag and drop.
+
+   * The shared drag and drop proxy element now resizes correctly when autoResize
+     is enabled.
+
+0.11.1
+
+   * Fixes an issue where the setXY cache could get out of sync if the element's
+     offsetParent is changed during onDragDrop.
+
+0.11.0
+
+   * The Dom.util.setXY calculation for the initial placement of the dragged
+     element is cached during the drag, enhancing the drag performance.
+
+   * DDProxy no longer enforces having a single proxy element for all instances.
+     dragElId can be set in the config object in the constructor.  If the
+     element already exists it will use that element, otherwise a new one will
+     be created with that id.
+
+   * DDProxy->borderWidth has been removed. The value is calculated on the fly
+     instead.
+
+   * Added DragDrop->clearTicks and DragDrop->clearConstraints
+
+   * All drag and drop constructors now have an additional, optional parameter
+     call "config".  It is an object that can contain properties for a
+     number of configuration settings.
+
+   * Drag and drop will not be disabled for elements that cannot have their
+     location determined.
+
+   * isLegalTarget won't return dd objects that are not targetable.
+
+   * Added DragDrop->removeFromGroup.
+
+   * Constraints are now applied properly when determining which drag and drop
+     events should fire.
+
+
+0.10.0
+
+   * Improved the performance when in intersect mode
+
+   * It was possible for the drag and drop initialization to be skipped
+     for very slow loading pages.  This was fixed.
+
+   * New methods to exclude regions within your drag and drop element: 
+     addInvalidHandleId(), addInvalidHandleClass()
+
+   * Added an onAvailable handler that is executed after the initial state is set.
+
+   * Drag and drop is more forgiving when the implementer attempts to create the
+     instance prior to the element being in the document, but after the window
+     load event has fired.
+
+
+
+YUI Library - Event - Release Notes
+
+0.12.0
+
+   * If the function argument is not provided to Event.removeListener, all
+     all listeners for the specified event type on the element will be removed.
+
+   * CustomEvent now has an optional parameter that defines the signature of
+     the listeners for this event.  Two signatures are supported:
+
+       YAHOO.util.CustomEvent.LIST:
+         param1: event name
+         param2: array of arguments provided to fire()
+         param3: <optional> the custom object supplied to subscribe()
+
+       YAHOO.util.CustomEvent.FLAT:
+         param1: the first argument provided to fire()
+         param2: <optional> the custom object supplied to subscribe()
+
+     The new flat signature makes it possible to provide a better API 
+     when using custom events, and it makes it possible to transparently 
+     wrap DOM events.
+   
+   * The parameters for overriding scope in both Event.addListener, and
+     CustomEvent.subscribe have been augmented.  In addition to the 
+     previous behavior where a true value would make the previous parameter
+     the execution scope, an object can be supplied instead.  If an object
+     is provided, that object becomes the scope obj.  This makes it possible 
+     to pass a both a custom object and adjust the scope to a different object.
+
+   * Added EventProvider, which is a wrapper for CustomEvent that makes it
+     possible to subscribe to events by name, whether or not the event has
+     been created.  This class was designed to be used with YAHOO.augment.
+     EventProvider custom events are created with the new FLAT listener
+     signature.
+
+   * CustomEvent subscribers can return false to stop the propagation of
+     the event.
+
+   * CustomEvents now have an onSubscribe custom event that can used to the
+     case where a subscriber subscribes to an one-time event that has already
+     happened.  Also provides a way for the implementer to defer initialization
+     logic until after the first subscription.
+
+   * Event.getCharCode now always returns keyCode if charCode is not available.
+
+   * Added Event.onContentReady, which is similar to onAvailable, but it also
+     checks simblings to try to determine when the element's children are
+     available.
+
+0.11.4
+
+   * Fixed a memory leak in IE6 that occurred when the utility was hosted in 
+     an iframe.
+
+   * Fixed an issue with Safari click listeners when listeners were removed.
+
+0.11.3
+
+   * The listener cache is now pruned when events are removed.  This fixes
+     a performance issue when adding many listeners, removing them, and
+     adding them again repeatedly.
+
+   * Safari click listeners will work correctly if a bound element is removed
+     from the DOM and a new element with the same ID is added.
+
+   * Removed the code that automatically unsubscribed custom event listeners.
+
+0.11.0
+
+   * Added Event.purgeElement which will remove all listeners added via 
+     addListener from the supplied element.  If an optional "type" parameter
+     is supplied, only events of that type will be removed.  Optionally, the
+     purge can be performed recursively on the element's children as well.
+
+   * Added Event.getListeners which will return all listeners attached to 
+     a given element.. either all listeners or listeners of a specific type.
+
+   * getTarget now automatically resolves text nodes.  The optional parameter
+     for this feature is now deprecated.
+
+   * getRelatedTarget now resolves text nodes for the browsers that return the
+     text node rather than its host HTML element.
+
+   * CustomEvent now logs the custom event activity if the logger widget is available
+
+0.10.0
+
+   * Added Safari dblclick to the list of legacy events.
+
+   * When multiple identical event handlers are defined, multiple calls
+     to removeListener can now remove all of them.
+
+   * removeListener works properly for unload events
+
+   * Legacy event bookkeeping is more efficient, improving the performance for
+     adding Safari click events.
+
+   * _unload() is more efficient, improving the page transition experience in 
+     Safari in particular.
+
+   * addListener, removeListener now return false if the function argument is
+     not valid.
+
+   * Fixed an operator precedence issue in getCharCode.
+
+   * Added Event.getXY, which returns [Event.getPageX(e), Event.getPageY(e)]
+
+   * Added Event.onAvailable, which will execute the callback when the element
+     with the supplied id is found.  Currently searches periodically until the
+     window load event or for up to 10 seconds after the onAvailable method 
+     was executed.
+
+   * The lazy listener attachment process now will poll beyond the window load
+     event in order to better handle the case when a listener is defined
+     late in the page but before the element is in the dom.
+
+   * Fixed browser detection for Opera installations reporting as IE.
+
+   * It is now possible to remove and re-add legacy events (Safari click event).
+
+
+YUI Library - Fonts - Release Notes
+
+Version 0.12.0
+
+  * No changes.
+
+Version 0.11.0
+
+  * No changes.
+
+Version 0.10.0
+
+  * Initial release.
+
+YUI Library - Grids - Release Notes
+
+Version 0.12.0
+
+  * Removed redundant "text-align:left" from nodes below #doc.
+
+  * Removed small-font treatment on #ft.
+
+  * Removed margin-bottom from #hd,#bd.
+
+  * Added two new #doc definitions (#doc2 and #doc3) that provide 
+    950px centered and 100% page width presets to supplement the 
+    original 750px centered page width.
+
+  * Made ".first" selectors more precise by binding to divs, to 
+    make it less likely that our .first definitions will impact 
+    nested content elements wishing to use this nomenclature.
+
+  * Fixed "nested yui-gc" bug.
+
+  * Fixed build-process whitespace bug with .yui-t2 and .yui-t5.
+
+  * Migrated .yui-t's technique to "negative margins" technique 
+    from "floated ems".
+
+  * The "negative margins" technique caused z-index issues, so 
+    position:relative was added to the secondary yui-b to enable 
+	correct z-index.
+
+  * Make optimization benefits from inheritence wins via code 
+    reorganizations.
+
+Version 0.11.0
+
+  * Removed line #43 because it set an already-set value.
+    Was: ".yui-t7  #main .yui-b{min-width:750px;}"
+  
+Version 0.10.0
+
+  * Initial release.
+Logger Release Notes
+
+*** version 0.12.0 ***
+
+* Added method formatMsg(oLogMsg) to support custom formatting of log messages
+for output to a LogReader.
+
+
+
+*** version 0.11.3 ***
+
+* The Logger static method enableFirebug() has been RENAMED to
+enableBrowserConsole().
+
+* The Logger static method disableFirebug() has been RENAMED to
+disableBrowserConsole().
+
+* By default, the Logger will not automatically output to Firebug or Safari's
+JavaScript console. To enable this feature, implementers should now explicitly
+call
+YAHOO.widget.Logger.enableBrowserConsole().
+
+* Implementers may now cap the size of the YAHOO.widget.Logger stack by setting
+the property YAHOO.widget.Logger.maxStackEntries.
+
+* Implementers may now control the number of items displayed in each console by
+setting the LogReader properties thresholdMax and thresholdMin.
+
+
+
+*** version 0.11.0 ***
+
+* Initial release
+
+
+Menu Release Notes
+
+*** version 0.10.0 ***
+
+* Initial release
+
+* Known issues:
+
+      * Some Firefox extensions disable the ability for JavaScript to prevent  
+        the display of the browser's default context menu.  These extensions
+        can cause the YUI ContextMenu to stop working.  If you encounter this 
+        problem, you can reset the context menu preference in Firefox back to 
+        the default by making sure the "Disable or replace context menus" 
+        preference is checked:
+
+            Mac Firefox 1.0: 
+            -------------------
+            Preferences > Web Features > 
+                Advanced... > Disable or replace context menus
+
+            Mac Firefox 1.5
+            -------------------
+            Preferences > Context > 
+                Advanced... > Disable or replace context menus
+
+            Windows Firefox 1.0
+            -------------------
+            Tools > Options > Web Features > 
+                Advanced... > Disable or replace context menus
+
+            Windows Firefox 1.5
+            -------------------
+            Tools > Options > Context > 
+                Advanced... > Disable or replace context menus
+                
+
+*** version 0.11.0 ***
+
+Added the following features:
+-----------------------------
+* Overloaded the "addItem" and "insertItem" methods of MenuModule to accept a 
+  string or a MenuModuleItem instance
+
+* Added the ability to define a MenuItem instance as being "checked"
+
+
+Fixed the following bugs:
+-------------------------
+* Changing the path for the submenu indicator image of one MenuModuleItem 
+  subclass will no longer affect other subclasses
+
+* MenuItem instances built from existing markup without anchor tags will no 
+  longer trigger a JavaScript error when clicked
+
+* Modified the implementation of the "imageRoot" property for the 
+  MenuModuleItem class so that it is set to a secure/non-secure path when the
+  object is instantiated
+
+* Menu instances now resize in response to changes to the browser's font size
+
+* Modified the propagation of the MenuModule class's "submenualignment" 
+  configuration property so that it only applies to instances of the same type
+
+* Adjusted the specificity of the style rule that controls the position of a 
+  MenuItem instance's submenu indicator image to prevent it from wrapping in IE
+
+* Specified a width and height for submenu indicator images in the Menu 
+  stylesheet to ensure that Menu instances are always rendered at the correct 
+  width
+
+* Clicking a MenuItem instance will no longer trigger two HTTP GET requests
+
+* Users can now control or shift-click on MenuItem links
+
+
+Changes:
+--------
+* In the Menu stylesheet (menu.css), switched from using "first" class to
+  "first-of-type" class
+
+* Changed case of MenuModuleItem class's "subMenuIndicator" property 
+  to "submenuIndicator"
+  
+
+*** version 0.11.3 ***
+
+Added the following features:
+-----------------------------
+
+* Added a "target" configuration property to the MenuModuleItem object that
+  allows the user to specify the target of an item's anchor element.  Items 
+  that make use of the "target" configuration property will require the user 
+  to click exactly on the item's anchor element to navigate to the specified 
+  URL.
+
+* Items without a "url" property set will automatically hide their parent 
+  menu instance(s) when clicked.
+
+
+Fixed the following bugs:
+-------------------------
+
+* Items in a submenu should now navigate to their specified URL when clicked.
+
+* Removed MenuBar's use of "overflow:hidden."  This fixes an issue in Firefox
+  1.5 in which submenus of a Menubar instance cannot overlay other absolutely 
+  positioned elements on the page.
+
+* Submenus of a Menubar instance will now automatically have their iframe shim
+  enabled in IE<7.
+
+* Statically positioned Menubar and Menu instances will now render with the 
+  correct position and dimensions in Safari.
+
+* MenuModuleItem's "focus" method now checks to make sure that an item's 
+  "display" style property is not "none" before trying to set focus to its
+  anchor element.
+  
+* A ContextMenu instance will now hide all other ContextMenu instances before
+  displaying itself.
+
+* Removed the dead space in front of an item's submenu indicator image in IE.  
+  This space was causing an item's submenu to flicker when the user hovered 
+  over it.
+
+
+Changes:
+--------
+
+* Moved the DOM event handlers for every menu from the root DIV node of each 
+  instance to the document object.  This change reduces the number of DOM event 
+  handlers used by Menu to eight, improving the cleanup time required by the 
+  Event utility.
+  
+  
+*** version 0.12 ***
+
+Added the following features:
+-----------------------------
+
+* Added the YAHOO.widget.MenuManager singleton class.
+
+* Added two new methods to YAHOO.widget.Menu:
+
+    * "addItems" - Adds an array of items to a menu.
+
+    * "getRoot" - Returns the root menu in a menu hierarchy.
+
+* Added two new events to YAHOO.widget.Menu:
+
+    * "itemAddedEvent" - Fires when an item is added to a menu.
+
+    * "itemRemovedEvent" - Fires when an item is removed from a menu.
+
+* Added two new properties to YAHOO.widget.Menu:
+
+    * "itemData" - Array of items to be added to the menu.
+
+    * "lazyLoad" - Boolean indicating if the menu's "lazy load" feature 
+      is enabled.
+
+* Added new configuration properties to YAHOO.widget.Menu:
+
+    * "hidedelay" - Hides the menu after the specified number of milliseconds.  
+
+    * "showdelay" - Shows the menu after the specified number of milliseconds.  
+
+    * "container" - The containing element the menu should be rendered into.  
+
+    * "clicktohide" - Boolean indicating if the menu will automatically be 
+      hidden if the user clicks outside of it.
+
+    * "autosubmenudisplay" - Boolean indicating if submenus are automatically 
+      made visible when the user mouses over the menu's items.
+
+* Added a "toString" method to YAHOO.widget.MenuItem, YAHOO.widget.MenuBarItem 
+  and YAHOO.widget.ContextMenuItem that returns the class name followed by the 
+  value of the item's "text" configuration property.
+
+
+Fixed the following bugs:
+-------------------------
+
+* Setting a YAHOO.widget.ContextMenu instance's "trigger" configuration 
+  property will remove all previous triggers before setting up the new ones.
+
+* "destroy" method of YAHOO.widget.ContextMenu cleans up all DOM event handlers.
+
+* Clicking on a menu item with a submenu no longer hides/collapses the 
+  entire menu.
+
+* Clicking an item's submenu indicator image no longer collapses the 
+  entire menu.
+  
+  
+Changes:
+--------
+
+* Deprecated the YAHOO.widget.MenuModule and YAHOO.widget.MenuModuleItem 
+  classes.  The Base classes are now YAHOO.widget.Menu and 
+  YAHOO.widget.MenuItem.
+
+* "addItem" and "insertItem" methods of YAHOO.widget.Menu now accept an 
+  object literal representing YAHOO.widget.MenuItem configuration properties.
+
+* "clearActiveItem" now takes an argument: flag indicating if the Menu 
+  instance's active item should be blurred.
+
+* Switched the default value of the "visible" configuration property for 
+  YAHOO.widget.Menu to "false."
+
+* Switched the default value of the "constraintoviewport" configuration 
+  property for YAHOO.widget.Menu to "true."
+
+* Overloaded the "submenu" configuration property for YAHOO.widget.MenuItem
+  so that it now can accept any of the following:
+
+    * YAHOO.widget.Menu instance
+    * Object literal representation of a menu
+    * Element id
+    * Element reference
+
+* "hide" and "show" methods of statically positioned menus now toggle the their
+  element's "display" style property between "block" and "none."
+YUI Library - Reset - Release Notes
+
+Version 0.12.0
+
+  * Added: h1,h2,h3,h4,h5,h6{font-weight:normal;}
+
+  * Added: abbr,acronym {border:0;}
+  
+  * Added: textarea {padding:0;margin:0;}
+
+Version 0.11.0
+
+  * No changes.
+
+Version 0.10.0
+
+  * Initial release.
+YUI Library - Reset+Fonts+Grids (RFG) - Release Notes
+
+Version 0.12.0
+
+  * Initial release.
+  
+  * This file is a convenience file containing an in-order 
+    concatenation of Reset, Fonts, and Grids.
+Slider - Release Notes
+
+0.12.0
+
+   * Added "slideStart", "slideEnd", and "change" custom events.  The abstract
+     methods these will eventually replace still work.
+
+   * The default animation duration is 0.2 seconds (reduced from 0.4 seconds),
+     and is configurable via the animationDuration property.
+
+   * Keyboard navigation is now built in.  The background needs a tabindex for
+     keyboard nav to work.  Keyboard nav can be disabled by setting enableKeys
+     to false.  The number of pixels the slider moves when the arrow keys
+     are pressed is controlled by keyIncrement, and defaults to 20.  Note, 
+     Safari support limited to background element types that support focus
+     in that browser. http://bugs.webkit.org/show_bug.cgi?id=7138
+
+   * Fixed broken doctype in examples/index.html
+
+   * Catching an unhandled script exception in FF that could occur when
+     attempting to focus the slider background while a text field without
+     autocomplete="false" has focus
+
+0.11.3
+
+   * No change
+
+0.11.0
+
+   * When the thumb is clicked and dragged, the click position delta is properly
+     applied.
+
+   * The slider background can be disabled by setting backgroundEnabled to false.
+
+   * Added SliderThumb->clearTicks
+
+   * Incorporated updated drag and drop performance improvements
+
+0.10.0
+
+   * Drag and drop's autoscroll feature is now turned off by default
+     in the slider.
+
+   * The slider no longer sets its initial value upon initialization
+
+   * RGB slider example fixed for IE7.
+
+   * Updated to work with the onAvailable feature in Drag and Drop.
+
+   * Updated the basic slider example page to make the control more
+     accessible to non-FF1.5 browsers.
+
+   * Split the examples into separate pages
+
+
+Tabview Release Notes
+
+*** version 0.12.0 ***
+
+* Initial release
+
+
+TreeView - Release Notes
+
+0.12.0
+
+  * TreeView now augments EventProvider, and has custom events for expand,
+    collapse, animStart, animComplete, and labelClick.  Existing implementations
+    using abstract methods for these events (if they exist) will still work.
+    New events can be plugged into the tree by the Node implementation.  For
+    example, TaskNode adds a checkClick event.  EventProvider makes it safe
+    to do this because implementing code can call subscribe() prior to the
+    event creation.
+
+  * YAHOO.util.Event is now a requirement for the widget
+
+  * TreeView::removeChildren no longer expands and collapses the node.
+
+  * Documented the moveComplete property
+
+  * createElement("DIV") changed to createElement("div")
+
+0.11.4
+
+   * Fixed a javascript error on the HTML node example page.
+
+0.11.3
+
+   * popNode now clears the tree, previousSibling, nextSibling, and parent
+     properties of the node that is being removed from the tree.
+
+   * Fixed the paths to the images in the tree.css file that is included in
+     build/assets.
+
+0.11.0
+
+   * Added TreeView -> popNode, which differs from removeNode in that the
+     node's children are preserved so the entire branch can be re-inserted
+     into another part of the tree, or another tree.
+
+   * Added TreeView -> getNodesByProperty, which differs from 
+     getNodeByProperty by returning an array of all nodes that have the
+     specified property rather than just the first one.
+
+   * Added Node -> insertBefore, insertAfter, and appendTo.  These method
+     can be used to reorganize the tree.
+
+   * removeChildren properly resets the node icon when executed against a 
+     collpased node.
+     
+   * Moved depth assignment from the constructor to appendChild so that the
+     value is set properly if the node is moved within the tree.
+
+   * Fixed broken loop in removeChildren.
+
+   * RootNode -> loadComplete calls tree.draw for hot-wiring the dynamic load
+     feature for the top level nodes.
+
+   * The treeview constructor will accept an element instead of an id.
+
+0.10.0
+
+   * If the child collection changes prior to a refresh(), the icon is now
+     changed appropriately.
+
+   * Added TreeView removeChildren(node).  This will recursively purge the node's
+     children, and reset its dynamic load state.  
+
+   * previousSibling and nextSibling are now adjusted correctly when a
+     node is deleted.
+
+   * expand()/collapse() now will not expand/collapse the node if false is
+     returned from the onExpand/onCollapse event handlers.
+
+   * The onExpand and onCollapse events now fire before the node is expanded
+     or collapsed so that the implementer can modify the node's child collection
+     prior to display.
+
+   * The childrenRendered property previous was used to indicate both that
+     a dynamically loaded node has received its data, and also to indicate
+     that the children html has been created.  This has been split into
+     two properties.  dynamicLoadComplete and childrenRendered.
+
+   * Implemented the renderHidden flag.  If set to true, the html for the entire
+     tree will be created when tree.draw() is called, not just the html for the
+     visible nodes.
+
+   * Added an onLabelClick listener to TextNode
+
+   * TreeView.removeNode no longer automatically refreshes the tree.  It has an
+     optional parameter to perform the refresh.
+
+   * removeNode can now be executed on nodes that have not been rendered.
+
+   * You can now delete top-level nodes.
+
+   * Added onCheckClick listener to the TaskNode example
+
+   * Added Node.iconMode, which is a property that configures the way 
+     dynamically loaded nodes are displayed when they are expanded and contain 
+     no children.
+
+   * TreeView/Node.setDynamicLoad now accepts an optional second parameter to 
+     set the iconMode property.
+
+   * Fixed an issue in the TaskNode.js example that prevented setting the checked
+     state of a node through the constructor.
+
+   * Fixed an issue in HTMLNode that caused rendering issues when hasIcon was 
+     set to true.
+
+   * Added TreeView.removeNode
+
+   * Added Node.refresh
+
+utilities.js Release Notes
+
+*** version 0.12.0 ***
+
+The utilities.js file rolls up all of the YUI utility components into a single
+file; it includes the following components:
+
+* Yahoo Global Object
+* Event
+* Dom
+* Connection Manager
+* Animation
+* Drag & Drop
+
+For implementations that use a significant subset of these files, it may prove
+more efficient to include utilities.js as opposed to including separate files
+for each component.
+
+Note: If you are require only the Yahoo Global Object, Event Utility and Dom
+collection, consider using the special yahoo-event-dom.js aggregate instead.
+
+YAHOO Global Namespace - Release Notes
+
+0.12.0
+
+   * Added YAHOO.augment, which copies all or part of the prototype of one
+     object to another.  
+
+   * YAHOO.namespace now can create multiple namespaces.
+
+   * Added an optional third parameter to YAHOO.extend: overrides.  It takes
+     an object literal of properties/methods to apply to the subclass
+     prototype, overriding the superclass if present.
+
+0.11.4
+
+   * Changed window.YAHOO = window.YAHOO || {} to 
+     if (typeof YAHOO == "undefined") YAHOO = {} because the previous statement
+     contributed to a memory leak in IE6 when the library was hosted in an 
+     iframe.
+
+0.11.3
+
+   * Changed var YAHOO = window.YAHOO || {} to window.YAHOO = window.YAHOO || {}.
+     This fixes an issue in IE where YAHOO would get overwritten if previously
+     defined via array notation (window["YAHOO"]).
+
+0.11.0
+
+   * Added YAHOO.extend, which provides an easy way to assign the prototype,
+     constructor, and superclass properties inheritance properties.  It also
+     prevents the constructor of the superclass from being exectuted twice.
+
+0.10.0
+
+   * Added YAHOO.log that provides a safe way to plumb logging statements in
+     code that will work if the logging component isn't available.
+
+
+yahoo-event-dom.js Release Notes
+
+*** version 0.12.0 ***
+
+The yahoo-event-dom.js file rolls up the three most commonly-used YUI Utilities
+into a single file; it includes the following files:
+
+* Yahoo Global Object
+* Event
+* Dom
+
+These three files serve as a common foundation for most YUI components and
+third-party implementations.  On pages where you do not need additional YUI
+Utilities (Connection Manager, Animation Utility, Drag & Drop Utility), the
+yahoo-event-dom.js aggregate will often be an optimal choice.
+
+Note: If you do require additional utilities, the full utilities.js file is
+provided in this distribution; utilities.js includes all YUI Utilities in a
+single file.
+
+Please see the blog article on www.yuiblog.com titled "YUI: Weighing in on
+Pageweights" at http://yuiblog.com/blog/2006/10/16/pageweight-yui0114/ for more
+details.
+
+This directory contains images rendering the subsection-header text for the website (which is rendered as an image in the first place because it's oriented vertically, rather than horizontally, and there's no good way to get HTML to do this).  This directory should be writable by the server.
+
+## 2.0 BOOTSTRAP JS PHILOSOPHY
+These are the high-level design rules which guide the development of Bootstrap's plugin apis.
+
+---
+
+### DATA-ATTRIBUTE API
+
+We believe you should be able to use all plugins provided by Bootstrap purely through the markup API without writing a single line of javascript.
+
+We acknowledge that this isn't always the most performant and sometimes it may be desirable to turn this functionality off altogether. Therefore, as of 2.0 we provide the ability to disable the data attribute API by unbinding all events on the body namespaced with `'data-api'`. This looks like this:
+
+    $('body').off('.data-api')
+
+To target a specific plugin, just include the plugins name as a namespace along with the data-api namespace like this:
+
+    $('body').off('.alert.data-api')
+
+---
+
+### PROGRAMATIC API
+
+We also believe you should be able to use all plugins provided by Bootstrap purely through the JS API.
+
+All public APIs should be single, chainable methods, and return the collection acted upon.
+
+    $(".btn.danger").button("toggle").addClass("fat")
+
+All methods should accept an optional options object, a string which targets a particular method, or null which initiates the default behavior:
+
+    $("#myModal").modal() // initialized with defaults
+    $("#myModal").modal({ keyboard: false }) // initialized with now keyboard
+    $("#myModal").modal('show') // initializes and invokes show immediately afterqwe2
+
+---
+
+### OPTIONS
+
+Options should be sparse and add universal value. We should pick the right defaults.
+
+All plugins should have a default object which can be modified to effect all instance's default options. The defaults object should be available via `$.fn.plugin.defaults`.
+
+    $.fn.modal.defaults = { … }
+
+An options definition should take the following form:
+
+    *noun*: *adjective* - describes or modifies a quality of an instance
+
+examples:
+
+    backdrop: true
+    keyboard: false
+    placement: 'top'
+
+---
+
+### EVENTS
+
+All events should have an infinitive and past participle form. The infinitive is fired just before an action takes place, the past participle on completion of the action.
+
+    show | shown
+    hide | hidden
+
+---
+
+### CONSTRUCTORS
+
+Each plugin should expose it's raw constructor on a `Constructor` property -- accessed in the following way:
+
+
+    $.fn.popover.Constructor
+
+---
+
+### DATA ACCESSOR
+
+Each plugin stores a copy of the invoked class on an object. This class instance can be accessed directly through jQuery's data API like this:
+
+    $('[rel=popover]').data('popover') instanceof $.fn.popover.Constructor
+
+---
+
+### DATA ATTRIBUTES
+
+Data attributes should take the following form:
+
+- data-{{verb}}={{plugin}} - defines main interaction
+- data-target || href^=# - defined on "control" element (if element controls an element other than self)
+- data-{{noun}} - defines class instance options
+
+examples:
+
+    // control other targets
+    data-toggle="modal" data-target="#foo"
+    data-toggle="collapse" data-target="#foo" data-parent="#bar"
+
+    // defined on element they control
+    data-spy="scroll"
+
+    data-dismiss="modal"
+    data-dismiss="alert"
+
+    data-toggle="dropdown"
+
+    data-toggle="button"
+    data-toggle="buttons-checkbox"
+    data-toggle="buttons-radio"
+## 2.0 BOOTSTRAP JS PHILOSOPHY
+These are the high-level design rules which guide the development of Bootstrap's plugin apis.
+
+---
+
+### DATA-ATTRIBUTE API
+
+We believe you should be able to use all plugins provided by Bootstrap purely through the markup API without writing a single line of javascript. This is bootstraps first class api.
+
+We acknowledge that this isn't always the most performant and sometimes it may be desirable to turn this functionality off altogether. Therefore, as of 2.0 we provide the ability to disable the data attribute API by unbinding all events on the body namespaced with `'data-api'`. This looks like this:
+
+    $('body').off('.data-api')
+
+To target a specific plugin, just include the plugins name as a namespace along with the data-api namespace like this:
+
+    $('body').off('.alert.data-api')
+
+---
+
+### PROGRAMATIC API
+
+We also believe you should be able to use all plugins provided by Bootstrap purely through the JS API.
+
+All public APIs should be single, chainable methods, and return the collection acted upon.
+
+    $(".btn.danger").button("toggle").addClass("fat")
+
+All methods should accept an optional options object, a string which targets a particular method, or null which initiates the default behavior:
+
+    $("#myModal").modal() // initialized with defaults
+    $("#myModal").modal({ keyboard: false }) // initialized with no keyboard
+    $("#myModal").modal('show') // initializes and invokes show immediately
+
+---
+
+### OPTIONS
+
+Options should be sparse and add universal value. We should pick the right defaults.
+
+All plugins should have a default object which can be modified to affect all instances' default options. The defaults object should be available via `$.fn.plugin.defaults`.
+
+    $.fn.modal.defaults = { … }
+
+An options definition should take the following form:
+
+    *noun*: *adjective* - describes or modifies a quality of an instance
+
+examples:
+
+    backdrop: true
+    keyboard: false
+    placement: 'top'
+
+---
+
+### EVENTS
+
+All events should have an infinitive and past participle form. The infinitive is fired just before an action takes place, the past participle on completion of the action.
+
+    show | shown
+    hide | hidden
+
+All infinitive events should provide preventDefault functionality. This provides the abililty to stop the execution of an action.
+
+    $('#myModal').on('show', function (e) {
+        if (!data) return e.preventDefault() // stops modal from being shown
+    })
+
+---
+
+### CONSTRUCTORS
+
+Each plugin should expose its raw constructor on a `Constructor` property -- accessed in the following way:
+
+
+    $.fn.popover.Constructor
+
+---
+
+### DATA ACCESSOR
+
+Each plugin stores a copy of the invoked class on an object. This class instance can be accessed directly through jQuery's data API like this:
+
+    $('[rel=popover]').data('popover') instanceof $.fn.popover.Constructor
+
+---
+
+### DATA ATTRIBUTES
+
+Data attributes should take the following form:
+
+- data-{{verb}}={{plugin}} - defines main interaction
+- data-target || href^=# - defined on "control" element (if element controls an element other than self)
+- data-{{noun}} - defines class instance options
+
+examples:
+
+    // control other targets
+    data-toggle="modal" data-target="#foo"
+    data-toggle="collapse" data-target="#foo" data-parent="#bar"
+
+    // defined on element they control
+    data-spy="scroll"
+
+    data-dismiss="modal"
+    data-dismiss="alert"
+
+    data-toggle="dropdown"
+
+    data-toggle="button"
+    data-toggle="buttons-checkbox"
+    data-toggle="buttons-radio"
+[Twitter Bootstrap](http://twitter.github.com/bootstrap) [![Build Status](https://secure.travis-ci.org/twitter/bootstrap.png)](http://travis-ci.org/twitter/bootstrap)
+=================
+
+Bootstrap provides simple and flexible HTML, CSS, and Javascript for popular user interface components and interactions. In other words, it's a front-end toolkit for faster, more beautiful web development. It's created and maintained by [Mark Otto](http://twitter.com/mdo) and [Jacob Thornton](http://twitter.com/fat) at Twitter.
+
+To get started, checkout http://twitter.github.com/bootstrap!
+
+
+
+Quick start
+-----------
+
+Clone the repo, `git clone git@github.com:twitter/bootstrap.git`, or [download the latest release](https://github.com/twitter/bootstrap/zipball/master).
+
+
+
+Versioning
+----------
+
+For transparency and insight into our release cycle, and for striving to maintain backward compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
+
+Releases will be numbered with the follow format:
+
+`<major>.<minor>.<patch>`
+
+And constructed with the following guidelines:
+
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
+
+For more information on SemVer, please visit http://semver.org/.
+
+
+
+Bug tracker
+-----------
+
+Have a bug? Please create an issue here on GitHub!
+
+https://github.com/twitter/bootstrap/issues
+
+
+
+Twitter account
+---------------
+
+Keep up to date on announcements and more by following Bootstrap on Twitter, [@TwBootstrap](http://twitter.com/TwBootstrap).
+
+
+
+Blog
+----
+
+Read more detailed announcements, discussions, and more on [The Official Twitter Bootstrap Blog](http://blog.getbootstrap.com).
+
+
+
+Mailing list
+------------
+
+Have a question? Ask on our mailing list!
+
+twitter-bootstrap@googlegroups.com
+
+http://groups.google.com/group/twitter-bootstrap
+
+
+
+IRC
+---
+
+Server: irc.freenode.net
+
+Channel: ##twitter-bootstrap (the double ## is not a typo)
+
+
+
+Developers
+----------
+
+We have included a makefile with convenience methods for working with the Bootstrap library.
+
++ **dependencies**
+Our makefile depends on you having recess, uglify.js, and jshint installed. To install, just run the following command in npm:
+
+```
+$ npm install recess uglify-js jshint -g
+```
+
++ **build** - `make`
+Runs the recess compiler to rebuild the `/less` files and compiles the docs pages. Requires recess and uglify-js. <a href="http://twitter.github.com/bootstrap/less.html#compiling">Read more in our docs &raquo;</a>
+
++ **test** - `make test`
+Runs jshint and qunit tests headlessly in phantom js (used for ci). Depends on having phatomjs installed.
+
++ **watch** - `make watch`
+This is a convenience method for watching just Less files and automatically building them whenever you save. Requires the Watchr gem.
+
+
+
+Authors
+-------
+
+**Mark Otto**
+
++ http://twitter.com/mdo
++ http://github.com/markdotto
+
+**Jacob Thornton**
+
++ http://twitter.com/fat
++ http://github.com/fat
+
+
+
+Copyright and license
+---------------------
+
+Copyright 2012 Twitter, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this work except in compliance with the License.
+You may obtain a copy of the License in the LICENSE file, or at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+Readme File For the ESP Website
+====================================
+
+modified:
+    -4/4/07 (axiak)
+
+You have presumably downloaded the source code for ESP's web site.
+Welcome to this project. If you have any questions, feel free to email
+the webmasters at web@esp.mit.edu.
+
+To install, please follow the information in INSTALL.   
+
+aseering, Spark 2010
+
+This is a script that uses curl to hammer on the add/remove class link as fast as possible.
+
+Note that launching this script many times in parallel doesn't actually do what you want (despite the fact that I included a script to help do so) because most of your page requests will be "Error, you already added that class!" or "Error: You're not in that class, you can't remove it!".  The script would need to be modified such that each instance of the script tried to add/remove a different class.
+
+These are some of the original emails from designing the lottery.
+If you're trying to figure out how it works, reading these may
+be useful. However, there's no real guarantee that they're still
+accurate or relevant.
+

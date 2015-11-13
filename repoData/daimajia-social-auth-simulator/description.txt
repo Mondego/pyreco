@@ -1,0 +1,145 @@
+Social-Auth-Simulator
+===============
+
+###中文名：
+
+社交网络自动化认证
+
+###目标：
+
+脱离浏览器，提供自动化授权和获取access_token的解决方案。
+
+###进展：
+
+* 豆瓣开发中...
+*	支持腾讯微博（2013-05-31）
+*	支持Renren（2013-05-30）
+*	支持Weibo （2013-01-18）
+
+###演示:
+
+App想要获取某个用户的授权，得到`access_token`，而后获取用户社交网络数据
+
+常规做法：弹出浏览器->请求网页->用户输入密码->获取access_token
+
+来吧，让我们来自动化这一切：用户输入密码->获取token
+
+看个人人获取token的例子：
+
+```python
+
+from renren import RenrenAutoAuth
+
+api = RenrenAutoAuth('你的app Id','你的 app Key','你的app secret','你的app redirect uri','人人账号','人人密码')
+
+print api.get_access_token()
+
+```
+
+如何，是否够精简?
+
+###什么？你有些担心？！
+
+我想你一定有些担心，你的程序语言不是python，没有关系，我还提供了php/server端认证，只要你把php文件部署在server端，不论什么语言，构造query数据发送到服务器，自动化认证和授权就交给服务器吧，最终像获取网页数据一样得到`accesss_token`的`json`数据。
+
+并且 `http://autoauth.sinaapp.com/weibo` 长期服务，您可放心使用，使用方式，如下图：
+
+![](http://ww4.sinaimg.cn/mw690/610dc034jw1e8tbude577j20jt0ggdhn.jpg)
+
+###还在犹豫什么？投入使用吧！
+
+###关于我：
+我是个学生，酷爱开发，擅长Android、php、python、nodejs、web，如果您手头有适合我的实习机会，欢迎邮件联系我:  [daimajia#gmail.com](mailto:daimajia@gmail.com)
+
+*	[西北大学](http://zh.wikipedia.org/wiki/%E8%A5%BF%E5%8C%97%E5%A4%A7%E5%AD%A6_(%E4%B8%AD%E5%9B%BD)
+*	北京师范大学
+*	我的站点: [Daimajia](http://www.zhan-dui.com)
+*	我的微博:[代码家](http://weibo.com/daimajia)
+*	Twitter:[LinHuiwen](http://twitter.com/LinHuiwen)
+*	Instagram:[daimajia](http://instagram.com/daimajia)
+
+你也可以留意[我的Android项目](https://github.com/xuanqinanhai/little-bear-dictionary)
+
+
+
+
+
+
+
+
+
+### 人人自动认证
+
+#### 关于
+
+提供足够信息，包括`app_id`,`app_key`,`app_secret`.`app_redirect_uri`,`人人username`,`人人password`，不用再开浏览器，即可完成所有的授权获取到access_token等信息。
+
+####Demo
+接口简单至极:
+
+```python
+
+from renren import RenrenAutoAuth
+
+api = RenrenAutoAuth('你的app Id','你的 app Key','你的app secret','你的app redirect uri','人人账号','人人密码')
+
+print api.get_access_token()
+
+```
+
+###腾讯微博登陆，授权，认证
+
+用法依旧简单至极
+
+```python
+
+from tencentweibo import TencentWeiboAutoAuth
+
+api = TencentWeiboClient('app id','app_secret','app_redirect_uri','qq号','qq 密码')
+print api.get_access_token()
+print 'OpenId:',api.get_openid()
+print 'OpenKey:',api.get_openkey()
+
+```
+
+	一切在本地即可完成模拟登陆、授权、获取access_token
+	让密码更安全。
+
+### 用法：
+
+```python
+from weibo import WeiboAutoAuth
+
+api = WeiboAutoAuth('你的app_key','你的app_secret','你的appredirect_uri','微博用户名','微博密码')
+
+print api.get_access_token()
+
+```
+
+###关于微博模拟认证
+`说明：`该目录存在两个文件夹
+
+*	`local`:local提供了本地的认证方法，只要提供微博用户名、密码、app_key、app_secret、callback uri即可本地的完成所有认证流程，直接得到可用的token。
+*	`server`:将微博用户名和密码发回到服务器，服务器端进行认证和获取授权，而后返回token。
+#用法：
+
+#预备工作
+采用了python `Falsk`web框架，请预先安装
+
+安装方法：`pip install flask` or `easy_install flask`
+
+#部署
+
+1.部署Server文件夹中 `index.py`, `../local/weibo.py` 以及两个目录下的`__init__.py` 文件到服务器
+
+2.在test.py中填入你的部署的`auth_url`地址，并且填入你的测试账号的微博用户名，微博密码
+ 
+3.执行`python test.py`即可查看到获取的`access_token`系列数据。
+
+也可以直接采用本地测试方法：
+
+1	`python index.py`启动服务器
+
+2	填入test.py中用户名和密码
+
+3	`python test.py`

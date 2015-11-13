@@ -1,0 +1,282 @@
+# spec
+
+## What is it?
+
+`spec` is a Python (2.6+ and 3.3+) testing tool that turns this:
+
+![Boring old nosetests
+output](https://github.com/bitprophet/spec/raw/master/web/before.png)
+
+into this:
+
+![Awesome new spec output](https://github.com/bitprophet/spec/raw/master/web/after.png)
+
+Specifically, `spec` provides:
+
+* Colorized, specification style output
+* Colorized tracebacks and summary
+* Test-running CLI tool which enables useful non-default options and implements
+  relaxed test discovery for less `test_annoying.py:TestBoilerplate.test_code`
+  and more `readable.py:Classes.and_methods`.
+
+## Spec-style output
+
+`spec` is a [BDD](http://behavior-driven.org)-esque
+[nose](http://nose.readthedocs.org) plugin designed to provide "specification"
+style test output (similar to Java's
+[TestDox](http://agiledox.sourceforge.net/) or Ruby's
+[RSpec](https://www.relishapp.com/rspec)). Spec-style output provides a more
+structured view of what your tests assert, compared to `nose`/`unittest`'s
+default "flat" mode of operation.
+
+For example, this `nose`-style test module:
+
+```python
+class TestShape(object):
+    def test_has_sides(self):
+        pass
+
+    def test_can_calculate_its_perimeter(self):
+        pass
+
+class TestSquare(object):
+    def test_is_a_shape(self):
+        pass
+
+    def test_has_four_sides(self):
+        pass
+
+    def test_has_sides_of_equal_length(self):
+        pass
+```
+
+normally tests like so, in a single flat list:
+
+    TestShape.test_has_sides ... ok
+    TestShape.test_can_calculate_its_perimeter ... ok
+    TestSquare.test_has_four_sides ... ok
+    TestSquare.test_has_sides_of_equal_length ... ok
+    TestSquare.test_is_a_shape ... ok
+
+With `spec` enabled (`--with-spec`), the tests are visually grouped by class,
+and the member names are tweaked to read more like regular English:
+
+    Shape
+    - has sides
+    - can calculate its perimeter
+
+    Square
+    - has four sides
+    - has sides of equal length
+    - is a shape
+
+In other words:
+
+* Class-based tests are arranged with the class name as the subject, and the
+  methods as the specifications;
+* Any module-level tests are arranged with the module name as the subject;
+* All objects' docstrings are used as their descriptions, if found. Otherwise:
+    * `CamelCaseNames` (typically classes) have any leading/trailing `Test`
+      stripped, as well as any trailing underscore;
+    * `CamelCaseNames` also get turned into sentences if necessary, so e.g.
+    `CamelCaseNames` becomes `Camel case names`;
+    * `underscored_names` have any leading/trailing `test` (with its attached
+      underscore) stripped;
+    * `underscored_names` have underscores turned into spaces;
+
+
+## Test runner
+
+`spec` ships with a same-name command-line tool which may be used as a more
+liberal `nosetests`. In addition to toggling a number of useful default options
+(such as `nose`'s builtin `--detailed-errors`) `spec`-the-program will honor
+any and all public objects defined within your project's `tests` directory,
+meaning any file, function or class whose name does not begin with an
+underscore (`'_'`) and which is defined locally.
+
+For example, given the following code inside `tests/feature_name.py`:
+
+```python
+from external_module import a_function, AClass
+
+def _helper_function(args):
+    return a_function(args)
+
+class _Parent(object):
+    def this_will_not_get_tested():
+        pass
+
+class Feature(_Parent):
+    def should_have_some_attribute(self):
+        _helper_function(AClass)
+
+    def does_something_awesome(self):
+        self._helper_method()
+
+    def _helper_method(self):
+        pass
+
+def something_tested_by_itself_outside_a_class():
+    pass
+```
+
+only the following items will be picked up as test cases:
+
+* `Feature.should_have_some_attribute`
+* `Feature.does_something_awesome`
+* `something_tested_by_itself_outside_a_class`
+
+The imported function and class, the underscored functions/methods, and the
+methods inherited from a parent class, are all ignored.
+
+### Enhanced output via the Spec class
+
+As with some other spec-style tools, `spec` provides a means for nesting your
+test "contexts" so they display nicely during test runs. Just use the `Spec`
+class as your primary superclass and inner classes will get parsed
+automatically.
+
+For example:
+
+```python
+from spec import Spec
+
+class ClassUnderTest(Spec):
+    def it_behaves_like_this(self):
+        # ...
+
+    class init:
+        "__init__"
+        def takes_arg1(self):
+            # ...
+
+        def takes_arg2(self):
+            # ...
+```
+
+The above results in output like so:
+
+    Class under test
+    - it behaves like this
+    
+        __init__
+        - takes arg1
+        - takes arg2
+
+This indentation makes output even easier to follow & helps keep things
+organized.
+
+#### Accessing outer classes from inner ones
+
+Frequently, you may have a useful `setup` method in your outer class, and wish
+to access objects attached to `self` from inner classes. As of Spec 0.11.0 this
+is now possible and is quite transparent; failed attribute lookups will check
+an instantiated + setup'd copy of the outer class:
+
+```python
+class MainClass(Spec):
+    def setup(self):
+        self.x = 'y'
+
+    def outer_test(self):
+        assert self.x == 'y'
+
+    class some_inner_class:
+        def inner_test(self):
+            # Here, because some_inner_class has no real 'x' attribute, we end
+            # up seeing the outer class' value.
+            assert self.x == 'y'
+```
+
+Right now this support is pretty basic and assumes your setup methods are
+literally named `setup`, not `setUp` or whatnot. This will likely improve in
+the future.
+
+### Usage tips
+
+Following from `spec`-the-tool's discovery algorithm, and `spec`-the-plugin's
+name transformation, we suggest the following for both readable code and
+readable test output:
+
+* Store tests in `tests/`, with whatever file-by-file organization you like
+  best;
+* Within files, import the classes under test normally, e.g. `from mymodule
+  import MyClass`;
+* Name the test classes identically, but with a trailing underscore to avoid
+  name collisions, e.g. `class MyClass_(object): [...]`
+* Name their methods like English sentences, e.g. `def has_attribute_X(self):
+  [...]`.
+
+For example:
+
+```python
+from mypackage import MyClass, MyOtherClass
+
+class MyClass_(object):
+    def has_attribute_A(self):
+        pass
+
+class MyOtherClass_(object):
+    def also_has_attribute_A(self):
+        pass
+
+    def has_attribute_B(self):
+        pass
+```
+
+tests as:
+
+```
+MyClass
+- has attribute A
+
+MyOtherClass
+- also has attribute A
+- has attribute B
+```
+
+
+## Activation / command-line use
+
+After installation via `setup.py`, `pip` or what have you, `nosetests` will
+expose these new additional options/flags:
+
+* `--with-spec`: enables the plugin and prints out your tests in specification
+  format. Also automatically sets `--verbose` (i.e. the spec output is a
+  verbose format.)
+* `--no-spec-color`: disables color output. Normally, successes are green,
+  failures/errors are red, and
+  [skipped](http://nose.readthedocs.org/en/latest/plugins/skip.html) tests are
+  yellow.
+* `--spec-doctests`: enables (experimental) support for doctests.
+
+
+## Why would I want to use it?
+
+Specification-style output can make large test suites easier to read, and like any other BDD tool, it's more about framing the way we think about (and view) our tests, and less about introducing new technical methods for writing them.
+
+
+## Where did it come from?
+
+`spec` is heavily based on the `spec` plugin for Titus Brown's
+[pinocchio](http://darcs.idyll.org/~t/projects/pinocchio/doc/#spec-generate-test-description-from-test-class-method-names)
+set of Nose extensions. Said plugin was originally written by Michal
+Kwiatkowski. Both `pinocchio` and its `spec` plugin are copyright &copy; 2007
+in the above two gentlemen's names, respectively.
+
+This version of the plugin was created and distributed by Jeff Forcier, &copy;
+2011. It tweaks the original source to be Python 2.7 compatible, based on
+[similar](https://github.com/unpluggd/pinocchio/commit/de30d5f7868280a2b9e3545c48e68dd0d9a343a0)
+[changes](https://github.com/bitprophet/rudolf/commit/7c872e7deeff622de62a439b8e4dd807047c095e).
+It also fixes a handful of bugs such as broken
+[SkipTest](http://nose.readthedocs.org/en/latest/plugins/skip.html)
+compatibility under Nose 1.x, and then adds some additional functionality on
+top (most notably the `spec` command-line tool.)
+
+
+## What's the license?
+
+Because this is heavily derivative of `pinocchio`, `spec` is licensed the same
+way -- under the [MIT
+license](http://www.opensource.org/licenses/mit-license.php).
+

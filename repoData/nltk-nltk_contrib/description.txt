@@ -1,0 +1,1659 @@
+Each of the subdirectories <foo>.d contains files of the following kind:
+
+<foo>n?.tex   -- latex file with slides in beamer format
+<foo>n?-notes.tex -- wrapper file to produce handouts
+<foo>n?-lec.tex -- wrapper file to produce pdf for the lecture slides
+
+For example, chart.d contains:
+
+chart1.tex
+chart1-notes.tex
+chart1-lec.tex
+
+and similarly for chart2.tex etc.
+
+      The synttree package for typesetting syntactic trees
+
+      Version 1.4
+
+The "synttree" package provides a simple way to typeset syntactic trees as
+used in Chomsky's Generative Grammar.
+
+To use the package, download synttree.dtx and synttree.ins. Then run
+
+  tex synttree.ins
+
+to generate synttree.sty. Place that file somewhere LaTeX will find it.
+
+Documentation can be found in synttree.pdf (generated from synttree.dtx).
+
+This package has been released under the terms of the Latex Project Public
+License, version 1.3a.
+Copyright (C) 1998, 2001, 2004, 2005 by Matijs van Zuijlen
+
+
+5/5/10
+
+This directory contains 2 implementations of the Gale-Church alignment algorithm:
+
+1. gale_church.py
+2. align.py 
+        api.py
+        align_util.py
+        distance_measures.py
+    
+This README concerns the second implementation which I am the author of
+(ccrowner@gmail.com).
+
+########################################################
+TESTING
+
+align.py can be tested using:
+
+python test2.py chapter1_madame_bovary_fr.txt chapter1_madame_bovary_en.txt fr en
+(using data/ versions causes decode problems in the plaintext reader)
+
+This will print output from various demo alignments (see test.py code) as well as
+an alignment of the first chapter of Madame Bovary in the original French to an English
+translation (non-copyrighted!)
+
+The ground truth for the demo alignments is in the data folder. The demo_eval() routine
+in test.py could be activated to do an evaluation (currently not sure if it works)
+
+The ground truth to Madame Bovary alignment is not in data (I will make it available).
+
+The test.py program runs the Gale-Church alignment on Madame Bovary using an 
+'extended' option which unlike the 'original' option of the Gale-Church algorithm
+considers 3-1, 3-2, 1-3, 2-3, 3-3 alignments. This is a 1-3 and a 3-1 alignment in the
+ground truth of Madame Bovary. The program did not correctly handle these (all other
+alignments output were correct). It may have erred because of the probabilities
+(penalties) in the distance_measures.three_side_distance() routine. It may have 
+erred because of a faulty implementation. Finally, Gale-Church may simply fail on
+these cases. If someone discovers the real reason PLEASE let me know!
+
+##########################################################
+CHANGES
+
+The following are the major changes since the last version:
+
+1. align_util.covert_bead_to_tuples() now works!!
+2. print_alignments now works!!
+
+both these routines are for output - the base algorithm produced correct
+results (though they may have not have looked that way in the output!)
+
+3. the api.py includes a recursive_align call which can do alignments from chapters,
+to paragraphs, to sentences, to words, to ...
+
+4. the test.py program show how a plain text file can be used as input using the
+nltk PlaintextCorpusReader (using punkt for sentence breaking)
+
+5. As mentioned in the testing section above there is a new 'extended' alignment
+option which considers 3-1, 3-2, 1-3, 2-3, 3-3 alignments
+
+6. other minor changes 
+
+###########################################################
+TO DO:
+Unicode problems. The printed alignment are not UTF-8. This may best be handled 
+at input (which also has problems which may be a simple as BOM or file formats). 
+Haven't worked at it yet (if anyone has some fix, please pass it on)
+
+The program should have option to print out an ARCADE or TEI style alignment file.
+
+Eventually, I hope to make available a Madame Bovary corpus with 6 English translations
+of Madame Bovary along with German, Spanish, Italian and Russian translations.
+All these translations are written by humans - I also have translations produced using
+Google Translate toolkit (any preferred languages let me know)
+
+Again, eventually all these translations will be easily worked with using TEI formats
+Why not NOW?? Well, "data management/integration" is a pain and I hope to use 
+alignment algorithms of my own devising to produce ground truth (first pass at least) 
+for the translations (leaving something undone gives me motivation on this ;-)
+
+
+1. Title of Database: Annealing Data
+
+2. Source Information: donated by David Sterling and Wray Buntine.
+
+3. Past Usage: unknown
+
+4. Relevant Information:
+   -- Explanation: I suspect this was left by Ross Quinlan in 1987 at the
+      4th Machine Learning Workshop.  I'd have to check with Jeff Schlimmer
+      to double check this.
+
+5. Number of Instances: 798
+
+6. Number of Attributes: 38
+   -- 6 continuously-valued
+   -- 3 integer-valued
+   -- 29 nominal-valued
+
+7. Attribute Information:
+    1. family:		--,GB,GK,GS,TN,ZA,ZF,ZH,ZM,ZS
+    2. product-type:	C, H, G
+    3. steel:		-,R,A,U,K,M,S,W,V
+    4. carbon:		continuous
+    5. hardness:	continuous
+    6. temper_rolling:	-,T
+    7. condition:	-,S,A,X
+    8. formability:	-,1,2,3,4,5
+    9. strength:	continuous
+   10. non-ageing:	-,N
+   11. surface-finish:	P,M,-
+   12. surface-quality: -,D,E,F,G
+   13. enamelability:	-,1,2,3,4,5
+   14. bc:		Y,-
+   15. bf:		Y,-
+   16. bt:		Y,-
+   17. bw/me:		B,M,-
+   18. bl:		Y,-
+   19. m:		Y,-
+   20. chrom:		C,-
+   21. phos:		P,-
+   22. cbond:		Y,-
+   23. marvi:		Y,-
+   24. exptl:		Y,-
+   25. ferro:		Y,-
+   26. corr:		Y,-
+   27. blue/bright/varn/clean:		B,R,V,C,-
+   28. lustre:		Y,-
+   29. jurofm:		Y,-
+   30. s:		Y,-
+   31. p:		Y,-
+   32. shape:		COIL, SHEET
+   33. thick:		continuous
+   34. width:		continuous
+   35. len:		continuous
+   36. oil:		-,Y,N
+   37. bore:		0000,0500,0600,0760
+   38. packing:	-,1,2,3
+   classes:        1,2,3,4,5,U
+ 
+   -- The '-' values are actually 'not_applicable' values rather than
+      'missing_values' (and so can be treated as legal discrete
+      values rather than as showing the absence of a discrete value).
+
+8. Missing Attribute Values: Signified with "?"
+   Attribute:  Number of instances missing its value:
+   1           0
+   2           0
+   3           70
+   4           0
+   5           0
+   6           675
+   7           271
+   8           283
+   9           0
+  10           703
+  11           790
+  12           217
+  13           785
+  14           797
+  15           680
+  16           736
+  17           609
+  18           662
+  19           798
+  20           775
+  21           791
+  22           730
+  23           798
+  24           796
+  25           772
+  26           798
+  27           793
+  28           753
+  29           798
+  30           798
+  31           798
+  32           0
+  33           0
+  34           0
+  35           0
+  36           740
+  37           0
+  38           789
+  39           0
+
+9. Distribution of Classes
+     Class Name:   Number of Instances:
+     1               8
+     2              88
+     3             608
+     4               0
+     5              60
+     U              34
+                   ---
+                   798
+
+Description of the Dataset:
+
+THIS CREDIT DATA ORIGINATES FROM QUINLAN (see below).   
+
+1. Title: Australian Credit Approval
+
+2. Sources: 
+    (confidential)
+    Submitted by quinlan@cs.su.oz.au
+
+3.  Past Usage:
+
+    See Quinlan,
+    * "Simplifying decision trees", Int J Man-Machine Studies 27,
+      Dec 1987, pp. 221-234.
+    * "C4.5: Programs for Machine Learning", Morgan Kaufmann, Oct 1992
+  
+4.  Relevant Information:
+
+    This file concerns credit card applications.  All attribute names
+    and values have been changed to meaningless symbols to protect
+    confidentiality of the data.
+  
+    This dataset is interesting because there is a good mix of
+    attributes -- continuous, nominal with small numbers of
+    values, and nominal with larger numbers of values.  There
+    are also a few missing values.
+  
+5.  Number of Instances: 690
+
+6.  Number of Attributes: 14 + class attribute
+
+7.  Attribute Information:   THERE ARE 6 NUMERICAL AND 8 CATEGORICAL ATTRIBUTES.
+ 
+                             THE LABELS HAVE BEEN CHANGED FOR THE CONVENIENCE
+                             OF THE STATISTICAL ALGORITHMS.   FOR EXAMPLE,
+                             ATTRIBUTE 4 ORIGINALLY HAD 3 LABELS p,g,gg AND
+                             THESE HAVE BEEN CHANGED TO LABELS 1,2,3.
+                             
+
+    A1:	0,1    CATEGORICAL
+        a,b
+    A2:	continuous.
+    A3:	continuous.
+    A4:	1,2,3         CATEGORICAL
+        p,g,gg
+    A5:  1, 2,3,4,5, 6,7,8,9,10,11,12,13,14    CATEGORICAL
+         ff,d,i,k,j,aa,m,c,w, e, q, r,cc, x 
+         
+    A6:	 1, 2,3, 4,5,6,7,8,9    CATEGORICAL
+        ff,dd,j,bb,v,n,o,h,z 
+
+    A7:	continuous.
+    A8:	1, 0       CATEGORICAL
+        t, f.
+    A9: 1, 0	    CATEGORICAL
+        t, f.
+    A10:	continuous.
+    A11:  1, 0	    CATEGORICAL
+          t, f.
+    A12:    1, 2, 3    CATEGORICAL
+            s, g, p 
+    A13:	continuous.
+    A14:	continuous.
+    A15:   1,2
+           +,-         (class attribute)
+
+8.  Missing Attribute Values:
+    37 cases (5%) HAD one or more missing values.  The missing
+    values from particular attributes WERE:
+
+    A1:  12
+    A2:  12
+    A4:   6
+    A5:   6
+    A6:   9
+    A7:   9
+    A14: 13
+    
+    THESE WERE REPLACED BY THE MODE OF THE ATTRIBUTE (CATEGORICAL)
+                               MEAN OF THE ATTRIBUTE (CONTINUOUS)
+                           
+9.  Class Distribution
+  
+    +: 307 (44.5%)    CLASS 2
+    -: 383 (55.5%)    CLASS 1
+
+
+10.  There is no cost matrix.
+
+
+Citation Request:
+   This breast cancer domain was obtained from the University Medical Centre,
+   Institute of Oncology, Ljubljana, Yugoslavia.  Thanks go to M. Zwitter and 
+   M. Soklic for providing the data.  Please include this citation if you plan
+   to use this database.
+
+1. Title: Breast cancer data (Michalski has used this)
+
+2. Sources: 
+   -- Matjaz Zwitter & Milan Soklic (physicians)
+      Institute of Oncology 
+      University Medical Center
+      Ljubljana, Yugoslavia
+   -- Donors: Ming Tan and Jeff Schlimmer (Jeffrey.Schlimmer@a.gp.cs.cmu.edu)
+   -- Date: 11 July 1988
+
+3. Past Usage: (Several: here are some)
+     -- Michalski,R.S., Mozetic,I., Hong,J., & Lavrac,N. (1986). The 
+        Multi-Purpose Incremental Learning System AQ15 and its Testing 
+        Application to Three Medical Domains.  In Proceedings of the 
+        Fifth National Conference on Artificial Intelligence, 1041-1045,
+        Philadelphia, PA: Morgan Kaufmann.
+        -- accuracy range: 66%-72%
+     -- Clark,P. & Niblett,T. (1987). Induction in Noisy Domains.  In 
+        Progress in Machine Learning (from the Proceedings of the 2nd
+        European Working Session on Learning), 11-30, Bled, 
+        Yugoslavia: Sigma Press.
+        -- 8 test results given: 65%-72% accuracy range
+     -- Tan, M., & Eshelman, L. (1988). Using weighted networks to 
+        represent classification knowledge in noisy domains.  Proceedings 
+        of the Fifth International Conference on Machine Learning, 121-134,
+        Ann Arbor, MI.
+        -- 4 systems tested: accuracy range was 68%-73.5%
+    -- Cestnik,G., Konenenko,I, & Bratko,I. (1987). Assistant-86: A
+       Knowledge-Elicitation Tool for Sophisticated Users.  In I.Bratko
+       & N.Lavrac (Eds.) Progress in Machine Learning, 31-45, Sigma Press.
+       -- Assistant-86: 78% accuracy
+
+4. Relevant Information:
+     This is one of three domains provided by the Oncology Institute
+     that has repeatedly appeared in the machine learning literature.
+     (See also lymphography and primary-tumor.)
+
+     This data set includes 201 instances of one class and 85 instances of
+     another class.  The instances are described by 9 attributes, some of
+     which are linear and some are nominal.
+
+5. Number of Instances: 286
+
+6. Number of Attributes: 9 + the class attribute
+
+7. Attribute Information:
+   1. Class: no-recurrence-events, recurrence-events
+   2. age: 10-19, 20-29, 30-39, 40-49, 50-59, 60-69, 70-79, 80-89, 90-99.
+   3. menopause: lt40, ge40, premeno.
+   4. tumor-size: 0-4, 5-9, 10-14, 15-19, 20-24, 25-29, 30-34, 35-39, 40-44,
+                  45-49, 50-54, 55-59.
+   5. inv-nodes: 0-2, 3-5, 6-8, 9-11, 12-14, 15-17, 18-20, 21-23, 24-26,
+                 27-29, 30-32, 33-35, 36-39.
+   6. node-caps: yes, no.
+   7. deg-malig: 1, 2, 3.
+   8. breast: left, right.
+   9. breast-quad: left-up, left-low, right-up,	right-low, central.
+  10. irradiat:	yes, no.
+
+8. Missing Attribute Values: (denoted by "?")
+   Attribute #:  Number of instances with missing values:
+   6.             8
+   9.             1.
+
+9. Class Distribution:
+    1. no-recurrence-events: 201 instances
+    2. recurrence-events: 85 instances
+
+1. Title: Pima Indians Diabetes Database
+
+2. Sources:
+   (a) Original owners: National Institute of Diabetes and Digestive and
+                        Kidney Diseases
+   (b) Donor of database: Vincent Sigillito (vgs@aplcen.apl.jhu.edu)
+                          Research Center, RMI Group Leader
+                          Applied Physics Laboratory
+                          The Johns Hopkins University
+                          Johns Hopkins Road
+                          Laurel, MD 20707
+                          (301) 953-6231
+   (c) Date received: 9 May 1990
+
+3. Past Usage:
+    1. Smith,~J.~W., Everhart,~J.~E., Dickson,~W.~C., Knowler,~W.~C., \&
+       Johannes,~R.~S. (1988). Using the ADAP learning algorithm to forecast
+       the onset of diabetes mellitus.  In {\it Proceedings of the Symposium
+       on Computer Applications and Medical Care} (pp. 261--265).  IEEE
+       Computer Society Press.
+
+       The diagnostic, binary-valued variable investigated is whether the
+       patient shows signs of diabetes according to World Health Organization
+       criteria (i.e., if the 2 hour post-load plasma glucose was at least 
+       200 mg/dl at any survey  examination or if found during routine medical
+       care).   The population lives near Phoenix, Arizona, USA.
+
+       Results: Their ADAP algorithm makes a real-valued prediction between
+       0 and 1.  This was transformed into a binary decision using a cutoff of 
+       0.448.  Using 576 training instances, the sensitivity and specificity
+       of their algorithm was 76% on the remaining 192 instances.
+
+4. Relevant Information:
+      Several constraints were placed on the selection of these instances from
+      a larger database.  In particular, all patients here are females at
+      least 21 years old of Pima Indian heritage.  ADAP is an adaptive learning
+      routine that generates and executes digital analogs of perceptron-like
+      devices.  It is a unique algorithm; see the paper for details.
+
+5. Number of Instances: 768
+
+6. Number of Attributes: 8 plus class 
+
+7. For Each Attribute: (all numeric-valued)
+   1. Number of times pregnant
+   2. Plasma glucose concentration a 2 hours in an oral glucose tolerance test
+   3. Diastolic blood pressure (mm Hg)
+   4. Triceps skin fold thickness (mm)
+   5. 2-Hour serum insulin (mu U/ml)
+   6. Body mass index (weight in kg/(height in m)^2)
+   7. Diabetes pedigree function
+   8. Age (years)
+   9. Class variable (0 or 1)
+
+8. Missing Attribute Values: None
+
+9. Class Distribution: (class value 1 is interpreted as "tested positive for
+   diabetes")
+
+   Class Value  Number of instances
+   0            500
+   1            268
+
+10. Brief statistical analysis:
+
+    Attribute number:    Mean:   Standard Deviation:
+    1.                     3.8     3.4
+    2.                   120.9    32.0
+    3.                    69.1    19.4
+    4.                    20.5    16.0
+    5.                    79.8   115.2
+    6.                    32.0     7.9
+    7.                     0.5     0.3
+    8.                    33.2    11.8
+
+
+Description of the German credit dataset.
+
+1. Title: German Credit data
+
+2. Source Information
+
+Professor Dr. Hans Hofmann  
+Institut f"ur Statistik und "Okonometrie  
+Universit"at Hamburg  
+FB Wirtschaftswissenschaften  
+Von-Melle-Park 5    
+2000 Hamburg 13 
+
+3. Number of Instances:  1000
+
+Two datasets are provided.  the original dataset, in the form provided
+by Prof. Hofmann, contains categorical/symbolic attributes and
+is in the file "german.data".   
+ 
+For algorithms that need numerical attributes, Strathclyde University 
+produced the file "german.data-numeric".  This file has been edited 
+and several indicator variables added to make it suitable for 
+algorithms which cannot cope with categorical variables.   Several
+attributes that are ordered categorical (such as attribute 17) have
+been coded as integer.    This was the form used by StatLog.
+
+
+6. Number of Attributes german: 20 (7 numerical, 13 categorical)
+   Number of Attributes german.numer: 24 (24 numerical)
+
+
+7.  Attribute description for german
+
+Attribute 1:  (qualitative)
+	       Status of existing checking account
+               A11 :      ... <    0 DM
+	       A12 : 0 <= ... <  200 DM
+	       A13 :      ... >= 200 DM /
+		     salary assignments for at least 1 year
+               A14 : no checking account
+
+Attribute 2:  (numerical)
+	      Duration in month
+
+Attribute 3:  (qualitative)
+	      Credit history
+	      A30 : no credits taken/
+		    all credits paid back duly
+              A31 : all credits at this bank paid back duly
+	      A32 : existing credits paid back duly till now
+              A33 : delay in paying off in the past
+	      A34 : critical account/
+		    other credits existing (not at this bank)
+
+Attribute 4:  (qualitative)
+	      Purpose
+	      A40 : car (new)
+	      A41 : car (used)
+	      A42 : furniture/equipment
+	      A43 : radio/television
+	      A44 : domestic appliances
+	      A45 : repairs
+	      A46 : education
+	      A47 : (vacation - does not exist?)
+	      A48 : retraining
+	      A49 : business
+	      A410 : others
+
+Attribute 5:  (numerical)
+	      Credit amount
+
+Attibute 6:  (qualitative)
+	      Savings account/bonds
+	      A61 :          ... <  100 DM
+	      A62 :   100 <= ... <  500 DM
+	      A63 :   500 <= ... < 1000 DM
+	      A64 :          .. >= 1000 DM
+              A65 :   unknown/ no savings account
+
+Attribute 7:  (qualitative)
+	      Present employment since
+	      A71 : unemployed
+	      A72 :       ... < 1 year
+	      A73 : 1  <= ... < 4 years  
+	      A74 : 4  <= ... < 7 years
+	      A75 :       .. >= 7 years
+
+Attribute 8:  (numerical)
+	      Installment rate in percentage of disposable income
+
+Attribute 9:  (qualitative)
+	      Personal status and sex
+	      A91 : male   : divorced/separated
+	      A92 : female : divorced/separated/married
+              A93 : male   : single
+	      A94 : male   : married/widowed
+	      A95 : female : single
+
+Attribute 10: (qualitative)
+	      Other debtors / guarantors
+	      A101 : none
+	      A102 : co-applicant
+	      A103 : guarantor
+
+Attribute 11: (numerical)
+	      Present residence since
+
+Attribute 12: (qualitative)
+	      Property
+	      A121 : real estate
+	      A122 : if not A121 : building society savings agreement/
+				   life insurance
+              A123 : if not A121/A122 : car or other, not in attribute 6
+	      A124 : unknown / no property
+
+Attribute 13: (numerical)
+	      Age in years
+
+Attribute 14: (qualitative)
+	      Other installment plans 
+	      A141 : bank
+	      A142 : stores
+	      A143 : none
+
+Attribute 15: (qualitative)
+	      Housing
+	      A151 : rent
+	      A152 : own
+	      A153 : for free
+
+Attribute 16: (numerical)
+              Number of existing credits at this bank
+
+Attribute 17: (qualitative)
+	      Job
+	      A171 : unemployed/ unskilled  - non-resident
+	      A172 : unskilled - resident
+	      A173 : skilled employee / official
+	      A174 : management/ self-employed/
+		     highly qualified employee/ officer
+
+Attribute 18: (numerical)
+	      Number of people being liable to provide maintenance for
+
+Attribute 19: (qualitative)
+	      Telephone
+	      A191 : none
+	      A192 : yes, registered under the customers name
+
+Attribute 20: (qualitative)
+	      foreign worker
+	      A201 : yes
+	      A202 : no
+
+
+
+8.  Cost Matrix
+
+This dataset requires use of a cost matrix (see below)
+
+
+      1        2
+----------------------------
+  1   0        1
+-----------------------
+  2   5        0
+
+(1 = Good,  2 = Bad)
+
+the rows represent the actual classification and the columns
+the predicted classification.
+
+It is worse to class a customer as good when they are bad (5), 
+than it is to class a customer as bad when they are good (1).
+
+
+| 1. Title: Glass Identification Database
+| 
+| 2. Sources:
+|     (a) Creator: B. German
+|         -- Central Research Establishment
+|            Home Office Forensic Science Service
+|            Aldermaston, Reading, Berkshire RG7 4PN
+|     (b) Donor: Vina Spiehler, Ph.D., DABFT
+|                Diagnostic Products Corporation
+|                (213) 776-0180 (ext 3014)
+|     (c) Date: September, 1987
+| 
+| 3. Past Usage:
+|     -- Rule Induction in Forensic Science
+|        -- Ian W. Evett and Ernest J. Spiehler
+|        -- Central Research Establishment
+|           Home Office Forensic Science Service
+|           Aldermaston, Reading, Berkshire RG7 4PN
+|        -- Unknown technical note number (sorry, not listed here)
+|        -- General Results: nearest neighbor held its own with respect to the
+|              rule-based system
+| 
+| 4. Relevant Information:n
+|       Vina conducted a comparison test of her rule-based system, BEAGLE, the
+|       nearest-neighbor algorithm, and discriminant analysis.  BEAGLE is 
+|       a product available through VRS Consulting, Inc.; 4676 Admiralty Way,
+|       Suite 206; Marina Del Ray, CA 90292 (213) 827-7890 and FAX: -3189.
+|       In determining whether the glass was a type of "float" glass or not,
+|       the following results were obtained (# incorrect answers):
+| 
+|              Type of Sample                            Beagle   NN    DA
+|              Windows that were float processed (87)     10      12    21
+|              Windows that were not:            (76)     19      16    22
+| 
+|       The study of classification of types of glass was motivated by 
+|       criminological investigation.  At the scene of the crime, the glass left
+|       can be used as evidence...if it is correctly identified!
+| 
+| 5. Number of Instances: 214
+| 
+| 6. Number of Attributes: 10 (including an Id#) plus the class attribute
+|    -- all attributes are continuously valued
+| 
+| 7. Attribute Information:
+|    1. Id number: 1 to 214
+|    2. RI: refractive index
+|    3. Na: Sodium (unit measurement: weight percent in corresponding oxide, as 
+|                   are attributes 4-10)
+|    4. Mg: Magnesium
+|    5. Al: Aluminum
+|    6. Si: Silicon
+|    7. K: Potassium
+|    8. Ca: Calcium
+|    9. Ba: Barium
+|   10. Fe: Iron
+|   11. Type of glass: (class attribute)
+|       -- 1 building_windows_float_processed
+|       -- 2 building_windows_non_float_processed
+|       -- 3 vehicle_windows_float_processed
+|       -- 4 vehicle_windows_non_float_processed (none in this database)
+|       -- 5 containers
+|       -- 6 tableware
+|       -- 7 headlamps
+| 
+| 8. Missing Attribute Values: None
+| 
+| Summary Statistics:
+| Attribute:   Min     Max      Mean     SD      Correlation with class
+|  2. RI:       1.5112  1.5339   1.5184  0.0030  -0.1642
+|  3. Na:      10.73   17.38    13.4079  0.8166   0.5030
+|  4. Mg:       0       4.49     2.6845  1.4424  -0.7447
+|  5. Al:       0.29    3.5      1.4449  0.4993   0.5988
+|  6. Si:      69.81   75.41    72.6509  0.7745   0.1515
+|  7. K:        0       6.21     0.4971  0.6522  -0.0100
+|  8. Ca:       5.43   16.19     8.9570  1.4232   0.0007
+|  9. Ba:       0       3.15     0.1750  0.4972   0.5751
+| 10. Fe:       0       0.51     0.0570  0.0974  -0.1879
+| 
+| 9. Class Distribution: (out of 214 total instances)
+|     -- 163 Window glass (building windows and vehicle windows)
+|        -- 87 float processed  
+|           -- 70 building windows
+|           -- 17 vehicle windows
+|        -- 76 non-float processed
+|           -- 76 building windows
+|           -- 0 vehicle windows
+|     -- 51 Non-window glass
+|        -- 13 containers
+|        -- 9 tableware
+|        -- 29 headlamps
+|
+
+This database contains 13 attributes (which have been extracted from
+a larger set of 75)       
+  
+
+
+Attribute Information:
+------------------------
+      -- 1. age       
+      -- 2. sex       
+      -- 3. chest pain type  (4 values)       
+      -- 4. resting blood pressure  
+      -- 5. serum cholestoral in mg/dl      
+      -- 6. fasting blood sugar > 120 mg/dl       
+      -- 7. resting electrocardiographic results  (values 0,1,2) 
+      -- 8. maximum heart rate achieved  
+      -- 9. exercise induced angina    
+      -- 10. oldpeak = ST depression induced by exercise relative to rest   
+      -- 11. the slope of the peak exercise ST segment     
+      -- 12. number of major vessels (0-3) colored by flourosopy        
+      -- 13.  thal: 3 = normal; 6 = fixed defect; 7 = reversable defect     
+
+Attributes types
+-----------------
+
+Real: 1,4,5,8,10,12
+Ordered:11,
+Binary: 2,6,9
+Nominal:7,3,13
+
+Variable to be predicted
+------------------------
+Absence (1) or presence (2) of heart disease
+
+Cost Matrix
+
+	 abse  pres
+absence	  0	1
+presence  5	0
+
+where the rows represent the true values and the columns the predicted.
+
+No missing values.
+
+270 observations
+
+1. Title: Iris Plants Database
+
+2. Sources:
+     (a) Creator: R.A. Fisher
+     (b) Donor: Michael Marshall (MARSHALL%PLU@io.arc.nasa.gov)
+     (c) Date: July, 1988
+
+3. Past Usage:
+   - Publications: too many to mention!!!  Here are a few.
+   1. Fisher,R.A. "The use of multiple measurements in taxonomic problems"
+      Annual Eugenics, 7, Part II, 179-188 (1936); also in "Contributions
+      to Mathematical Statistics" (John Wiley, NY, 1950).
+   2. Duda,R.O., & Hart,P.E. (1973) Pattern Classification and Scene Analysis.
+      (Q327.D83) John Wiley & Sons.  ISBN 0-471-22361-1.  See page 218.
+   3. Dasarathy, B.V. (1980) "Nosing Around the Neighborhood: A New System
+      Structure and Classification Rule for Recognition in Partially Exposed
+      Environments".  IEEE Transactions on Pattern Analysis and Machine
+      Intelligence, Vol. PAMI-2, No. 1, 67-71.
+      -- Results:
+         -- very low misclassification rates (0% for the setosa class)
+   4. Gates, G.W. (1972) "The Reduced Nearest Neighbor Rule".  IEEE 
+      Transactions on Information Theory, May 1972, 431-433.
+      -- Results:
+         -- very low misclassification rates again
+   5. See also: 1988 MLC Proceedings, 54-64.  Cheeseman et al's AUTOCLASS II
+      conceptual clustering system finds 3 classes in the data.
+
+4. Relevant Information:
+   --- This is perhaps the best known database to be found in the pattern
+       recognition literature.  Fisher's paper is a classic in the field
+       and is referenced frequently to this day.  (See Duda & Hart, for
+       example.)  The data set contains 3 classes of 50 instances each,
+       where each class refers to a type of iris plant.  One class is
+       linearly separable from the other 2; the latter are NOT linearly
+       separable from each other.
+   --- Predicted attribute: class of iris plant.
+   --- This is an exceedingly simple domain.
+
+5. Number of Instances: 150 (50 in each of three classes)
+
+6. Number of Attributes: 4 numeric, predictive attributes and the class
+
+7. Attribute Information:
+   1. sepal length in cm
+   2. sepal width in cm
+   3. petal length in cm
+   4. petal width in cm
+   5. class: 
+      -- Iris Setosa
+      -- Iris Versicolour
+      -- Iris Virginica
+
+8. Missing Attribute Values: None
+
+Summary Statistics:
+	         Min  Max   Mean    SD   Class Correlation
+   sepal length: 4.3  7.9   5.84  0.83    0.7826   
+    sepal width: 2.0  4.4   3.05  0.43   -0.4194
+   petal length: 1.0  6.9   3.76  1.76    0.9490  (high!)
+    petal width: 0.1  2.5   1.20  0.76    0.9565  (high!)
+
+9. Class Distribution: 33.3% for each of 3 classes.
+
+
+1. Title: The Monk's Problems
+
+2. Sources: 
+    (a) Donor: Sebastian Thrun
+	       School of Computer Science
+	       Carnegie Mellon University
+	       Pittsburgh, PA 15213, USA
+
+	       E-mail: thrun@cs.cmu.edu
+
+    (b) Date: October 1992
+
+3. Past Usage: 
+
+   - See File: thrun.comparison.ps.Z
+
+   - Wnek, J., "Hypothesis-driven Constructive Induction," PhD dissertation, 
+     School of Information Technology and Engineering, Reports of Machine 
+     Learning and Inference Laboratory, MLI 93-2, Center for Artificial 
+     Intelligence, George Mason University, March 1993.
+
+   - Wnek, J. and Michalski, R.S., "Comparing Symbolic and 
+     Subsymbolic Learning: Three Studies," in Machine Learning: A 
+     Multistrategy Approach, Vol. 4., R.S. Michalski and G. Tecuci (Eds.), 
+     Morgan Kaufmann, San Mateo, CA, 1993.
+
+4. Relevant Information:
+
+   The MONK's problem were the basis of a first international comparison
+   of learning algorithms. The result of this comparison is summarized in
+   "The MONK's Problems - A Performance Comparison of Different Learning
+   algorithms" by S.B. Thrun, J. Bala, E. Bloedorn, I.  Bratko, B.
+   Cestnik, J. Cheng, K. De Jong, S.  Dzeroski, S.E. Fahlman, D. Fisher,
+   R. Hamann, K. Kaufman, S. Keller, I. Kononenko, J.  Kreuziger, R.S.
+   Michalski, T. Mitchell, P.  Pachowicz, Y. Reich H.  Vafaie, W. Van de
+   Welde, W. Wenzel, J. Wnek, and J. Zhang has been published as
+   Technical Report CS-CMU-91-197, Carnegie Mellon University in Dec.
+   1991.
+
+   One significant characteristic of this comparison is that it was
+   performed by a collection of researchers, each of whom was an advocate
+   of the technique they tested (often they were the creators of the
+   various methods). In this sense, the results are less biased than in
+   comparisons performed by a single person advocating a specific
+   learning method, and more accurately reflect the generalization
+   behavior of the learning techniques as applied by knowledgeable users.
+
+   There are three MONK's problems.  The domains for all MONK's problems
+   are the same (described below).  One of the MONK's problems has noise
+   added. For each problem, the domain has been partitioned into a train
+   and test set.
+
+5. Number of Instances: 432
+
+6. Number of Attributes: 8 (including class attribute)
+
+7. Attribute information:
+    1. class: 0, 1 
+    2. a1:    1, 2, 3
+    3. a2:    1, 2, 3
+    4. a3:    1, 2
+    5. a4:    1, 2, 3
+    6. a5:    1, 2, 3, 4
+    7. a6:    1, 2
+    8. Id:    (A unique symbol for each instance)
+
+8. Missing Attribute Values: None
+
+9. Target Concepts associated to the MONK's problem:
+
+   MONK-1: (a1 = a2) or (a5 = 1)
+
+   MONK-2: EXACTLY TWO of {a1 = 1, a2 = 1, a3 = 1, a4 = 1, a5 = 1, a6 = 1}
+
+   MONK-3: (a5 = 3 and a4 = 1) or (a5 /= 4 and a2 /= 3)
+           (5% class noise added to the training set)
+
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!IMPORTANT!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+	This dataset comes from the Turing Institute, Glasgow, Scotland.
+	If you use this dataset in any publication you must acknowledge this
+	source.
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+NAME
+	vehicle silhouettes
+
+PURPOSE
+	to classify a given silhouette as one of four types of vehicle,
+	using  a set of features extracted from the silhouette. The
+	vehicle may be viewed from one of many different angles.  
+
+PROBLEM TYPE
+	classification
+	
+SOURCE
+	Drs.Pete Mowforth and Barry Shepherd
+	Turing Institute
+	George House
+	36 North Hanover St.
+	Glasgow
+	G1 2AD
+
+CONTACT
+	Alistair Sutherland
+	Statistics Dept.
+	Strathclyde University
+	Livingstone Tower
+	26 Richmond St.
+	GLASGOW G1 1XH
+	Great Britain
+	
+	Tel: 041 552 4400 x3033
+	
+	Fax: 041 552 4711 
+	
+	e-mail: alistair@uk.ac.strathclyde.stams
+
+HISTORY
+	This data was originally gathered at the TI in 1986-87 by
+	JP Siebert. It was partially financed by Barr and Stroud Ltd.
+	The original purpose was to find a method of distinguishing
+	3D objects within a 2D image by application of an ensemble of
+	shape feature extractors to the 2D silhouettes of the objects.
+	Measures of shape features extracted from example silhouettes
+	of objects to be discriminated were used to generate a class-
+	ification rule tree by means of computer induction.
+	 This object recognition strategy was successfully used to 
+	discriminate between silhouettes of model cars, vans and buses
+	viewed from constrained elevation but all angles of rotation.
+	 The rule tree classification performance compared favourably
+	to MDC (Minimum Distance Classifier) and k-NN (k-Nearest Neigh-
+	bour) statistical classifiers in terms of both error rate and
+	computational efficiency. An investigation of these rule trees
+	generated by example indicated that the tree structure was 
+	heavily influenced by the orientation of the objects, and grouped
+	similar object views into single decisions.
+
+DESCRIPTION
+	 The features were extracted from the silhouettes by the HIPS
+	(Hierarchical Image Processing System) extension BINATTS, which 
+	extracts a combination of scale independent features utilising
+	both classical moments based measures such as scaled variance,
+	skewness and kurtosis about the major/minor axes and heuristic
+	measures such as hollows, circularity, rectangularity and
+	compactness.
+	 Four "Corgie" model vehicles were used for the experiment:
+	a double decker bus, Cheverolet van, Saab 9000 and an Opel Manta 400.
+	This particular combination of vehicles was chosen with the 
+	expectation that the bus, van and either one of the cars would
+	be readily distinguishable, but it would be more difficult to
+	distinguish between the cars.
+	 The images were acquired by a camera looking downwards at the
+	model vehicle from a fixed angle of elevation (34.2 degrees
+	to the horizontal). The vehicles were placed on a diffuse
+	backlit surface (lightbox). The vehicles were painted matte black
+	to minimise highlights. The images were captured using a CRS4000
+	framestore connected to a vax 750. All images were captured with
+	a spatial resolution of 128x128 pixels quantised to 64 greylevels.
+	These images were thresholded to produce binary vehicle silhouettes,
+	negated (to comply with the processing requirements of BINATTS) and
+	thereafter subjected to shrink-expand-expand-shrink HIPS modules to
+	remove "salt and pepper" image noise.
+	 The vehicles were rotated and their angle of orientation was measured
+	using a radial graticule beneath the vehicle. 0 and 180 degrees
+	corresponded to "head on" and "rear" views respectively while 90 and
+	270 corresponded to profiles in opposite directions. Two sets of
+	60 images, each set covering a full 360 degree rotation, were captured
+	for each vehicle. The vehicle was rotated by a fixed angle between 
+	images. These datasets are known as e2 and e3 respectively.
+	 A further two sets of images, e4 and e5, were captured with the camera 
+	at elevations of 37.5 degs and 30.8 degs respectively. These sets
+	also contain 60 images per vehicle apart from e4.van which contains
+	only 46 owing to the difficulty of containing the van in the image
+	at some orientations.
+
+ATTRIBUTES
+	
+	COMPACTNESS	(average perim)**2/area
+	
+	CIRCULARITY	(average radius)**2/area
+	
+	DISTANCE CIRCULARITY	area/(av.distance from border)**2
+	
+	RADIUS RATIO	(max.rad-min.rad)/av.radius
+	
+	PR.AXIS ASPECT RATIO	(minor axis)/(major axis)
+	
+	MAX.LENGTH ASPECT RATIO	(length perp. max length)/(max length)
+	
+	SCATTER RATIO	(inertia about minor axis)/(inertia about major axis)
+	
+	ELONGATEDNESS		area/(shrink width)**2
+	
+	PR.AXIS RECTANGULARITY	area/(pr.axis length*pr.axis width)
+	
+	MAX.LENGTH RECTANGULARITY area/(max.length*length perp. to this)
+	
+	SCALED VARIANCE 	(2nd order moment about minor axis)/area
+	ALONG MAJOR AXIS
+	
+	SCALED VARIANCE 	(2nd order moment about major axis)/area
+	ALONG MINOR AXIS 
+	
+	SCALED RADIUS OF GYRATION	(mavar+mivar)/area
+	
+	SKEWNESS ABOUT 	(3rd order moment about major axis)/sigma_min**3
+	MAJOR AXIS
+	
+	SKEWNESS ABOUT 	(3rd order moment about minor axis)/sigma_maj**3
+	MINOR AXIS
+	  	
+	KURTOSIS ABOUT 	(4th order moment about major axis)/sigma_min**4
+	MINOR AXIS  
+	  	
+	KURTOSIS ABOUT 	(4th order moment about minor axis)/sigma_maj**4
+	MAJOR AXIS
+	
+	HOLLOWS RATIO	(area of hollows)/(area of bounding polygon)
+	
+	 Where sigma_maj**2 is the variance along the major axis and
+	sigma_min**2 is the variance along the minor axis, and
+	
+	area of hollows= area of bounding poly-area of object 
+	
+	 The area of the bounding polygon is found as a side result of
+	the computation to find the maximum length. Each individual
+	length computation yields a pair of calipers to the object
+	orientated at every 5 degrees. The object is propagated into
+	an image containing the union of these calipers to obtain an
+	image of the bounding polygon. 
+	
+NUMBER OF CLASSES
+
+	4	OPEL, SAAB, BUS, VAN
+
+NUMBER OF EXAMPLES
+
+		Total no. = 946
+		
+		No. in each class
+		
+		  opel 240
+		  saab 240
+		  bus  240
+		  van  226
+		
+		
+		100 examples are being kept by Strathclyde for validation.
+		So StatLog partners will receive 846 examples.
+
+NUMBER OF ATTRIBUTES
+
+		No. of atts. = 18
+
+	
+BIBLIOGRAPHY
+
+	  Turing Institute Research Memorandum TIRM-87-018 "Vehicle
+	 Recognition Using Rule Based Methods" by Siebert,JP (March 1987)
+
+
+
+1. Title: 1984 United States Congressional Voting Records Database
+
+2. Source Information:
+    (a) Source:  Congressional Quarterly Almanac, 98th Congress, 
+                 2nd session 1984, Volume XL: Congressional Quarterly Inc. 
+                 Washington, D.C., 1985.
+    (b) Donor: Jeff Schlimmer (Jeffrey.Schlimmer@a.gp.cs.cmu.edu)
+    (c) Date: 27 April 1987 
+
+3. Past Usage
+   - Publications
+     1. Schlimmer, J. C. (1987).  Concept acquisition through 
+        representational adjustment.  Doctoral dissertation, Department of 
+        Information and Computer Science, University of California, Irvine, CA.
+        -- Results: about 90%-95% accuracy appears to be STAGGER's asymptote
+     - Predicted attribute: party affiliation (2 classes)
+
+4. Relevant Information:
+      This data set includes votes for each of the U.S. House of
+      Representatives Congressmen on the 16 key votes identified by the
+      CQA.  The CQA lists nine different types of votes: voted for, paired
+      for, and announced for (these three simplified to yea), voted
+      against, paired against, and announced against (these three
+      simplified to nay), voted present, voted present to avoid conflict
+      of interest, and did not vote or otherwise make a position known
+      (these three simplified to an unknown disposition).
+
+5. Number of Instances: 435 (267 democrats, 168 republicans)
+
+6. Number of Attributes: 16 + class name = 17 (all Boolean valued)
+
+7. Attribute Information:
+   1. Class Name: 2 (democrat, republican)
+   2. handicapped-infants: 2 (y,n)
+   3. water-project-cost-sharing: 2 (y,n)
+   4. adoption-of-the-budget-resolution: 2 (y,n)
+   5. physician-fee-freeze: 2 (y,n)
+   6. el-salvador-aid: 2 (y,n)
+   7. religious-groups-in-schools: 2 (y,n)
+   8. anti-satellite-test-ban: 2 (y,n)
+   9. aid-to-nicaraguan-contras: 2 (y,n)
+  10. mx-missile: 2 (y,n)
+  11. immigration: 2 (y,n)
+  12. synfuels-corporation-cutback: 2 (y,n)
+  13. education-spending: 2 (y,n)
+  14. superfund-right-to-sue: 2 (y,n)
+  15. crime: 2 (y,n)
+  16. duty-free-exports: 2 (y,n)
+  17. export-administration-act-south-africa: 2 (y,n)
+
+8. Missing Attribute Values: Denoted by "?"
+
+   NOTE: It is important to recognize that "?" in this database does 
+         not mean that the value of the attribute is unknown.  It 
+         means simply, that the value is not "yea" or "nay" (see 
+         "Relevant Information" section above).
+
+   Attribute:  #Missing Values:
+           1:  0
+           2:  0
+           3:  12
+           4:  48
+           5:  11
+           6:  11
+           7:  15
+           8:  11
+           9:  14
+          10:  15
+          11:  22
+          12:  7
+          13:  21
+          14:  31
+          15:  25
+          16:  17
+          17:  28
+
+9. Class Distribution: (2 classes)
+   1. 45.2 percent are democrat
+   2. 54.8 percent are republican
+
+Class predictiveness and predictability: Pr(C|A=V) and Pr(A=V|C)
+ Attribute 1: (A = handicapped-infants)
+  0.91;  1.21  (C=democrat; V=y)
+  0.09;  0.10  (C=republican; V=y)
+  0.43;  0.38  (C=democrat; V=n)
+  0.57;  0.41  (C=republican; V=n)
+  0.75;  0.03  (C=democrat; V=?)
+  0.25;  0.01  (C=republican; V=?)
+ Attribute 2: (A = water-project-cost-sharing)
+  0.62;  0.45  (C=democrat; V=y)
+  0.38;  0.23  (C=republican; V=y)
+  0.62;  0.45  (C=democrat; V=n)
+  0.38;  0.23  (C=republican; V=n)
+  0.58;  0.10  (C=democrat; V=?)
+  0.42;  0.06  (C=republican; V=?)
+ Attribute 3: (A = adoption-of-the-budget-resolution)
+  0.91;  0.87  (C=democrat; V=y)
+  0.09;  0.07  (C=republican; V=y)
+  0.17;  0.11  (C=democrat; V=n)
+  0.83;  0.44  (C=republican; V=n)
+  0.64;  0.03  (C=democrat; V=?)
+  0.36;  0.01  (C=republican; V=?)
+ Attribute 4: (A = physician-fee-freeze)
+  0.08;  0.05  (C=democrat; V=y)
+  0.92;  0.50  (C=republican; V=y)
+  0.99;  0.92  (C=democrat; V=n)
+  0.01;  0.01  (C=republican; V=n)
+  0.73;  0.03  (C=democrat; V=?)
+  0.27;  0.01  (C=republican; V=?)
+ Attribute 5: (A = el-salvador-aid)
+  0.26;  0.21  (C=democrat; V=y)
+  0.74;  0.48  (C=republican; V=y)
+  0.96;  0.75  (C=democrat; V=n)
+  0.04;  0.02  (C=republican; V=n)
+  0.80;  0.04  (C=democrat; V=?)
+  0.20;  0.01  (C=republican; V=?)
+ Attribute 6: (A = religious-groups-in-schools)
+  0.45;  0.46  (C=democrat; V=y)
+  0.55;  0.46  (C=republican; V=y)
+  0.89;  0.51  (C=democrat; V=n)
+  0.11;  0.05  (C=republican; V=n)
+  0.82;  0.03  (C=democrat; V=?)
+  0.18;  0.01  (C=republican; V=?)
+ Attribute 7: (A = anti-satellite-test-ban)
+  0.84;  0.75  (C=democrat; V=y)
+  0.16;  0.12  (C=republican; V=y)
+  0.32;  0.22  (C=democrat; V=n)
+  0.68;  0.38  (C=republican; V=n)
+  0.57;  0.03  (C=democrat; V=?)
+  0.43;  0.02  (C=republican; V=?)
+ Attribute 8: (A = aid-to-nicaraguan-contras)
+  0.90;  0.82  (C=democrat; V=y)
+  0.10;  0.07  (C=republican; V=y)
+  0.25;  0.17  (C=democrat; V=n)
+  0.75;  0.41  (C=republican; V=n)
+  0.27;  0.01  (C=democrat; V=?)
+  0.73;  0.03  (C=republican; V=?)
+ Attribute 9: (A = mx-missile)
+  0.91;  0.70  (C=democrat; V=y)
+  0.09;  0.06  (C=republican; V=y)
+  0.29;  0.22  (C=democrat; V=n)
+  0.71;  0.45  (C=republican; V=n)
+  0.86;  0.07  (C=democrat; V=?)
+  0.14;  0.01  (C=republican; V=?)
+ Attribute 10: (A = immigration)
+  0.57;  0.46  (C=democrat; V=y)
+  0.43;  0.28  (C=republican; V=y)
+  0.66;  0.52  (C=democrat; V=n)
+  0.34;  0.23  (C=republican; V=n)
+  0.57;  0.01  (C=democrat; V=?)
+  0.43;  0.01  (C=republican; V=?)
+ Attribute 11: (A = synfuels-corporation-cutback)
+  0.86;  0.48  (C=democrat; V=y)
+  0.14;  0.06  (C=republican; V=y)
+  0.48;  0.47  (C=democrat; V=n)
+  0.52;  0.43  (C=republican; V=n)
+  0.57;  0.04  (C=democrat; V=?)
+  0.43;  0.03  (C=republican; V=?)
+ Attribute 12: (A = education-spending)
+  0.21;  0.13  (C=democrat; V=y)
+  0.79;  0.42  (C=republican; V=y)
+  0.91;  0.80  (C=democrat; V=n)
+  0.09;  0.06  (C=republican; V=n)
+  0.58;  0.07  (C=democrat; V=?)
+  0.42;  0.04  (C=republican; V=?)
+ Attribute 13: (A = superfund-right-to-sue)
+  0.35;  0.27  (C=democrat; V=y)
+  0.65;  0.42  (C=republican; V=y)
+  0.89;  0.67  (C=democrat; V=n)
+  0.11;  0.07  (C=republican; V=n)
+  0.60;  0.06  (C=democrat; V=?)
+  0.40;  0.03  (C=republican; V=?)
+ Attribute 14: (A = crime)
+  0.36;  0.34  (C=democrat; V=y)
+  0.64;  0.49  (C=republican; V=y)
+  0.98;  0.63  (C=democrat; V=n)
+  0.02;  0.01  (C=republican; V=n)
+  0.59;  0.04  (C=democrat; V=?)
+  0.41;  0.02  (C=republican; V=?)
+ Attribute 15: (A = duty-free-exports)
+  0.92;  0.60  (C=democrat; V=y)
+  0.08;  0.04  (C=republican; V=y)
+  0.39;  0.34  (C=democrat; V=n)
+  0.61;  0.44  (C=republican; V=n)
+  0.57;  0.06  (C=democrat; V=?)
+  0.43;  0.04  (C=republican; V=?)
+ Attribute 16: (A = export-administration-act-south-africa)
+  0.64;  0.65  (C=democrat; V=y)
+  0.36;  0.30  (C=republican; V=y)
+  0.19;  0.04  (C=democrat; V=n)
+  0.81;  0.15  (C=republican; V=n)
+  0.79;  0.31  (C=democrat; V=?)
+  0.21;  0.07  (C=republican; V=?)
+
+FUF/SURGE for NLTK
+======================
+
+This project is under heavy development. 
+For current status consult http://alba.carleton.ca/nltk
+
+
+
+hadooplib direcotry provide the service of this library. It contains the base class for map and reduce class, the default input formatter and ouput collector
+
+other directory contains different demo programs to illustrate how to use this library
+
+To run the lambek calculus theorem prover, type:
+
+  ./lambek.py lexicon.txt
+
+or:
+
+  python lambek.py lexicon.txt
+
+For help, type "help" at the theorem prover prompt.
+
+This is a stripped-down version of at (annotation toolkit) to be included in
+the lpath-qba tool. The full version of at has been developed and maintained by
+Haejoong Lee <haejoong@ldc.upenn.edu>.
+
+
+This directory contains a prototype interpreter for LPath,
+a linguistic path language extending XPath.  It converts
+LPath expressions into SQL, for execution against a treebank
+stored in a database (MySQL, Postgresql, Oracle have been tested).
+Work is ongoing to produce more efficient SQL output.
+http://projects.ldc.upenn.edu/QLDB/
+
+Status of NLTK-Contrib Projects
+-------------------------------
+
+nltk.demo/app/projects = new home for mature packages that aren't libraries
+               installed in user space?
+
+agreement
+bioreader			MIGRATE into nltk.corpus
+ccg					MIGRATE [merge into nltk.parse, or a new package?]					
+classifier*			investigate
+classify			REMOVE? [outdated by nltk.classify]
+combined.py
+concord.py			MIGRATE into a new nltk.concordance package
+coref				MIGRATE to nltk.corpus [Sep?]
+dependency			FOLD into depparser
+depparser			MIGRATE [Sep?]
+featuredemo.py		MIGRATE into nltk.draw?
+fst					MIGRATE?
+fuf					MIGRATE [Sep?]
+gluesemantics		REMOVE [once migration into nltk.sem is complete]
+hadoop				investigate
+hole.py				MIGRATE
+lambek				nltk.project?
+lpath				nltk.project?
+mit					MIGRATE [rspeer to advise]
+rdf.py
+readability			nltk.project?
+referring.py
+rte
+sem					REMOVE? [dhgarrette to advise]
+seqclass.py
+speer.cfg			move to mit? [rspeer to advise]
+stringcomp.py
+tag
+test2.cfg
+test2.out
+timex.py			MIGRATE into a new normalize package?
+tnt.py				MIGRATE into nltk.tag?
+toolbox				nltk.project?
+wordnet				REMOVE? [pbone to advise]
+
+About
+-----
+This package contains code for generating referring expressions using Viethen
+and Dale's algorithms. It was implemented by:
+
+Rebecca Ingram <raingram@cs.indiana.edu>
+Michael Hansen <mihansen@cs.indiana.edu>
+Jason Yoder <jasoyode@cs.indiana.edu>
+
+Sample Data
+-----------
+Both drawers.py and gre3d_facts.py contain running code. To run, just type:
+$ python drawers.py
+
+or 
+
+$ python gre3d_facts.py
+
+In drawers.py, we use the fact-set for Viethen and Dale's drawer data [1], and
+run each of the three algorithms to generate a referring expression for all 16
+drawers.
+
+In gre3d_facts.py, we use the fact-set for Viethen and Dale's GRE3D3 data [2],
+and run all three algorithms on each of the 20 trialsets.
+
+Examples
+--------
+
+Additionally, we have provided a static example() method for each algorithm
+class. To see these in action, you may start up a Python REPL and run the following:
+
+from nltk_contrib.refexpr.full_brevity import FullBrevity
+from nltk_contrib.refexpr.incremental import Incremental
+from nltk_contrib.refexpr.relational import Relational
+
+FullBrevity.example()
+Incremental.example()
+Relational.example()
+
+References
+----------
+
+[1] Jette Viethen. Algorithms for generating referring expressions: Do they
+do what people do. In In Proceedings of the 4th International Conference
+on Natural Language Generation, INLG-06, pages 63–70, 2006.
+
+[2] Robert Dale and Jette Viethen. Referring expression generation through
+attribute-based heuristics. In Proceedings of the 12th European Work-
+shop on Natural Language Generation, ENLG ’09, pages 58–65, Strouds-
+burg, PA, USA, 2009. Association for Computational Linguistics.
+
+
+After check-in, run
+
+./config.sh 
+
+IN THIS DIRECTORY to set up for your installation.  Then run tests
+with:
+
+./runalltests.sh
+
+If all pass, then the installation is correct.
+
+To regenerate the test data used by the tests if you change things then run
+
+./generate_testdata.sh
+
+######################################################################
+
+- extractor.py 
+  
+  Defines text Extractor class to extract potential terms of interest
+  from text.
+  
+  BasicExtractor looks for capitalized non-initial words in scripts
+  that support capitalization and backs off to all words for other
+  scripts.
+
+- chinese_extractor.py
+
+  ChineseExtractor defines a specialized extractor for foreign words
+  in Chinese.
+
+- tokens.py
+
+  Token represents an extracted term. It includes fields for the term,
+  a morphological decomposition, a count and a set of pronunciations.
+
+  Lang is a set of terms associated with one "document".
+
+  Doc represents one aligned "document" across languages/scripts,
+  where "document" could be an actual n-tuple of translated documents,
+  a single pair of terms known to be transcriptions of each other, or
+  multiple documents in n languages that are roughly time aligned to
+  each other.
+
+  Doclist is a holder for docs. It is assumed these are stored in some
+  sensible sequence (e.g. in temporal order).
+
+  Class definitions include writers that dump in XML.
+
+- dochandler.py
+
+  Defines an xml.sax.handler.ContentHandler for XML documents output
+  by tokens.py
+
+- filter.py
+
+  Defines a class of filters for removing some terms from doclists
+
+- pronouncer.py
+
+  Defines a Pronouncer class. Provided are UnitranPronouncer (produces
+  pronunciation guesses for any utf8 codepoint except for Hanzi and
+  Latin), HanziPronouncer (produces Mandarin and Native Japanese
+  pronunciations for Chinese characters), EnglishPronouncer (which is
+  a table lookup for a huge list of pronunciations extracted from
+  Festival), LatinPronouncer (a fallback pronouncer for extended Latin
+  strings)
+
+- token_comp.py
+
+  Defines a TokenComparator class and a ComparisonResult class. The
+  TokenComparator takes two tokens and returns a result that includes
+  the cost for the comparison. The comparator may be based on any
+  features of the two tokens, but reasonable features are phoneme
+  sequences, grapheme sequences (possibly based on a portion of the
+  morphological decomposition rather than the raw token), combinations
+  of these, or features derived from them.
+
+  Provided is OldPhoneticDistanceComparator, which uses the hand-built
+  phonetic distances and the old minimum edit code.
+
+- For each of these there are unit tests:
+
+  dochandler_unittest.py
+  extractor_unittest.py
+  pronouncer_unittest.py
+  token_comp_unittest.py
+
+- Also see sample.py, which demonstrates the use of the whole system
+  on a fragment of the ISI Chinese/English Found Parallel
+  Sentences. Lines are read, tokens extracted, put into Lang and Doc
+  fields and the entire Doclist is written out as an XML file.
+
+  Then the OldPhoneticDistanceComparator is called on each pair within
+  the same document, the results sorted, and a thresholded list
+  output.
+
+- Note that each directory contains a __init__.py file, which includes
+  the single line:
+
+BASE_ = '/Users/rws/src/ScriptTranscriber'
+
+  This should be modified (in all copies) to be the actual location
+  that you put this code in.
+
+
+=======================================================================
+
+This code provides a transliterator from UTF-8 text into a guess for
+the phonetic transcription in WorldBet or X-Sampa. 
+
+Code pages covered are listed in the directory "Tables". The main
+omissions are:
+
+ - ASCII/Latin-1: there are too many languages that use these scripts
+   and too wide a variation in letter-to-sound rules to make any
+   reasonable guesses in many cases.
+
+ - Hanzi/Kanji/Hanja
+
+The main program is "unitran.py", which depends upon two tables,
+"Tables.py" (for WorldBet) and "X_Tables.py" (for X-Sampa).
+
+Sample usages:
+
+  unitran.py Samples/assamese/1.utf
+
+places output in WorldBet in assamese/1.utf.out
+
+  unitran.py -x Samples/assamese/1.utf
+
+places output in X-Sampa in assamese/1.utf.out
+
+Note that there are no spaces between consecutive phones, unless you
+redefine JOINER_. This allows for unambiguous parsing in X-Sampa,
+though not necessarily in WorldBet.
+
+Output: Capital letters in parenthesis '()' are symbols. Symbols for each
+language are described in Unicode-Worldbet mapping Tables for each language.
+'(##)' represents also symbols which usually can be removed in rough
+transcription.
+ 
+Raw tables for the code points are given in the directory Tables.
+
+The directory Samples contains some input-output examples from various
+texts in utf8.
+
+################################################################################
+
+The directory Utils contains:
+
+ - gentable.py, which produces python tables from the raw tables
+
+Usage:
+
+  cat Tables/* | Utils/gentable.py
+
+To create a new X_Tables.py from Tables.py, run mk_sampa_table.py in this
+directory.
+
+TIGERSearch Implementation
+==========================
+
+This module contains an implementation of TIGERSearch_. It also has the extensions for
+universal quantification described in `Marek et al. (2008)`_
+
+Differences to the original TIGERSearch query language can be found in the `Query Language Status`_
+document.
+
+Dependencies
+============
+
+ * Required
+
+  * Python 2.5
+  * PyParsing_
+
+ * Optional
+
+  * lxml_: Faster corpus indexing
+
+ * Optional (needed for Python 2.5 only)
+
+  * multiprocessing_: Parallel query evaluation
+  * pysqlite2_: Newer version of PySqlite2 are considerably faster
+
+
+Available Corpora
+=================
+
+ * TIGER_ (German)
+ * NEGRA_ (German)
+ * Smultron_ (German, English, Swedish)
+ 
+Using the tool TIGERRegistry from the original TIGERSearch_, several standard 
+corpora can be converted into TIGER-XML, among them the Penn Treebank.
+
+Since none of the corpora mentioned above can be freely distributed, the demo script
+converts the fragment of the Penn Treebank distributed with NLTK into TIGER-XML format
+and indexes the corpus. You can keep the corpus (and skip conversion/indexing) using the 
+`-c` argument to the demo script. 
+
+
+.. _TIGERSearch: http://www.ims.uni-stuttgart.de/projekte/TIGER/TIGERSearch/
+.. _TIGER: http://www.ims.uni-stuttgart.de/projekte/TIGER/
+.. _NEGRA: http://www.coli.uni-saarland.de/projects/sfb378/negra-corpus/negra-corpus.html
+.. _Smultron: http://www.ling.su.se/DaLi/research/smultron/index.htm
+.. _Marek et al. (2008): http://diotavelli.net/files/konvens08_extendingtsql_final.pdf
+.. _Query Language Status: http://dev.ling.su.se/treealigner/wiki/TigerSearch Query Evaluator
+.. _PyParsing: http://pyparsing.wikispaces.com/
+.. _lxml: http://codespeak.net/lxml/
+.. _processing: http://pypi.python.org/pypi/processing
+.. _pysqlite2: http://pysqlite.org/
+
+Natural Language Toolkit, Contrib Area (NLTK-Contrib)   www.nltk.org
+
+Authors: Steven Bird <sb@csse.unimelb.edu.au>
+         Edward Loper <edloper@gradient.cis.upenn.edu>
+         Ewan Klein <ewan@inf.ed.ac.uk>
+
+Copyright (C) 2001-2011 NLTK Project
+
+For license information, see LICENSE.txt
+
+

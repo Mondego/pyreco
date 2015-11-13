@@ -1,0 +1,141 @@
+- Role: Edxapp
+  - The repo.txt requirements file is no longer being processed in anyway.  This file was removed from edxplatform
+    via pull #3487(https://github.com/edx/edx-platform/pull/3487)
+
+- Update CMS_HOSTNAME default to allow any hostname that starts with `studio` along with `prod-studio` or `stage-studio`.
+
+- Start a change log to keep track of backwards incompatible changes and deprecations.
+
+This directory contains playbooks used by edx-east
+for provisioning
+
+```
+ansible-playbook -c ssh -vvv --user=ubuntu <playbook> -i ./ec2.py  -e 'secure_dir=path/to/configuration-secure/ansible'
+```
+
+This temp directory created here so that we can make sure it doesn't
+collide with other users doing ansible operations on the same machine;
+or concurrent installs to different environments, say to prod and stage.
+
+# Stanford Ansible Configuration Files
+
+This directory has the live playbooks that we use here at Stanford to
+maintain our instance of OpenEdX at [class.stanford.edu][c].  We check
+it in to this public repo since we think that others might benefit from
+seeing how we are configured.
+
+  [c]: https://class.stanford.edu/
+
+That said, we haven't documented things in here well, so we have no
+expectation that others will be able to make enough sense of this to
+give us useful contributions back.  Generally a PR affecting files in
+here will be ignored / rejected.
+
+This README is a useful proximate place to keep commands.  But it is 
+a public repo so we shouldn't store anything confidential in here.
+
+Other install docs:
+
+- Giulio's install doc [here][1].
+
+  [1]: https://docs.google.com/document/d/1ZDx51Jxa-zffyeKvHmTp_tIskLW9D9NRg9NytPTbnrA/edit#heading=h.iggugvghbcpf
+
+
+## Ansible Commands - Prod
+
+Generally we do installs as the "ubuntu" user.  You want to make
+sure that the stanford-deploy-20130415 ssh key is in your ssh agent.
+
+    ANSIBLE_CONFIG=prod-ansible.cfg ANSIBLE_EC2_INI=prod-ec2.ini ansible-playbook prod-app.yml -e "machine=app4" -u ubuntu -c ssh -i ./ec2.py
+
+Some specifics:
+
+* To do database migrations, include this: ```-e "migrate_db=yes"```.  The default
+  behavior is to not do migrations.
+
+* To hit multiple machines the use this: ```-e "machine=app(1|2|4)"```.
+  Use multiple separate "-e" options to specify multiple vars on the
+  command line.
+
+* Usually I do with the ```--list-hosts``` option first to verify that I'm
+  doing something sane before actually running.
+
+* To install the utility machines, substitute ```prod-worker.yml```.  Those
+  are also parameterized on the take the machine variable (util1, util(1|2),
+  and so forth).
+
+
+## Ansible Commands - Stage
+
+Command is:
+
+    ANSIBLE_CONFIG=stage-ansible.cfg ANSIBLE_EC2_INI=stage-ec2.ini ansible-playbook stage-app.yml -e "machine=app1" -u ubuntu -c ssh -i ./ec2.py
+
+
+
+After EC2 discovery variables in the files that match any 
+of the discovered groups will be set.
+
+For convenience a single variable is set
+for every Group tag for conditional task execution.
+
+* main.yml:  installs nginx and will enable the basic nginx configuration for version introspection
+
+This is an example secure/ data which would normally have passwords and sensitive bits
+
+# Configuration Management
+
+## Introduction
+
+**This project is currently in alpha**
+
+The goal of the edx/configuration project is to provide a simple, but
+flexible, way for anyone to stand up an instance of Open edX that is
+fully configured and ready-to-go.
+
+Building the platform takes place in two phases:
+
+* Infrastructure provisioning
+* Service configuration
+
+As much as possible, we have tried to keep a clean distinction between
+provisioning and configuration.  You are not obliged to use our tools
+and are free to use one, but not the other.  The provisioning phase
+stands-up the required resources and tags them with role identifiers
+so that the configuration tool can come in and complete the job.
+
+The reference platform is provisioned using an Amazon
+[CloudFormation](http://aws.amazon.com/cloudformation/) template.
+When the stack has been fully created you will have a new AWS Virtual
+Private Cloud with hosts for the core edX services.  This template
+will build quite a number of AWS resources that cost money, so please
+consider this before you start.
+
+The configuration phase is managed by [Ansible](http://ansible.com/).
+We have provided a number of playbooks that will configure each of
+the edX services.
+
+This project is a re-write of the current edX provisioning and
+configuration tools, we will be migrating features to this project
+over time, so expect frequent changes.
+
+
+For more information including installation instruction please see the [Configuration Wiki](https://github.com/edx/configuration/wiki).
+
+For info on any large recent changes please see the [change log](https://github.com/edx/configuration/blob/master/CHANGELOG.md).
+
+Vagrant
+=======
+
+Vagrant instances for local development and testing.
+
+- Vagrant stacks in ``base`` create new base boxes from scratch.
+- Vagrant stacks in ``release`` download a base box with most requirements already installed.  The instances then update themselves with the latest versions of the application code.
+
+If you are a developer or designer, you should use the ``release`` stacks.
+
+There are two versions of the stack:
+
+- ``fullstack`` is a production-like configuration running all the services on a single server.  https://github.com/edx/configuration/wiki/edX-Production-Stack
+- ``devstack`` is designed for local development.  Although it uses the same system requirements as in production, it simplifies certain settings to make development more convenient.  https://github.com/edx/configuration/wiki/edX-Developer-Stack
+

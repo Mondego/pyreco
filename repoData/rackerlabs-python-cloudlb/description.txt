@@ -1,0 +1,929 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="generator" content="Docutils 0.7: http://docutils.sourceforge.net/" />
+<title>Python interface to Rackspace Load Balancer as a Service product</title>
+<style type="text/css">
+
+/*
+:Authors: Ian Bicking, Michael Foord
+:Contact: fuzzyman@voidspace.org.uk
+:Date: 2005/08/26 
+:Version: 0.1.0
+:Copyright: This stylesheet has been placed in the public domain.
+
+Stylesheet for Docutils.
+Based on ``blue_box.css`` by Ian Bicking
+and ``default.css`` revision 3442
+*/
+
+@import url(default.css);
+@import url(pygments.css);
+
+body {
+  font-family: Arial, sans-serif;
+}
+
+em, i {
+  /* Typically serif fonts have much nicer italics */
+  font-family: Times New Roman, Times, serif;
+}
+
+
+a.target {
+  color: blue;
+}
+
+a.toc-backref {
+  text-decoration: none;
+  color: black;
+}
+
+a.toc-backref:hover {
+  background-color: inherit;
+}
+
+a:hover {
+  background-color: #cccccc;
+}
+
+div.attention, div.caution, div.danger, div.error, div.hint,
+div.important, div.note, div.tip, div.warning {
+  background-color: #cccccc;
+  padding: 3px;
+  width: 80%;
+}
+
+div.admonition p.admonition-title, div.hint p.admonition-title,
+div.important p.admonition-title, div.note p.admonition-title,
+div.tip p.admonition-title  {
+  text-align: center;
+  background-color: #999999;
+  display: block;
+  margin: 0;
+}
+
+div.attention p.admonition-title, div.caution p.admonition-title,
+div.danger p.admonition-title, div.error p.admonition-title,
+div.warning p.admonition-title {
+  color: #cc0000;
+  font-family: sans-serif;
+  text-align: center;
+  background-color: #999999;
+  display: block;
+  margin: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: Helvetica, Arial, sans-serif;
+  border: thin solid black;
+  /* This makes the borders rounded on Mozilla, which pleases me */
+  -moz-border-radius: 8px;
+  padding: 4px;
+}
+
+h1 {
+  background-color: #444499;
+  color: #ffffff;
+  border: medium solid black;
+}
+
+h1 a.toc-backref, h2 a.toc-backref { 
+  color: #ffffff;
+}
+
+h2 {
+  background-color: #666666;
+  color: #ffffff;
+  border: medium solid black;
+}
+
+h3, h4, h5, h6 {
+  background-color: #cccccc;
+  color: #000000;
+}
+
+h3 a.toc-backref, h4 a.toc-backref, h5 a.toc-backref, 
+h6 a.toc-backref { 
+  color: #000000;
+}
+
+h1.title {
+  text-align: center;
+  background-color: #444499;
+  color: #eeeeee;
+  border: thick solid black;
+  -moz-border-radius: 20px;
+}
+
+table.footnote {
+  padding-left: 0.5ex;
+}
+
+table.citation {
+  padding-left: 0.5ex
+}
+
+pre.literal-block, pre.doctest-block {
+  border: thin black solid;
+  padding: 5px;
+}
+
+.image img { border-style : solid;
+            border-width : 2px;
+}
+
+img.align-center {
+    display: block;
+    margin: auto; 
+    text-align: center;
+}
+
+h1 tt, h2 tt, h3 tt, h4 tt, h5 tt, h6 tt {
+  font-size: 100%;
+}
+
+code, tt {
+  color: #000066;
+}
+
+</style>
+</head>
+<body>
+<div class="document" id="python-interface-to-rackspace-load-balancer-as-a-service-product">
+<h1 class="title">Python interface to Rackspace Load Balancer as a Service product</h1>
+<table class="docinfo" frame="void" rules="none">
+<col class="docinfo-name" />
+<col class="docinfo-content" />
+<tbody valign="top">
+<tr class="field"><th class="docinfo-name">Homepage:</th><td class="field-body"><a class="reference external" href="https://github.com/chmouel/python-cloudlb">https://github.com/chmouel/python-cloudlb</a></td>
+</tr>
+<tr class="field"><th class="docinfo-name">Credits:</th><td class="field-body">Copyright 2011 Chmouel Boudjnah &lt;<a class="reference external" href="mailto:chmouel&#64;chmouel.com">chmouel&#64;chmouel.com</a>&gt;</td>
+</tr>
+<tr class="field"><th class="docinfo-name">Licence:</th><td class="field-body">BSD</td>
+</tr>
+</tbody>
+</table>
+<div class="section" id="usage">
+<h1>Usage</h1>
+<p>Not much documentation at the moment but just some quick typical usage
+scripts you can do with this library. This is based on the latest version from :</p>
+<p><a class="reference external" href="http://docs.rackspacecloud.com/loadbalancers/api/clb-devguide-latest.pdf">http://docs.rackspacecloud.com/loadbalancers/api/clb-devguide-latest.pdf</a></p>
+<p>Create a LoadBalancer:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+node1 = cloudlb.Node(address=&quot;10.180.160.131&quot;,
+                     port=80,
+                     condition=&quot;ENABLED&quot;)
+
+
+virtualIP1 = cloudlb.VirtualIP(
+                 type=&quot;PUBLIC&quot;)
+
+clb.loadbalancers.create(name=&quot;mytestinglb&quot;,
+                         port=80,
+                         protocol=&quot;HTTP&quot;,
+                         nodes=[node1],
+                         virtualIps=[virtualIp1])
+</pre>
+<p>List LoadBalancers:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+for lb in lbs:
+    print &quot;%s has %s node attached with IP addresses:&quot; % (lb.name, len(lb.nodes))
+    for ip in lb.virtualIps:
+        print &quot;%s/%s&quot; % (ip.ipVersion, ip.address)
+</pre>
+<p>Get LB by ID:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+clb.authenticate()
+
+lb = clb.loadbalancers.get(LoadBalancerID)
+</pre>
+<p>Delete LB:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lb = clb.loadbalancers.get(LoadBalancerID)
+lb.delete()
+</pre>
+<p>List nodes of a LB:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+lb = lbs[0] #get the first one
+nodes=lb.nodes.filter(status='ENABLED')
+for node in nodes:
+    print node.address
+</pre>
+<p>Filter nodes via condition of a LB:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+lb = lbs[0] #get the first one
+for node in lb.nodes:
+    print node.address
+</pre>
+<p>Add a node to a LB:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+newnode =  cloudlb.Node(address=&quot;10.180.160.131&quot;,
+                        port=80,
+                        condition=&quot;ENABLED&quot;)
+
+lbs = clb.loadbalancers.list()
+lb = lbs[0] #add to the first one
+
+lb.add_nodes([newnode])
+</pre>
+<p>Delete a node from a LB:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+lb = lbs[0] #add to the first one
+
+node = lb.nodes[0] #get the first node
+
+node.delete() #delete it
+</pre>
+<p>Update attributes of a node:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #add to the first one
+
+nodeid = 14106
+nodes = mylb.nodes
+node = mylb.nodes.get(nodeid)
+toggle_status = node.condition == &quot;ENABLED&quot; and &quot;DISABLED&quot; or &quot;ENABLED&quot;
+node.condition = toggle_status
+node.update()
+</pre>
+<p>Get weight of a node by using .get():</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #add to the first one
+
+nodeid = 14106
+nodes = mylb.nodes
+node = mylb.nodes.get(nodeid)
+print node.weight
+</pre>
+<p>Update attributes on LoadBalancer:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+mylb.protocol = &quot;FTP&quot;
+mylb.name = &quot;APrettyNewName&quot;
+
+mylb.update()
+</pre>
+<p>Get usage statitiscs on all LoadBalancers:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+print clb.get_usage()
+</pre>
+<p>Get usage statitiscs on a specfic LoadBalancer:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+print mylb.get_usage()
+</pre>
+<p>Get limits on all LoadBalancers:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+print clb.get_limits()
+</pre>
+<p>Get Load Balancing Algorithms:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+print clb.get_algorithms()
+</pre>
+<p>Get Load Balancing Protocols:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+print clb.get_protocols()
+</pre>
+<p>Get current Health Monitor:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+hm_monitor = mylb.healthmonitor()
+print hm_monitor.get()
+</pre>
+<p>Monitor loadbalancer using simple TCP Connect:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+hm_monitor = mylb.healthmonitor()
+hm = cloudlb.healthmonitor.HealthMonitor(
+  type=&quot;CONNECT&quot;,
+  delay=10,
+  timeout=10,
+  attemptsBeforeDeactivation=3)
+
+hm_monitor.add(hm)
+</pre>
+<p>Monitor loadbalancer using HTTP(s):</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+hm_monitor = mylb.healthmonitor()
+hm = cloudlb.healthmonitor.HealthMonitor(
+    type=&quot;HTTP&quot;, #or HTTPS
+    delay=10,
+    timeout=10,
+    attemptsBeforeDeactivation=3,
+    path=&quot;/&quot;,
+    statusRegex=&quot;^[234][0-9][0-9]$&quot;,
+    bodyRegex=&quot;testing&quot;)
+hm_monitor.add(hm)
+</pre>
+<p>Delete Health Monitor rule:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+hm_monitor = mylb.healthmonitor()
+hm_monitor.delete()
+</pre>
+<p>Add http cookie session persistense:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+ss = cloudlb.sessionpersistense.SessionPersistense(persistenceType=&quot;HTTP_COOKIE&quot;)
+
+ssp = mylb.session_persistense()
+ssp.add(ss)
+</pre>
+<p>Get session persistence:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+ssp = mylb.session_persistense()
+print ssp.get()
+</pre>
+<p>Delete session persistense configuration:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+
+ssp = mylb.session_persistense()
+ssp.delete()
+</pre>
+<p>Enable/Disable Connection Logging:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+cl = mylb.connection_logging()
+
+#Get connection logging status
+print cl.get()
+
+#Enable connection logging
+cl.enable()
+
+#Disable connection logging
+cl.disable()
+</pre>
+<p>Access Lists:</p>
+<pre class="literal-block">
+#!/usr/bin/python
+import cloudlb
+clb = cloudlb.CloudLoadBalancer(&quot;username&quot;, &quot;apikey&quot;,&quot;chicago&quot;)
+
+lbs = clb.loadbalancers.list()
+mylb = lbs[0] #first lb
+accesslist = mylb.accesslist()
+
+networkItem1 = cloudlb.accesslist.NetworkItem(
+    address=&quot;10.20.30.40&quot;, type=&quot;ALLOW&quot;)
+
+networkItem2 = cloudlb.accesslist.NetworkItem(
+    address=&quot;0.0.0.0/0&quot;, type=&quot;DENY&quot;)
+
+# Allow only 10.20.30.40
+accesslist.add([networkItem1, networkItem2])
+
+# List accesslists
+print accesslist.list()
+
+# Delete all accesslist
+accesslist.delete()
+
+# Delete accesslist by ID
+accesslist.delete(id=62)
+</pre>
+</div>
+<div class="section" id="license">
+<h1>LICENSE</h1>
+<p>See COPYING for license information. Copyright © 2011, Rackspace US, Inc.</p>
+</div>
+<div class="section" id="author">
+<h1>Author</h1>
+<p>Chmouel Boudjnah &lt;<a class="reference external" href="mailto:chmouel&#64;chmouel.com">chmouel&#64;chmouel.com</a>&gt;</p>
+</div>
+</div>
+</body>
+</html>
+
+==================================================================
+ Python interface to Rackspace Cloud Load Balancers 
+==================================================================
+
+:Homepage:  https://github.com/chmouel/python-cloudlb
+:Credits:   Copyright 2011 Chmouel Boudjnah <chmouel@chmouel.com>
+:Licence:   BSD
+
+
+Usage
+=====
+
+Not much documentation at the moment but just some quick typical usage
+scripts you can do with this library. This is based on the latest version from :
+
+http://docs.rackspacecloud.com/loadbalancers/api/clb-devguide-latest.pdf
+
+Create a LoadBalancer::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  node1 = cloudlb.Node(address="10.180.160.131",
+                       port=80,
+                       condition="ENABLED")
+
+
+  virtualIP1 = cloudlb.VirtualIP(
+                   type="PUBLIC") 
+
+  clb.loadbalancers.create(name="mytestinglb",
+                           port=80,
+                           protocol="HTTP",
+                           nodes=[node1],
+                           virtualIps=[virtualIp1])
+  
+
+List LoadBalancers::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  lbs = clb.loadbalancers.list()
+  for lb in lbs:
+      print "%s has %s node attached with IP addresses:" % (lb.name, len(lb.nodes))
+      for ip in lb.virtualIps:
+          print "%s/%s" % (ip.ipVersion, ip.address)
+
+List LoadBalancers who have nodes that belong to it::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  ip = '10.1.1.1'
+  lbs = clb.loadbalancers.search(ip)
+  for lb in lbs:
+      print "%s has %s node attached" % (lb.name, ip))
+
+Get LB by ID::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  clb.authenticate()
+
+  lb = clb.loadbalancers.get(LoadBalancerID)
+
+Delete LB::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  lb = clb.loadbalancers.get(LoadBalancerID)
+  lb.delete()
+
+List nodes of a LB::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  lbs = clb.loadbalancers.list()
+  lb = lbs[0] #get the first one
+  nodes=lb.nodes.filter(status='ENABLED')
+  for node in nodes:
+      print node.address
+
+Filter nodes via condition of a LB::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  lbs = clb.loadbalancers.list()
+  lb = lbs[0] #get the first one
+  for node in lb.nodes:
+      print node.address
+
+Add a node to a LB::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+ 
+  newnode =  cloudlb.Node(address="10.180.160.131",
+                          port=80,
+                          condition="ENABLED")
+
+  lbs = clb.loadbalancers.list()
+  lb = lbs[0] #add to the first one
+
+  lb.add_nodes([newnode])
+  
+
+Delete a node from a LB::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+ 
+  lbs = clb.loadbalancers.list()
+  lb = lbs[0] #add to the first one
+
+  node = lb.nodes[0] #get the first node
+
+  node.delete() #delete it
+
+Update attributes of a node::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+ 
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #add to the first one
+
+  nodeid = 14106
+  nodes = mylb.nodes  
+  node = mylb.nodes.get(nodeid)
+  toggle_status = node.condition == "ENABLED" and "DISABLED" or "ENABLED"
+  node.condition = toggle_status
+  node.update()
+
+Get weight of a node by using .get()::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+ 
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #add to the first one
+
+  nodeid = 14106
+  nodes = mylb.nodes  
+  node = mylb.nodes.get(nodeid)
+  print node.weight
+
+Update attributes on LoadBalancer::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  mylb.protocol = "FTP"
+  mylb.name = "APrettyNewName"
+
+  mylb.update()
+
+Get usage statistics on all LoadBalancers::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  print clb.get_usage()
+
+Get usage statistics on a specfic LoadBalancer::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  print mylb.get_usage()
+
+Get real-time statistics on a specific LoadBalancer::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  print mylb.get_stats()
+
+Get limits on all LoadBalancers::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  print clb.get_limits()
+
+Get Load Balancing Algorithms::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  print clb.get_algorithms()
+
+Get Load Balancing Protocols::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  print clb.get_protocols()
+
+Get current Health Monitor::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  hm_monitor = mylb.healthmonitor()
+  print hm_monitor.get()
+
+Monitor loadbalancer using simple TCP Connect::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  hm_monitor = mylb.healthmonitor()
+  hm = cloudlb.healthmonitor.HealthMonitor(
+    type="CONNECT",
+    delay=10,
+    timeout=10,
+    attemptsBeforeDeactivation=3)
+  
+  hm_monitor.add(hm)
+
+Monitor loadbalancer using HTTP(s)::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  hm_monitor = mylb.healthmonitor()
+  hm = cloudlb.healthmonitor.HealthMonitor(
+      type="HTTP", #or HTTPS
+      delay=10,
+      timeout=10,
+      attemptsBeforeDeactivation=3,
+      path="/",
+      statusRegex="^[234][0-9][0-9]$",
+      bodyRegex="testing")
+  hm_monitor.add(hm)
+
+Delete Health Monitor rule::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  hm_monitor = mylb.healthmonitor()
+  hm_monitor.delete()
+
+Add http cookie session persistence::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  ss = cloudlb.sessionpersistence.SessionPersistence(persistenceType="HTTP_COOKIE")
+
+  ssp = mylb.session_persistence()
+  ssp.add(ss)
+
+Get session persistence::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  ssp = mylb.session_persistence()
+  print ssp.get()
+
+Delete session persistence configuration::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+
+  ssp = mylb.session_persistence()
+  ssp.delete()
+
+Enable/Disable Connection Logging::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+  cl = mylb.connection_logging()
+  
+  #Get connection logging status
+  print cl.get()
+
+  #Enable connection logging
+  cl.enable()
+  
+  #Disable connection logging
+  cl.disable()
+
+Access Lists::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+  accesslist = mylb.accesslist()
+
+  networkItem1 = cloudlb.accesslist.NetworkItem(
+      address="10.20.30.40", type="ALLOW")
+
+  networkItem2 = cloudlb.accesslist.NetworkItem(
+      address="0.0.0.0/0", type="DENY")
+    
+  # Allow only 10.20.30.40
+  accesslist.add([networkItem1, networkItem2])
+
+  # List accesslists
+  print accesslist.list()
+
+  # Delete all accesslist
+  accesslist.delete()
+
+  # Delete accesslist by ID
+  accesslist.delete(id=62)  
+
+Custom Error Page::
+
+  #!/usr/bin/python
+  import cloudlb
+  clb = cloudlb.CloudLoadBalancer("username", "apikey","chicago")
+  
+  lbs = clb.loadbalancers.list()
+  mylb = lbs[0] #first lb
+  errorpage = mylb.errorpage()
+
+  # Display current error page
+  print errorpage.get()
+
+  # Change the error page
+  errorpage.add('<html><body><h1>Error</h1></body></html>')
+
+  # Revert to the default error page
+  errorpage.delete() 
+
+
+LICENSE
+=======
+
+See COPYING for license information. Copyright © 2011, Rackspace US, Inc.
+
+Author
+======
+
+Chmouel Boudjnah <chmouel@chmouel.com>
+
+
+

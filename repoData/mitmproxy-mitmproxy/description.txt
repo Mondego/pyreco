@@ -1,0 +1,127 @@
+add_header.py           Simple script that just adds a header to every request.
+dup_and_replay.py       Duplicates each request, changes it, and then replays the modified request.
+flowbasic               Basic use of mitmproxy as a library.
+modify_form.py          Modify all form submissions to add a parameter.
+modify_querystring.py   Modify all query strings to add a parameters.
+proxapp                 How to embed a WSGI app in a mitmproxy server
+stub.py                 Script stub with a method definition for every event.
+stickycookies           An example of writing a custom proxy with libmproxy.
+upsidedownternet.py     Rewrites traffic to turn PNGs upside down.
+mitmproxywrapper.py     Bracket mitmproxy run with proxy enable/disable on OS X
+
+# UNPACKERS SPECIFICATIONS
+
+Nothing very difficult: an unpacker is a submodule placed in the directory
+where this file was found. Each unpacker must define three symbols:
+
+ * `PRIORITY`       : integer number expressing the priority in applying this
+                      unpacker. Lower number means higher priority.
+                      Makes sense only if a source file has been packed with
+                      more than one packer.
+ * `detect(source)` : returns `True` if source is packed, otherwise, `False`.
+ * `unpack(source)` : takes a `source` string and unpacks it. Must always return
+                      valid JavaScript. That is to say, your code should look
+                      like:
+
+```
+if detect(source):
+    return do_your_fancy_things_with(source)
+else:
+    return source
+```
+
+*You can safely define any other symbol in your module, as it will be ignored.*
+
+`__init__` code will automatically load new unpackers, without any further step
+to be accomplished. Simply drop it in this directory.
+
+
+Contribs:
+
+
+pyparsing 1.5.2, MIT license
+
+jsbeautifier, git checkout 25/03/12, MIT license
+    - Removed test directories
+    - Disabled packers through a single-line modification (see "# CORTESI"
+    comment)
+
+html2text, git checkout 18/08/12, GPLv3
+
+md5crypt, PSF license, http://code.activestate.com/recipes/325204/
+
+
+[![Build Status](https://travis-ci.org/mitmproxy/mitmproxy.png?branch=master)](https://travis-ci.org/mitmproxy/mitmproxy) [![Coverage Status](https://coveralls.io/repos/mitmproxy/mitmproxy/badge.png?branch=master)](https://coveralls.io/r/mitmproxy/mitmproxy)
+
+__mitmproxy__ is an interactive, SSL-capable man-in-the-middle proxy for HTTP
+with a console interface.
+
+__mitmdump__ is the command-line version of mitmproxy. Think tcpdump for HTTP.
+
+__libmproxy__ is the library that mitmproxy and mitmdump are built on.
+
+Documentation, tutorials and distribution packages can be found on the
+mitmproxy.org website:
+
+[mitmproxy.org](http://mitmproxy.org).
+
+
+Features
+--------
+
+- Intercept HTTP requests and responses and modify them on the fly.
+- Save complete HTTP conversations for later replay and analysis.
+- Replay the client-side of an HTTP conversations.
+- Replay HTTP responses of a previously recorded server.
+- Reverse proxy mode to forward traffic to a specified server.
+- Transparent proxy mode on OSX and Linux.
+- Make scripted changes to HTTP traffic using Python.
+- SSL certificates for interception are generated on the fly.
+- And much, much more.
+
+
+Requirements
+------------
+
+* [Python](http://www.python.org) 2.7.x.
+* [netlib](http://pypi.python.org/pypi/netlib), version matching mitmproxy.
+* Third-party packages listed in [setup.py](https://github.com/mitmproxy/mitmproxy/blob/master/setup.py)
+
+Optional packages for extended content decoding:
+
+* [PyAMF](http://www.pyamf.org/) version 0.6.1 or newer.
+* [protobuf](https://code.google.com/p/protobuf/) version 2.5.0 or newer.
+* [cssutils](http://cthedot.de/cssutils/) version 1.0 or newer.
+
+__mitmproxy__ is tested and developed on OSX, Linux and OpenBSD. Windows is not
+officially supported at the moment.
+
+
+Hacking
+-------
+
+The following components are needed if you plan to hack on mitmproxy:
+
+* The test suite uses the [nose](http://readthedocs.org/docs/nose/en/latest/) unit testing
+  framework and requires [pathod](http://pathod.net) and [flask](http://flask.pocoo.org/).
+* Rendering the documentation requires [countershape](http://github.com/cortesi/countershape).
+
+For convenience, all dependencies save countershape can be installed from pypi
+to a virtualenv with 'pip install -r requirements.txt'.
+
+Please ensure that all patches are accompanied by matching changes in the test
+suite. The project maintains 100% test coverage.
+
+
+**mitmproxy** is an interactive, SSL-capable man-in-the-middle proxy for HTTP
+with a console interface.
+
+**mitmdump** is the command-line version of mitmproxy. Think tcpdump for HTTP.
+
+**libmproxy** is the library that mitmproxy and mitmdump are built on.
+
+Complete documentation and a set of practical tutorials is included in the
+distribution package, and is also available at mitmproxy.org_.
+
+.. _mitmproxy.org: http://mitmproxy.org
+

@@ -1,0 +1,176 @@
+Autumn 0.5
+
+
+This is a modified version of the Autumn ORM.
+
+http://autumn-orm.org/
+
+http://pypi.python.org/pypi/autumn
+
+
+
+This is version 0.5 of Autumn, modified to work with multi-threaded SQLite.
+The modifications include:
+
+* Prior version use a global "db" object, which is a database connection
+object.  This modified version replaces "db" with "db.conn", and stores
+this new object in a class.
+
+* Storing db.conn inside a class lets you have more than one connection
+object.  This is to allow having multiple SQLite database files
+open at one time.  To use more than one connection object, create a new
+class for each connection object.  Make your Autumn model class inherit
+from the new connection object class before it inherits from Autumn's
+"Model" class, so that the new db.conn object will be found first.
+
+* The connection object, now called "conn", is now stored in a container
+called "db".  The default container is a trivial class, but it is now
+possible to use a threading.local() object as the container; this will
+allow multiple threads to each have their own connection object, as is
+required by SQLite.
+
+* An "autumn.util" module is added.  It includes some convenience
+functions, and a class called AutoConn.  AutoConn sets up a db object
+that will automatically initialize thread-local .conn members as needed.
+When using AutoConn, the whole thread-local storage requirement just works
+and you don't need to pay any attention to it.   There are comments at the
+end of the util module, with example code showing how to use AutoConn.
+
+* Some bugs were fixed.
+
+* A version number and version string was added to __init__.py.
+
+* Added Query.begin() and Query.commit(), for bracketing multiple
+SQL operations and making them into a single transaction.
+
+
+
+How to use Autumn with multi-threaded SQLite:
+
+* Set up a class for each SQLite database file you wish to use.
+
+* In each class, set an AutoConn() object specifying the SQLite .DB file.
+
+* Set up a single lock object to control access to SQLite.  Two threads
+cannot use SQLite at the same time; if one thread is using SQLite the
+other thread must wait.  The lock object makes sure that only one thread
+at a time tries to use SQLite.
+
+db_lock = threading.RLock()
+
+* Before doing anything with the database, get the lock.  Release the
+lock when done.  The best way to do this is to use the Python 2.5 and
+newer "with" statement feature.  In Python 2.5 you must import it from
+__future__.  Example code:
+
+
+from __future__ import with_statement
+
+db_lock = threading.RLock()
+
+# in code that will use the database:
+
+    with db_lock:
+        row = MyModel.get(1)
+
+
+
+It is easy with this modified Autumn to use as many SQLite database
+files as you wish, with as many threads as you wish, and without ever
+getting any "database is busy" exceptions.
+
+Ideally, Autumn could be modified in future to have optional lock support
+built-in.  Multithreaded SQLite users could enable the lock, and not have
+to explicitly get and release the lock; other users would not enable it.
+But it's not hard to add the "with db_lock:" code now.
+
+P.S. The Storm ORM basically cannot be used for multi-threaded SQLite.
+Storm requires one store per database; SQLite requires one connection
+per thread.  These requirements conflict, so Storm basically requires
+that you do all your database activity in a single thread.  Autumn is
+thus a much better choice for multi-threaded SQLite.
+
+# Autumn, a Python ORM
+
+Autumn exists as a super-lightweight Object-relational mapper (ORM) for Python. 
+It’s an alternative to [SQLObject](http://www.sqlobject.org/), 
+[SQLAlchemy](http://www.sqlalchemy.org/), [Storm](https://storm.canonical.com/),
+etc. Perhaps the biggest difference is the automatic population of fields as 
+attributes (see the example below).
+
+It is released under the MIT License (see LICENSE file for details).
+
+This project is currently considered beta software.
+
+## MySQL Example
+
+Using these tables:
+
+    DROP TABLE IF EXISTS author;
+    CREATE TABLE author (
+        id INT(11) NOT NULL auto_increment,
+        first_name VARCHAR(40) NOT NULL,
+        last_name VARCHAR(40) NOT NULL,
+        bio TEXT,
+        PRIMARY KEY (id)
+    );
+    DROP TABLE IF EXISTS books;
+    CREATE TABLE books (
+        id INT(11) NOT NULL auto_increment,
+        title VARCHAR(255),
+        author_id INT(11),
+        FOREIGN KEY (author_id) REFERENCES author(id),
+        PRIMARY KEY (id)
+    );
+
+We setup our objects like so:
+
+    from autumn.db.connection import db
+    from autumn.model import Model
+    from autumn.db.relations import ForeignKey, OneToMany
+    import datetime
+
+    db.connect('mysql', user='root', db='mydatabase')
+
+    class Author(Model):
+        books = OneToMany('Book')
+
+        class Meta:
+            defaults = {'bio': 'No bio available'}
+            validations = {'first_name': lambda self, v: len(v) > 1}
+
+    class Book(Model):
+        author = ForeignKey(Author)
+
+        class Meta:
+            table = 'books'
+
+Now we can create, retrieve, update and delete entries in our database.
+Creation
+
+    james = Author(first_name='James', last_name='Joyce')
+    james.save()
+
+    u = Book(title='Ulysses', author_id=james.id)
+    u.save()
+
+### Retrieval
+
+    a = Author.get(1)
+    a.first_name # James
+    a.books      # Returns list of author's books
+
+    # Returns a list, using LIMIT based on slice
+    a = Author.get()[:10]   # LIMIT 0, 10
+    a = Author.get()[20:30] # LIMIT 20, 10
+
+### Updating
+
+    a = Author.get(1)
+    a.bio = 'What a crazy guy! Hard to read but... wow!'
+    a.save()
+
+### Deleting
+
+    a.delete()
+

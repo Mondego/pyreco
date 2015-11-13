@@ -1,0 +1,2278 @@
+# Configuring Cloud Parameters
+
+Currently four different virtual machine providers are implemented: `aws`
+(default), `openstack`, `eucalyptus` (partial support), and `vagrant`. Request
+for supporting additional cloud infrastructures can be created here
+https://github.com/jmchilton/vm-launcher/issues/new or pull requests are
+always welcome. The `vm-launcher` project is built heavily on Apache
+[libcloud], so support should be implemented at that level first, though
+dozens of cloud providers are currently implemented.
+
+## aws 
+
+This cloud supports the following compute parameters: `access_id`,
+`secret_key`, `size_id`, `image_id`, `availability_zone`.
+
+The aws driver supports two packaging modes, this is the code that is called
+when the `package` action is executed. By default, package will cause some
+scripts to be created on the remote server to aid in packaging, if however
+`package_type` parameter is set to `create_image`, the Amazon EC2 CreateImage
+(http://support.smartbear.com/viewarticle/22739/) operation will be used to
+automatically package the target instance. `create_image` mode can only be
+used for EBS backed instances, which is why the other more complex mode is the
+default.
+
+When `create_image` is enabled, the additional packaging parameters include
+`package_image_name`, `package_image_description`, and `make_public`.
+
+For the default packaging mode, many additional parameters related to S3 must
+be set including `x509_cert`, `x509_key`, `user_id`, and `package_bucket`.
+
+## openstack
+
+OpenStack may be targetted using either the native OpenStack APIs or using the
+EC2 compatibility layer (e.g. what boto does). To target the EC2 compatibility
+use the `eucalyptus` driver, this `openstack` driver targets the native API.
+
+This driver allows the following parameters `username`, `password`, `host`,
+`secure` (boolean), `port`, `ex_force_uth_url`, `ex_force_base_url`,
+`ex_force_auth_version`, `ex_tenant_name`, `flavor_id`, `image_id`,
+`keypair_name`, and `package_image_name`.
+
+## eucalyptus
+
+Support for the eucalyptus driver is somewhat experimental at this time and automated packaging is not available. This driver can be configured via the following options:: `secret`, `secure`, `port`, `host`, `path`, `size_id`.
+
+## vagrant
+
+The vagrant driver supports no additional parameters, a precise64 box
+should be configured though this can be tweaks by adjusting the file
+`Vagrantfile`.
+
+[libcloud]: http://libcloud.apache.org/
+
+
+
+
+This directory contains details of the software installed with
+[CloudBioLinux][1]. This is the right place to dig around if you are interested
+in adding packages to the image, or would like to get an overview of what is
+installed. The configuration files are written in easily readable [YAML format][2].
+
+* [main.yaml][4] --  High level category view of packages and libraries that are
+  installed with CloudBioLinux.
+
+* [packages.yaml][5] -- A full list of operating system packages that are included,
+  organized by category. The names are standard [Ubuntu APT package names][3].
+
+* [custom.yaml][6] -- Installed software that is not included in the standard
+  package repository. These are often specialized biological packages that have
+  not yet been cleanly packaged. Actual installation code is in the `custom`
+  sub-directory.
+
+* [python-libs.yaml][7], [r-libs.yaml][8], [perl-libs.yaml][9],
+  [ruby-libs.yaml][10],-- Libraries installed for a number of programming
+  languages. These are installed by the language specific library managers
+  (easy\_install for Python, cpan for Perl, gem for Ruby).
+
+
+[1]: http://cloudbiolinux.com/
+[2]: http://en.wikipedia.org/wiki/YAML
+[3]: https://help.ubuntu.com/community/AptGet/Howto
+[4]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/main.yaml
+[5]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/packages.yaml
+[6]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/custom.yaml
+[7]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/python-libs.yaml
+[8]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/r-libs.yaml
+[9]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/perl-libs.yaml
+[10]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/ruby-libs.yaml
+
+
+BioNode is an open source software initiative to provide a scalable
+Linux virtual machine image for bioinformatics, based on Debian Linux
+and Bio Med packages. The image can be deployed on the desktop, using
+VirtualBox, on a number of networked PCs, and in the cloud (currently
+Amazon EC2 is supported; and OpenStack is planned for).
+
+BioNode is a purely Debian based specialization. BioNode updates and
+uses recent bioinformatics software. FOSS BioNode packages should find
+their way into main stream Debian packages (blessed by the Bio Med
+project). These should be available to all Debian derived
+distributions, including Ubuntu and Mint. It may take time, however,
+to trickle all the way down.
+
+BioNode shares the architecture of CloudBioLinux for bootstrapping and
+installing packages. BioNode BioLinux relevant information is found in
+this directory. BioNode specific configurations are hosted in a
+separate git repository.
+
+To build a BioNode from scratch, create a fabricrc, and use something like
+
+  fab -H vagrant -f $source/fabfile.py install_biolinux -c $source/contrib/bionode/fabricrc_bionode.txt
+
+For more information see http://biobeat.org/bionode
+
+This document is meant to layout work that is to be done and/or that
+has been done in merging mi-deployment and galaxy-vm-launcher into
+cloudbiolinux.
+
+## Concrete TODO List:
+
+### mi-deployment migration:
+
+* *TODETERMINE*: Is SGE configuration in cloudbiolinux up-to-date with mi-deployment?
+* *TODETERMINE*: Is setuptools install in mi-deployment needed with cloudbiolinux? (Seems no. -John)
+* *TODO*: Port mi-deployment s3fs install functionality to cloudbiolinux.
+* *TODETERMINE*: Is _configure_postgresql functionality needed? Seems to work without it.
+* *TODO*: Port mi-deployment _configure_galaxy_env functionality to cloudbiolinux.
+* *TODO*: Port mi-deployment _save_image_conf_support functionality to cloudbiolinx
+* *TODO*: Move required files for _configure_logrotate to cloudbiolinux installed_files and update setup procedure accordingly.
+* *TODO*: Move required files for proftpd to cloudbiolinux installed_files and update setup procedure accordingly.
+* *TODO*: Move nginx_errdoc.tar.gz to cloudbiolinux installed_files and update setup procedure accordingly.
+* *TODO*: Move required files for vimrc to cloudbiolinux installed_files and update setup procedure accordingly.
+* *TODO*: Port mi-deployment volume_manipulations_fab.py functionality to cloudbiolinux (if makes sense ).
+* *TODO*: Port mi-deployment instance-to-ebs-ami.sh functionality to cloudbiolinux (if makes sense ).
+* *TODO*: Port mi-deployment copy_snap/local_to_ebs_fab.py functionality to cloudbiolinux (if makes sense ).
+* *TODO*: Port mi-deployment wrf, graphlab, and tools/* functionality to cloudbiolinux (if makes sense ).
+
+### galaxy-vm-launcher migration:
+
+* *TODO*: Move these procedures into cloudbiolinux - start_nginx (all disabled by default to ensure cloudman compat.).
+* *TODO*: Refactor deploy.py to use cloudbio/galaxy/tools instead of gvl/lib/tools.py
+* *TODO*: Refactor galaxy.py to install galaxy via cloudbiolinux methods.
+* *TODO*: Move this functionality into cloudbiolinx - galaxy database migrations (disabled by default to ensure cloudman compat.)
+* *TODETERMINE*: Could we move setup_taxonomy_data from gvl/lib/deploy.py into cloudbio/biodata somewhere? How has cloudman been configuring this data?
+
+### Completed TODOs from original checklist
+
+* *TODO*: Migrate _init_postgresql_data
+* *TODO*: Migrate _configure_nginx_service
+* *TODETERMINE*: Is install_nginx in cloudbiolinux up-to-date with mi-deployment?
+* *TODO*: Refactor install_nginx in cloudbio.custom.cloudman so it can be used by 
+galaxy-vm-launcher
+* *TODO*: Determine and implement good way to make cloudman specific parts of nginx.conf optional.
+* *TODO*: Port mi-deployment _configure_xvfb functionality to cloudbiolinx
+* *TODO*: Move this functionality into cloudbiolinx - setting up galaxy init service, log (disabled by default to ensure cloudman compat.)
+
+## mi-deployment
+
+* data_fabfile.py - Seems all the work was already been done.
+
+* ec2autorun.py - Ported with the same default behavior as of 8/12/12,
+  but optional user data extensions to handle more galaxy-vm-launcher 
+  style use cases.
+
+* instance-to-ebs-ami.sh - No work done?
+
+* mi-fabile.py - 
+
+  * apt package installations - Ported over and update to date as of
+    8/12/12.
+
+  * setting up users - Ported over and update to date as of 8/12/12.
+
+  * install nginx - Ported over at some point. TODO: Determine if the
+    cloudbiolinux stuff is up-to-date. 
+    
+    Extension: The cloudbiolinux version has been extended to allow
+    parameterization of the Galaxy webapp installation directory.
+
+  * Configure SGE - Ported over. TODO: Determine if the cloudbiolinux
+    stuff is up-to-date.
+
+  * Install setuptools - This doesn't seem to be needed with
+    cloudbiolinux, at least with Ubuntu 12.04.
+
+  * Install s3fs - TODO: Port this functionality.
+ 
+  * _configure_postgresql - Is this really needed? Have the same code in 
+    galaxy-vm-launcher, but Cloudman seems to working without this cleanup. 
+
+  * _install_proftpd - Ported over, up-to-date as of 8/12/12. Should move 
+    configuration files to installed_files instead of mi-deployment.
+
+  * _configure_ec2_autorun - Ported over and up-to-date as of 8/12/12.
+
+  * _configure_sge - Ported over and up-to-date as of 8/12/12.
+
+  * _configure_galaxy_env - TODO: Port this functionality.
+
+  * _configure_nfs - Ported over and seems functionally equivalent as of 8/12/12.
+
+  * _configure_logrotate - Files should be moved into cloudbiolinux/installed_files,
+    but this is functionally equivalent as of 8/12/12.
+
+  * _save_image_conf_support - TODO: Port this functionality.
+  
+  * _configure_xvfb - TODO: Port this functionality. 
+
+  * _configure_bash - Ported over as part of cloudbio.cloudman's _setup_env method
+    and up-to-date 
+
+* nginx.conf - Ported over (8/12/12), extended to allow 
+  parameterization of galaxy_home path.
+* nginx_errdoc.tar.gz - Right now this is fetched from mi-deployment, 
+  should be stored in cloudbiolinux.
+* tools_fabfile.py - Ported over and up-to-date as of 8/12/12.
+  Functionality split into installing Galaxy and installing actual tool dependencies.
+
+  To install Galaxy the way tools_fabfile does, install cloudman via:
+  fab -f fabfile.py -i <key> -H ubuntu@<IP> install_biolinux:packagelist=./contrib/cloudman/cloudman_and_galaxy.yaml  
+  instead of :
+  fab -f fabfile.py -i <key> -H ubuntu@<IP> install_custom:cloudman
+  
+  Several extension points on top of mi-deployment have been added
+  (configured via fabricrc options), but the default behavior should
+  be the same. These extensions include, allowing deployer to set:
+
+  * galaxy_repository: Which repo to point at.
+  * galaxy_preconfigured_repository: Override default of true to skip the 
+    tweaking of the installed galaxy repository that tools_fabfile does. The
+    galaxy-vm-launcher approach is to include these changesets 
+    https://bitbucket.org/jmchilton/cloud-galaxy-dist
+    in the repository Galaxy being installed from.
+  * galaxy_conf_directory: Use this work 
+    https://bitbucket.org/galaxy/galaxy-central/pull-request/44/allow-usage-of-directory-of-configuration
+    to allow overridding specific galaxy universe_wsgi.ini properties at image configuration time.
+    Any fabric environment properties of the form: galaxy_universe_XXXX=YYYY will end up at runtime
+    as Galaxy universe_wsgi.ini properties of the form XXXX=YYYY inside [app:main]. My extensions to CloudMan also allow setting properties via this mechanism from user data at startup time. By default, cloudbiolinux properties will have a priority of 200 and cloudman properties a priority of 400, so if there are conflicts, CloudMan's startup time properties will override those of CloudBioLinux's. 
+  
+  The remaining functionality of installing Galaxy application and
+  R/Bioconductor dependencies is available, but turned off by
+  default. To enable these, update the fabric enviornment to set
+  galaxy_install_dependencies=true and galaxy_install_r_packages. This
+  functionality has been extended to dynamically read which packages
+  and versions to install from the file: contrib/cloudman/tools.yaml.
+  Multiple versions of the same tool can be installed via this
+  mechanism. I have updated various software versions and tweaked the
+  install methods to work under Ubuntu 12.04 for all tools.
+
+* volume_manipulations_fab.py - No work has been done on this. This
+  file has not been updated in a while, is it still useful?
+
+* xvfb_default and xvfb_init - TODO: Port these files and mi-deployments' 
+  configure_xvfb functionality over.
+
+* conf_files/proftp.conf, conf_files/proftp.initd - Right now this is fetched from mi-  deployment, should be stored in cloudbiolinux.
+
+* conf_files/vimrc - Right now this is fetched from mi-deployment, 
+  should be stored in cloudbiolinux.
+
+* conf_files/apps.yaml, conf_files/config.yaml - The cloudman and
+  galaxy dependencies have been ported over and will be installed
+  using cloudbiolinux's similar package management configuration
+  mechanisms. The extensions (wrf, graphlab) have not been.
+
+* conf_files/cloudman.logrotate  - File still be fetched from mi-deployment, 
+  this should be read from installed_files instead.
+
+* copy_snap/local_to_ebs_fab.py - No work has been done on this. This
+  file has not been updated in a while, is it still useful?
+
+* tools/ - No work on the custom tools has been done. Are there more
+  cloudbiolinux-y ways to handle these?
+
+## galaxy-vm-launcher
+
+* lib/genomes.py - Uses cloudbiolinux alread. TODO: Just delete out of 
+  galaxy-vm-launcher.
+
+* lib/image.py - 
+
+  Setting up users and installing packages is good to go.
+
+  install_nginx in cloudbio/custom/cloudman should be refactored to a common shared place, but still invoked in install_cloudman. A seperate nginx conf file should be optional for galaxy-vm-launcher or we should find a good way to make the cloudman 
+  paths optional (and enabled by default).
+
+  _configure_postgresql - I don't think this is needed except maybe allowing 
+  overridding of postgresql.conf etc file.
+
+  _init_postgresql_data, _configure_nginx_service, start_nginx - This should all
+  be ported over but disabled by default (for cloudman compatiablity).
+
+  configure_xvfb - TODO: Configure this.
+
+* lib/tools.py - Mostly merged already. galaxy-vm-launcher should be refactored 
+  to use cloudbio/galaxy/tools.
+
+* lib/galaxy.py - 
+
+  * Setting up galaxy and options (functionality mostly available in cloudbiolinux now gvl needs to be refactored to use it.)
+
+  * Setting up galaxy service, log, and database migrations. Functionality could be move to cloudbio/galaxy and disabled by default (not compatiable with cloudman).
+
+  * Seeding galaxy with data. Functionality should remain in the galaxy-vm-launcher, 
+  not really compatiable with cloudman. galaxy-vm-launcher should be refactored to
+  use blend though and possibily some fork of blend with additional methods that 
+  directly interact with the database the way galaxy-vm-launcher does.
+
+* lib/deploy.py - File should largely remain as is.
+  
+  setup_taxonomy_data - Could be moved into cloudbio/biodata. Does cloudman use 
+  the metagenomics tools? How is this currently being configured?
+
+
+# CloudMan Flavors
+
+This document briefly describes the CloudMan/[Galaxy][10] flavors of
+CloudBioLinux available and how to configure them. For quick, small
+modifications to CloudMan your best bet is probably to modify an existing
+instance, documentation on how to do this can be found [here][9].
+Documentation for building a CloudMan image and corresponding volumes and
+bucket from scratch using the CloudBioLinux deployer can be found [here][8].
+
+## Core Flavors
+
+This directory contains package lists used to setup [CloudMan][1] and/or CloudMan
+and [Galaxy][2]. A minimal CloudMan machine can be configured with the following command:
+
+         fab -f fabfile.py -i <key> -H ubuntu@<IP> install_custom:cloudman
+
+A slightly more flushed out instance can be installed via the command:
+
+        fab -f fabfile.py -i <key> -H ubuntu@<IP> install_biolinux:flavor=cloudman/cloudman
+
+Finally, CloudMan and Galaxy can be installed together via the command:
+
+        fab -f fabfile.py -i <key> -H ubuntu@<IP> install_biolinux:flavor=cloudman/cloudman_and_galaxy
+
+You can additionally configure your CloudMan and Galaxy instance by specifying
+a configuration file: "-c <your_fabricrc.txt>" in the above command.
+
+A subset of the parameters you may override via this mechanism includes (see
+``config/fabricrc.txt`` for a full list):
+
+* `galaxy_user` (default `galaxy`): User of Galaxy webapp
+* `galaxy_home` (default `/mnt/galaxyTools/galaxy-central`): Galaxy installation directory
+* `galaxy_tools_dir` (default `/mnt/galaxyTools/tools`): Galaxy tool's directory, formally called `install_dir` in mi-deployment's `tools_fabfile.py` file.
+* `galaxy_loc_files` (default `/mnt/galaxyIndices`): Directory for installation of Galaxy loc files.
+* `galaxy_repository` (default `https://bitbucket.org/galaxy/galaxy-central/`): This is the mercurial repository of Galaxy to install into.
+* `galaxy_preconfigured_repository` (default `False`): If this is `True`, CloudBioLinux will not tweak the repository pulled in via mercurial for CloudMan. This is for applications which prepackage the needed changes to Galaxy directly into the Mercurial repository.
+* `galaxy_cloud` (default `True`): If this is `True`, the Galaxy installation will be preconfigured for SGE and contain CloudMan branding.
+
+## Galaxy Extensions
+
+### Galaxy-P Flavors
+
+There are two additional flavors assembled for the [Galaxy-P][4] project. 
+
+Below are some recommended fabricrc.txt overrides for Galaxy-P.
+  
+* `dist_name = precise`
+* `galaxy_repository = https://bitbucket.org/galaxyp/galaxyp-central/`
+* `galaxy_tool_conf = /path/to/cloudbiolinux/contrib/flavor/proteomics/galaxyp/galaxy_tools.yaml`
+
+Side Note: Galaxy-P is actively developed, tested, and deployed with Ubuntu 12.04
+LTS, so this is what to target for best results. Feel free to let me
+(jmchilton@gmail.com) know if there are issues or if you would like
+help deploying in other environments and I will attempt to help in
+whatever way I can.
+
+
+#### The Galaxy-P Server Flavor
+
+This flavor is used to build the internal and [public][5] Galaxy-P servers
+hosted on the OpenStack cloud at the Minnesota Supercomputing Institute,
+though can of course be used to build your own Galaxy-P environment. This
+flavor is a sort of stripped down proteomics environment for Galaxy.
+
+        fab -f fabfile.py -i <key> -H ubuntu@<IP> install_biolinux:flavor=cloudman/cloudman_and_galaxyp
+
+This flavor additionally requires a wine environment to be packaged using the
+[proteomics-wine-env][7] project and made available to CloudBioLinux via the
+`setup_proteomics_wine_env_script` fabricrc property.
+
+#### The Galaxy-P Desktop Flavor
+
+The Galaxy-P desktop flavor builds on the server flavor with additional
+desktop tools and programming libraries designed to make it a broadly useful
+environment for mass spec data analysis even outside the context of Galaxy
+while also stripping out the wine related tools to avoid potential legal
+concerns associated with redistributing such tools.
+
+An Amazon AMI of this flavor will be available for launch on MSI's
+[BioCloudCentral instance][6].
+
+        fab -f fabfile.py -i <key> -H ubuntu@<IP> install_biolinux:flavor=cloudman/cloudman_desktop_and_galaxyp
+
+
+[1]: http://usecloudman.org/
+[2]: http://usegalaxy.org/
+[3]: http://cloudbiolinux.org/
+[4]: http://getgalaxyp.org/
+[5]: https://usegalaxyp.org/
+[6]: https://biocloudcentral.msi.umn.edu/
+[7]: https://github.com/jmchilton/proteomics-wine-env
+[8]: https://github.com/chapmanb/cloudbiolinux/blob/master/deploy/cloudman.md
+[9]: http://wiki.galaxyproject.org/CloudMan/CustomizeGalaxyCloud
+[10]: http://galaxyproject.org
+
+= Running the Phylogeny VM in Virtualbox
+
+== Install Virtualbox
+
+Download and install Virtualbox from https://www.virtualbox.org/
+
+Start Virtualbox.
+
+== Download and install the BioLinux image
+
+Fetch a BioLinux for virtualbox using the provided link, e.g.
+
+        wget http://hostname/biolinux-phylogeny-virtualbox.vmdk
+
+Add this file to VirtualBox by selecting 'New', choose a name and
+select Debian Linux. After setting RAM, select 'Use existing hard disk' and
+select the downloaded .vmdk file.
+
+== Start up the image
+
+Select the image and press 'Start'.
+
+== Using the VM
+
+After starting the VM you get a desktop. The user name is 'vagrant', as well
+as the password. You can get root with the same password. Open a terminal
+with LXterminal (from the menu). Run tools from the command line, e.g.
+
+       raxmlHPC
+       mb-mpi
+
+you can have root, so installing new software is possible using apt-get.
+
+== Modifying the virtual hardware
+
+You can configure your image to run on multiple CPUs. Right-click on the image
+icon in virtualbox and 'Settings'. Configure the hardware.
+
+== Use ssh/scp
+
+Openssh-server should be running on the VM
+
+        apt-get install openssh-server
+
+The VM is visible on a local network inside your PC. The VM network card is
+eth1. Start a terminal as root and initialize
+
+        dhcpclient -v eth1
+        /sbin/ifconfig
+
+from your PC use ssh to the listed IP address. 
+
+When DHCP fails, reconfigure networking in VirtualBox. Right-click on the image
+icon of the VM, click 'Settings', and configure the network to use 'bridge'.
+And again run DHCP.
+
+== Copying files to the image
+
+With scp files can be copied to the image. An alternative approach, since the
+VM has network, is to provide files through a webserver, or Amazon S3. E.g.
+
+         wget http://webserver/file.tgz
+
+
+This directory contains a stand-alone (no CloudMan) Galaxy-P flavor
+for installing Galaxy-P in desktop or cluster environments. If
+configuring Galaxy-P for cloud based enviornments, the
+cloudman/cloudman_and_galaxyp flavor is likely a more appropriate target.
+
+For more information on using CloudBioLinux to install Galaxy-P, please see
+http://getgalaxyp.org/install.html.
+
+# CloudBioLinux Deployer CloudMan QuickStart
+
+As far as I can determine there is no current documentation on how to build
+CloudMan instances from scratch. Thus I am collecting my unofficial notes on
+how to do this here - spefically using the CloudBioLinux deployer.
+
+You will need to navigate the AWS management console and obtain the following
+information.
+
+* Your AWS Access ID and secret key (`access_id`, `secret_key`)
+* Ubuntu EBS-backed AMI ID to target. This writeup was tested with ami-9b85eef2 (12.04.2 (64-bit) in us-east-1)
+* Image size to use (e.g. m1-small)
+* Availibity zone (e.g. us-east-1)
+* You will need to setup a bucket to store your snaps file, here you will need the bucket name.
+* You will need to setup two volumes in your target availibity zone, one for
+  Galaxy tools and data (perhaps 20Gb for testing) and one for galaxyIndices. Here you will need the volume ids.
+* Generate a private a key (e.g. galaxy1.pem) and copy it into keys directory (or anywhere really), 
+  also note the keypair_name corresponding to the key.
+
+Create a directory (e.g. `/home/mary/marys_cloudman_bucket_contents`). Copy
+the files from an existing CloudMan bucket here (e.g. http://s3.amazonaws.com
+/cloudman-dev).
+
+It is not really important how you download these files, but one quick option
+is to use `s3cmd` tool:
+
+    % sudo apt-get install s3cmd  # Or your OS's package manager
+    % mkdir /home/mary/marys_cloudman_bucket_contents
+    % s3cmd -r get s3://cloudman-dev /home/mary/marys_cloudman_bucket_contents
+
+Here you can replace the CloudMan source (i.e. `cm.tar.gz`) or any of these
+files to match the customized setup you would like. In particular you are
+going to want to create a custom snaps.yaml file. Here is a simple outline
+that we will fill out as we good.
+
+    version: 1
+    clouds:
+      - name: amazon
+        regions:
+        - deployments:
+          - name: GalaxyCloud
+            filesystems:
+            - name: galaxy
+              roles: galaxyTools,galaxyData
+              snap_id: snap-XXXXXXXXXXX
+              mount_point: /mnt/galaxy
+            - name: galaxyIndices
+              roles: galaxyIndices
+              snap_id: snap-XXXXXXXXXXXX
+              mount_point: /mnt/galaxyIndices
+            default_mi: ami-XXXXXXXXXXXXX
+            bucket: marys_cloudman_bucket
+          name: us-east-1
+
+Immediately this template can be updated to reflect the bucket created above
+and the availibity zone you are targetting. We can update teh snap_id's and
+the default_mi after creating them.
+
+Copy and modify `settings-sample-cm.yaml` to `settings.yaml`:
+
+    % git clone git://github.com/chapmanb/cloudbiolinux.git
+    % cd cloudbiolinux/deploy
+    % cp settings-sample-cm.yaml settings.yaml
+    % vim settings.yaml # or your favorite editor
+
+Carefully scan through `settings.yaml` and change the properties marked as requiring
+change. The word `UPDATE` in the comments indicates properties of special
+interest that either don't have reasonable defaults or have reasonable
+defaults but that I have deemed highly likely to be overridden.
+
+Now you can use the CloudBioLinux deployer to launch an image, attach volumes,
+install biolinux, take needed snapshots, and package the whole thing up:
+
+    % ./deploy.sh --action=launch
+    % ./deploy.sh --action=attach_volumes
+    % ./deploy.sh --action=install_biolinux --flavor=cloudman/cloudman_and_galaxy
+    % ./deploy.sh --action=snapshot_volumes
+    % ./deploy.sh --action=detach_volumes
+    % ./deploy.sh --action=package
+
+If at any point in the above process you need to interactively inspect the
+state of the instance being configured you can do this via the following command:
+
+    % ./deploy.sh --action=ssh
+
+Once a CloudMan AMI has been created, update `snaps.yaml` in your bucket
+directory (e.g. `/home/mary/marys_cloudman_bucket_contents`) to reflect the
+`snap_id`s and AMI created. These should all be available via the AWS
+management console or by reviewing the output of the steps above.
+
+Finally, you can upload your new bucket and launch a test CloudMan instance:
+
+    % ./deploy.sh --action=sync_cloudman_bucket
+    % ./deploy.sh --action=cloudman_launch
+
+## Customizing
+
+The above example uses the `cloudman/cloudman_and_galaxy` CloudBioLinux
+flavor, but there are additional flavors of CloudBioLinux available. Please
+consult [this page][1] 
+and choose the most appropriate flavor:
+
+### Customizing Galaxy
+
+Installing a customized Galaxy is as simple as overriding the
+`galaxy_repository` variable in the `fabricrc_overrides` section of the
+`settings.yaml`.
+
+### Customizing Tools
+
+Out of the box, CloudBioLinux can be configured to install dozens of
+bioinformatic packages out of the box and adding additional packages is fairly
+straight forward. One simply need to create a CloudBioLinux flavor that
+configures which such packages are installed and specify that flavor (either
+in the command-line as shown above or in `settings.yaml`).
+
+Your custom flavor should include the `cloudman` packages. If your flavor
+additionally includes `galaxy` (as the flavor `cloudman_and_galaxy` shown
+above) packages and `install_tool_dependencies` is set to `True` in
+`settings.yaml` - CloudBioLinux will setup a tool dependencies directory for
+Galaxy. This allows multiple versions of an application to be installed in
+isolation.
+
+When enabled, the list of tools and versions that is installed can be found in
+``cloudbiolinux/contrib/flavor/cloudman/tools.yaml <https://github.com/chapmanb/cloudbiolinux/blob/master/contrib/flavor/cloudman/tools.yaml>``. One can
+modify that file directly or specify an entirely new file by setting the
+``galaxy_tools_conf`` property in the `fabric_overrides` section of `settings.yaml`.
+
+### Customizing CloudMan
+
+CloudMan is downloaded from the bucket you specify and installed at system
+startup. Hence one can simply place a customized version of CloudMan (tarred
+up and named `cm.tar.gz`) in the bucket.
+
+If `cloudman_repository`, `bucket_source`, and `bucket_default` are set in the
+`cloudman` section of `settings.yaml`, then one can execute the following
+command to quickly tar up the local copy of CloudMan (in
+`cloudman_repository`) and update your target bucket.
+
+    % ./deploy.sh --action=bundle_cloudman --action=sync_cloudman_bucket
+
+[1]: https://github.com/chapmanb/cloudbiolinux/tree/master/contrib/flavor/cloudman
+# CloudBioLinux Deployer
+
+This CloudBioLinux deployer has grown out of the galaxy-vm-launcher and
+can be used to launch cloud virtual machines, configure them with
+Galaxy, and seed it with input data, genomes, workflows, etc.... More
+recently, actions for installing CloudBioLinux and launching CloudMan
+have been added.
+
+## Prerequisites
+
+The `deploy.sh` script should install the needed dependencies in a Python
+virutal environment using venvburrito and doesn't require special permissions
+as long as `python`, `easy_install`, and `git` are available.
+
+## Specify settings
+
+All deploy actions first require the existence of a setting file. 
+
+    cp settings-sample-oldgalaxyvmlauncher.yaml settings.yaml
+
+This file has numerous settings to customize how the deployer acts. Be
+default, the deployer will target Amazon Web Services and `key_file`,
+`access_id`, and `private_key` in the aws section of of this file must
+be specified.
+
+The argument `--settings=/path/to/custom_settings.yaml` may be passed
+to `deploy.sh` to specify a custom path for this settings file.
+
+## Configuring Galaxy
+
+    ./deploy.sh --action=configure --action=transfer file1 file2 file3
+
+When called this way, deploy.sh will launch a VM, configure Galaxy,
+tools, and genomes. Once Galaxy is ready, it will transfer each of
+provided input files to the newly launched VM, and use the Galaxy REST
+API to add them to a Galaxy data library (and optionally a
+history). Once all of that is complete, it will print a URL to the
+screen telling the operator where to find the new Galaxy instance.
+
+This does not install CloudMan, Galaxy is configured to run at startup
+by an init script. A more traditional CloudMan workflow can be
+achieved using the `install_biolinux` action described next.
+
+## Installing CloudBioLinux
+
+    ./deploy.sh --action=install_biolinux --action=package
+
+This mode will launch an instance, install CloudBioLinux (a flavor can
+be specified in setting.yaml), and `package` (see settings.yaml for
+more details) the resulting virtual image.
+
+## Additional Actions
+
+The actions show above can be combined in different manners, for
+instance `configure` and `package` can be used to configure a Galaxy
+instance and package so that later `transfer` can be used without
+requiring a full configure. Alternatively, `install_biolinux` can be
+followed up with `transfer` to install CloudBioLinux and start
+analyzing data without requiring Galaxy (be sure to set `use_galaxy:
+False` in settings.yaml in this case).
+
+You can see running instances on target cloud with this command: 
+
+    ./deploy.sh --action=list
+
+You can also destroy all running instances with this command:
+    
+    ./deploy.sh --action=destroy
+
+If an existing CloudBioLinux image bundled with CloudMan has been
+created and its image id set as `image_id` in the `cloudman` section
+of `setting.yaml`, then this image can be launched for testing with:
+
+    ./deploy.sh --action=launch_cloudman
+
+The full list of actions can be found in `cloudbio/deploy/__init__.py`
+and includes:
+
+* `list`
+* `destroy`
+* `transfer`
+* `destroy`
+* `transfer`,
+* `purge_galaxy`
+* `setup_galaxy`
+* `purge_tools`
+* `setup_tools`
+* `purge_genomes`
+* `setup_genomes`
+* `setup_ssh_key`
+* `package`
+* `setup_image`
+* `launch` - Dummy action justs launches instance
+* `install_biolinux`
+* `cloudman_launch`
+
+Additional composite actions are shortcuts for multiple actions - these include:
+
+* `configure` - `setup_image`, `setup_tools`, `setup_genomes`, `setup_ssh_key`
+* `reinstall_galaxy` - `purge_galaxy` and `setup_galaxy`
+* `reinstall_genomes` - `purge_genomes` and `setup_genomes`
+* `reinstall_tools` - `purge_tools` and `setup_tools`
+
+## Configuring Cloud Provider
+
+Cloud interactions are managed via the [vm-launcher] project, full
+information on configuring different cloud providers can be found
+[here][vm-launcher-config]
+
+In brief, there are few different options for where to create the
+VMs. Amazon EC2 is the default target, but it can also target
+Eucalyptus or OpenStack based clouds. The ruby package `vagrant` can
+be used to target virtual instances on your own machine.
+
+[vm-launcher-config]: https://github.com/jmchilton/vm-launcher/blob/master/config.md
+
+# Hacking BioLinux tips and tricks
+
+The BioLinux tools allow building a full environment for Bioinformatics. The
+design allows for flexible targets (Editions) and specializations (Flavors).
+
+VirtualBox + Vagrant make an ideal toying environment for building and testing
+targets. The BioLinux regression test system (in ./test/) uses that combo too.
+Please read the README and ./doc/vagrant documentation that come with the
+BioLinux source tree first (see http://github.com/chapmanb/cloudbiolinux).
+
+## Start with the Minimal edition
+
+The Minimal edition is the smallest common denominator of all Editions, as it
+installs the minimum of packages to bootstrap a full install. Once the
+vagrant box is up and running, Minimal is invoked from the desktop by
+
+          fab -f $source/fabfile.py -H target_hostname -c $source/contrib/minimal/fabricrc_debian.txt install_biolinux:flavor=$source/contrib/minimal
+
+where $source points to your biolinux source tree (replace 'target_hostname'
+with 'vagrant' when using that). In fact, the testing script in
+./test/test_vagrant does exactly this! Try:
+
+          cd $my_vms
+          $source/test/test_vagrant --help
+
+and the actual run:
+
+          $source/test/test_vagrant
+
+(also read $source/test/README)
+
+The main.yaml file ascertains the major editors are included, as well remote
+access, version control, and the basic build system (gcc and friends). Note the
+Minimal edition overwrites the (apt) sources file to make sure there are no
+conflicts with user settings.
+
+## Adding install packages
+
+To expand on the package list you can define your own main.yaml, and pass that
+in. In your main.yaml file add the meta-packages listed in
+config/packages.yaml. Invoke your new package list with
+
+          fab -f $source/fabfile.py -H target_hostname -c $source/contrib/minimal/fabricrc_debian.txt install_biolinux:flavor=/path/to/myproject
+
+where the `myproject` directory contains your main.yaml. It is that simple!
+
+If packages.yaml is not complete, you may suggest changing its contents in the
+main repository. The alternative is to create your own flavor, which we will do
+in a minute. The same strategy holds for the other definitions in the ./config
+directory, such as for Ruby gems, Python eggs, Perl CPAN, R-CRAN etc.
+
+## Define a Flavor
+
+For a cross language Bio* project performance test I needed to create a special
+version of BioLinux that would pull in a list of scripts and some additional
+packages.  Starting from an existing edition (in this case the Minimum edition,
+but it also works on top of BioNode and BioLinux editions), I created a new
+flavor in ./contrib/flavor/pjotrp/biotest/biotestflavor.py, named BioTestFlavor
+(note you also need an empty __init__.py file).  A Flavor class overrides the
+Flavor methods defined in ./cloudbio/flavor/__init__.py, in particular
+rewrite_config_items, a generic hook to rewrite a list of configured items (the
+package lists), and post_install, a post installation hook. To see what packages
+your Flavor wants to install, simply override rewrite_config_items, and add a print
+statement. For example:
+
+    def rewrite_config_items(self, name, packages):
+        for package in packages:
+          env.logger.info("Selected: "+name+" "+package)
+        return packages
+
+The flavor is itself is found through a fabricrc.txt file. The main package
+list may be in a new main.yaml file.  Kicking it into submission:
+
+          fab -f $source/fabfile.py -H target_hostname -c $source/contrib/flavor/pjotrp/biotest/fabricrc_debian.txt install_biolinux:flavor=$source/contrib/flavor/pjotrp/biotest
+
+The flavor module itsefl sets env.flavor on loading the module (this can only
+happen once). For more examples see the files in ./contrib/flavor.
+
+## Distribute a VirtualBox
+
+With vagrant a box can be exported with
+
+          vagrant package
+
+To extract the contained VirtualBox vmdk:
+
+          tar xvf package.box
+
+## Flavor: change default sources (apt, yum, rpm)
+
+Note: NYI
+
+BioLinux creates a (default, or edition based) list of package sources. These
+sources can be overridden by the Flavor.rewrite_apt_sources_list method - which
+should return a new list.
+
+## Flavor: install additional packages
+
+The primary way of adding new packages is by creating a new main.yaml file, as
+discussed above in ''Define a flavor''. In addition a flavor can define a
+method: BioLinux creates a (default, or edition based) list of packages. These
+sources can be overridden by the Flavor.rewrite_config_list method - which
+should return a new list.
+
+## Flavor: filter packages
+
+To filter/remove packages from the default list, use rewrite_config_list to
+filter existing meta packages.
+
+## Flavor: rewrite Ruby gem, Perl CPAN, Python egg, R CRAN lists
+
+The function rewrite_config_list also allows rewriting package lists for Ruby,
+Python, R, Perl etc. The general idea is that the main Editions define the
+inclusion of the main languages, and pull in Bio* related packages. To override
+this behaviour use the rewrite functions, e.g.
+
+    def rewrite_config_list(self, name, list):
+      if name == 'ruby':
+        return [ 'bio' ]
+      return list
+
+only allows the BioRuby 'bio' gem to be installed. This happens at the time
+your meta main.yaml reads
+
+    libraries:
+      - ruby-libs
+
+and pulls in ruby-libs.yaml. One ruby-libs.yaml is shared to make sure all
+editions are up-to-date. Likewise for all the other yaml files. The
+configuration options are at the main.yaml (meta-package) level, and by using
+rewrite methods at Edition and Flavor levels.
+
+## Flavor: install special software
+
+BioLinux comes with a bag of tricks to install special software outside the
+main package system. There are methods for checking out source repositories,
+and building software. There are methods for accessing public data resources
+(such as Amazon S3). These are so called custom installs which are defined in
+custom.yaml. Each of these can be pulled in and are configured by code in the
+./cloudbio/custom/ directory.  The method fetches names from custom.yaml that
+delegate to a method in the custom/name.py program.  These mechanisms are
+shared between BioLinux editions.
+
+But, importantly, it is easy to role your own custom methods using a Flavor!
+This mechanism can also be used to automatically run post-install software,
+such as puppet, cfruby and chef.
+
+For example, you can tell your flavor to clone a git repository, and execute
+a script by adding a post_install method to your flavor. E.g.
+
+            def post_install(self):
+                env.logger.info("Starting post-install")
+                if exists('Scalability'):
+                    with cd('Scalability'):
+                       run('git pull')
+                else:
+                   _fetch_and_unpack("git clone git://github.com/pjotrp/Scalability.git")
+                # Now run a post installation routine
+                run('./Scalability/scripts/hello.sh')
+
+You can run post_install on its own (convenient for testing!) using the finalize
+target, e.g.
+
+         fab -H hostname -f $source/fabfile.py -c  $flavor/fabricrc_debian.txt install_biolinux:flavor=$flavor,target=finalize
+
+(Note: finalize may become post-install in the future)
+
+For a full Flavor example see
+
+    https://github.com/pjotrp/cloudbiolinux/blob/master/contrib/flavor/pjotrp/biotest/biotestflavor.py
+
+## Individualize a Flavor with env.enviroment
+
+Sometimes it may be useful to have post-install one-offs, for
+individual purposes (say you want to define a user account for
+yourself). Rather than create a full Flavor for every possibility, you
+could add a parameter to the fabricrc file. Even better, add a command
+line parameter named 'environment' to the install_biolinux parameter
+list. E.g.
+
+         fab -H hostname -f $source/fabfile.py -c  $flavor/fabricrc_debian.txt install_biolinux:flavor=$flavor,environment=special
+
+which automatically becomes part of the Flavor environment state as
+'env.environment'. Use this parameter to distinguish between targets.
+We use it for distinguishing dev,test and production environments.
+
+# More tips and tricks
+
+## Using VNC
+
+To have a remote desktop, login with ssh to the VM and start VNC
+
+        vnc4server
+
+Enter a password. Note the output pointing to the VNC viewer (IP:1).
+
+on the client (your desktop) use
+
+        vncviewer IP:1
+
+## Tip for checking BioLinux installation effects
+
+To see the what a BioLinux install does to your system, store the settings of
+the original (untouched) state of a VM:
+
+1. Make a dump of the current installed package list
+
+                 dpkg -l > dpkg-original-list.txt
+
+2. Store the /etc tree - one way is to use git in /etc
+
+After running BioLinux you can see what has been done to your system by diffing
+against the package list, and checking /etc.
+
+## Use the testing framework to create new Flavors
+
+BioLinux comes with a testing framework in ./test. The frame work
+creates a new VM on a local machine. You can add tests, to check if a
+VM is complete. See the main README file for more information.
+
+These files make up an introductory tutorial about running CloudBioLinux on Amazon EC2. 
+
+The controlling file is called gettingStarted_Cloud-Bio-Linux.tex and mostly just has include statements for the other tex files. The pdf was made using pdflatex and calling it on gettingStarted_Cloud-Bio-Linux.tex 
+
+ 
+
+# CloudBioLinux and Linux KVM
+
+This document gives some additional information on using BioLinux on Linux KVM.
+
+In conjunction with the BioLinux fabric environment, any KMV VM can be
+bootstrapped.
+
+# Install KVM
+
+There are many web resources for installing KVM. On Debian derived systems:
+
+      apt-get install kvm libvirt-bin virtinst bridge-utils \
+                      qemu-kvm virt-manager libvirt-bin
+
+and add your user to the kvm group. E.g.
+
+      adduser user kvm
+  
+# Create a bare VM
+
+Download a live installation image file. For example from
+
+  http://cdimage.debian.org/cdimage/release/current-live/i386/usb-hdd/debian-live-$(VER)-i386-standard.img
+  
+Next reserve space on your disk partition (note, do not use qemu on an ext4 partition)
+
+      qemu-img create hda.img -opreallocation=metadata -ocluster_size=2M -f qcow2 4G
+
+(settings suggested by [http://docs.redhat.com/docs/en-US/Red_Hat_Enterprise_Linux/6/html/Technical_Notes/virt.html][redhat]) and fire up the VM
+
+      kvm debian-live-$(VER)-i386-standard.img -hda hda.img -curses -no-reboot -serial pty
+
+The CloudBioLinux integration test system does something similar, starting from
+the smaller net install of Debian Linux:
+
+      wget http://cdimage.debian.org/debian-cd/6.0.3/amd64/iso-cd/debian-6.0.3-amd64-netinst.iso
+      qemu-system-x86_64 -cdrom debian-6.0.3-amd64-netinst.iso -hda hda.img
+
+hit ESC and type 'install fb=false'. This will fire up the installer. With the
+base install, boot the new system 
+
+      qemu-system-x86_64 -enable-kvm -redir tcp:2222::22 -hda hda.img
+
+and set up ssh on the VM
+
+      apt-get install openssh-server
+
+so this works
+
+      ssh -p 2222 biolinux@localhost
+
+so it can be used on a user without a password (preferably using a key with
+empty password). Also give that use 'sudo bash'. This ssh and sudo
+configuration is described in ./doc/private_cloud.md.
+
+From that point onwards you can install CloudBioLinux using the fabric file.
+
+This is also the image the test system fingerprints for further test installs.
+
+You can try the ./test/test_biolinux script to test drive the VM. test_biolinux
+will install a CloudBioLinux flavor, and check whether the installation is
+complete. Essentially with a running instance
+
+      ./test/test_biolinux -p 2222 -u biolinux 127.0.0.1
+
+(note the use of 127.0.0.1 over localhost - this is because of a bug
+in fabric).
+
+# KVM tips
+
+KVM is powerful. Performance-wise it pays to install on a raw (LVM) partition,
+get bridging sorted, and make sure hardware acceleration is in place.
+Interesting goodies are the monitor (Crtl-Alt-2), virtsh, etc. See also
+[http://www.linux-kvm.org/page/FAQ][kvm tips].
+
+# Private Cloud and CloudBioLinux
+
+CloudBioLinux can be used to create a private Cloud for
+Bioinformatics. Essentially, all you need is ssh access to a VM
+running somewhere. This VM should be a clean install of Linux.  With
+CloudBioLinux Debian and Ubuntu distributions are supported best.
+
+## Start a VM
+
+Start a VM and make sure there is a network defined, and ssh running.
+On the VM
+
+       dhclient -v
+       ifconfig
+       ps xa|grep ssh
+       ssh localhost
+
+Check the network (e.g. with Debian)
+
+       apt-get update
+       apt-get install vim
+
+You should be able to use the IP address to login from your desktop
+
+       ssh user@VM_IP_address
+
+## Get password free ssh access
+
+The CloudBioLinux fabric tools work best when you have password free
+login. If you can login to the remote with
+
+       ssh user@VM_IP_address
+
+you are set. Otherwise, create a password free ssh key. To achieve
+this, see the many Internet resources, e.g.
+http://www.mtu.net/~engstrom/ssh-agent.php.
+
+## Install sudo without password
+
+Install the sudo program. Next, edit /etc/sudoers with the 'visudo'
+command, and add the line
+
+       user ALL=NOPASSWD: /bin/bash
+
+where user is your Fabric username. Alternatively add user to the sudo
+group.
+
+Now try:
+
+       sudo bash
+
+and you should be root, without a password.
+
+## Install CloudBioLinux
+
+See the README for installing CloudBioLinux and fabric.
+
+## Run fabric
+
+Now you should be set! To install BioLinux
+
+       fab -f $source/fabfile.py -H user@$VM_IP_address -c $fabricrc install_biolinux:packagelist=$packagelist
+
+Where source points to the checked out source tree, e.g.
+
+       export source=$HOME/izip/git/opensource/debian/biolinux
+
+For example, to install the Minimal flavor on Debian stable on a VM
+running on IP 192.168.64.105:
+
+       fab -f $source/fabfile.py -H user@192.168.64.105 \
+       -c $source/contrib/minimal/fabricrc_debian.txt \
+       install_biolinux:packagelist=$source/contrib/minimal/main.yaml
+
+CloudBioLinux shows the following output. First it sets up the
+environment
+
+        [192.168.64.105] Executing task 'install_biolinux'
+        cloudbiolinux WARNING: Skipping fabricrc.txt as distribution is already defined
+        cloudbiolinux DEBUG: Minimal Edition 1.0.1
+        cloudbiolinux INFO: This is a minimal
+        cloudbiolinux INFO: This is a Base Flavor - no overrides
+        cloudbiolinux INFO: Distribution debian
+        cloudbiolinux INFO: Debian setup
+        cloudbiolinux DEBUG: Debian-shared setup
+        cloudbiolinux DEBUG: Source=squeeze
+        cloudbiolinux DEBUG: Checking target distribution debian
+        [192.168.64.105] run: cat /proc/version
+        [192.168.64.105] out: Linux version 2.6.32-5-amd64 (Debian 2.6.32-31) (ben@decadent.org.uk) (gcc version 4.3.5 (Debian 4.3.5-4) ) #1 SMP Mon Mar 7 21:35:22 UTC [192.168.64.105] out:
+        [192.168.64.105] out:
+        cloudbiolinux INFO: Now, testing connection to host...
+        cloudbiolinux INFO: Connection to host appears to work!
+        cloudbiolinux DEBUG: Expand paths
+        cloudbiolinux INFO: packagelist=/home/user/izip/git/opensource/debian/biolinux/contrib/minimal/main.yaml
+        cloudbiolinux INFO: Meta-package information
+        cloudbiolinux INFO: minimal,ruby
+        cloudbiolinux INFO:
+        cloudbiolinux INFO: Target=None
+
+Here it modifies the source file for apt-get, as well as keys:
+
+        cloudbiolinux DEBUG: _setup_apt_sources /etc/apt/sources.list.d/cloudbiolinux.list Minimal Edition
+        [192.168.64.105] sudo: touch /etc/apt/sources.list.d/cloudbiolinux.list
+        [192.168.64.105] sudo: echo '# This file was modified for Minimal Edition' >> /etc/apt/sources.list.d/cloudbiolinux.list
+        cloudbiolinux DEBUG: Source deb http://ftp.nl.debian.org/debian/ squeeze main contrib non-free
+        [192.168.64.105] sudo: echo 'deb http://ftp.nl.debian.org/debian/ squeeze main contrib non-free' >> /etc/apt/sources.list.d/cloudbiolinux.list
+        cloudbiolinux DEBUG: Source deb http://ftp.nl.debian.org/debian/ squeeze-updates main contrib non-free
+        [192.168.64.105] sudo: echo 'deb http://ftp.nl.debian.org/debian/ squeeze-updates main contrib non-free' >> /etc/apt/sources.list.d/cloudbiolinux.list
+        [192.168.64.105] sudo:
+        cloudbiolinux INFO: Update GPG keys for repositories
+        cloudbiolinux INFO: Update and install all packages
+        [192.168.64.105] sudo: apt-get update
+        [192.168.64.105] out: Hit http://ftp.nl.debian.org squeeze Release.gpg
+
+and starts installing packages
+
+        cloudbiolinux INFO: Updating 26 packages
+        [192.168.64.105] sudo: apt-get -y --force-yes install ruby1.8 ruby1.8-dev ruby1.9.1 ruby1.9.1-dev axel less openssh-server rsync screen sudo tar unzip bzr cvs darcs git-core mercurial subversion vim cmake g++ gcc gfortran make patch swig
+        [192.168.64.105] out: Reading package lists... Done
+        [192.168.64.105] out: Building dependency tree
+        [192.168.64.105] out: Reading state information... Done
+        [192.168.64.105] out: gcc is already the newest version.
+        [192.168.64.105] out: gcc set to manually installed.
+        [192.168.64.105] out: less is already the newest version.
+        [192.168.64.105] out: less set to manually installed.
+        [192.168.64.105] out: make is already the newest version.
+        (etc, etc)
+
+Finally some clean ups
+
+        [192.168.64.105] sudo: apt-get clean
+        cloudbiolinux INFO: Target=unknown; Edition=Minimal Edition; Flavor=Base Flavor - no overrides
+
+write an entry in the log file
+
+        [192.168.64.105] sudo: date +"%D %T - Updated Target=unknown; Edition=Minimal Edition; Flavor=Base Flavor - no overrides" >> /var/log/biolinux.log
+        [192.168.64.105] run: uname -m
+        [192.168.64.105] out: x86_64
+        [192.168.64.105] out:
+        cloudbiolinux INFO: Reading /home/user/izip/git/opensource/debian/biolinux/config/custom.yaml
+        cloudbiolinux DEBUG: Packages:
+        cloudbiolinux DEBUG:
+        cloudbiolinux INFO: Cleaning up space from package builds
+        [192.168.64.105] sudo: rm -rf .cpanm
+        [192.168.64.105] sudo: rm -f /var/crash/*
+
+And it is done. Minimal has no post-installation configuration, but
+that is easy to add.
+
+
+# BioLinux Remote X access
+
+BioLinux supports both VNC and freenx GUI X-windows access to a remote
+VM. And you can use X programs through ssh, naturally.
+
+## VNC
+
+VNC is a ubiquous remote access tool - always there, and easy to install/use.
+
+In a nutshell:
+
+Make sure vnc4server is installed on the VM.  Enable ports 5900, 5901 and 5902
+on the VM. Run the server
+
+        vnc4server -depth 24
+           (set password)
+
+Run the client on your desktop
+
+       vncviewer -FullColor=1 HostIP:1
+
+Where HostIP is the reachable host IP address or DNS name. Next, it 
+may be necessary to start an X desktop, such as ldxe:
+
+       startlxde
+
+### Amazon EC2 ports
+
+Create a security group for your instance that allows at least ports 
+22,5900,5901 and 5902.
+
+### Vagrant ports
+
+You may need to add port forwarding to vagrant - as the testing system
+does. I.e. add to the Vagrantfile:
+
+       config.vm.forward_port('vnc0', 5900, 5900)
+       config.vm.forward_port('vnc1', 5901, 5901)
+       config.vm.forward_port('vnc2', 5902, 5902)
+
+This is for testing, mostly. You do not need VNC on Vagrant/VirtualBox. Fire up
+the GUI directly!
+
+### VNC Security
+
+Please note that VNC is not very secure - it has no proper key protection. You
+can tunnel over ssh for improved security. Or use freenx instead.
+
+## FreeNX
+
+FreeNX is a fast version of the X protocol.
+
+Make sure freenx is installed on the VM. CloudBioLinux comes with scripts
+for setting up freenx.
+
+(to be filled in)
+
+## X over ssh
+
+Normally you have ssh access to the remote VM. You can use X-windows programs
+remotely, provided you have a local X server (always on Linux and OSX). Just
+login with the -X switch
+
+      ssh -X user@$hostIP
+
+in the terminal type an X program, e.g.
+
+      firefox
+
+and the program should display locally (running remotely).
+
+
+# CloudBioLinux, VirtualBox and Vagrant
+
+This document gives some additional information on using Vagrant with BioLinux.
+[Vagrant][v1] is a convenient command line manager for VirtualBox. In conjunction
+with the BioLinux fabric environment, any VirtualBox VM can be bootstrapped.
+
+Note the current version of vagrant needs at least VirtualBox version 4.1.x.
+
+## VirtualBox with vagrant
+
+Add a base image to vagrant, and boot it up; community Vagrant boxes are available from
+[http://vagrantbox.es][v3] and [BioLinux flavors][v4]:
+
+        vagrant box add box_name http://path_to_the_image.box
+        mkdir tmp/biolinux
+        cd tmp/biolinux
+        vagrant init box_name
+        vagrant up
+
+Run the fabfile, building CloudBioLinux:
+
+        fab -H vagrant -f /path/to/cloudbiolinux/fabfile.py install_biolinux
+
+Then build the box, renaming package.box to `cloudbiolinux_date` and
+move it to a public webserver, such as Amazon S3:
+
+        vagrant package
+        mv package.box biolinux_20110122.box
+        s3cmd put --acl-public --guess-mime-type biolinux_20110122.box
+              s3://chapmanb/biolinux_20110122.box
+
+[v3]: http://vagrantbox.es/
+[v4]: http://biobeat.org/bionode
+
+# Rolling your own
+
+## Start from a BioLinux box
+
+See the main README file for firing up a pre-installed BioLinux box.
+
+## Start from scratch
+
+Despite the extra work, starting from scratch may have advantages. For
+one you have more control of the base install. Say for a different
+version of Linux, a BSD kernel, or for install less software (do you
+really need X/KDE/Gnome?), so you do not end up with an 8 GB VM, or for more
+software and/or data pre-intstalled on a VM. 
+
+The BioLinux setup is designed to be modular, to support multiple editions and
+flavors (see the main README for an explanation of terms).
+
+Start with a standard downloadable prepared Vagrant box. For example a Debian
+32-bits box prepared for Vagrant, or create one from scratch as is explained on
+the [Vagrant web site][v1].
+
+Next add the virtualbox to vagrant using a URL, or box file:
+
+          vagrant box add debian_squeeze_32 debian_squeeze_32.box
+
+(boxes are available form [http://vagrantbox.es][v3] and
+[http://biobeat.org/bionode][BioLinux flavors]) and create your own version
+
+          mkdir myflavor
+          cd myflavor
+
+Creates a ./Vagrantfile describing the VM.
+
+          vagrant init debian_squeeze_32
+
+Have a look inside the Vagrantfile. The default should be fine now.
+
+Start the VM (which gets copied the first time, which may take a while):
+
+          vagrant up
+
+and login
+
+          vagrant ssh  # no password needed
+
+make sure you have enough disk space (twice the box size) for the dir
+~/VirtualBox\ VMs and ~/.vagrant, as this is where VMs are copied from the
+original box file.
+
+At this point a bare VM is running that will accept BioLinux installations. The
+next step is to pull the BioLinux tree on your local system, and to run fab using the
+vagrant host, using a minimal install target. E.g.
+
+          export source=/path/to/cloudbiolinux
+
+and
+
+          fab -f $source/fabfile.py -H vagrant  -c $source/contrib/minimal/fabricrc_debian.txt install_biolinux:packagelist=$source/contrib/minimal/main.yaml
+
+which uses the information from the local ./Vagrantfile. 
+
+The first time the minimal fabfile is run it updates the /etc/apt/sources (on
+Debian-based systems), and a number of basic packages, including sudo, python,
+chef. It may be the Linux kernel and support libraries get upgraded, if they
+are in the dependency tree. Starting from a minimalistic Debian Vagrant box, the
+BioLinux minimal install has an unpacked size under 1Gb. E.g.
+
+        vagrant@vagrant-debian-squeeze:~$ df -h
+        Filesystem            Size  Used Avail Use% Mounted on
+        /dev/sda1              39G  804M   36G   3% /
+        tmpfs                 188M     0  188M   0% /lib/init/rw
+        udev                  184M  116K  184M   1% /dev
+        tmpfs                 188M     0  188M   0% /dev/shm
+        v-root                 51G   24G   27G  47% /vagrant
+
+Despite the fact that running fabfile.py is destructive, i.e. it overwrites the
+current install, it is reasonably safe as it mostly uses the underlying package
+management system and dependency resolution. Rerunning a BioLinux fabfile can
+be fast.  The minimal edition runs the second time in under 20 seconds on a
+basic laptop, as we do with a 'Minimal' install:
+
+         ./test/test_vagrant --continue
+
+For completeness, after a minimal install you can still install a full BioLinux
+execute
+
+        fab -H vagrant -f $source/fabfile.py install_biolinux
+
+Once you have a working Virtual Box VM with vagrant, you can package it with
+
+        vagrant package
+
+and make the resulting .box file available for others to use.
+
+Read the README for further information.
+
+[v1]: http://vagrantup.com/docs/base_boxes.html
+
+## Trouble shooting
+
+### Guest additions
+
+You may see an error
+
+  [default] The guest additions on this VM do not match the install version of
+  VirtualBox! This may cause things such as forwarded ports, shared
+  folders, and more to not work properly. If any of those things fail on
+  this machine, please update the guest additions and repackage the
+  box.
+
+  Guest Additions Version: 4.0.4
+  VirtualBox Version: 4.1.0
+
+this error may actually be caused by the Vbox Linux kernel drivers not having
+been loaded! Fix
+
+       modprobe vboxdrv
+
+# Converting Vagrant images to VirtualBox and Eucalyptus images
+
+(protocol steps tested in Ubuntu Natty)
+
+## software pre-requisite
+
+    sudo gem install vagrant
+    sudo apt-get install cloud-utils
+
+## Importing cloud biolinux VM to your system
+
+    vagrant box add base 
+    https://s3.amazonaws.com/cloudbiolinux/cbl_ubuntu_11_4_32_20110628.box
+    vagrant init base
+    vagrant up
+
+## adding some missing components to the vagrant VMs 
+
+    vagrant ssh
+    sudo apt-get install gdm cloud-utils openssh
+    sudo useradd -d /home/ubuntu -m ubuntusudo passwd ubuntu
+    sudo shutdown -r now
+
+in the graphical login after reboot get in with user:ubuntu / pass:ubuntu
+go to System--->Administration--->Login Window to enable autologin
+
+## VirtualBox Appliance
+
+Virtual Appliances are pre-assemblied VM images configured for various purposes.
+
+Open the Virtualbox GUI, you should see the VM added by vagrant - you can 
+rename it to "Cloud BioLinux 32"
+
+  File->Export Appliance
+
+and distribute the .ova.
+
+Anyone in any OS running Virtualbox can import the .ova with File->Import
+Appliance.
+
+# Making a Eucalyptus image from VirtualBox
+
+Start with the Cloud BioLinux Virtualbox .vmdk (its location is in the VM
+properties from the Virtualbox GUI). Resize the vmdk, since the size may be
+40G, and the Eucalyptus image will have that size. 
+
+Accordint to http://mtnbike.org/blog/?p=29 and the same here:
+http://www.my-guides.net/en/content/view/122/26/
+
+convert to raw .img 
+
+    qemu-img convert -O raw CloudBioLinux-32bit-disk1.vmdk 
+    CloudBioLinux-32bit-disk1.img
+
+deploy to Eucalyptus via
+
+    uec-publish-img CloudBioLinux-32bit-disk1.img
+
+# VirtualBox, KVM or XEN?
+
+There are more ways than one to virtualize machines on Linux.
+
+Despite the attractions of vagrant and Virtualbox, as displayed here, we note
+that Linux KVM may be a better choice for virtualization and testing of
+CloudBioLinux, as Linux distributions support KVM out of the box, and KVM has
+more Unix-like control.  See also the information for using KVM in
+./doc/linux_kvm.md. 
+
+For production environments check out XEN virtualization (XEN runs Amazon EC2).
+
+
+
+CloudBioLinux is a build and deployment system which installs a large selection
+of Bioinformatics and machine learning libraries on a bare virtual machine (VM)
+image, freshly installed PC, or in the Cloud. By default CloudBioLinux includes
+a large suite of tools installed through the default distribution installer,
+native installers, and libraries for Perl, R, Python, Java and Ruby.
+
+CloudBioLinux included software packages are fully customizable. In addition to
+the default configuration, we support custom configuration builds through
+flavors. Flavors support overriding default package installations, making it
+simple to create derived installs for specific purposes.
+
+CloudBioLinux is a single install route both for desktop VMs such as
+[VirtualBox][v2], cloud providers such as [Amazon EC2][0] or desktop machines.
+This works equally well for other virtual machines and private cloud
+environments, including [XEN][XEN], Linux [KVM][KVM], [Eucalyptus][eucalyptus]
+and [Openstack][openstack]. 
+
+# Using pre-built images
+
+## Amazon
+
+See the 'Getting Started with CloudBioLinux' guide on the
+[CloudBioLinux website][1] for a detailed description. The short
+version for users familiar with Amazon is:
+
+* Login to the [Amazon EC2 console][2].
+* Click Launch Instance, and choose the latest CloudBioLinux AMI from
+  the [website][1] in the community AMI section (search for
+  'CloudBioLinux').
+* After launching the instance, find the host details of
+  your running instance from the Instances section.
+* Connect to your machine via ssh or VNC (using the Amazon PEM keys)
+
+# Installing CloudBioLinux on a local machine
+
+The install process for CloudBioLinux is fully automated through a
+[Fabric build file][3] written in Python. The Fabric build files are useful for
+automating installation of scientific software on local systems as well as
+Amazon cloud servers. Everything is fully configurable through 
+plain text YAML configuration files, and custom build targets allow installation
+of a subset of the total available packages. 
+
+## Installation
+
+Retrieve the CloudBioLinux code base and install libraries and dependencies:
+
+        git clone git://github.com/chapmanb/cloudbiolinux.git
+        cd cloudbiolinux
+        python setup.py build
+        sudo python setup.py install
+
+## Usage
+
+The basic usage specifies the hostname of a machine accessible via ssh:
+
+      fab -f fabfile.py -H localhost install_biolinux
+     
+Fabric contains some other useful commandline arguments for customizing this to
+your environments:
+
+- `-c your_fabricrc.txt` -- Specify the path to a fabricrc configuration files.
+  This allows customization of install directories and other server specific details.
+  See the default `config/fabricrc.txt` for a full list of options.
+  
+- `-u username` -- The username on the remote machine, overriding the default of
+  your current username.
+  
+## Customization with flavors
+
+CloudBioLinux normally creates a full system for bioinformatics, but can be
+easily configured to install only a subset of tools through flavors:
+
+      fab -f fabfile.py -H localhost install_biolinux:flavor=my_flavor
+      
+`my_flavor` can be the name of an existing flavor in `contrib/flavor` or the
+path to a directory with customization information. The files in your flavor
+directory replace those in the standard `config` directory, allowing replacement
+of any of the configuration files like `main.yaml` with customized copies.
+
+If you desire even more control, flavors allow custom python hooks. See
+`doc/hacking.md` for more details.
+
+## Specific install targets
+
+You can substitute `install_biolinux` with more specific targets to only build
+portions of CloudBioLinux:
+
+* `install_biolinux:packages` -- Install all of the defined system
+  packages.
+* `install_biolinux:libraries` -- Install all libraries for various
+  programming languages.
+* `install_libraries:language` -- Install libraries for a specific
+  language.
+* `install_biolinux:custom` -- Install all custom programs.
+* `install_custom:a_package_name` -- Install a specific custom
+   program.
+
+## Specific package installation
+
+The custom directory contains installation instructions for programs that are
+not available from standard package repositories. These instructions are written
+in Python using the [Fabric][3] remote deployment tool and can also be used for
+installing individual packages locally on your machine. To do this, run:
+
+      fab -f fabfile.py -H localhost install_custom:your_package_name
+
+To build and install `your_package_name` on the local machine. We welcome
+additional custom bioinformatics package definitions for inclusion in
+CloudBioLinux. `custom/shared.py` contains a number of higher level functions
+which make it easier to write installation instructions.
+
+## Biological data
+
+We manage a repository of useful public biological data on an
+[Amazon S3 bucket][bd1]. Currently this includes whole genomes
+pre-indexed for a number of popular aligners. Downloading and
+installing these saves a ton of time over running the indexing steps
+yourself, and eases running next-generation analyses on cloud
+machines.
+
+A Fabric build script is provided to install this data on your
+local machine. A [biodata configuration file in YAML format][bd2],
+`config/biodata.yaml`, specifies the genomes of interest and the
+aligner indexes to use. The `config/fabricrc.txt` file specifies
+details about the system and where to install the data.
+
+The basic commandline is:
+
+    fab -f data_fabfile.py -H your_machine install_data_s3
+
+and you can pass in custom biodata and fabricrc files with:
+
+    fab -f data_fabfile.py -H your_machine -c your_fabricrc.txt install_data_s3:your_biodata.yaml
+
+In addition to downloading and preparing the data, the script will
+integrate these files with a Galaxy instance by updating appropriate
+Galaxy configuration files. This makes it useful for installing data
+to a local or [cloud-based][bd3] Galaxy server.
+
+[bd1]: http://s3.amazonaws.com/biodata
+[bd2]: https://github.com/chapmanb/cloudbiolinux/blob/master/config/biodata.yaml
+[bd3]: https://bitbucket.org/galaxy/galaxy-central/wiki/cloud
+
+# Supported virtual environments
+
+## Vagrant VirtualBox
+
+Vagrant allows easy deploying and connecting to VirtualBox images. The 
+setup is ideal for runnig CloudBioLinux on a desktop computer.
+Install [VirtualBox 4.0][v2] and [vagrant][v1]. Then add a pre-built
+CloudLinux VirtualBox images and start it up:
+
+        vagrant box add biolinux_$VERSION https://s3.amazonaws.com/cloudbiolinux/biolinux_$VERSION.box
+        mkdir tmp/biolinux
+        cd tmp/biolinux
+        vagrant init biolinux_version
+
+(note with vagrant you need disk space - at least 3x the image size).
+The created ./Vagrantfile can be edited to get a full GUI, extra RAM, and
+a local IP address. Next, fire up the image with
+
+        vagrant up
+
+Once you have a running virtual machine with CloudBioLinux,
+connect to it with:
+
+        vagrant ssh
+
+no passwords needed! Get root with
+
+        sudo bash
+
+Through Vagrant additional facilities are available, such as a shared
+network drive.  It is also possible to tweak the image (e.g. RAM/CPU
+settings, and getting the all important guest additions) by firing up
+virtualbox itself. For more information, see the BioLinux 
+[Vagrant documentation][doc], as well as the 
+documentation on the [Vagrant website][v1].
+
+## Amazon
+
+A bare Linux image launched in Amazon EC2 is configured from another
+machine, i.e.  your local desktop, using ssh and cloudbiolinux.
+See the Installation section for installing CloudBioLinux with fabric.
+
+Any cloudbiolinux distribution can be used, including Ubuntu, Debian Linux
+and CentOS. We recommend using m1.medium or better instance for building a
+CloudBioLinux image from scratch, due to resource usage while compiling
+software.
+
+1. Go to the cloudbiolinux source and edit the `config/fabricrc.txt`,
+   to match the system you plan to install on. Specifically,
+   `distribution` and `dist_name` parameters specify details about the
+   type of target.
+
+2. Start an Amazon EC2 base instance and retrieve it's DNS hostname:
+
+   - [Alestic Ubuntu images][4]
+   - [Camptocamp Debian images][4b]
+
+3. From your local machine, have CloudBioLinux install your
+   Amazon instance:
+
+        fab -f fabfile.py -H hostname -u username -i private_key_file install_biolinux
+
+4. When finished, use the [Amazon console][2] to create an AMI.
+   Thereafter make it public so it can be used by others.
+
+## Virtualbox
+
+See [the VirtualBox and Vagrant documentation][vb1] for details on creating a
+local virtual machine from scratch with CloudBioLinux.
+
+[vb1]: https://github.com/chapmanb/cloudbiolinux/blob/master/doc/virtualbox.md
+
+## OpenStack/XEN/KVM/Eucalyptus private Cloud
+
+As long as there is an 'ssh' entry to an running VM, CloudBioLinux can
+install itself.
+
+For more on private Cloud and CloudBioLinux see ./doc/private\_cloud.md.
+
+[0]: http://aws.amazon.com/ec2/
+[1]: http://cloudbiolinux.org/
+[2]: https://console.aws.amazon.com/ec2/home
+[3]: http://fabfile.org/
+[4]: http://alestic.com/
+[4b]: http://www.camptocamp.com/en/infrastructure-solutions/amazon-images
+[v1]: http://vagrantup.com/
+[v2]: http://digitizor.com/2011/01/07/virtualbox-4-0-install-ubuntu/
+[XEN]: http://xen.org/
+[KVM]: http://www.linux-kvm.org/
+[eucalyptus]: http://open.eucalyptus.com/
+[openstack]: http://www.openstack.org/
+
+# EC2 quickstart
+
+This provides a quick cheat sheet of commands for getting up and running on EC2 using
+Amazon's command line tools.
+
+## Initial set up
+
+The first time using EC2, you'll need to install the toolkit and credentials
+for connecting on your local machine, following the [getting started guide][qs1].
+
+Login to your [Amazon EC2 account][qs2] and go to Security Credentials/X.509.
+Create a new certificate and download the public `cert-*.pem` and
+`private pk-*.pem` files. Put these in `~.ec2`.
+
+Install the [ec2 api tools][qs3], which require java.
+
+Set up .zshrc/.bashrc:
+
+       export EC2_PRIVATE_KEY=~/.ec2/pk-UBH43XTAWVNQMIZRAV3RP5IIBAPBIFVP.pem
+       export EC2_CERT=~/.ec2/cert-UBH43XTAWVNQMIZRAV3RP5IIBAPBIFVP.pem
+       export AWS_ACCESS_KEY_ID=<your access key>
+       export AWS_SECRET_ACCESS_KEY=<your secret access key>
+
+To test, you should be able to run the command:
+
+       % ec2-describe-regions
+
+Now generate a privatekey for logging in:
+
+       % ec2-add-keypair yourmachine-keypair
+
+This will produce an RSA private key. You should copy and paste this to your
+.ec2 directory for future use:
+
+       % vim ~/.ec2/id-yourmachine.keypair
+       % chmod 600 ~/.ec2/id-yourmachine.keypair
+
+Allow ssh and web access to your instances:
+
+       % ec2-authorize default -p 22
+       % ec2-authorize default -p 80
+
+[qs1]: http://docs.amazonwebservices.com/AWSEC2/latest/GettingStartedGuide/
+[qs2]: http://aws.amazon.com/account/
+[qs3]: http://developer.amazonwebservices.com/connect/entry.jspa?externalID=351&categoryID=88
+
+## Starting an instance
+
+Each time you'd like to use EC2, you need to create a remote instance to work
+with; the [AWS console][4] is useful for managing this process.
+
+When building from scratch with Alestic images, you will need to
+increase the size of the root filesystem to fit all of the
+CloudBioLinux data and libraries. This is done by starting the
+instance from the commandline with:
+
+       % ec2-run-instances ami-1aad5273 -k kunkel-keypair -t m1.large
+                           -b /dev/sda1=:20
+       % ec2-describe-instances i-0ca39764
+
+On Ubuntu 10.04, you then need to ssh into the instance and resize the
+filesystem with:
+
+       % sudo resize2fs /dev/sda1
+
+On 11.04 the resize happens automatically and this is not required.
+
+# Testing
+
+BioLinux comes with an integration testing frame work - currently
+based on Vagrant. Try:
+
+        cd test
+        ./testing_vagrant --help
+
+Target VMs can be listed with
+
+        ./testing_vagrant --list
+
+Build a minimal VM
+
+        ./testing_vagrant Minimal
+
+# Documentation
+
+Additional documentation can be found in the [./doc directory][doc] in the
+BioLinux source tree.
+
+[doc]: https://github.com/chapmanb/cloudbiolinux
+
+# LICENSE
+
+The code is freely available under the [MIT license][l1].
+
+[l1]: http://www.opensource.org/licenses/mit-license.html
+
+CloudBioLinux is a build and deployment system which installs a large
+selection of Bioinformatics and machine learning libraries on a bare
+virtual machine (VM) image, freshly installed PC, or in the Cloud. By
+default CloudBioLinux includes a large suite of tools installed through
+the default distribution installer, native installers, and libraries for
+Perl, R, Python, Java and Ruby.
+
+CloudBioLinux included software packages are fully customizable. In
+addition to the default configuration, we support custom configuration
+builds through flavors. Flavors support overriding default package
+installations, making it simple to create derived installs for specific
+purposes.
+
+CloudBioLinux is a single install route both for desktop VMs such as
+`VirtualBox <http://digitizor.com/2011/01/07/virtualbox-4-0-install-ubuntu/>`_,
+cloud providers such as `Amazon EC2 <http://aws.amazon.com/ec2/>`_ or
+desktop machines. This works equally well for other virtual machines and
+private cloud environments, including `XEN <http://xen.org/>`_, Linux
+`KVM <http://www.linux-kvm.org/>`_,
+`Eucalyptus <http://open.eucalyptus.com/>`_ and
+`Openstack <http://www.openstack.org/>`_.
+
+Using pre-built images
+======================
+
+Amazon
+------
+
+See the 'Getting Started with CloudBioLinux' guide on the `CloudBioLinux
+website <http://cloudbiolinux.org/>`_ for a detailed description. The
+short version for users familiar with Amazon is:
+
+-  Login to the `Amazon EC2
+   console <https://console.aws.amazon.com/ec2/home>`_.
+-  Click Launch Instance, and choose the latest CloudBioLinux AMI from
+   the `website <http://cloudbiolinux.org/>`_ in the community AMI
+   section (search for 'CloudBioLinux').
+-  After launching the instance, find the host details of your running
+   instance from the Instances section.
+-  Connect to your machine via ssh or VNC (using the Amazon PEM keys)
+
+Installing CloudBioLinux on a local machine
+===========================================
+
+The install process for CloudBioLinux is fully automated through a
+`Fabric build file <http://fabfile.org/>`_ written in Python. The Fabric
+build files are useful for automating installation of scientific
+software on local systems as well as Amazon cloud servers. Everything is
+fully configurable through plain text YAML configuration files, and
+custom build targets allow installation of a subset of the total
+available packages.
+
+Installation
+------------
+
+Retrieve the CloudBioLinux code base and install libraries and
+dependencies:
+
+::
+
+        git clone git://github.com/chapmanb/cloudbiolinux.git
+        cd cloudbiolinux
+        python setup.py build
+        sudo python setup.py install
+
+Usage
+-----
+
+The basic usage specifies the hostname of a machine accessible via ssh:
+
+::
+
+      fab -f fabfile.py -H localhost install_biolinux
+
+Fabric contains some other useful commandline arguments for customizing
+this to your environments:
+
+-  ``-c your_fabricrc.txt`` -- Specify the path to a fabricrc
+   configuration files. This allows customization of install directories
+   and other server specific details. See the default
+   ``config/fabricrc.txt`` for a full list of options.
+
+-  ``-u username`` -- The username on the remote machine, overriding the
+   default of your current username.
+
+Customization with flavors
+--------------------------
+
+CloudBioLinux normally creates a full system for bioinformatics, but can
+be easily configured to install only a subset of tools through flavors:
+
+::
+
+      fab -f fabfile.py -H localhost install_biolinux:flavor=my_flavor
+
+``my_flavor`` can be the name of an existing flavor in
+``contrib/flavor`` or the path to a directory with customization
+information. The files in your flavor directory replace those in the
+standard ``config`` directory, allowing replacement of any of the
+configuration files like ``main.yaml`` with customized copies.
+
+If you desire even more control, flavors allow custom python hooks. See
+``doc/hacking.md`` for more details.
+
+Specific install targets
+------------------------
+
+You can substitute ``install_biolinux`` with more specific targets to
+only build portions of CloudBioLinux:
+
+-  ``install_biolinux:packages`` -- Install all of the defined system
+   packages.
+-  ``install_biolinux:libraries`` -- Install all libraries for various
+   programming languages.
+-  ``install_libraries:language`` -- Install libraries for a specific
+   language.
+-  ``install_biolinux:custom`` -- Install all custom programs.
+-  ``install_custom:a_package_name`` -- Install a specific custom
+   program.
+
+Specific package installation
+-----------------------------
+
+The custom directory contains installation instructions for programs
+that are not available from standard package repositories. These
+instructions are written in Python using the
+`Fabric <http://fabfile.org/>`_ remote deployment tool and can also be
+used for installing individual packages locally on your machine. To do
+this, run:
+
+::
+
+      fab -f fabfile.py -H localhost install_custom:your_package_name
+
+To build and install ``your_package_name`` on the local machine. We
+welcome additional custom bioinformatics package definitions for
+inclusion in CloudBioLinux. ``custom/shared.py`` contains a number of
+higher level functions which make it easier to write installation
+instructions.
+
+Biological data
+---------------
+
+We manage a repository of useful public biological data on an `Amazon S3
+bucket <http://s3.amazonaws.com/biodata>`_. Currently this includes
+whole genomes pre-indexed for a number of popular aligners. Downloading
+and installing these saves a ton of time over running the indexing steps
+yourself, and eases running next-generation analyses on cloud machines.
+
+A Fabric build script is provided to install this data on your local
+machine. A `biodata configuration file in YAML
+format <https://github.com/chapmanb/cloudbiolinux/blob/master/config/biodata.yaml>`_,
+``config/biodata.yaml``, specifies the genomes of interest and the
+aligner indexes to use. The ``config/fabricrc.txt`` file specifies
+details about the system and where to install the data.
+
+The basic commandline is:
+
+::
+
+    fab -f data_fabfile.py -H your_machine install_data_s3
+
+and you can pass in custom biodata and fabricrc files with:
+
+::
+
+    fab -f data_fabfile.py -H your_machine -c your_fabricrc.txt install_data_s3:your_biodata.yaml
+
+In addition to downloading and preparing the data, the script will
+integrate these files with a Galaxy instance by updating appropriate
+Galaxy configuration files. This makes it useful for installing data to
+a local or
+`cloud-based <https://bitbucket.org/galaxy/galaxy-central/wiki/cloud>`_
+Galaxy server.
+
+Not all of the genomes are hosted on the S3 bucket, but are still supported. If your
+genome fails to install with install_data_s3, you might be able to download the genome
+from from Ensembl, etc and prepare it::
+
+
+    fab -f data_fabfile.py -H your_machine -c your_fabricrc.txt install_data:your_biodata.yaml
+
+Supported virtual environments
+==============================
+
+Vagrant VirtualBox
+------------------
+
+Vagrant allows easy deploying and connecting to VirtualBox images. The
+setup is ideal for runnig CloudBioLinux on a desktop computer. Install
+`VirtualBox
+4.0 <http://digitizor.com/2011/01/07/virtualbox-4-0-install-ubuntu/>`_
+and `vagrant <http://vagrantup.com/>`_. Then add a pre-built CloudLinux
+VirtualBox images and start it up:
+
+::
+
+        vagrant box add biolinux_$VERSION https://s3.amazonaws.com/cloudbiolinux/biolinux_$VERSION.box
+        mkdir tmp/biolinux
+        cd tmp/biolinux
+        vagrant init biolinux_version
+
+(note with vagrant you need disk space - at least 3x the image size).
+The created ./Vagrantfile can be edited to get a full GUI, extra RAM,
+and a local IP address. Next, fire up the image with
+
+::
+
+        vagrant up
+
+Once you have a running virtual machine with CloudBioLinux, connect to
+it with:
+
+::
+
+        vagrant ssh
+
+no passwords needed! Get root with
+
+::
+
+        sudo bash
+
+Through Vagrant additional facilities are available, such as a shared
+network drive. It is also possible to tweak the image (e.g. RAM/CPU
+settings, and getting the all important guest additions) by firing up
+virtualbox itself. For more information, see the BioLinux `Vagrant
+documentation <https://github.com/chapmanb/cloudbiolinux>`_, as well as
+the documentation on the `Vagrant website <http://vagrantup.com/>`_.
+
+Amazon
+------
+
+A bare Linux image launched in Amazon EC2 is configured from another
+machine, i.e. your local desktop, using ssh and cloudbiolinux. See the
+Installation section for installing CloudBioLinux with fabric.
+
+Any cloudbiolinux distribution can be used, including Ubuntu, Debian
+Linux and CentOS.
+
+1. Go to the cloudbiolinux source and edit the ``config/fabricrc.txt``,
+   to match the system you plan to install on. Specifically,
+   ``distribution`` and ``dist_name`` parameters specify details about
+   the type of target.
+
+2. Start an Amazon EC2 base instance and retrieve it's DNS hostname:
+
+-  `Alestic Ubuntu images <http://alestic.com/>`_
+-  `Camptocamp Debian
+   images <http://www.camptocamp.com/en/infrastructure-solutions/amazon-images>`_
+
+3. From your local machine, have CloudBioLinux install your Amazon
+   instance:
+
+   ::
+
+       fab -f fabfile.py -H hostname -u username -i private_key_file install_biolinux
+
+4. When finished, use the `Amazon
+   console <https://console.aws.amazon.com/ec2/home>`_ to create an AMI.
+   Thereafter make it public so it can be used by others.
+
+Virtualbox
+----------
+
+See `the VirtualBox and Vagrant
+documentation <https://github.com/chapmanb/cloudbiolinux/blob/master/doc/virtualbox.md>`_
+for details on creating a local virtual machine from scratch with
+CloudBioLinux.
+
+OpenStack/XEN/KVM/Eucalyptus private Cloud
+------------------------------------------
+
+As long as there is an 'ssh' entry to an running VM, CloudBioLinux can
+install itself.
+
+For more on private Cloud and CloudBioLinux see ./doc/private\_cloud.md.
+
+EC2 quickstart
+==============
+
+This provides a quick cheat sheet of commands for getting up and running
+on EC2 using Amazon's command line tools.
+
+Initial set up
+--------------
+
+The first time using EC2, you'll need to install the toolkit and
+credentials for connecting on your local machine, following the `getting
+started
+guide <http://docs.amazonwebservices.com/AWSEC2/latest/GettingStartedGuide/>`_.
+
+Login to your `Amazon EC2 account <http://aws.amazon.com/account/>`_ and
+go to Security Credentials/X.509. Create a new certificate and download
+the public ``cert-*.pem`` and ``private pk-*.pem`` files. Put these in
+``~.ec2``.
+
+Install the `ec2 api
+tools <http://developer.amazonwebservices.com/connect/entry.jspa?externalID=351&categoryID=88>`_,
+which require java.
+
+Set up .zshrc/.bashrc:
+
+::
+
+       export EC2_PRIVATE_KEY=~/.ec2/pk-UBH43XTAWVNQMIZRAV3RP5IIBAPBIFVP.pem
+       export EC2_CERT=~/.ec2/cert-UBH43XTAWVNQMIZRAV3RP5IIBAPBIFVP.pem
+       export AWS_ACCESS_KEY_ID=<your access key>
+       export AWS_SECRET_ACCESS_KEY=<your secret access key>
+
+To test, you should be able to run the command:
+
+::
+
+       % ec2-describe-regions
+
+Now generate a privatekey for logging in:
+
+::
+
+       % ec2-add-keypair yourmachine-keypair
+
+This will produce an RSA private key. You should copy and paste this to
+your .ec2 directory for future use:
+
+::
+
+       % vim ~/.ec2/id-yourmachine.keypair
+       % chmod 600 ~/.ec2/id-yourmachine.keypair
+
+Allow ssh and web access to your instances:
+
+::
+
+       % ec2-authorize default -p 22
+       % ec2-authorize default -p 80
+
+Starting an instance
+--------------------
+
+Each time you'd like to use EC2, you need to create a remote instance to
+work with; the `AWS console <http://alestic.com/>`_ is useful for
+managing this process.
+
+When building from scratch with Alestic images, you will need to
+increase the size of the root filesystem to fit all of the CloudBioLinux
+data and libraries. This is done by starting the instance from the
+commandline with:
+
+::
+
+       % ec2-run-instances ami-1aad5273 -k kunkel-keypair -t m1.large
+                           -b /dev/sda1=:20
+       % ec2-describe-instances i-0ca39764
+
+On Ubuntu 10.04, you then need to ssh into the instance and resize the
+filesystem with:
+
+::
+
+       % sudo resize2fs /dev/sda1
+
+On 11.04 the resize happens automatically and this is not required.
+
+Testing
+=======
+
+BioLinux comes with an integration testing frame work - currently based
+on Vagrant. Try:
+
+::
+
+        cd test
+        ./testing_vagrant --help
+
+Target VMs can be listed with
+
+::
+
+        ./testing_vagrant --list
+
+Build a minimal VM
+
+::
+
+        ./testing_vagrant Minimal
+
+Documentation
+=============
+
+Additional documentation can be found in the `./doc
+directory <https://github.com/chapmanb/cloudbiolinux>`_ in the BioLinux
+source tree.
+
+LICENSE
+=======
+
+The code is freely available under the `MIT
+license <http://www.opensource.org/licenses/mit-license.html>`_.
+
+Integration test for CloudBioLinux.
+
+When you have a base install running, you only need to supply the
+(local) IP addrees of the VM, and the password-less key for the 
+install user (who has sudo bash). The tests get invoked wiht
+
+  ./test_biolinux [-i key.pub] [-u user] IPaddr [Flavor]
+
+For further options see
+
+  ./test_biolinux --help
+
+Alternatively try the self running test using Virtualbox and Vagrant
+with:
+
+  ./test_vagrant --help
+
+== Testing issues with Vagrant ==
+
+The test system depends on a stack of tools, including virtualbox,
+vagrant, ssh, ruby and related libraries. Things can go wrong. Here we
+list a number of common problems.
+
+=== Error with ssh config ===
+
+The test system appends login code to enter a running vagrant
+virtualbox without asking for a password. Sometimes the contents of
+$HOME/.ssh/config get corrupted.  Check the contents out, and remove
+all wrong information with
+
+  vi ~/.ssh/config
+
+and rerun the test.
+
+=== Error suggests 'vagrant up' ===
+
+If something went wrong with the install, Vagrant may complain that
+you need to run 'vagrant up' first. In practise, this may mean:
+
+* Remove other running vagrant instances (vagrant halt)
+* Remove an existing (faulty) instance using virtualbox
+* Check ~/.ssh/config contains no faulty lines
+* Rerun the tests from scratch, i.e. without the '--continue' switch
+
+=== Fatal error: Name lookup failed for vagrant
+
+Probably there is another VirtualBox + vagrant running somewhere. This
+conflicts with the information in ./ssh/config. Easy solution: remove
+and kill the running instance first.
+
+=== Error: ffi.rb:106:in `call_and_check': Error in API call to get_state ===
+
+This is Ruby trying into the vagrant API. You need to reinstall the
+vagrant and virtualbox gems to match your version of Ruby.
+
+=== Grub error
+
+On a kernel upgrade, the test scripts may want to install grub, which is
+the boot loader. Vagrant does not need that, so don't try to install (select 
+ignore).
+

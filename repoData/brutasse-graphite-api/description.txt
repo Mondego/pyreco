@@ -1,0 +1,100 @@
+Contributions to Graphite-API are welcome! Before you start, here are a couple
+of indications:
+
+* If you want to report a bug, please search in the existing issues to see if
+  the bug has already been reported.
+
+* If you want to write a patch, make sure there is no pending pull request for
+  the same thing to avoid duplicate efforts.
+
+* If you're fixing a bug, please add a regression test that reproduces the
+  bug and proves your fix is actually working.
+
+Pull requests must pass the travis builds to get merged. Please validate that
+your code passes flake8 checks and that the documentation builds without
+warnings.
+
+Graphite-API
+============
+
+.. image:: https://travis-ci.org/brutasse/graphite-api.svg?branch=master
+   :alt: Build Status
+   :target: https://travis-ci.org/brutasse/graphite-api
+
+.. image:: https://img.shields.io/coveralls/brutasse/graphite-api/master.svg
+   :alt: Coverage Status
+   :target: https://coveralls.io/r/brutasse/graphite-api?branch=master
+
+Graphite-web, without the interface. Just the rendering HTTP API.
+
+This is a minimalistic API server that replicates the behavior of
+Graphite-web. I removed everything I could and simplified as much code as
+possible while keeping the basic functionality.
+
+Implemented API calls:
+
+* ``/metrics/find``
+* ``/metrics/expand``
+* ``/metrics/search`` (removed strange ``keep_query_pattern`` parameter)
+* ``/render``
+
+No-ops:
+
+* ``/dashboard/find``
+* ``/dashboard/load/<name>``
+* ``/events/get_data``
+
+Additional API calls:
+
+* ``/index`` (``POST`` or ``PUT`` only): rebuilds the search index by
+  recursively querying the storage backends for available paths. Replaces
+  graphite-web's ``build-index`` command-line script.
+
+Difference from graphite-web
+----------------------------
+
+* Stateless. No need for a database.
+* No caching. Rendering is live.
+* No Pickle.
+* No remote rendering.
+* JSON data in request bodies is supported, additionally to form data and
+  querystring parameters.
+* Ceres integration will be as an external backend.
+* Compatibility with python 2 and 3.
+* Easy to install and configure.
+
+Goals
+-----
+
+* Solid codebase. Strict flake8 compatibility, good test coverage.
+* Ease of installation/use/configuration.
+* Compatibility with the original Graphite-web API and 3rd-party dashboards.
+
+Non-goals
+---------
+
+* Support for very old Python versions (Python 2.6 is still supported but
+  maybe not for long).
+* Built-in support for every metric storage system in the world. Whisper is
+  included by default, other storages are added via 3rd-party backends.
+
+Documentation
+-------------
+
+`On readthedocs.org`_ or in the ``docs/`` directory.
+
+.. _On readthedocs.org: http://graphite-api.readthedocs.org/en/latest/
+
+Hacking
+-------
+
+`Tox`_ is used to run the tests for all supported environments. To get started
+from a fresh clone of the repository:
+
+.. code-block:: bash
+
+    pip install tox
+    tox
+
+.. _Tox: https://testrun.org/tox/
+

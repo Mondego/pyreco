@@ -1,0 +1,225 @@
+====================
+Repository for Skype
+====================
+
+SkypeKit directory
+==================
+
+- using SkypeKit programs
+
+  - Skype IRC Bridge
+
+  - Skype Lingr Bridge
+
+Skype4Py directory
+==================
+
+- using Skype4Py programs
+
+  - Skype IRC Bridge
+
+  - Skype Lingr Bridge
+
+
+Ruby4Skype directory
+====================
+
+- using Ruby4Skype programs
+
+  - Skype IRC Gateway
+
+
+﻿SkypeIrcGateway
+============
+
+SkypeとIRCをつなぐゲートウェイ
+
+===================== ========================================
+ファイル              概要
+===================== ========================================
+sig.cmd               sig.jsを起動するコマンドファイル
+sig.js                sig.rbを死活監視するJScript
+sig.rb                SkypeとIRCのゲートウェイ
+lib/skype_client.rb   Skypeのインターフェイス
+lib/irc_client.rb     IRCのインターフェイス
+lib/twitter_client.rb Twitterのインターフェイス
+t2s.rb                TwitterからSkypeにメッセージを流すボット
+===================== ========================================
+
+対象
+----
+
+- Windows専用
+
+  - Ruby4Skypeに依存
+
+- Skype APIを使うためSkypeの起動が必要
+
+使用方法
+--------
+
+::
+
+  > gem install pit
+  > gem install Ruby4Skype
+  > set EDITOR=notepad
+  > ruby sig.rb [pit-suffix]
+
+予定
+----
+
+- stg.rb
+ 
+  - SkypeとTwitterのゲートウェイ
+
+- t2s.rb
+  
+  - TwitterからSkypeへの通知
+
+制限事項
+--------
+
+Ruby4Skypeの仕様だと思うのですが、シグナルのトラップが無効になるため、強制終了しなければ終了できません
+
+参照
+----
+
+- Ruby4Skype
+
+  - http://rubyforge.org/projects/skyperapper
+
+  - http://skyperapper.rubyforge.org/
+
+
+=================
+Skype IRC Gateway
+=================
+
+skype-irc-bridge.py
+===================
+
+必要なモジュール
+----------------
+
+- Skype4Py
+
+- python-irclib
+
+Debianでの環境の構築
+^^^^^^^^^^^^^^^^^^^^
+
+X11またはX11らしい環境でSkypeを起動する
+  tightvncserver や Xbvf が使えるはず
+
+::
+
+  $ /usr/bin/dbus-launch /usr/bin/tightvncserver :1
+
+  $ tightvncvewer :1
+
+- python-configobj
+
+- python-irclib
+
+VNCサーバとSkypeの起動
+----------------------
+
+::
+
+  /usr/bin/dbus-launch /usr/bin/tightvncserver :16
+  DISPLAY=:16
+
+デーモンを起動し続ける
+----------------------
+
+- `skype-irc-bridge.sh` スクリプトを実行
+
+チャットルームの識別子を調べる
+------------------------------
+
+::
+
+  DISPLAY=:16
+
+ToDo
+----
+
+- 複数チャンネルに join する仕組みの確認
+
+- 小池にセットアップ方法を教えるときにドキュメントを整備
+
+  - 自分のアカウントと紐づけて利用するためのオプション
+
+skype_irc_bridge
+================
+
+::
+
+  sudo -u www-data python skype_irc_bridge.py 3232
+
+irc_skype_bridge
+================
+
+::
+  
+  python irc_skype_bridge.py tellurium:3232
+
+
+========
+Skype4Py
+========
+
+Skype Lingr Gateway
+===================
+
+VNCサーバとSkypeの起動
+----------------------
+
+::
+
+  sudo su - www-data
+  LANG=C XAUTHORITY=/var/www/.Xauthority /usr/bin/dbus-launch tightvncserver :64
+  LANG=C XAUTHORITY=/var/www/.Xauthority DISPLAY=:64 nohup /usr/bin/skype
+
+デーモンを起動し続ける
+----------------------
+
+::
+
+  sudo su - 
+  while :; do date;sudo -u www-data sh -c 'XAUTHORITY=/var/www/.Xauthority DISPLAY=:64 python skype-lingr.py';date; done
+
+現在ではレポジトリに同梱されている `skype-lingr.sh` というスクリプトで常時起動していることを確認しています
+
+チャットルームの識別子を調べる
+------------------------------
+
+::
+
+  sudo -u www-data  XAUTHORITY=/var/www/.Xauthority DISPLAY=:64 python chat_list.py
+
+
+
+========
+SkypeKit
+========
+
+IRC
+===
+
+- Skype IRC Bridge
+
+::
+
+  while : ; do ./linux-x86-skypekit -p 8962 ; done
+
+Lingr
+=====
+
+- Skype Lingr Bridge
+
+::
+
+  while : ; do ./linux-x86-skypekit -p 8964 ; done
+
+

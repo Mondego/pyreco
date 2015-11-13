@@ -1,0 +1,189 @@
+# How to become a contributor and submit your own code
+
+## Contributor License Agreements
+
+We'd love to accept your sample apps and patches! Before we can take them, we 
+have to jump a couple of legal hurdles.
+
+Please fill out either the individual or corporate Contributor License Agreement
+(CLA).
+
+  * If you are an individual writing original source code and you're sure you
+    own the intellectual property, then you'll need to sign an [individual CLA]
+    (http://code.google.com/legal/individual-cla-v1.0.html).
+  * If you work for a company that wants to allow you to contribute your work,
+    then you'll need to sign a [corporate CLA]
+    (http://code.google.com/legal/corporate-cla-v1.0.html).
+
+Follow either of the two links above to access the appropriate CLA and
+instructions for how to sign and return it. Once we receive it, we'll be able to
+accept your pull requests.
+
+## Contributing A Patch
+
+1. Submit an issue describing your proposed change to the repo in question.
+1. The repo owner will respond to your issue promptly.
+1. If your proposed change is accepted, and you haven't already done so, sign a
+   Contributor License Agreement (see details above).
+1. Fork the desired repo, develop and test your code changes.
+1. Ensure that your code adheres to the existing style in the sample to which
+   you are contributing. Refer to the
+   [Google Cloud Platform Samples Style Guide]
+   (https://github.com/GoogleCloudPlatform/Template/wiki/style.html) for the
+   recommended coding standards for this organization.
+1. Ensure that your code has an appropriate set of unit tests which all pass.
+1. Submit a pull request.
+
+## Contributing A New Sample App
+
+1. Submit an issue to the GoogleCloudPlatform/Template repo describing your
+   proposed sample app.
+1. The Template repo owner will respond to your enhancement issue promptly.
+   Instructional value is the top priority when evaluating new app proposals for
+   this collection of repos.
+1. If your proposal is accepted, and you haven't already done so, sign a
+   Contributor License Agreement (see details above).
+1. Create your own repo for your app following this naming convention:
+    * {product}-{app-name}-{language}
+    * products: appengine, compute, storage, bigquery, prediction, cloudsql
+    * example:  appengine-guestbook-python
+    * For multi-product apps, concatenate the primary products, like this:
+      compute-appengine-demo-suite-python.
+    * For multi-language apps, concatenate the primary languages like this:
+      appengine-sockets-python-java-go.
+
+1. Clone the README.md, CONTRIB.md and LICENSE files from the
+   GoogleCloudPlatform/Template repo.
+1. Ensure that your code adheres to the existing style in the sample to which
+   you are contributing. Refer to the
+   [Google Cloud Platform Samples Style Guide]
+   (https://github.com/GoogleCloudPlatform/Template/wiki/style.html) for the
+   recommended coding standards for this organization.
+1. Ensure that your code has an appropriate set of unit tests which all pass.
+1. Submit a request to fork your repo in GoogleCloudPlatform organizationt via
+   your proposal issue.
+
+## endpoints-proto-datastore
+
+This library is intended to be used with the Python version of Google Cloud
+Endpoints. If you'd like to learn more about Google Cloud Endpoints, please
+visit our [documentation][6]. To run each of these samples, you should include
+the `endpoints_proto_datastore` [folder][7] included with this project.
+
+By extending the functionality provided by `ndb.Model` class and the
+`endpoints` library, this library allows you to directly interact with model
+entities in your API methods rather than ProtoRPC requests. For example,
+instead of:
+```python
+  @endpoints.method(MyModelMessage, MyModelMessage,
+                    path='mymodel', http_method='POST',
+                    name='mymodel.insert')
+  def InsertModel(self, request):
+    my_model = MyModel(attr1=request.attr1, attr2=request.attr2, ...)
+    transformed_model = DoSomething(my_model)
+    return MyModelMessage(attr1=transformed_model.attr1,
+                          attr2=transformed_model.attr2, ...)
+```
+we can directly use the entity in the request:
+```python
+  @MyModel.method(path='mymodel', http_method='POST',
+                  name='mymodel.insert')
+  def InsertModel(self, my_model):
+    return DoSomething(my_model)
+```
+without ever even having to define a ProtoRPC message class!
+
+Get started with the examples at:
+http://endpoints-proto-datastore.appspot.com/
+
+## Project Setup, Installation, and Configuration
+
+To use this library in your App Engine application you can
+
+-   Download the [`endpoints_proto_datastore`][1] library and unzip
+    it in the root of your App Engine application. For example, on
+    a Unix based machine:
+
+        ($GAE_PROJECT_ROOT)$ wget https://endpoints-proto-datastore.googlecode.com/files/endpoints_proto_datastore.zip
+        ($GAE_PROJECT_ROOT)$ unzip -q endpoints_proto_datastore.zip
+        ($GAE_PROJECT_ROOT)$ rm -f endpoints_proto_datastore.zip
+
+-   Alternatively you can stay up to date by adding this repository to
+    your project as a `git` [submodule][2]:
+
+        ($YOUR_GIT_ROOT)$ git submodule add https://github.com/GoogleCloudPlatform/endpoints-proto-datastore
+
+    This will create the entire project in the `endpoints-proto-datastore`
+    folder in your project. Since [Python packages][3] require `__init__.py`
+    files for imports to work and the root of this project is not meant to be
+    a Python package, you'll need to add `endpoints-proto-datastore` to your
+    Python import path.
+
+    The simplest way to do this is to add the following lines to your
+    [`appengine_config.py`][8] file (or create the file if it doesn't yet
+    exist):
+
+        import os
+        import sys
+
+        ENDPOINTS_PROJECT_DIR = os.path.join(os.path.dirname(__file__),
+                                             'endpoints-proto-datastore')
+        sys.path.append(ENDPOINTS_PROJECT_DIR)
+
+    **Note**: If the App Engine project stored in your `git` repository is not
+    at the root, you may need to add a symlink to the
+    `endpoints-proto-datastore/endpoints_proto_datastore` directory and put it
+    at the root of your App Engine project.
+
+To install App Engine visit the [Development Environment][9] page.
+
+## Features, Questions and Support
+
+-   To request a feature, report a bug, or request a new sample or piece of
+    documentation; please [file an issue][13].
+-   For troubleshooting issues or asking general questions, please
+    [ask a question][12] on StackOverflow using the `endpoints-proto-datastore`
+    tag.
+
+## Testing
+
+All tests are wrapped into the [`endpoints_proto_datastore_test_runner.py`][10]
+module. To run the tests, simply execute
+
+```
+python $PATH_TO_TEST_RUNNER/endpoints_proto_datastore_test_runner.py
+```
+
+This test runner assumes that you have App Engine SDK tools on your path and
+will use the location of the `dev_appserver.py` script to determine the
+location of the SDK. For example, on a Unix based system it would be
+equivalent to:
+
+```
+dirname `readlink \`which dev_appserver.py\``
+```
+
+## Contributing changes
+
+- See [CONTRIB.md][4]
+
+## Licensing
+
+- See [LICENSE][5]
+- **Note**: The test runner includes some code from the Twisted project, which
+  is [listed under terms other than Apache 2.0][11].
+
+[1]: https://endpoints-proto-datastore.googlecode.com/files/endpoints_proto_datastore.zip
+[2]: http://git-scm.com/book/en/Git-Tools-Submodules
+[3]: http://docs.python.org/2/tutorial/modules.html#importing-from-a-package
+[4]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/blob/master/CONTRIB.md
+[5]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/blob/master/LICENSE
+[6]: https://developers.google.com/appengine/docs/python/endpoints/
+[7]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/tree/master/endpoints_proto_datastore
+[8]: https://developers.google.com/appengine/docs/python/tools/appengineconfig
+[9]: https://developers.google.com/appengine/docs/python/gettingstartedpython27/devenvironment
+[10]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/blob/master/endpoints_proto_datastore/endpoints_proto_datastore_test_runner.py
+[11]: http://twistedmatrix.com/trac/browser/trunk/LICENSE
+[12]: http://stackoverflow.com/questions/ask?tags=endpoints-proto-datastore
+[13]: https://github.com/GoogleCloudPlatform/endpoints-proto-datastore/issues/new
+

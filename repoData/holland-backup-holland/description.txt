@@ -1,0 +1,433 @@
+The providers directory contains global configs for each backup provider. 
+These settings are merged with those set in individual backupsets.  The 
+settings in backupsets take precedence.
+
+Here are three approaches to a config file format:
+- Hierarchical
+Sections are organized in a single file in a hierarchy
+A backup-set can have sub-sections that define the config
+for various plugins:
+    ...
+    [backupsets]
+    [[default_backup]]
+    key = value
+    ...
+    [[[mysql-plugin]]]
+    host = remote-host
+    ...
+
+- Directory
+Hierarchy is broken down into different files in
+different directories:
+holland.conf
+# backupset configs
+backupsets/
+    default_backup.conf
+# global backup-plugin configs
+providers/
+    mysqldump.conf
+    lvm.conf
+    pgdump.conf
+    ...
+# global helper plugin library configs
+helpers/
+    mysqlclient.conf
+    lvmlib.conf
+    ...
+
+- Namespaces
+Single file, with standard ini sections named in a special
+way to denote namespaces.
+holland.conf:
+[holland]
+backup_directory = /<somepath>/
+
+[holland:logging]
+filename = /var/log/holland.log
+...
+
+[backup:default_backup]
+provider = mysqldump
+<mysqldump settings for 'default_backup'>
+[backup:default_backup:mysqlclient]
+# mysqldump backups utilize the mysqlclient lib
+host = 192.168.100.15 # some remote host
+user = remote-backup-user
+password = ...
+[backup:default_backup:compression]
+# suppose some general compression plugin we want to override
+cmd = lzop -U --fast
+
+[plugins:backup:mysqldump]
+# global options for the mysqldump backup plugin ("provider")
+# these are overriden in [backup:<name>]
+file_per_database = yes
+# exclude_databases = test
+# include_databases = production_db
+# regex = production_*
+# extra_args = --flush-privileges --ignore-table production_db.sessions
+
+[plugins:lib:mysqlclient]
+host = localhost
+socket = /var/lib/mysql/mysql.sock
+user = backup_user
+password = password
+ssl = no
+compress = no
+
+This package uses the patch management system quilt as documented in
+/usr/share/doc/quilt/README.source.
+
+Holland manpages.  These are written in restructured
+text and converted to the man format using rst2man
+from the docutils sandbox at:
+http://docutils.sourceforge.net/sandbox/manpage-writer/
+
+placeholder for static content
+
+Virtual namespace for backup/restore providers
+
+Virtual namespace for holland command plugins
+
+Virtual namespace for library plugins
+
+This is an example backup plugin that demonstrates the basic structure of a
+holland backup plugin but does not do anything particularly useful.
+
+This plugin performs logical backups of a MySQL database by using the
+mysqldump command.  Quite a few options are supported including database and
+table filtering through inclusion/exclusion filtering directives.  Table
+exclusions always map to --ignore-table parameters and database exclusions are
+skipped by simply not passing them to the --database flags.
+
+Inline-compression of mysqldump output is supported and the default.  By
+default mechanism uses gzip -1 ("--fast") for fast but reasonable compression.
+bzip2, pbzip2, lzop and lzma (vi xz-utils) are also supported.
+
+For more information please consult the holland manual or visit the holland
+wiki at http://hollandbackup.org.
+
+====================
+holland-mysqlhotcopy
+====================
+
+-----------------------------------
+Non-transactional backups for MySQL
+-----------------------------------
+
+:Author: Andrew Garner <andrew.garner@rackspace.com>
+:Date:   2009-05-08
+:Copyright: GPLv2
+:Version: 0.9.9
+:Manual section: 1
+:Manual group: Holland Backup Plugin
+
+.. TODO: authors and author with name <email>
+
+SYNOPSIS
+========
+
+$ holland backup mysqlhotcopy
+$ holland mk-config mysqlhotcopy
+
+DESCRIPTION
+===========
+
+This plugin does not call the mysqlhotcopy command.  Rather this is a 
+reimplementation that provides much of the same functionality.
+
+holland-mysqlhotcopy provides a backup plugin through which raw database 
+backups can be made safely.  This plugin issues a table lock and flushes
+MySQL tables either via LOCK TABLES ... READ LOCAL followed by an explicit
+FLUSH TABLES query, or by issuing a global FLUSH TABLES WITH READ LOCK query.
+
+While this lock is held, the plugin create an archive of the MySQL datadir.
+
+Currently holland-mysqlhotcopy supports multiple archive types:
+
+* tar
+* zip (zip64)
+* directory
+
+All the archive types support optional compression.
+
+
+SEE ALSO
+========
+
+* ``man 1 mysqlhotcopy``
+* ``man 1 holland``
+
+This plugin provides functionality to perform LVM snapshots for a MYSQL
+database. This includes optionally quiescing MyISAM tables to disk via
+FLUSH TABLES WITH READ LOCK, obtaining binary log information as well as
+running through InnoDB recovery at backup time.
+
+Backup format is a (optionally compressed) tar archive using GNU tar.
+
+This plugin performs logical backups of a Postgres database by using the
+pg_dump command.  
+
+For more information please consult the holland manual or visit the holland
+wiki at http://hollandbackup.org.
+
+Random Backup Plugin
+
+This plugin backs up random data from /dev/random. It is meant to be used as a 
+practical example of a real, albeit simple, plugin.
+
+For more information please consult the holland manual or visit the holland
+wiki at http://hollandbackup.org.
+
+
+This plugin provides a proper means of backing up an SQLite database that
+may or may not be in use.  The backup dumps the SQLite database into pure
+ASCII SQL text that can then be archived safely.
+
+To enable backups simply add a backup set similar to:
+
+    [holland:backup]
+    plugin = sqlite
+
+    [sqlite]    
+    databases = /path/to/sqlite_database1.db, /path/to/sqlite_database2.db 
+    binary = /usr/bin/sqlite3
+
+
+This plugin will run the innobackupex script from Percona's xtrabackup utility to perform hot backups of InnoDB tables.
+
+holland.lib.common
+==================
+
+This package provides common libraries used by various holland plugins and
+would not otherwise be used by the core holland framework, or depends on
+platform specific behavior.
+
+The current modules in holland.lib.common as of this writing are:
+
+* holland.lib.archive - Generic support for archiving files using zip and tar
+* holland.lib.compression - file like object that wrap compression commands.
+                            These are used heavily by plugins that compress
+                            output as part of calling some other program using
+                            the python standard subprocess module.
+* holland.lib.safefilename - encode filenames in a portable, decodable way
+                             This module is primarily used by the mysqldump
+                             plugin in order to ensure that database names
+                             from MySQL will always map to safe filenames.
+                             Unicode or otherwise invalid database names are
+                             always encoded through safefilename.  Please see
+                             the holland-mysqldump plugin for more information.
+* holland.lib.which - Trent Mick's ``which`` module. A portable way to lookup
+                      commands on a system path. Similar to the command 
+                      'which', but also works on Windows and implemented in
+                      pure python.
+* holland.lib.multidict - A simple Multivalued dictionary implementation.
+
+holland.lib.lvm
+==================
+
+This package provides a standard library used by plugins implementing LVM 
+functionality.
+
+The current modules in holland.lib.lvm as of this writing are:
+
+* holland.lib.lvm.command  - Low-level API that accesses LVM commands directly
+* holland.lib.lvm.base     - Base object classes to access LVM volumes through
+                             an object-oriented API
+* holland.lib.lvm.snapshot - Snapshot support to walk through the lifecycle of
+                             a standard LVM snapshot and perform pluggable 
+                             callback actions at each step
+* holland.lib.lvm.util     - Utility methods used by holland.lib.lvm
+
+Introduction
+============
+This plugin contains all the plugins distributed by the core holland 
+distribution. The backup plugins are all directly dependent on the
+main holland distribution (located one level up from this directory).
+The library plugins are typically self contained but usually
+provide functionality directly applicable to the holland project
+and are often dependencies of one or more backup plugins.
+
+Plugin descriptions
+===================
+
+Here are brief descriptions of each of the plugins.  Please see the README
+located under each plugin for more specific information or see documentation
+at http://hollandbackup.org
+
+holland.lib.common - General purpose functionality such as compression and 
+                     archiving.
+
+holland.lib.mysql  - Support for connections to a MySQL instance and generally
+                     interacting with a deployment.
+
+holland.lib.lvm    - A simple python API for interacting with LVM.  Primarily
+                     designed to support LVM snapshots for the LVM based backup
+                     plugins.
+
+
+holland.backup.example      - A trivial example plugin that does nothing at all
+                              but demonstrates the basic structure of a holland
+                              backup plugin
+holland.backup.mysqldump    - A mysqldump based backup plugin for MySQL
+                              Depends: [holland.lib.common, holland.lib.mysql]
+holland.backup.mysqlhotcopy - A raw file copy for MySQL, only loosely based on
+                              the 'mysqlhotcopy' command
+                              Depends: [holland.lib.common, holland.lib.mysql]
+holland.backup.maatkit      - A wrapper around mk-parallel-dump.  Not really 
+                              recommended for production quality backups. See
+                              http://www.maatkit.org for more information on
+                              the underlying mk-parallel-dump script.
+                              Depends: [holland.lib.mysql]
+holland.backup.mysql_lvm    - A LVM snapshot based backup plugin for MySQL
+                              Depends: [holland.lib.common, holland.lib.mysql,
+                                        holland.lib.lvm]
+holland.backup.random       - An example plugin that backups up bytes from 
+                              /dev/random
+holland.backup.sqlite       - A backup plugin that produces logical exports 
+                              from sqlite database files.
+                              Depends: [holland.lib.common]
+
+holland.backup.xtrabackup   - A backup plugin that uses Percona's xtrabackup
+                              utility to perform a raw file copy of MySQL datadir
+                              Depends: [holland.lib.mysql, holland.lib.common]
+
+Holland README
+==============
+
+Holland is a backup framework that supports multiple
+pluggable backup implementations.
+
+LICENSE
+=======
+holland-core, the basic backup framework is licensed
+under the New-BSD ("3-clause") license.  See LICENSE
+for more details.
+
+holland-core bundles a few third party libraries
+including:
+ConfigObj 4.6
+backports from the python stdlib:
+- logging
+- subprocess.py
+- zipfile.py
+- optparse.py
+
+Each of these are under their respective licenses.
+Please see LICENSE for more information.
+
+This directory contains various utility scripts 
+used in Holland development.
+
+quick_virtinstall.sh
+====================
+Setups up a virtual python environment using
+virtualenv and installs holland-core and all
+holland plugins listed in plugins/ACTIVE into
+the new virtual environment, along with a few
+dependencies (MySQL_python, etc.)
+
+test_it.sh
+====================
+Runs through the various packages (holland-core, 
+plugins/*) and runs python setup.py test.
+
+load_it.py
+====================
+Simple script to load the holland environment
+and associated plugin directory.  Useful for
+check if modules are importing properly:
+python -i load_it.py
+>>> import holland.backup.mysqldump
+>>>
+
+build_holland_doc.sh
+====================
+Quick script to be run out of cron to build
+documentation of every tag, branch, and trunk.
+
+The providers directory contains global 
+configs for each backup provider. These 
+settings are merged with those set in 
+individual backupsets.  The settings in
+backupsets take precedence.
+
+Here are three approaches to a config file format:
+- Hierarchical
+Sections are organized in a single file in a hierarchy
+A backup-set can have sub-sections that define the config
+for various plugins:
+    ...
+    [backupsets]
+    [[default_backup]]
+    key = value
+    ...
+    [[[mysql-plugin]]]
+    host = remote-host
+    ...
+
+- Directory
+Hierarchy is broken down into different files in
+different directories:
+holland.conf
+# backupset configs
+backupsets/
+    default_backup.conf
+# global backup-plugin configs
+providers/
+    mysqldump.conf
+    lvm.conf
+    pgdump.conf
+    ...
+# global helper plugin library configs
+helpers/
+    mysqlclient.conf
+    lvmlib.conf
+    ...
+
+- Namespaces
+Single file, with standard ini sections named in a special
+way to denote namespaces.
+holland.conf:
+[holland]
+backup_directory = /<somepath>/
+
+[holland:logging]
+filename = /var/log/holland.log
+...
+
+[backup:default_backup]
+provider = mysqldump
+<mysqldump settings for 'default_backup'>
+[backup:default_backup:mysqlclient]
+# mysqldump backups utilize the mysqlclient lib
+host = 192.168.100.15 # some remote host
+user = remote-backup-user
+password = ...
+[backup:default_backup:compression]
+# suppose some general compression plugin we want to override
+cmd = lzop -U --fast
+
+[plugins:backup:mysqldump]
+# global options for the mysqldump backup plugin ("provider")
+# these are overriden in [backup:<name>]
+file_per_database = yes
+# exclude_databases = test
+# include_databases = production_db
+# regex = production_*
+# extra_args = --flush-privileges --ignore-table production_db.sessions
+
+[plugins:lib:mysqlclient]
+host = localhost
+socket = /var/lib/mysql/mysql.sock
+user = backup_user
+password = password
+ssl = no
+compress = no
+
+The providers directory contains global configs for each backup provider. 
+These settings are merged with those set in individual backupsets.  The 
+settings in backupsets take precedence.
+
+Standard All-Databases Backup
+

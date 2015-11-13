@@ -1,0 +1,1820 @@
+# restdown Changelog
+
+## restdown 1.3.3 (not yet released)
+
+(nothing yet)
+
+
+## restdown 1.3.2
+
+- Enable anchors on h3, h4, h5 and h6. These still do not show up in the TOC.
+
+
+## restdown 1.3.1
+
+- [MANTA-1587] Changing handling of h2's in "api sections" that don't look like
+  an API endpoint to NOT be shoehorned into the special HTML anchor generation
+  and TOC HTML styling for endpoints. This is especially important for naive
+  usage of restdown where the "api-sections" metadata key is not used at all --
+  which tells restdown to treat *all* sections as using h2's only for
+  endpoints.
+
+  Effectively the difference here is that this doc:
+
+        ---
+        title: Blah
+        ---
+
+        # Blah
+
+        ... intro ...
+
+        # My section
+
+        ## ListWidgets (GET /widgets)
+
+        ## Another h2 section
+
+
+  now gets a TOC like this:
+
+        <ul>
+          <li><div><a href="#my-section">My section</a></div>
+          <ul>
+            <li><div><a href="#ListWidgets"><span class="method both"><span class="name">ListWidgets</span> <span class="endpoint">(<span class="verb">GET</span> <span class="path">/widgets</span>)</span></a></div></li>
+            <li><div><a href="#another-h2-section">Another h2 section</a></div></li>
+          </ul></li>
+        </ul>
+
+  instead of one with a broke anchor for "Another h2 section" like this:
+
+        <ul>
+          <li><div><a href="#my-section">My section</a></div>
+          <ul>
+            <li><div><a href="#ListWidgets"><span class="method both"><span class="name">ListWidgets</span> <span class="endpoint">(<span class="verb">GET</span> <span class="path">/widgets</span>)</span></a></div></li>
+            <li><div><a href="#Another"><span class="method name"><span class="name">Another h2 section</span></span></a></div></li>
+          </ul></li>
+        </ul>
+
+
+## restdown 1.3.0
+
+- Add support for using
+  [link-patterns](https://github.com/trentm/python-markdown2/wiki/link-patterns)
+  in restdown docs. You need the following in your restdown doc header:
+
+        markdown2extras: ..., link-patterns, ...
+        markdown2linkpatternsfile: link-patterns.txt
+
+  where "markdown2linkpatternsfile" is a path to a link patterns file
+  (relative to the restdown document path). That file must be in the format
+  described in the markdown2 link-patterns link above. E.g., Jira ticket
+  linking might be done like this:
+
+        /([A-Z]+-\d+)/ https://example.com/jira/browse/\1
+
+
+## restdown 1.2.24
+
+- [pull #18] Added PATCH/LINK/UNLINK methods. (by Carsten Saathoff,
+  github.com/kodemaniak)
+
+
+## restdown 1.2.23
+
+- Remove debugging print in 1.2.22. Sigh.
+
+
+## restdown 1.2.22
+
+- [issue #17] Fix `<pre class="shell"><code>$ ...</code></pre>` handling. Was broken in 1.2.21 or 1.2.20.
+
+
+## restdown 1.2.21
+
+- More fixing of headers with escaped Markdown chars (e.g. "foo\\_bar").
+
+
+## restdown 1.2.20
+
+- [issue #15] Unescape escaped chars in Table on Contents entries. The underlying issue
+  was markdown2.py (fixed in markdown2 2.0.1).
+
+
+## restdown 1.2.19
+
+- [issue #14] Only take first token in h2 api endpoint header as the endpoint name.
+
+
+## restdown 1.2.18
+
+- [issue #11] "ohthejoy" brand: Avoid hang in jquery using '|=' selector on TOC
+  elements which might have a single-quote. See
+  <http://bugs.jquery.com/ticket/11505>.
+
+
+## restdown 1.2.17
+
+- [issue #10] "spartan" brand: Fix the TOC dropdown closing right away
+  in Firefox.
+
+
+## restdown 1.2.16
+
+- Move to 'cutarelease.py' separate tool
+- [issue #9] Fix breakage if there are no TOC sections, i.e. no second h1 in
+  the input restdown content.
+
+
+## restdown 1.2.15
+
+- "spartan" brand: Fix path to jquery if using a "mediaroot" config value
+  other than the defualt "/media".
+
+
+## restdown 1.2.14
+
+- [issue #4] "ohthejoy" brand: Text in tables should align to the top of the cells.
+  Also some table top/bottom margins.
+- [issue #3] "ohthejoy" brand: Bullets in lists should hang.
+
+
+## restdown 1.2.13
+
+- [issue #6] "spartan" brand:
+    - Blue default logo color, instead of pink.
+    - TOC margin fix for narrow screens.
+    - Support for "logo-color", "logo-font-family" and "header-font-family"
+      metadata (see README.md for description).
+    - Slightly wider (650px -> 700px).
+    - Restore "pre.shell" styling from "ohthejoy" brand.
+
+
+## restdown 1.2.12
+
+- New "spartan" brand.
+- If `%(toc_html)s` appears in the "header.html.in" or "footer.html.in" files,
+  then the `<div id="sidebar">%(toc_html)s</div>` is excluded. This allows
+  one to customize where the TOC html appears.
+  Note: an metadata option should be added to more explicitly control this.
+
+
+## restdown 1.2.11
+
+- Add the "markdown2extras" metadata var to enable turning on markdown2
+  extra syntax for the processed document. See
+  <https://github.com/trentm/python-markdown2/wiki/Extras>.
+- Upgrade to python-markdown2 1.0.1.19.
+- Use `realpath` as appropriate so can run `restdown` as a symlink.
+
+## restdown 1.2.10
+
+- Fix bug in "-d|--define".
+
+## restdown 1.2.9
+
+- Add "-d|--define" option for providing metadata on the command line.
+
+
+## restdown 1.2.8
+
+- ["ohthejoy" brand] Fix issue with "current section" highlighting in the TOC:
+  for the h1's the whole section would be highlighted instead of just the h1
+  link.
+
+
+## restdown 1.2.7
+
+- Fix a bug handling an empty "apisections" metadatum.
+
+
+## restdown 1.2.6
+
+- [issue #2, "ohthejoy" brand] Add support for method h2's being in other of
+  the following formats:
+
+    1. "NAME (VERB PATH)", e.g. "ListMachines (GET /:login/machines)".
+       Only NAME is shown in table of contents and used for the section anchor.
+       Reasonable styling in content. Only "VERB PATH" is used in ".json" API
+       summary file.
+    2. "VERB PATH", e.g. "DELETE /zones/:uuid"
+    3. "NAME", e.g. "DoIt"
+
+  Note: It is possible the markup changes here break other brands.
+
+- Add 'apisections' document metadatum. It is a comma-separated list of h1 section
+  names that are to be considered the API endpoint sections (i.e. an h1 section
+  in which h1's define REST API endpoints). If 'apisections' is not specified
+  it is presumed that all sections except the first (presumed to be a preface
+  section) are API sections. This is related to issue #2, but not a complete
+  fix yet.
+- Add support for 'mediaroot' document metadatum to control the URL from which
+  brand media is pulled.
+
+
+## restdown 1.2.5
+
+- ["ohthejoy" brand] Switch to background gradient for current TOC item instead
+  of arrow: easier to see than the arrow for larger APIs.
+- ["ohthejoy" brand] Don't let TOC labels wrap (helpful for longer TOC titles)
+- ["ohthejoy" brand] Give the TOC arrow header some scrolling slack.
+
+
+## restdown 1.2.4
+
+- Fix TOC handling to skip h2's in the intro section.
+
+
+## restdown 1.2.3
+
+- ["ohthejoy" brand] Fix print styling of pre.shell blocks.
+- ["ohthejoy" brand] Reasonable default table styles.
+
+
+## restdown 1.2.2
+
+- New default "ohthejoy" brand. Improvements:
+    - Header styling for better section separation.
+    - Fix TOC arrow to point all toc elements (also not be dependent on "VERB
+      URLPATH" header text form).
+    - Remove the fixed top-right section header: not that helpful, often
+      broken.
+- Strip trailing whitespace in create api JSON file.
+
+
+## restdown 1.2.1
+
+- [issue #1] Allow h2 text (for endpoints) to NOT be the "VERB URLPATH" format.
+
+
+## restdown 1.2.0
+
+- Add "-b|--brand-dir DIR" option for specifying a local brand dir to use.
+
+
+## restdown 1.1.0
+
+(Started this changelog on 5 May 2011.)
+
+---
+title: Dataset API (DSAPI)
+mediaroot: media
+markdown2extras: wiki-tables
+---
+
+# Dataset API
+
+The Dataset API is a repository for dataset metadata and files for
+SmartDataCenter. Datasets are the files and information used to create
+machines (VMs and SmartMachines) in SmartDataCenter.
+This is running DSAPI version {{version}}.
+
+### All API calls start with
+
+<pre class="base">
+{{url_base}}
+</pre>
+
+### Format
+
+All responses are **JSON** (that is, except for the current HTML docs that
+you are reading).
+
+
+
+
+# Datasets
+
+## GET /datasets
+
+Get the list of all dataset manifests. This list is limited to those the
+authenticated user has access to (see the `restricted_to_uuid` field
+below.) If no HTTP Basic auth credentials are provided, then the set is
+limited to public datasets.
+
+The list can be filtered on some of the manifest fields. Currently:
+**name**, **version**, **type**, **os**, **restricted\_to\_uuid** and **creator\_uuid**.
+For example: `/datasets?name=nodejs`.
+
+Results are ordered by creation timestamp (`published_at` field), most recent
+first.
+
+
+#### example request
+
+    $ curl {{url_base}}/datasets
+
+#### response
+
+    [
+      {
+        "uuid": "7a2a7841-a8c8-42c8-89e0-8043c7721327"
+        "name": "nodejs",
+        "version": "1.0.0"
+        ...
+        "published_at": "2011-03-17T23:56:37Z",
+      },
+      {
+        "uuid": "22639f9e-2bad-4cf0-b6bf-43380e318cc2"
+        "name": "smartos",
+        "version": "1.3.8",
+        ...
+        "published_at": "2011-03-15T13:33Z",
+      },
+      ...
+    ]
+
+
+
+## GET /datasets/:id
+
+Get a specific dataset manifest by UUID or by URN. HTTP Basic auth
+credentials must be passed to access non-public datasets. 
+
+
+#### example request
+
+    $ curl {{url_base}}/datasets/cc707720-359e-4d84-89a7-e50959ecba43
+
+#### response
+
+    {
+      "cloud_name": "sdc",
+      "name": "nodejs",
+      "version": "1.0.0",
+      "type": "zone-dataset",
+      "description": "node.js git-deploy PaaS template",
+      "published_at": "2011-03-17T23:56:37Z",
+      "os": "smartos",
+      "files": [
+        {
+          "path": "nodejs-1.0.0.zfs.bz2",
+          "sha1": "9a9dc5f7841a5620094de622878601f65e9c3483",
+          "size": 262749905
+        }
+      ],
+      "requirements": {
+        "networks": [{"name": "net0", "description": "public"}]
+      },
+      "uuid": "cc707720-359e-4d84-89a7-e50959ecba43",
+      "creator_uuid": "352971aa-31ba-496c-9ade-a379feaecd52",
+      "creator_name": "sdc",
+      "urn": "sdc:sdc:nodejs:1.0.0"
+    }
+
+Responds with **403 Forbidden** if access to the dataset is restricted
+(see `restricted_to_uuid` discussion below).
+
+#### example 403 response
+
+    {
+      "error": {
+        "message": "Dataset '462e47e8-26fd-de45-b820-12e12c142d99' is restricted.",
+        "code": 403
+      }
+    }
+
+
+
+## GET /datasets/:id/:path
+
+Download a dataset file. `:id` is a Dataset UUID or URN. Provide HTTP Basic
+auth credentials to access restricted dataset files (see `restricted_to_uuid`
+below).
+
+#### example request
+
+    $ curl {{url_base}}/datasets/22639f9e-2bad-4cf0-b6bf-43380e318cc2/nodejs-1.0.0.zfs.bz2 \
+        -o nodejs-1.0.0.zfs.bz2
+
+Responds with **403 Forbidden** if access to the dataset is restricted.
+Responds with **404 Not Found** if the dataset doesn't have the named file.
+
+#### example 403 response
+
+    {
+      "error": {
+        "message": "Dataset '462e47e8-26fd-de45-b820-12e12c142d99' is restricted.",
+        "code": 403
+      }
+    }
+
+#### example 404 response
+
+    {
+      "error": {
+        "message": "Dataset '1dd09279-3edb-944d-bdd4-31a06111004e' does not have a 'bogus-1.0.0.zfs.bz2' file.",
+        "code": 404
+      }
+    }
+
+
+## GET /assets/:path
+
+**DEPRECATED** Download a dataset file. This is deprecated (only remains
+for backward compatibility). Will be removed in 2011Q3.
+
+Use [GET /dataset/:id/:path](#GET-/datasets/:id/:path) instead.
+
+|| **Response Code** || **Description** ||
+|| **403_Forbidden** || if access to the dataset is restricted. ||
+|| **404_Not_Found** || if the path isn't a part of any datasets. ||
+|| **400_Bad_Request** || if the path is ambiguous (two datasets with the same path). Let's add some really long text here because want to see alignment in table for a cell that spans two lines. ||
+
+
+
+#### example request
+
+    $ curl {{url_base}}/assets/nodejs-1.0.0.zfs.bz2 -o nodejs-1.0.0.zfs.bz2
+
+
+
+
+## PUT /datasets/:uuid
+
+Add (or replace) a new dataset to the repository.  This must be a
+'multipart/form-data' encoded request with one or more files: The first
+file must be called "manifest" and is the Dataset manifest. Then additional
+file(s) sections for each of the paths in the manifest "files" section.
+
+Only users with the "add-datasets" permission and administrators may add
+datasets.
+
+#### example request
+
+    $ curl {{url_base}}/datasets/cc707720-359e-4d84-89a7-e50959ecba43 \
+        -X PUT \
+        -u joe:password \
+        -F manifest=@nodejs-1.0.0.dsmanifest \
+        -F nodejs-1.0.0.zfs.bz2=@nodejs-1.0.0.zfs.bz2 
+
+#### response
+
+    {
+      "name": "nodejs",
+      "version": "1.0.0",
+      "type": "zone-dataset",
+      "description": "node.js git-deploy PaaS template",
+      "published_at": "2011-03-17T23:56:37.600Z",
+      "os": "smartos",
+      "files": [
+        {
+          "path": "nodejs-1.0.0.zfs.bz2",
+          "sha1": "9a9dc5f7841a5620094de622878601f65e9c3483",
+          "size": 262749905,
+          "url": "/datasets/cc707720-359e-4d84-89a7-e50959ecba43/nodejs-1.0.0.zfs.bz2"
+        }
+      ],
+      "requirements": {
+        "networks": [{"name": "net0", "description": "public"}]
+      },
+      "uuid": "cc707720-359e-4d84-89a7-e50959ecba43",
+      "creator_uuid": "352971aa-31ba-496c-9ade-a379feaecd52"
+    }
+
+On error it can respond with any of **409 Conflict** (if UUID is taken),
+**403 Forbidden** (if not authorized to add datasets) or
+**400 Bad Request** (validation errors).
+
+#### example error response
+
+    {
+      "error": {
+        "message": "UUID param, '73ce06d8-7ae7-11e0-b0df-1fcf8f45c5d5', does not match the UUID in the uploaded manifest, '63ce06d8-7ae7-11e0-b0df-1fcf8f45c5d5'.",
+        "code": 400
+      }
+    }
+
+
+
+## DELETE /datasets/:uuid
+
+Delete the identified dataset. You must be the creator of the dataset
+(`creator_uuid` field) or an administrator.
+
+#### example request
+
+    $ curl {{url_base}}/datasets/cc707720-359e-4d84-89a7-e50959ecba43 \
+        -X DELETE -u joe:password -i
+
+#### response
+
+    HTTP/1.1 204 No Content
+    Content-Length: 0
+    Connection: keep-alive
+
+#### example error response
+
+    {
+      "error": {
+        "message": "Cannot delete dataset '9a2a7841-a8c8-42c8-89e0-8043c7721327': must be the dataset creator.",
+        "code": 403
+      }
+    }
+
+
+
+# General
+
+## GET /
+
+Return this HTML documentation or a JSON representation of the API, depending
+on the request "Accept" header.
+
+#### example JSON response
+
+    {
+      "endpoints": [
+        "GET    /datasets", 
+        "GET    /datasets/:id", 
+        "GET    /datasets/:id/:path", 
+        "GET    /assets/:path", 
+        "PUT    /datasets/:uuid", 
+        "DELETE /datasets/:uuid", 
+        "GET    /", 
+        "GET    /ping"
+      ],
+      "version": "2.2.0",
+      "cloud_name": "sdc"
+    }
+
+
+
+## GET /ping
+
+General health check: "Is the server up?"
+If basic auth credentials are provided, then authorization will be attempted
+and, on success, some authorized user data shown in the response.
+
+#### example JSON response
+
+    {
+        "ping": "pong",
+        "auth": {
+            "login": "joe",
+            "uuid": "4d9deb82-c574-fe43-9b69-3de0ee8ac87a"
+        }
+    }
+
+
+
+# Manifest Specification
+
+A dataset manifest is a set of static metadata for the dataset. It is
+typically in the form of a JSON ".dsmanifest" file (as produced by the Joyent
+`tpl` tool for building datasets) or a JSON response from this Dataset API.
+
+Example manifest (Backward compatible fields have been excluded. Not all
+possible fields are shown in this example. See discussion below):
+
+    {
+      "uuid": "63ce06d8-7ae7-11e0-b0df-1fcf8f45c5d5",
+      "cloud_name": "sdc",
+      "creator_uuid": "930896af-bf8c-48d4-885c-6573a94b1853",
+      "creator_name": "sdc",
+      "name": "smartos",
+      "version": "1.3.13",
+      "urn": "sdc:sdc:smartos:1.3.13",
+      "type": "zone-dataset",
+      "description": "Base template to build other templates on",
+      "published_at": "2011-05-10T09:25Z",
+      "os": "smartos",
+      "files": [
+        {
+          "path": "smartos-1.3.13.zfs.bz2",
+          "sha1": "a287dc535e2fb9a5a8e26b211156016b4e6cf267",
+          "size": 41982720
+        }
+      ],
+      "requirements": {
+        "networks": [
+          {
+            "name": "net0",
+            "description": "public"
+          }
+        ]
+      }
+    }
+
+Each of these manifest fields, plus some optional fields that are not
+used in the above example, are specified here. Fields marked "*required*"
+are required when [adding a dataset](#PUT-/datasets/:uuid). Fields marked
+"*optional*" are just that -- often only relevant for certain dataset types.
+Fields marked "*server*" are added by the Dataset API server, i.e. need
+not be specified when adding a dataset but will always be present when
+retrieving the manifest from the Dataset API.
+
+**`uuid`** (*required*) is the unique identifier for this dataset.
+
+**`cloud_name`** (*server*) identifies from which dataset repository (a.k.a.
+which Dataset API instance) this dataset originated. "sdc" is the cloud_name
+for <https://datasets.joyent.com> -- the special-case global Dataset API that
+isn't directly associated with a cloud provider. A cloud provider may also
+have a Dataset API local to that cloud's suite of data centers. The cloud
+name for a Dataset API is available at the [root endpoint](#GET-/).
+
+Note: When doing local development of a dataset (e.g. with the `tpl` and
+`sdc-dsimport` tools), a dataset is imported into the Master API (MAPI)
+without going through a Dataset API. Lacking a DSAPI cloud\_name, the
+special case "local" cloud\_name is attached.
+
+**`creator_uuid`** (*server*) identifies the creator of the dataset. It is
+the UUID of the authenticated user that added the dataset. It is the UUID for
+a customer in the local cloud's Customers API (CAPI). For backward
+compatibility, the `vendor_uuid` id field is a supported alias for this
+field (will be removed in 2011Q3).
+
+**`creator_name`** (*server*) is the "login" name for the creator_uuid.
+
+**`name`** (*required*) is a short name for the dataset. It may only contain
+ascii letters, numbers, hypens ('-'), periods ('.') and underscores ('\_')
+and it must start with a letter. While capital letters are allowed, they are
+discouraged. The name is case-sensitive and is limited to 32 characters.
+
+**`version`** (*required*) is a short version string for the dataset. It may
+only contain ascii letters, numbers, hypens ('-'), periods ('.') and
+underscores ('\_'). While not enforced, it is strongly encouraged that
+dataset authors use the "X.Y.Z" semantic versioning scheme described at
+<http://semver.org/>. The version is limited to 32 characters.
+
+**`urn`** (*server*) is a nicer (that the uuid) string that uniquely
+identifies a dataset. It is constructed from the cloud\_name, creator\_name,
+name and version fields. See below for more "URN" discussion.
+
+**`description`** (*required*) is a short prose description of the dataset.
+It is limited to 255 characters.
+
+**`published_at`** (*server*) is a date and time (in ISO format) at which the
+dataset was published to the DSAPI. Note: For backward compatibility the
+`created_at` and `updated_at` fields (now deprecated) are aliases for this
+field. These aliases will be removed sometime in 2011Q4.
+
+**`type`** (*required*) is the dataset type. Valid types are:
+"**zone-dataset**" for a ZFS dataset used to create a new SmartOS zone, or
+"**vmimage**" for a virtual machine image.
+
+**`os`** (*required*) is the operating system of the dataset file. Valid
+values include: "**smartos**", "**windows**", and "**linux**". These
+spellings are not currently enforced but may be in future versions of the
+DSAPI. It is expected that more OS values will be added.
+
+**`files`** (*required*) is an array of data files that make up the dataset.
+Often there is just one, but more are allowed. Each file is an object with
+three fields: **`path`** (the filename of this file), **`sha1`** the SHA-1
+checksum of the file, **`size`** the size in bytes of the file. The path
+field must be a relative path. While it does allow hierarchy (i.e.
+'/'-separate components) that is typically unnecessary and is discouraged.
+For backward compatibility the DSAPI server adds a download **`url`** field
+to be used for downloading the file content (will be removed in 2011Q3). New
+users should just use the
+[GET /datasets/:uuid/:path](#GET-/datasets/:uuid/:path) endpoint for
+downloading dataset files.
+
+**`restricted_to_uuid`** (*optional*) is a UUID (entry in the cloud Customer
+API) to which to restrict access to this dataset. I.e. A package author
+may set this to the same as creator\_uuid to make this dataset private to
+them. A dataset without restricted\_to\_uuid set is public. The
+"read-all-datasets" permission can be given to a user to enable read-only
+access to restricted datasets. Note: For backward compatibility, the
+`owner_uuid` field is a supported alias for this field (will be removed in
+2011Q3).
+
+**`requirements`** is a grouping of various requirements
+for provisioning a machine with this dataset. Currently specified
+requirements fields are:
+
+- **`networks`** (*optional*) is array describing the minimum number of network
+  interfaces. This example shows a dataset that requires one VNIC:
+  `"networks": [{"name": "net0", "description": "public"}]`.
+
+- **`password`** (*optional*) is a boolean indicating that provisioning with this dataset
+  requires that a password be provided. For example, provisioning a Windows
+  VM requires an initial password for the Administrator account. If not
+  defined, it is presumed to be *false*.
+
+- **`ssh_key`** (*optional*) is a boolean indicating that provisioning with this dataset
+  requires that an SSH public key be provided. For example, provisioning a
+  Linux VM requires an SSH key for initial SSH access. If not
+  defined, it is presumed to be *false*.
+
+**`users`** (*optional*) is a list of users for which passwords should be
+generated for provisioning. This may only make sense for some datasets.
+Example: `"users": [{"name": "root"}, {"name": "admin"}]`
+
+**`generate_passwords`** (*optional*) is a boolean indicating whether to
+generate passwords for the users in the "users" field. If not present, the
+default value is *true*.
+
+**`inherited_directories`** (*optional*) is a list of inherited directories
+(other than the defaults for the brand). This can be left out or the empty
+list if the dataset need not inherit directories. This field only makes sense
+for datasets of type "zone-dataset".
+Example: `"inherited_directories": ["/opt/support"]`.
+
+**`platform_type`** (*optional*) identifies the host platform type on which
+this dataset can run. Valid values are "smartos" and "hvm". This will default
+to "hvm" for "type==vmimage" and to "smartos" otherwise.
+
+**`nic_driver`** (*required if type==vmimage*) The NIC driver used by this
+VM image. Examples are 'virtio', 'ne2k_pci', 'rtl8139', 'e1000', 'pcnet'.
+
+**`disk_driver`** (*required if type==vmimage*) The disk driver used by this
+VM image. Examples are 'virtio', 'ide', 'scsi'.
+
+**`cpu_type`** (*optional*, defaults to "qemu64" for datasets of type
+"vmimage") The QEMU CPU model to use for this VM. Examples are: "qemu64",
+"host".
+
+**`image_size`** (*required if type==vmimage*) is the size (in MiB) of
+the VM's disk, and hence the required size of allocated disk for
+provisioning.
+
+
+
+
+# Dataset URNs
+
+Every dataset has a UUID, but using UUIDs for provisioning and identifying
+and communicating can be painful, so the following URN scheme can also be
+used to uniquely identify datasets. Note that technically speaking,
+the "urn" string used in the Dataset API is really the Namespace Specific
+String (NSS) part of a proper URN (as per
+<http://en.wikipedia.org/wiki/Uniform_Resource_Name>). A full URN is achieved
+by prefixing "urn:sdcdataset:".
+
+A full dataset URN is (using the manifest field names described above):
+
+    cloud_name:creator_name:name:version
+
+Examples Dataset URNs ("Acme" and "JPC" examples are hypothetical):
+
+    sdc:sdc:smartos:1.3.13
+    sdc:sdc:nodejs:1.1.4
+    sdc:basho:riak:1.3.1        # Basho-built dataset in datasets.joyent.com
+    
+    acme:acme:mysql:1.0.0       # Acme-built custom MySQL dataset in the Acme cloud
+    
+    acme:joe:webhead:1.0.0      # Acme customer "joe"'s webhead dataset
+    acme:joe:database:1.0.0
+    acme:sally:webhead:1.0.0
+    acme:sally:mysql:1.0.0
+
+    # Joyent Public Cloud (jpc) customer "sally"'s webhead and mysql datasets
+    # in the JPC cloud. The point here is that this "sally" is unrelated to
+    # the "sally" in the Acme cloud.
+    jpc:sally:webhead:1.0.0
+    jpc:sally:mysql:1.0.0
+
+
+A few *shortcuts* are supported for URNs. Mostly these are relevant for
+usage with the SDC Cloud API for provisioning machines.
+
+The "cloud\_name:creator\_name" can be elided, meaning "sdc:sdc":
+
+    smartos:1.3.13      # shortcut for "sdc:sdc:smartos:1.3.13"
+    nodejs:1.1.4        # shortcut for "sdc:sdc:nodejs:1.1.4"
+
+The "version" field can be elided meaning the "latest released" dataset in
+that group. The latest dataset within a group is the most recent sorted by
+the "created\_at" manifest field. (The "version" field is NOT currently
+used for sorting. Doing so would require tight specification of version
+strings.) The Master API might have a flag indicating whether a recent
+dataset is yet "released". For example it might still be in testing.
+
+    smartos             # latest released sdc:sdc:smartos:*
+    sdc:basho:riak      # latest released sdc:basho:riak:*
+    acme:sally:webhead
+
+
+
+
+---
+title: ldapjs
+brand: spartan
+markdown2extras: wiki-tables
+logo-color: green
+logo-font-family: google:Aldrich, Verdana, sans-serif
+header-font-family: google:Aldrich, Verdana, sans-serif
+---
+
+# This guide
+
+This guide was written assuming that you (1) don't know anything about ldapjs,
+and perhaps more importantly (2) know little if anything about LDAP.  If you're
+already an LDAP whiz, please don't read this and feel it's condescending.  Most
+people don't know how LDAP works, other than that "it's that thing that has my
+password".
+
+By the end of this guide, we'll have a simple LDAP server that accomplishes a
+"real" task.
+
+# What exactly is LDAP?
+
+If you haven't already read the [wikipedia](http://en.wikipedia.org/wiki/Lightweight_Directory_Access_Protocol)
+entry, LDAP is the "Lightweight Directory Access Protocol".  A directory service
+basically breaks down as follows:
+
+* A directory is a tree of entries (similar to but different than a FS).
+* Every entry has a unique name in the tree.
+* An entry is a set of attributes.
+* An attribute is a key/value(s) pairing (multival is natural).
+
+It might be helpful to visualize that:
+
+                  o=example
+                  /       \
+             ou=users     ou=groups
+            /      |         |     \
+        cn=john  cn=jane    cn=dudes  cn=dudettes
+        /
+    keyid=foo
+
+
+And let's say we wanted to look at the record cn=john in that tree:
+
+    dn: cn=john, ou=users, o=example
+    cn: john
+    sn: smith
+    email: john@example.com
+    email: john.smith@example.com
+    objectClass: person
+
+Then there's a few things to note:
+
+* All names in a directory tree are actually referred to as a _distinguished
+name_, or _dn_ for short.  A dn is comprised of attributes that lead to that
+node in the tree, as shown above (the syntax is foo=bar, ...).
+* The root of the tree is at the right of the _dn_, which is inverted from a
+filesystem hierarchy.
+* Every entry in the tree is an _instance of_ an _objectclass_.
+* An _objectclass_ is a schema concept; think of it like a table in a
+traditional ORM.
+* An _objectclass_ defines what _attributes_ an entry can have (on the ORM
+analogy, an _attribute_ would be like a column).
+
+That's really it. LDAP really then is the protocol for interacting with the
+directory tree, and it's pretty comprehensively specified for common operations,
+like add/update/delete and importantly, search.  Really, the power of LDAP
+really comes through the search operations defined in the protocol, which are
+richer than HTTP query string filtering, but less powerful than full SQL.  If it
+helps, you can think of LDAP as a NoSQL/document store with a well-defined query
+syntax.
+
+So, why isn't LDAP more popular for a lot of applications? Like anything else
+that has "simple" or "lightweight" in the name, it's not really that
+lightweight, and in particular, almost all of the implementations of LDAP stem
+from the original University of Michigan codebase written in 1996. At that
+time, the original intention of LDAP was to be an IP-accessible gateway to the
+much more complex X.500 directories,  which really means that a lot of that
+baggage has carried through to today.  That makes for a high barrier to entry,
+when really most applications just don't need most of those features.
+
+## How is ldapjs any different?
+
+Well, on the one hand, since ldapjs has to be 100% wire compatible with LDAP to
+be useful, it's not, but on the other hand, there are no forced assumptions
+about what you need and don't for your use of a directory system.  For example,
+want to run with no-schema in OpenLDAP/389DS/et al? Good luck.  Most of the
+server implementations support arbitrary "backends" for persistence, but really
+you'll be using [BDB]: http://www.oracle.com/technetwork/database/berkeleydb/overview/index.html
+
+Want to run schemaless in ldapjs, or wire it up with some mongoose models? No
+problem.  Want to back it to redis? Should be able to get some basics up in a
+day or two.
+
+Basically, the ldapjs philospohy is to deal with the "muck" of LDAP, and then
+get out of the way so you can just use the "good parts".
+
+# Ok, cool. Learn me some LDAP!
+
+Ok, so with the initial fluff out of the way, let's do something crazy to teach
+you some LDAP.  Let's put an LDAP server up over the top of your (Linux) host's
+/etc/passwd and /etc/group files. Usually sysadmins "go the other way", and
+replace /etc/passwd with a PAM module to LDAP, so while this is probably not
+a super useful real-world use case, it will teach you some of the basics.
+Oh, and if it is useful to you, then that's gravy.
+
+## Install
+
+If you don't already have node.js and npm, clearly you need those, so follow
+the steps at [nodejs.org](http://nodejs.org) and [npmjs.org](http://npmjs.org),
+respectively.  After that, run:
+
+    $ npm install ldapjs
+
+Also, rather than overload you with client-side programming for now, we'll use
+the OpenLDAP CLI to interact with our server.  It's almost certainly already
+installed on your system, but if not, you can get it from brew/apt/yum/...
+
+To get started, open some file, and let's get the library loaded and a server
+created:
+
+    var ldap = require('ldapjs');
+
+    var server = ldap.createServer();
+
+    server.listen(1389, function() {
+      console.log('/etc/passwd LDAP server up at: %s', server.url);
+    });
+
+And run that.  Doing anything will give you errors (LDAP "No Such Object")
+since we haven't added any support in yet, but go ahead and try it anyway:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -b "o=myhost" objectclass=*
+
+## Bind
+
+So, lesson #1 about LDAP: unlike HTTP, it's connection-oriented; that means that
+you authenticate (in LDAP nomenclature this is called a _bind_), and all
+subsequent operations operate at the level of priviledge you established during
+a bind.  You can bind any number of times on a single connection and change that
+identity.  Technically, it's optional, and you can support _anonymous_
+operations from clients, but (1) you probably don't want that, and (2) most
+LDAP clients will initiate a bind anyway (OpenLDAP will), so let's add it in
+and get it out of our way.
+
+What we're going to do is add a "root" user to our LDAP server.  This root user
+has no correspondance to our Unix root user, it's just something we're making up
+and going to use for allowing an (LDAP) admin to do anything.  Great, so go
+ahead and add this code into your file:
+
+    server.bind('cn=root', function(req, res, next) {
+      if (req.dn.toString() !== 'cn=root' || req.credentials !== 'secret')
+        return next(new ldap.InvalidCredentialsError());
+
+      res.end();
+      return next();
+    });
+
+Not very secure, but this is a demo.  What we did there was "mount" a tree in
+the ldapjs server, and add a handler for the _bind_ method.  If you've ever used
+express, this pattern should be really familiar; you can add any number of
+handlers in, as we'll see later.
+
+On to the meat of the method.  What's up with this?
+
+    if (req.dn.toString() !== 'cn=root' || req.credentials !== 'secret')
+
+So, the first part `req.dn.toString() !== 'cn=root'`:  you're probably thinking
+"wtf?!? does ldapjs allow something other than cn=root into this handler?" Sort
+of.  It allows cn=root *and any children* into that handler.  So the entries
+`cn=root` and `cn=evil, cn=root` would both match and flow into this handler.
+Hence that check.  The second check `req.credentials` is probably obvious, but
+it brings up an important point, and that is the `req`, `res` objects in ldapjs
+are not homogenous across server operation types.  Unlike HTTP, there's not a
+single message format, so each of the operations has fields and functions
+appropriate to that type.  The LDAP bind operation has `credentials`, which are
+a string representation of the client's password.  This is logically the same as
+HTTP Basic Authentication (there are other mechanisms, but that's out of scope
+for a getting started guide).  Ok, if either of those checks failed, we pass a
+new ldapjs `Error` back into the server, and it will (1) halt the chain, and (2)
+send the proper error code back to the client.
+
+Lastly, assuming that this request was ok, we just end the operation with
+`res.end()`.  The `return next()` isn't strictly necessary, since here we only
+have one handler in the chain, but it's good habit to always do that, so if you
+add another handler in later you won't get bit by it not being invoked.
+
+Blah blah, let's try running the ldap client again, first with a bad password:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w foo -b "o=myhost" objectclass=*
+
+    ldap_bind: Invalid credentials (49)
+        matched DN: cn=root
+        additional info: Invalid Credentials
+
+And again with the correct one:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" objectclass=*
+
+    No such object (32)
+    Additional information: No tree found for: o=myhost
+
+Don't worry about all the flags we're passing into OpenLDAP, that's just to make
+their CLI less annonyingly noisy.  Note that this time, we got another
+`No such object` error, but this time note that it's for the tree
+`o=myhost`. That means our bind went through, and our search failed,
+since we haven't yet added a search handler. Just one more small thing to do
+first.
+
+Remember earlier I said there was no authorization rules baked into LDAP? Well,
+we added a bind route, so the only user that can authenticate is `cn=root`, but
+what if the remote end doesn't authenticate at all? Right, nothing says they
+*have to* bind, that's just what the common clients do.  Let's add a quick
+authorization handler that we'll use in all our subsequent routes:
+
+    function authorize(req, res, next) {
+      if (!req.connection.ldap.bindDN.equals('cn=root'))
+        return next(new ldap.InsufficientAccessRightsError());
+
+      return next();
+    }
+
+Should be pretty self-explanatory, but as a reminder, LDAP is connection
+oriented, so we check that the connection remote user was indeed our `cn=root`
+(by default ldapjs will have a DN of `cn=anonymous` if the client didn't bind).
+
+## Search
+
+Ok, we said we wanted to allow LDAP operations over /etc/passwd, so let's detour
+for a moment to explain an /etc/passwd record:
+
+    jsmith:x:1001:1000:Joe Smith,Room 1007,(234)555-8910,(234)555-0044,email:/home/jsmith:/bin/sh
+
+That maps to:
+
+* jsmith: user name.
+* x: historically this contained the password hash, but that's usually in
+/etc/shadow now, so you get an 'x'.
+* 1001: the unix numeric user id.
+* 1000: the unix numeric group id. (primary)
+* 'Joe Smith,...': the "gecos", which is a description, and is usually a comma
+separated list of contact details.
+* /home/jsmith: the user's home directory
+* /bin/sh: the user's shell.
+
+Great, let's some handlers to parse that and transform it into an LDAP search
+record (note, you'll need to add `var fs = require('fs');` at the top of the
+source file):
+
+First, let's make a handler that just loads the "user database" for us in a
+"pre" handler:
+
+    function loadPasswdFile(req, res, next) {
+      fs.readFile('/etc/passwd', 'utf8', function(err, data) {
+        if (err)
+          return next(new ldap.OperationsError(err.message));
+
+        req.users = {};
+
+        var lines = data.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i] || /^#/.test(lines[i]))
+            continue;
+
+          var record = lines[i].split(':');
+          if (!record || !record.length)
+            continue;
+
+          req.users[record[0]] = {
+            dn: 'cn=' + record[0] + ', ou=users, o=myhost',
+            attributes: {
+              cn: record[0],
+              uid: record[2],
+              gid: record[3],
+              description: record[4],
+              homedirectory: record[5],
+              shell: record[6] || '',
+              objectclass: 'unixUser'
+            }
+          };
+        }
+
+        return next();
+      });
+    }
+
+Ok, all that did is tack the /etc/passwd records onto req.users so that any
+subsequent handler doesn't have to reload the file.  Next, let's write a search
+handler to process that:
+
+    var pre = [authorize, loadPasswdFile];
+
+    server.search('o=myhost', pre, function(req, res, next) {
+      Object.keys(req.users).forEach(function(k) {
+        if (req.filter.matches(req.users[k].attributes))
+          res.send(req.users[k]);
+      });
+
+      res.end();
+      return next();
+    });
+
+And try running:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" cn=root
+    dn: cn=root, ou=users, o=myhost
+    cn: root
+    uid: 0
+    gid: 0
+    description: System Administrator
+    homedirectory: /var/root
+    shell: /bin/sh
+    objectclass: unixUser
+
+Sweet! Try this out too:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" objectclass=*
+    ...
+
+You should have seen an entry for every record in /etc/passwd with the second.
+What all did we do here?  A lot.  Let's break this down...
+
+### What did I just do on the command line?
+
+Let's start with looking at what you even asked for:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" cn=root
+
+We can throw away `ldapsearch -H -x -D -w -LLL`, as those just specify the URL
+to connect to, the bind credentials and the `-LLL` just quiets down OpenLDAP.
+That leaves us with: `-b "o=myhost" cn=root`.
+
+The `-b o=myhost` tells our LDAP server where to _start_ looking in
+the tree for entries that might match the search filter, which above is
+`cn=root`.
+
+In this little LDAP example, we're mostly throwing out any qualification of the
+"tree", since there's not actually a tree in /etc/passwd (we will extend later
+with /etc/group).  Remember how I said ldapjs gets out of the way and doesn't
+force anything on you.  Here's an example.  If we wanted an LDAP server to run
+over the filesystem, we actually would use this, but here, meh.
+
+Next, "cn=root" is the search 'filter'.  LDAP has a rich specification of
+filters, where you can specify `and`, `or`, `not`, `>=`, `<=`, `equal`,
+`wildcard`, `present` and a few other esoteric things.  Really, `equal`,
+`wildcard`, `present` and the boolean operators are all you'll likely ever need.
+So, the filter `cn=root` is an 'equality' filter, and says to only return
+entries that have attributes that match that.  In the second invocation, we used
+a 'presence' filter, to say 'return any entries that have an objectclass'
+attribute, which in LDAP parlance is saying "give me everything".
+
+### The code
+
+So in the code above, let's ignore the fs and split stuff, since really all we
+did was read in /etc/passwd line by line.  After that, we looked at each record
+and made the cheesiest transform ever, which is making up a "search entry". A
+search entry _must_ have a DN so the client knows what record it is, and a set
+of attributes.  So that's why we did this:
+
+    var entry = {
+      dn: 'cn=' + record[0] + ', ou=users, o=myhost',
+      attributes: {
+        cn: record[0],
+        uid: record[2],
+        gid: record[3],
+        description: record[4],
+        homedirectory: record[5],
+        shell: record[6] || '',
+        objectclass: 'unixUser'
+      }
+    };
+
+Next, we let ldapjs do all the hard work of figuring out LDAP search filters
+for us by calling `req.filter.matches`.  If it matched, we return the whole
+record with `res.send`.  Note in this little example we're running O(n), so for
+something big and/or slow, you'd have to do some work to effectively write a
+query planner (or just not support it...); for some reference code, check out
+`node-ldapjs-riak`, which takes on the fairly difficult task of writing a 'full'
+LDAP server over riak.
+
+To demonstrate what ldapjs is doing for you, let's find all users who have a
+shell set to `/bin/false` and whose name starts with `p` (I'm doing this
+on Ubuntu).  Then, let's say we only care about their login name and primary
+group id.  We'd do this:
+
+    $ ldapsearch -H ldap://localhost:1389 -x -D cn=root -w secret -LLL -b "o=myhost" "(&(shell=/bin/false)(cn=p*))" cn gid
+    dn: cn=proxy, ou=users, o=myhost
+    cn: proxy
+    gid: 13
+
+    dn: cn=pulse, ou=users, o=myhost
+    cn: pulse
+    gid: 114
+
+## Add
+
+This is going to be a little bit ghetto, since what we're going to do is just
+use node's child process module to spawn calls to `adduser`.  Go ahead and add
+the following code in as another handler (you'll need a
+`var spawn = require('child_process').spawn;` at the top of your file):
+
+    server.add('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn)
+        return next(new ldap.ConstraintViolationError('cn required'));
+
+      if (req.users[req.dn.rdns[0].cn])
+        return next(new ldap.EntryAlreadyExistsError(req.dn.toString()));
+
+      var entry = req.toObject().attributes;
+
+      if (entry.objectclass.indexOf('unixUser') === -1)
+        return next(new ldap.ConstraintViolation('entry must be a unixUser'));
+
+      var opts = ['-m'];
+      if (entry.description) {
+        opts.push('-c');
+        opts.push(entry.description[0]);
+      }
+      if (entry.homedirectory) {
+        opts.push('-d');
+        opts.push(entry.homedirectory[0]);
+      }
+      if (entry.gid) {
+        opts.push('-g');
+        opts.push(entry.gid[0]);
+      }
+      if (entry.shell) {
+        opts.push('-s');
+        opts.push(entry.shell[0]);
+      }
+      if (entry.uid) {
+        opts.push('-u');
+        opts.push(entry.uid[0]);
+      }
+      opts.push(entry.cn[0]);
+      var useradd = spawn('useradd', opts);
+
+      var messages = [];
+
+      useradd.stdout.on('data', function(data) {
+        messages.push(data.toString());
+      });
+      useradd.stderr.on('data', function(data) {
+        messages.push(data.toString());
+      });
+
+      useradd.on('exit', function(code) {
+        if (code !== 0) {
+          var msg = '' + code;
+          if (messages.length)
+            msg += ': ' + messages.join();
+          return next(new ldap.OperationsError(msg));
+        }
+
+        res.end();
+        return next();
+      });
+    });
+
+Then, you'll need to be root to have this running, so start your server with
+`sudo` (or be root, whatever).  Now, go ahead and create a file called
+`user.ldif` with the following contents:
+
+    dn: cn=ldapjs, ou=users, o=myhost
+    objectClass: unixUser
+    cn: ldapjs
+    shell: /bin/bash
+    description: Created via ldapadd
+
+Now go ahead and invoke like:
+
+    $ ldapadd -H ldap://localhost:1389 -x -D cn=root -w secret -f ./user.ldif
+    adding new entry "cn=ldapjs, ou=users, o=myhost"
+
+Let's confirm he got added with an ldapsearch:
+
+    $ ldapsearch -H ldap://localhost:1389 -LLL -x -D cn=root -w secret -b "ou=users, o=myhost" cn=ldapjs
+    dn: cn=ldapjs, ou=users, o=myhost
+    cn: ldapjs
+    uid: 1001
+    gid: 1001
+    description: Created via ldapadd
+    homedirectory: /home/ldapjs
+    shell: /bin/bash
+    objectclass: unixUser
+
+As before, here's a breakdown of the code:
+
+    server.add('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn)
+        return next(new ldap.ConstraintViolationError('cn required'));
+
+      if (req.users[req.dn.rdns[0].cn])
+        return next(new ldap.EntryAlreadyExistsError(req.dn.toString()));
+
+      var entry = req.toObject().attributes;
+
+      if (entry.objectclass.indexOf('unixUser') === -1)
+        return next(new ldap.ConstraintViolation('entry must be a unixUser'));
+
+Here's a few new things:
+
+* We mounted this handler at `ou=users, o=myhost`. Why? What if we want to
+extend this little project with groups?  We probably want those under a
+different part of the tree.
+* We did some really minimal schema enforcement by:
+    + Checking that the leaf RDN (relative distinguished name) was a _cn_
+attribute.
+    + We then did `req.toObject()`. As mentioned before, each of the req/res
+objects have special APIs that make sense for that operation.  Without getting
+into the details, the LDAP add operation on the wire doesn't look like a JS
+object, and we want to support both the LDAP nerd that wants to see what
+got sent, and the "easy" case.  So use `.toObject()`.  Note we also filtered
+out to the `attributes` portion of the object since that's all we're really
+looking at.
+    + Lastly, we did a super minimal check to see if the entry was of type
+`unixUser`. Frankly for this case, it's kind of useless, but it does illustrate
+one point: attribute names are case-insensitive, so ldapjs converts them all to
+lower case (note the client sent _objectClass_ over the wire).
+
+After that, we really just delegated off to the _useradd_ command.  AFAIK there
+is not a node.js module that wraps up `getpwent` and friends, otherwise we'd use
+that.
+
+Now, what's missing?  Oh, right, we need to let you set a password.  Well, let's
+support that via the _modify_ command.
+
+## Modify
+
+So unlike HTTP "partial" document updates are fully specified as part of the
+RFC, so appending, removing, or replacing a single attribute is pretty natural.
+Go ahead and add the following code into your source file:
+
+    server.modify('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn || !req.users[req.dn.rdns[0].cn])
+        return next(new ldap.NoSuchObjectError(req.dn.toString()));
+
+      if (!req.changes.length)
+        return next(new ldap.ProtocolError('changes required'));
+
+      var user = req.users[req.dn.rdns[0].cn].attributes;
+      var mod;
+
+      for (var i = 0; i < req.changes.length; i++) {
+        mod = req.changes[i].modification;
+        switch (req.changes[i].operation) {
+        case 'replace':
+          if (mod.type !== 'userpassword' || !mod.vals || !mod.vals.length)
+            return next(new ldap.UnwillingToPerformError('only password updates ' +
+                                                         'allowed'));
+          break;
+        case 'add':
+        case 'delete':
+          return next(new ldap.UnwillingToPerformError('only replace allowed'));
+        }
+      }
+
+      var passwd = spawn('chpasswd', ['-c', 'MD5']);
+      passwd.stdin.end(user.cn + ':' + mod.vals[0], 'utf8');
+
+      passwd.on('exit', function(code) {
+        if (code !== 0)
+          return next(new ldap.OperationsError(code));
+
+        res.end();
+        return next();
+      });
+    });
+
+
+Basically, we made sure the remote client was targeting an entry that exists,
+ensuring that they were asking to "replace" the `userPassword` attribute (which
+is the 'standard' LDAP attribute for passwords, for whatever that's worth; if
+you think it's easier to use 'password', knock yourself out), and then just
+delegating to the `chpasswd` command (which lets you change a user's password
+over stdin).  Next, go ahead and create a `passwd.ldif` file:
+
+    dn: cn=ldapjs, ou=users, o=myhost
+    changetype: modify
+    replace: userPassword
+    userPassword: secret
+    -
+
+And then run the OpenLDAP CLI like:
+
+    $ ldapmodify -H ldap://localhost:1389 -x -D cn=root -w secret -f ./passwd.ldif
+
+You should now be able to login to your box as the ldapjs user. Ok, let's get
+the last "mainline" piece of work out of the way, and delte the user.
+
+## Delete
+
+Delete is pretty straightforward. The client gives you a dn to delete, and you
+delete it :).  Go ahead and add the following code into your server:
+
+    server.del('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn || !req.users[req.dn.rdns[0].cn])
+        return next(new ldap.NoSuchObjectError(req.dn.toString()));
+
+      var userdel = spawn('userdel', ['-f', req.dn.rdns[0].cn]);
+
+      var messages = [];
+      userdel.stdout.on('data', function(data) {
+        messages.push(data.toString());
+      });
+      userdel.stderr.on('data', function(data) {
+        messages.push(data.toString());
+      });
+
+      userdel.on('exit', function(code) {
+        if (code !== 0) {
+          var msg = '' + code;
+          if (messages.length)
+            msg += ': ' + messages.join();
+          return next(new ldap.OperationsError(msg));
+        }
+
+        res.end();
+        return next();
+      });
+    });
+
+And then run the following command:
+
+    $ ldapdelete -H ldap://localhost:1389 -x -D cn=root -w secret "cn=ldapjs, ou=users, o=myhost"
+
+This should be pretty much self-explanatory by now :)
+
+# The code in its entirety
+
+If you got tired of following along (this would be the tl;dr section), here's
+the complete implementation for what we went through above:
+
+    var fs = require('fs');
+    var ldap = require('ldapjs');
+    var spawn = require('child_process').spawn;
+
+
+
+    ///--- Shared handlers
+
+    function authorize(req, res, next) {
+      if (!req.connection.ldap.bindDN.equals('cn=root'))
+        return next(new ldap.InsufficientAccessRightsError());
+
+      return next();
+    }
+
+
+    function loadPasswdFile(req, res, next) {
+      fs.readFile('/etc/passwd', 'utf8', function(err, data) {
+        if (err)
+          return next(new ldap.OperationsError(err.message));
+
+        req.users = {};
+
+        var lines = data.split('\n');
+        for (var i = 0; i < lines.length; i++) {
+          if (!lines[i] || /^#/.test(lines[i]))
+            continue;
+
+          var record = lines[i].split(':');
+          if (!record || !record.length)
+            continue;
+
+          req.users[record[0]] = {
+            dn: 'cn=' + record[0] + ', ou=users, o=myhost',
+            attributes: {
+              cn: record[0],
+              uid: record[2],
+              gid: record[3],
+              description: record[4],
+              homedirectory: record[5],
+              shell: record[6] || '',
+              objectclass: 'unixUser'
+            }
+          };
+        }
+
+        return next();
+      });
+    }
+
+
+    var pre = [authorize, loadPasswdFile];
+
+
+
+    ///--- Mainline
+
+    var server = ldap.createServer();
+
+    server.bind('cn=root', function(req, res, next) {
+      if (req.dn.toString() !== 'cn=root' || req.credentials !== 'secret')
+        return next(new ldap.InvalidCredentialsError());
+
+      res.end();
+      return next();
+    });
+
+
+    server.add('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn)
+        return next(new ldap.ConstraintViolationError('cn required'));
+
+      if (req.users[req.dn.rdns[0].cn])
+        return next(new ldap.EntryAlreadyExistsError(req.dn.toString()));
+
+      var entry = req.toObject().attributes;
+
+      if (entry.objectclass.indexOf('unixUser') === -1)
+        return next(new ldap.ConstraintViolation('entry must be a unixUser'));
+
+      var opts = ['-m'];
+      if (entry.description) {
+        opts.push('-c');
+        opts.push(entry.description[0]);
+      }
+      if (entry.homedirectory) {
+        opts.push('-d');
+        opts.push(entry.homedirectory[0]);
+      }
+      if (entry.gid) {
+        opts.push('-g');
+        opts.push(entry.gid[0]);
+      }
+      if (entry.shell) {
+        opts.push('-s');
+        opts.push(entry.shell[0]);
+      }
+      if (entry.uid) {
+        opts.push('-u');
+        opts.push(entry.uid[0]);
+      }
+      opts.push(entry.cn[0]);
+      var useradd = spawn('useradd', opts);
+
+      var messages = [];
+
+      useradd.stdout.on('data', function(data) {
+        messages.push(data.toString());
+      });
+      useradd.stderr.on('data', function(data) {
+        messages.push(data.toString());
+      });
+
+      useradd.on('exit', function(code) {
+        if (code !== 0) {
+          var msg = '' + code;
+          if (messages.length)
+            msg += ': ' + messages.join();
+          return next(new ldap.OperationsError(msg));
+        }
+
+        res.end();
+        return next();
+      });
+    });
+
+
+    server.modify('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn || !req.users[req.dn.rdns[0].cn])
+        return next(new ldap.NoSuchObjectError(req.dn.toString()));
+
+      if (!req.changes.length)
+        return next(new ldap.ProtocolError('changes required'));
+
+      var user = req.users[req.dn.rdns[0].cn].attributes;
+      var mod;
+
+      for (var i = 0; i < req.changes.length; i++) {
+        mod = req.changes[i].modification;
+        switch (req.changes[i].operation) {
+        case 'replace':
+          if (mod.type !== 'userpassword' || !mod.vals || !mod.vals.length)
+            return next(new ldap.UnwillingToPerformError('only password updates ' +
+                                                         'allowed'));
+          break;
+        case 'add':
+        case 'delete':
+          return next(new ldap.UnwillingToPerformError('only replace allowed'));
+        }
+      }
+
+      var passwd = spawn('chpasswd', ['-c', 'MD5']);
+      passwd.stdin.end(user.cn + ':' + mod.vals[0], 'utf8');
+
+      passwd.on('exit', function(code) {
+        if (code !== 0)
+          return next(new ldap.OperationsError('' + code));
+
+        res.end();
+        return next();
+      });
+    });
+
+
+    server.del('ou=users, o=myhost', pre, function(req, res, next) {
+      if (!req.dn.rdns[0].cn || !req.users[req.dn.rdns[0].cn])
+        return next(new ldap.NoSuchObjectError(req.dn.toString()));
+
+      var userdel = spawn('userdel', ['-f', req.dn.rdns[0].cn]);
+
+      var messages = [];
+      userdel.stdout.on('data', function(data) {
+        messages.push(data.toString());
+      });
+      userdel.stderr.on('data', function(data) {
+        messages.push(data.toString());
+      });
+
+      userdel.on('exit', function(code) {
+        if (code !== 0) {
+          var msg = '' + code;
+          if (messages.length)
+            msg += ': ' + messages.join();
+          return next(new ldap.OperationsError(msg));
+        }
+
+        res.end();
+        return next();
+      });
+    });
+
+
+    server.search('o=myhost', pre, function(req, res, next) {
+      Object.keys(req.users).forEach(function(k) {
+        if (req.filter.matches(req.users[k].attributes))
+          res.send(req.users[k]);
+      });
+
+      res.end();
+      return next();
+    });
+
+
+
+    // LDAP "standard" listens on 389, but whatever.
+    server.listen(1389, '127.0.0.1', function() {
+      console.log('/etc/passwd LDAP server up at: %s', server.url);
+    });
+
+
+# Pretty REST API docs authored in Markdown
+
+1. Write a Markdown file that describes your REST API -- with some light
+   conventions (see "Conventions" below) to structure to your doc file. E.g.:
+
+        $ cat api.restdown    # or api.md or index.markdown whatever
+        ---
+        title: My Awesome REST API
+        ---
+
+        # My Awesome REST API
+
+        Some introduction...
+
+        # Wuzzers
+
+        ## GET /wuzzers
+
+        ...
+
+        ## POST /wuzzers
+
+        ...
+
+2. Run it through `restdown` and out pops (a) "api.html", fairly light semantic
+   HTML5 for your API; and (b) "api.json", a JSON representation of your API.
+
+        $ restdown -m STATICDIR api.restdown
+
+   where "STATICDIR" is a path to your static content served dir.
+
+You should now have pretty decent looking REST API docs. Read on for
+details.
+
+
+# Installation
+
+    cd /opt             # or whereever you like install apps
+    git clone https://github.com/trentm/restdown.git
+    cd restdown
+    # Optionally checkout a particular release tag. E.g.:
+    #   LATEST_RELEASE_TAG=`git tag -l | grep '[0-9]\+\.[0-9]\+\.[0-9]\+' | tail -1`
+    #   git checkout $LATEST_RELEASE_TAG
+    export PATH=`pwd`/bin:$PATH
+
+Now you should be able to run restdown:
+
+    restdown --version
+    restdown --help
+
+
+
+# Conventions
+
+Expected conventions to follow in your restdown document to get nice REST
+API docs.
+
+- The first `h1` is the API title, and its body is a preface to the API.
+  This first section is exluded from the table of contents (TOC).
+
+- Subsequent `h1`'s are API section titles. (If your whole API is one logical
+  grouping then you might need that second `h1` anyway. Please [log an
+  issue](https://github.com/trentm/restdown/issues) if that is the case
+  for you so I can gauge popularity.)
+
+- `h2`'s are API methods. The text of the h2 should be one of the following
+  forms:
+
+        1. "NAME (VERB PATH)" if you name your api methods other than just
+           with the HTTP verb and path. E.g. "ListMachines (GET /:login/machines)".
+
+        2. "VERB PATH", E.g. "DELETE /widgets/:uuid"
+
+        3. "NAME", E.g. "flickr.photos.recentlyUpdated".
+
+  Note that while the more structured names aren't required, they will help
+  get good docs (including: HTML anchors, table of contents entries,
+  JSON API summary content, etc.).
+
+- `h3`'s are just normal subsection headers within endpoints, if needed for
+  longer documentation for a particular endpoint.
+
+- `h4`'s are typically for showing example request and response output for
+  an endpoint. A `pre`-block inside an `h4` will get a CSS class.
+
+
+
+# Brands
+
+A "brand" is a directory with all of the styling (CSS, JS, images) for a
+restdown-created .html file. The default brand is called "ohthejoy". It was
+originally derived from the styling of <https://api.no.de>, though has
+diverged quite a bit by now. I (or you?) should add more.
+
+The idea is that you can start with the brand here and tweak it to create your
+own style. You can use your own brand files (for your own HTML/CSS/image
+tweaks). Start by copying one of the brands in the restdown/brands directory
+and then use the "-b|--brand" option to restdown. However, if you are happy
+with the existing brand, then just keep using that. :)
+
+
+
+# Document Metadata
+
+A restdown document should start with a metadata block like this:
+
+    ---
+    key: value
+    ...
+    ---
+
+At the least, you should provide the "title". Supported metadata keys
+depend on the brand (the metadata is interpolated into the 'header.html.in'
+and 'footer.html.in' files), but typical keys are:
+
+- **title**: The text for the HTML `<title>`.
+
+- **mediaroot**: The base URL from which to load the brand media (images, css).
+  If not provided, the default is "media" (i.e. a relative path).
+
+- **apisections**: By default *all* h1 sections (except the leading preface section)
+  are presumed to define API methods, i.e. all h2's in them are methods. If
+  this isn't the case for you (perhaps you have some expository sections),
+  then you can explicitly list the sections that include API methods. This
+  is a comma-separated list of h1 section titles. E.g.:
+
+        apisections: Accounts, Data Centers, Widgets
+
+- **markdown2extras**: A list of "extras" to be used for processing the
+  markdown in the document. Valid values are
+  [the Extra supported by python-markdown2](https://github.com/trentm/python-markdown2/wiki/Extras)
+  (the Markdown processor used by restdown). Note that the "toc",
+  "header-ids" and "markdown-in-html" extras are always turned on. E.g.:
+
+        markdown2extras: wiki-tables, cuddled-lists
+
+- **logo-color** (brands: spartan): A CSS color string (e.g. '#ff5533',
+  'blue') to be used for the `#logo` element.
+
+- **logo-font-family** (brands: spartan): A CSS `font-family` list of font
+  faces for the `#logo` element. This also supports a font from
+  [Google Web Fonts](http://www.google.com/webfonts) with a "google:"
+  prefix. E.g.:
+
+        logo-font-family: google:Aldrich, Verdana, sans-serif
+
+- **header-font-family** (brands: spartan): A CSS `font-family` list of font
+  faces for the `h1` - `h6` elements. Supports "google:" prefix as above.
+
+Metadata can also be provided on the command-line with the `-d|--define` option. For example:
+
+    restdown --define mediaroot=/ index.restdown
+
+
+# JSON API Summary
+
+A by-product of building the HTML file from the input Restdown is a JSON
+API summary, that looks something like this:
+
+    {
+      "endpoints": [
+        "GET    /wuzzers",
+        "POST   /wuzzers",
+        "DELETE /wuzzers",
+        ...
+      ]
+    }
+
+This might or might not be useful to you. Really it isn't *that* useful
+but can make for a nice endpoints summary for someone `curl`'ing your API.
+
+If you swing with the [expressjs](http://expressjs.com) crowd, here is how
+you can wire this into your project:
+
+    // Show JSON API summary by default, but show the API docs if accepts
+    // HTML (e.g. in a browser).
+    app.get('/', function(req, res) {
+      var accept = req.header("Accept");
+      if (accept && (accept.search("application/xhtml+xml") != -1
+                     || accept.search("text/html") != -1)) {
+        res.sendfile(__dirname + "/docs/api.html");
+      } else {
+        res.header("Content-Type", "application/json");
+        res.sendfile(__dirname + "/docs/api.json");
+      }
+    });
+

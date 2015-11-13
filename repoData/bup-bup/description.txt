@@ -1,0 +1,3205 @@
+% bup-bloom(1) Bup %BUP_VERSION%
+% Brandon Low <lostlogic@lostlogicx.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-bloom - generates, regenerates, updates bloom filters
+
+# SYNOPSIS
+
+bup bloom [-d dir] [-o outfile] [-k hashes] [-c idxfile] [-f] [\--ruin]
+
+# DESCRIPTION
+
+`bup bloom` builds a bloom filter file for a bup
+repository. If one already exists, it checks the filter and
+updates or regenerates it as needed.
+
+# OPTIONS
+
+\--ruin
+:   destroy bloom filters by setting the whole bitmask to
+    zeros.  you really want to know what you are doing if
+    run this and you want to delete the resulting bloom
+    when you are done with it.
+
+-f, \--force
+:   don't update the existing bloom file; generate a new
+    one from scratch.
+
+-d, \--dir=*directory*
+:   the directory, containing `.idx` files, to process.
+    Defaults to $BUP_DIR/objects/pack
+
+-o, \--outfile=*outfile*
+:   the file to write the bloom filter to.  defaults to
+    $dir/bup.bloom
+
+-k, \--hashes=*hashes*
+:   number of hash functions to use only 4 and 5 are valid.
+    defaults to 5 for repositories < 2 TiB, or 4 otherwise.
+    See comments in git.py for more on this value.
+
+-c, \--check=*idxfile*
+:   checks the bloom file (counterintuitively outfile)
+    against the specified `.idx` file, first checks that the
+    bloom filter is claiming to contain the `.idx`, then
+    checks that it does actually contain all of the objects
+    in the `.idx`.  Does not write anything and ignores the
+    `-k` option.
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-cat-file(1) Bup %BUP_VERSION%
+% Rob Browning <rlb@defaultvalue.org>
+% %BUP_DATE%
+
+# NAME
+
+bup-cat-file - extract archive content (low-level)
+
+# SYNOPSIS
+
+bup cat-file [--meta|--bupm] <*path*>
+
+# DESCRIPTION
+
+`bup cat-file` extracts content associated with *path* from the
+archive and dumps it to standard output.  If nothing special is
+requested, the actual data contained by *path* (which must be a
+regular file) will be dumped.
+
+# OPTIONS
+
+\--meta
+:   retrieve the metadata entry associated with *path*.  Note that
+    currently this does not return the raw bytes for the entry
+    recorded in the relevant .bupm in the archive, but rather a
+    decoded and then re-encoded version.  When that matters, it should
+    be possible (though awkward) to use `--bupm` on the parent
+    directory and then find the relevant entry in the output.
+
+\--bupm
+:   retrieve the .bupm file associated with *path*, which must be a
+    directory.
+
+# EXAMPLES
+
+    # Retrieve the content of somefile.
+    $ bup cat-file /foo/latest/somefile > somefile-content
+
+    # Examine the metadata associated with something.
+    $ bup cat-file --meta /foo/latest/something | bup meta -tvvf -
+
+    # Examine the metadata for somedir, including the items it contains.
+    $ bup cat-file --bupm /foo/latest/somedir | bup meta -tvvf -
+
+# SEE ALSO
+
+`bup-join`(1), `bup-meta`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-daemon(1) Bup %BUP_VERSION%
+% Brandon Low <lostlogic@lostlogicx.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-daemon - listens for connections and runs `bup server`
+
+# SYNOPSIS
+
+bup daemon [-l address] [-p port]
+
+# DESCRIPTION
+
+`bup daemon` is a simple bup server which listens on a
+socket and forks connections to `bup mux server` children.
+
+# OPTIONS
+
+-l, \--listen=*address*
+:   the address or hostname to listen on
+
+-p, \--port=*port*
+:   the port to listen on
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-damage(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-damage - randomly destroy blocks of a file
+
+# SYNOPSIS
+
+bup damage [-n count] [-s maxsize] [\--percent pct] [-S seed]
+[\--equal] \<filenames...\>
+
+# DESCRIPTION
+
+Use `bup damage` to deliberately destroy blocks in a
+`.pack` or `.idx` file (from `.bup/objects/pack`) to test
+the recovery features of `bup-fsck`(1) or other programs.
+
+*THIS PROGRAM IS EXTREMELY DANGEROUS AND WILL DESTROY YOUR
+DATA*
+
+`bup damage` is primarily useful for automated or manual tests
+of data recovery tools, to reassure yourself that the tools
+actually work.
+
+# OPTIONS
+
+-n, \--num=*numblocks*
+:   the number of separate blocks to damage in each file
+    (default 10).
+    Note that it's possible for more than one damaged
+    segment to fall in the same `bup-fsck`(1) recovery block,
+    so you might not damage as many recovery blocks as you
+    expect.  If this is a problem, use `--equal`.
+
+-s, \--size=*maxblocksize*
+:   the maximum size, in bytes, of each damaged block
+    (default 1 unless `--percent` is specified).  Note that
+    because of the way `bup-fsck`(1) works, a multi-byte
+    block could fall on the boundary between two recovery
+    blocks, and thus damaging two separate recovery blocks. 
+    In small files, it's also possible for a damaged block
+    to be larger than a recovery block.  If these issues
+    might be a problem, you should use the default damage
+    size of one byte.
+    
+\--percent=*maxblockpercent*
+:   the maximum size, in percent of the original file, of
+    each damaged block.  If both `--size` and `--percent`
+    are given, the maximum block size is the minimum of the
+    two restrictions.  You can use this to ensure that a
+    given block will never damage more than one or two
+    `git-fsck`(1) recovery blocks.
+    
+-S, \--seed=*randomseed*
+:   seed the random number generator with the given value. 
+    If you use this option, your tests will be repeatable,
+    since the damaged block offsets, sizes, and contents
+    will be the same every time.  By default, the random
+    numbers are different every time (so you can run tests
+    in a loop and repeatedly test with different
+    damage each time).
+    
+\--equal
+:   instead of choosing random offsets for each damaged
+    block, space the blocks equally throughout the file,
+    starting at offset 0.  If you also choose a correct
+    maximum block size, this can guarantee that any given
+    damage block never damages more than one `git-fsck`(1)
+    recovery block.  (This is also guaranteed if you use
+    `-s 1`.)
+    
+# EXAMPLES
+    # make a backup in case things go horribly wrong
+    cp -a ~/.bup/objects/pack ~/bup-packs.bak
+    
+    # generate recovery blocks for all packs
+    bup fsck -g
+    
+    # deliberately damage the packs
+    bup damage -n 10 -s 1 -S 0 ~/.bup/objects/pack/*.{pack,idx}
+    
+    # recover from the damage
+    bup fsck -r
+
+# SEE ALSO
+
+`bup-fsck`(1), `par2`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-drecurse(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-drecurse - recursively list files in your filesystem
+
+# SYNOPSIS
+
+bup drecurse [-x] [-q] [\--exclude *path*]
+\ [\--exclude-from *filename*] [\--exclude-rx *pattern*]
+\ [\--exclude-rx-from *filename*] [\--profile] \<path\>
+
+# DESCRIPTION
+
+`bup drecurse` traverses files in the filesystem in a way
+similar to `find`(1).  In most cases, you should use
+`find`(1) instead.
+
+This program is useful mainly for testing the file
+traversal algorithm used in `bup-index`(1).
+
+Note that filenames are returned in reverse alphabetical
+order, as in `bup-index`(1).  This is important because you
+can't generate the hash of a parent directory until you
+have generated the hashes of all its children.  When
+listing files in reverse order, the parent directory will
+come after its children, making this easy.
+
+# OPTIONS
+
+-x, \--xdev, \--one-file-system
+:   don't cross filesystem boundaries -- though as with tar and rsync,
+    the mount points themselves will still be reported.
+
+-q, \--quiet
+:   don't print filenames as they are encountered.  Useful
+    when testing performance of the traversal algorithms.
+
+\--exclude=*path*
+:   exclude *path* from the backup (may be repeated).
+
+\--exclude-from=*filename*
+:   read --exclude paths from *filename*, one path per-line (may be
+    repeated).
+    
+\--exclude-rx=*pattern*
+:   exclude any path matching *pattern*.  See `bup-index`(1) for
+    details, but note that unlike index, drecurse will produce
+    relative paths if the drecurse target is a relative path. (may be
+    repeated).
+
+\--exclude-rx-from=*filename*
+:   read --exclude-rx patterns from *filename*, one pattern per-line
+    (may be repeated).
+
+\--profile
+:   print profiling information upon completion.  Useful
+    when testing performance of the traversal algorithms.
+    
+# EXAMPLES
+    bup drecurse -x /
+
+# SEE ALSO
+
+`bup-index`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-fsck(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-fsck - verify or repair a bup repository
+
+# SYNOPSIS
+
+bup fsck [-r] [-g] [-v] [\--quick] [-j *jobs*] [\--par2-ok]
+[\--disable-par2] [filenames...]
+
+# DESCRIPTION
+
+`bup fsck` is a tool for validating bup repositories in the
+same way that `git fsck` validates git repositories.
+
+It can also generate and/or use "recovery blocks" using the
+`par2`(1) tool (if you have it installed).  This allows you
+to recover from damaged blocks covering up to 5% of your
+`.pack` files.
+
+In a normal backup system, damaged blocks are less
+important, because there tends to be enough data duplicated
+between backup sets that a single damaged backup set is
+non-critical.  In a deduplicating backup system like bup,
+however, no block is ever stored more than once, even if it
+is used in every single backup.  If that block were to be
+unrecoverable, *all* your backup sets would be
+damaged at once.  Thus, it's important to be able to verify
+the integrity of your backups and recover from disk errors
+if they occur.
+
+*WARNING*: bup fsck's recovery features are not available
+unless you have the free `par2`(1) package installed on
+your bup server.
+
+*WARNING*: bup fsck obviously cannot recover from a
+complete disk failure.  If your backups are important, you
+need to carefully consider redundancy (such as using RAID
+for multi-disk redundancy, or making off-site backups for
+site redundancy).
+
+# OPTIONS
+
+-r, \--repair
+:   attempt to repair any damaged packs using
+    existing recovery blocks.  (Requires `par2`(1).)
+    
+-g, \--generate
+:   generate recovery blocks for any packs that don't
+    already have them.  (Requires `par2`(1).)
+
+-v, \--verbose
+:   increase verbosity (can be used more than once).
+
+\--quick
+:   don't run a full `git verify-pack` on each pack file;
+    instead just check the final checksum.  This can cause
+    a significant speedup with no obvious decrease in
+    reliability.  However, you may want to avoid this
+    option if you're paranoid.  Has no effect on packs that
+    already have recovery information.
+    
+-j, \--jobs=*numjobs*
+:   maximum number of pack verifications to run at a time. 
+    The optimal value for this option depends how fast your
+    CPU can verify packs vs. your disk throughput.  If you
+    run too many jobs at once, your disk will get saturated
+    by seeking back and forth between files and performance
+    will actually decrease, even if *numjobs* is less than
+    the number of CPU cores on your system.  You can
+    experiment with this option to find the optimal value.
+    
+\--par2-ok
+:   immediately return 0 if `par2`(1) is installed and
+    working, or 1 otherwise.  Do not actually check
+    anything.
+    
+\--disable-par2
+:   pretend that `par2`(1) is not installed, and ignore all
+    recovery blocks.
+
+
+# EXAMPLES
+    # generate recovery blocks for all packs that don't
+    # have them
+    bup fsck -g
+    
+    # generate recovery blocks for a particular pack
+    bup fsck -g ~/.bup/objects/pack/153a1420cb1c8*.pack
+    
+    # check all packs for correctness (can be very slow!)
+    bup fsck
+    
+    # check all packs for correctness and recover any
+    # damaged ones
+    bup fsck -r
+    
+    # check a particular pack for correctness and recover
+    # it if damaged
+    bup fsck -r ~/.bup/objects/pack/153a1420cb1c8*.pack
+    
+    # check if recovery blocks are available on this system
+    if bup fsck --par2-ok; then
+    	echo "par2 is ok"
+    fi
+
+# SEE ALSO
+
+`bup-damage`(1), `fsck`(1), `git-fsck`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-ftp(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-ftp - ftp-like client for navigating bup repositories
+
+# SYNOPSIS
+
+bup ftp
+
+# DESCRIPTION
+
+`bup ftp` is a command-line tool for navigating bup
+repositories.  It has commands similar to the Unix `ftp`(1)
+command.  The file hierarchy is the same as that shown by
+`bup-fuse`(1) and `bup-ls`(1).
+
+Note: if your system has the python-readline library
+installed, you can use the \<tab\> key to complete filenames
+while navigating your backup data.  This will save you a
+lot of typing.
+
+
+# COMMANDS
+
+The following commands are available inside `bup ftp`:
+
+ls [-s] [-a] [*path*]
+:   print the contents of a directory. If no path argument
+    is given, the current directory's contents are listed.
+    If -a is given, also include hidden files (files which
+    start with a `.` character). If -s is given, each file
+    is displayed with its hash from the bup archive to its
+    left.
+
+cd *dirname*
+:   change to a different working directory
+
+pwd
+:   print the path of the current working directory
+
+cat *filenames...*
+:   print the contents of one or more files to stdout
+
+get *filename* *localname*
+:   download the contents of *filename* and save it to disk
+    as *localname*.  If *localname* is omitted, uses
+    *filename* as the local name.
+    
+mget *filenames...*
+:   download the contents of the given *filenames* and
+    stores them to disk under the same names.  The
+    filenames may contain Unix filename globs (`*`, `?`,
+    etc.)
+    
+help
+:   print a list of available commands
+
+quit
+:   exit the `bup ftp` client
+
+
+# EXAMPLES
+    $ bup ftp
+    bup> ls
+    mybackup/    yourbackup/
+
+    bup> cd mybackup/
+    bup> ls
+    2010-02-05-185507@   2010-02-05-185508@    latest@
+
+    bup> cd latest/
+    bup> ls
+      (...etc...)
+
+    bup> get myfile
+    Saving 'myfile'
+    bup> quit
+
+
+# SEE ALSO
+
+`bup-fuse`(1), `bup-ls`(1), `bup-save`(1), `bup-restore`(1)
+
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-fuse(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-fuse - mount a bup repository as a filesystem
+
+# SYNOPSIS
+
+bup fuse [-d] [-f] [-o] \<mountpoint\>
+
+# DESCRIPTION
+
+`bup fuse` opens a bup repository and exports it as a
+`fuse`(7) userspace filesystem.
+
+This feature is only available on systems (such as Linux)
+which support FUSE.
+
+**WARNING**: bup fuse is still experimental and does not
+enforce any file permissions!  All files will be readable
+by all users.
+
+When you're done accessing the mounted fuse filesystem, you
+should unmount it with `umount`(8).
+
+# OPTIONS
+
+-d, \--debug
+:   run in the foreground and print FUSE debug information
+    for each request.
+
+-f, \--foreground
+:   run in the foreground and exit only when the filesystem
+    is unmounted.
+
+-o, \--allow-other
+:   permit other users to access the filesystem. Necessary for
+    exporting the filesystem via Samba, for example.
+
+# EXAMPLES
+    rm -rf /tmp/buptest
+    mkdir /tmp/buptest
+    sudo bup fuse -d /tmp/buptest
+    ls /tmp/buptest/*/latest
+    ...
+    umount /tmp/buptest
+
+# SEE ALSO
+
+`fuse`(7), `fusermount`(1), `bup-ls`(1), `bup-ftp`(1),
+`bup-restore`(1), `bup-web`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-help(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-help - open the documentation for a given bup command
+
+# SYNOPSIS
+
+bup help \<command\>
+
+# DESCRIPTION
+
+`bup help <command>` opens the documentation for the given command.
+This is currently equivalent to typing `man bup-<command>`.
+
+
+# EXAMPLES
+
+    $ bup help help
+    (Imagine that this man page was pasted below,
+     recursively.  Since that would cause an endless loop
+     we include this silly remark instead.  Chicken.)
+    
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-import-rdiff-backup(1) Bup %BUP_VERSION%
+% Zoran Zaric <zz@zoranzaric.de>
+% %BUP_DATE%
+
+# NAME
+
+bup-import-rdiff-backup - import a rdiff-backup archive
+
+# SYNOPSIS
+
+bup import-rdiff-backup [-n] <path to rdiff-backup root> <backup name>
+
+# DESCRIPTION
+
+`bup import-rdiff-backup` imports a rdiff-backup archive. The
+timestamps for the backups are preserved and the path to
+the rdiff-backup archive is stripped from the paths.
+
+# OPTIONS
+
+-n,--dry-run
+:   don't do anything just print out what would be done
+
+# EXAMPLES
+
+    $ bup import-rdiff-backup /.snapshots legacy-rdiff-backup
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-import-rsnapshot(1) Bup %BUP_VERSION%
+% Zoran Zaric <zz@zoranzaric.de>
+% %BUP_DATE%
+
+# NAME
+
+bup-import-rsnapshot - import a rsnapshot archive
+
+# SYNOPSIS
+
+bup import-rsnapshot [-n] \<path to snapshot_root\> [\<backuptarget\>]
+
+# SYNOPSIS
+
+`bup import-rsnapshot` imports an rsnapshot archive. The
+timestamps for the backups are preserved and the path to
+the rsnapshot archive is stripped from the paths.
+
+`bup import-rsnapshot` either imports the whole archive
+or imports all backups only for a given backuptarget.
+
+# OPTIONS
+
+-n, \--dry-run
+:   don't do anything just print out what would be done
+
+# EXAMPLES
+
+    $ bup import-rsnapshot /.snapshots
+
+    $ bup import-rsnapshot /.snapshots host1
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-index(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-index - print and/or update the bup filesystem index
+
+# SYNOPSIS
+
+bup index \<-p|-m|-s|-u\> [-H] [-l] [-x] [\--fake-valid] [\--no-check-device]
+[\--fake-invalid] [\--check] [\--clear] [-f *indexfile*] [\--exclude *path*]
+[\--exclude-from *filename*] [\--exclude-rx *pattern*]
+[\--exclude-rx-from *filename*] [-v] \<filenames...\>
+
+# DESCRIPTION
+
+`bup index` prints and/or updates the bup filesystem index,
+which is a cache of the filenames, attributes, and sha-1
+hashes of each file and directory in the filesystem.  The
+bup index is similar in function to the `git`(1) index, and
+can be found in `$BUP_DIR/bupindex`.
+
+Creating a backup in bup consists of two steps: updating
+the index with `bup index`, then actually backing up the
+files (or a subset of the files) with `bup save`.  The
+separation exists for these reasons:
+
+1. There is more than one way to generate a list of files
+that need to be backed up.  For example, you might want to
+use `inotify`(7) or `dnotify`(7).
+
+2. Even if you back up files to multiple destinations (for
+added redundancy), the file names, attributes, and hashes
+will be the same each time.  Thus, you can save the trouble
+of repeatedly re-generating the list of files for each
+backup set.
+
+3. You may want to use the data tracked by bup index for
+other purposes (such as speeding up other programs that
+need the same information).
+
+# NOTES
+
+bup makes accommodations for the expected "worst-case" filesystem
+timestamp resolution -- currently one second; examples include VFAT,
+ext2, ext3, small ext4, etc.  Since bup cannot know the filesystem
+timestamp resolution, and could be traversing multiple filesystems
+during any given run, it always assumes that the resolution may be no
+better than one second.
+
+As a practical matter, this means that index updates are a bit
+imprecise, and so `bup save` may occasionally record filesystem
+changes that you didn't expect.  That's because, during an index
+update, if bup encounters a path whose actual timestamps are more
+recent than one second before the update started, bup will set the
+index timestamps for that path (mtime and ctime) to exactly one second
+before the run, -- effectively capping those values.
+
+This ensures that no subsequent changes to those paths can result in
+timestamps that are identical to those in the index.  If that were
+possible, bup could overlook the modifications.
+
+You can see the effect of this behavior in this example (assume that
+less than one second elapses between the initial file creation and
+first index run):
+
+    $ touch src/1 src/2
+    # A "sleep 1" here would avoid the unexpected save.
+    $ bup index src
+    $ bup save -n src src  # Saves 1 and 2.
+    $ date > src/1
+    $ bup index src
+    $ date > src/2         # Not indexed.
+    $ bup save -n src src  # But src/2 is saved anyway.
+
+Strictly speaking, bup should not notice the change to src/2, but it
+does, due to the accommodations described above.
+
+# MODES
+
+-u, \--update
+:   recursively update the index for the given filenames and
+    their descendants.  One or more filenames must be
+    given.  If no mode option is given, this is the
+    default.
+
+-p, \--print
+:   print the contents of the index.  If filenames are
+    given, shows the given entries and their descendants. 
+    If no filenames are given, shows the entries starting
+    at the current working directory (.).
+    
+-m, \--modified
+:   prints only files which are marked as modified (ie.
+    changed since the most recent backup) in the index. 
+    Implies `-p`.
+
+-s, \--status
+:   prepend a status code (A, M, D, or space) before each
+    filename.  Implies `-p`.  The codes mean, respectively,
+    that a file is marked in the index as added, modified,
+    deleted, or unchanged since the last backup.
+    
+
+# OPTIONS
+
+-H, \--hash
+:   for each file printed, prepend the most recently
+    recorded hash code.  The hash code is normally
+    generated by `bup save`.  For objects which have not yet
+    been backed up, the hash code will be
+    0000000000000000000000000000000000000000.  Note that
+    the hash code is printed even if the file is known to
+    be modified or deleted in the index (ie. the file on
+    the filesystem no longer matches the recorded hash). 
+    If this is a problem for you, use `--status`.
+    
+-l, \--long
+:   print more information about each file, in a similar
+    format to the `-l` option to `ls`(1).
+
+-x, \--xdev, \--one-file-system
+:   don't cross filesystem boundaries when recursing through the
+    filesystem -- though as with tar and rsync, the mount points
+    themselves will still be indexed.  Only applicable if you're using
+    `-u`.
+    
+\--fake-valid
+:   mark specified filenames as up-to-date even if they
+    aren't.  This can be useful for testing, or to avoid
+    unnecessarily backing up files that you know are
+    boring.
+    
+\--fake-invalid
+:   mark specified filenames as not up-to-date, forcing the
+    next "bup save" run to re-check their contents.
+    
+\--check
+:   carefully check index file integrity before and after
+    updating.  Mostly useful for automated tests.
+
+\--clear
+:   clear the default index.
+
+-f, \--indexfile=*indexfile*
+:   use a different index filename instead of
+    `$BUP_DIR/bupindex`.
+
+\--exclude=*path*
+:   exclude *path* from the backup (may be repeated).
+
+\--exclude-from=*filename*
+:   read --exclude paths from *filename*, one path per-line (may be
+    repeated).
+
+\--exclude-rx=*pattern*
+:   exclude any path matching *pattern*, which must be a Python regular
+    expression (http://docs.python.org/library/re.html).  The pattern
+    will be compared against the full path, without anchoring, so
+    "x/y" will match "ox/yard" or "box/yards".  To exclude the
+    contents of /tmp, but not the directory itself, use
+    "^/tmp/.". (may be repeated)
+
+    Examples:
+
+      * '/foo$' - exclude any file named foo
+      * '/foo/$' - exclude any directory named foo
+      * '/foo/.' - exclude the content of any directory named foo
+      * '^/tmp/.' - exclude root-level /tmp's content, but not /tmp itself
+
+\--exclude-rx-from=*filename*
+:   read --exclude-rx patterns from *filename*, one pattern per-line
+    (may be repeated).
+
+\--no-check-device
+:   don't mark a an entry invalid if the device number (stat(2)
+    st_dev) changes.  This can be useful when indexing remote,
+    automounted, or (LVM) snapshot filesystems.
+
+-v, \--verbose
+:   increase log output during update (can be used more
+    than once).  With one `-v`, print each directory as it
+    is updated; with two `-v`, print each file too.
+
+
+# EXAMPLES
+    bup index -vux /etc /var /usr
+    
+
+# SEE ALSO
+
+`bup-save`(1), `bup-drecurse`(1), `bup-on`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-init(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-init - initialize a bup repository
+
+# SYNOPSIS
+
+[BUP_DIR=*localpath*] bup init [-r *host*:*path*]
+
+# DESCRIPTION
+
+`bup init` initializes your local bup repository.  By default, BUP_DIR
+is `~/.bup`.
+
+# OPTIONS
+
+-r, \--remote=*host*:*path*
+:   Initialize not only the local repository, but also the
+    remote repository given by the *host* and *path*.  This is
+    not necessary if you intend to back up to the default
+    location on the server (ie. a blank *path*).  The connection to the
+    remote server is made with SSH.  If you'd like to specify which port, user
+    or private key to use for the SSH connection, we recommend you use the
+    `~/.ssh/config` file.
+
+
+# EXAMPLES
+    bup init
+    
+
+# SEE ALSO
+
+`bup-fsck`(1), `ssh_config`(5)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-join(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-join - concatenate files from a bup repository
+
+# SYNOPSIS
+
+bup join [-r *host*:*path*] [refs or hashes...]
+
+# DESCRIPTION
+
+`bup join` is roughly the opposite operation to
+`bup-split`(1).  You can use it to retrieve the contents of
+a file from a local or remote bup repository.
+
+The supplied list of refs or hashes can be in any format
+accepted by `git`(1), including branch names, commit ids,
+tree ids, or blob ids.
+
+If no refs or hashes are given on the command line, `bup
+join` reads them from stdin instead.
+
+# OPTIONS
+
+-r, \--remote=*host*:*path*
+:   Retrieves objects from the given remote repository instead of the
+    local one. *path* may be blank, in which case the default remote
+    repository is used.  The connection to the remote server is made
+    with SSH.  If you'd like to specify which port, user or private
+    key to use for the SSH connection, we recommend you use the
+    `~/.ssh/config` file.  Even though the data source is remote, a
+    local bup repository is still required.
+
+# EXAMPLES
+    # split and then rejoin a file using its tree id
+    TREE=$(tar -cvf - /etc | bup split -t)
+    bup join $TREE | tar -tf -
+    
+    # make two backups, then get the second-most-recent.
+    # mybackup~1 is git(1) notation for the second most
+    # recent commit on the branch named mybackup.
+    tar -cvf - /etc | bup split -n mybackup
+    tar -cvf - /etc | bup split -n mybackup
+    bup join mybackup~1 | tar -tf -
+
+# SEE ALSO
+
+`bup-split`(1), `bup-save`(1), `bup-cat-file`, `ssh_config`(5)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-ls(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-ls - list the contents of a bup repository
+
+# SYNOPSIS
+
+bup ls [OPTION...] \<paths...\>
+
+# DESCRIPTION
+
+`bup ls` lists files and directories in your bup repository
+using the same directory hierarchy as they would have with
+`bup-fuse`(1).
+
+The top level directory contains the branch (corresponding to
+the `-n` option in `bup save`), the next level is the date
+of the backup, and subsequent levels correspond to files in
+the backup.
+
+When `bup ls` is asked to output on a tty, and `-l` is not specified,
+it formats the output in columns so it can list as much as possible in
+as few lines as possible. However, when `-l` is specified or bup is
+asked to output to something other than a tty (say you pipe the output
+to another command, or you redirect it to a file), it will print one
+file name per line. This makes the listing easier to parse with
+external tools.
+
+Note that `bup ls` doesn't show hidden files by default and one needs to use
+the `-a` option to show them. Files are hidden when their name begins with a
+dot. For example, on the topmost level, the special directories named `.commit`
+and `.tag` are hidden directories.
+
+Once you have identified the file you want using `bup ls`,
+you can view its contents using `bup join` or `git show`.
+
+# OPTIONS
+
+-s, \--hash
+:   show hash for each file/directory.
+
+-a, \--all
+:   show hidden files.
+
+-A, \--almost-all
+:   show hidden files, except "." and "..".
+
+-d, \--directory
+:   show information about directories themselves, rather than their
+    contents, and don't follow symlinks.
+
+-l
+:   provide a detailed, long listing for each item.
+
+-F, \--classify
+:   append type indicator: dir/, symlink@, fifo|, socket=, and executable*.
+
+\--file-type
+:   append type indicator: dir/, symlink@, fifo|, socket=.
+
+\--human-readable
+:   print human readable file sizes (i.e. 3.9K, 4.7M).
+
+\--numeric-ids
+:   display numeric IDs (user, group, etc.) rather than names.
+
+# EXAMPLES
+    bup ls /myserver/latest/etc/profile
+
+    bup ls -a /
+
+# SEE ALSO
+
+`bup-join`(1), `bup-fuse`(1), `bup-ftp`(1), `bup-save`(1), `git-show`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-margin(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-margin - figure out your deduplication safety margin
+
+# SYNOPSIS
+
+bup margin [options...]
+
+# DESCRIPTION
+
+`bup margin` iterates through all objects in your bup
+repository, calculating the largest number of prefix bits
+shared between any two entries.  This number, `n`,
+identifies the longest subset of SHA-1 you could use and still
+encounter a collision between your object ids.
+
+For example, one system that was tested had a collection of
+11 million objects (70 GB), and `bup margin` returned 45.
+That means a 46-bit hash would be sufficient to avoid all
+collisions among that set of objects; each object in that
+repository could be uniquely identified by its first 46
+bits.
+
+The number of bits needed seems to increase by about 1 or 2
+for every doubling of the number of objects.  Since SHA-1
+hashes have 160 bits, that leaves 115 bits of margin.  Of
+course, because SHA-1 hashes are essentially random, it's
+theoretically possible to use many more bits with far fewer
+objects.
+
+If you're paranoid about the possibility of SHA-1
+collisions, you can monitor your repository by running `bup
+margin` occasionally to see if you're getting dangerously
+close to 160 bits.
+
+# OPTIONS
+
+\--predict
+:   Guess the offset into each index file where a
+    particular object will appear, and report the maximum
+    deviation of the correct answer from the guess.  This
+    is potentially useful for tuning an interpolation
+    search algorithm.
+    
+\--ignore-midx
+:   don't use `.midx` files, use only `.idx` files.  This is
+    only really useful when used with `--predict`.
+
+    
+# EXAMPLES
+    $ bup margin
+    Reading indexes: 100.00% (1612581/1612581), done.
+    40
+    40 matching prefix bits
+    1.94 bits per doubling
+    120 bits (61.86 doublings) remaining
+    4.19338e+18 times larger is possible
+    
+    Everyone on earth could have 625878182 data sets
+    like yours, all in one repository, and we would
+    expect 1 object collision.
+    
+    $ bup margin --predict
+    PackIdxList: using 1 index.
+    Reading indexes: 100.00% (1612581/1612581), done.
+    915 of 1612581 (0.057%) 
+    
+
+# SEE ALSO
+
+`bup-midx`(1), `bup-save`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-memtest(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-memtest - test bup memory usage statistics
+
+# SYNOPSIS
+
+bup memtest [options...]
+
+# DESCRIPTION
+
+`bup memtest` opens the list of pack indexes in your bup
+repository, then searches the list for a series of
+nonexistent objects, printing memory usage statistics after
+each cycle.
+
+Because of the way Unix systems work, the output will
+usually show a large (and unchanging) value in the VmSize
+column, because mapping the index files in the first place
+takes a certain amount of virtual address space.  However, this
+virtual memory usage is entirely virtual; it doesn't take
+any of your RAM.  Over time, bup uses *parts* of the
+indexes, which need to be loaded from disk, and this is
+what causes an increase in the VmRSS column.
+
+# OPTIONS
+
+-n, \--number=*number*
+:   set the number of objects to search for during each
+    cycle (ie. before printing a line of output)
+    
+-c, \--cycles=*cycles*
+:   set the number of cycles (ie. the number of lines of
+    output after the first).  The first line of output is
+    always 0 (ie. the baseline before searching for any
+    objects).
+    
+\--ignore-midx
+:   ignore any `.midx` files created by `bup midx`.  This
+    allows you to compare memory performance with and
+    without using midx.
+    
+\--existing
+:   search for existing objects instead of searching for
+    random nonexistent ones.  This can greatly affect
+    memory usage and performance.  Note that most of the
+    time, `bup save` spends most of its time searching for
+    nonexistent objects, since existing ones are probably
+    in unmodified files that we won't be trying to back up
+    anyway.  So the default behaviour reflects real bup
+    performance more accurately.  But you might want this
+    option anyway just to make sure you haven't made
+    searching for existing objects much worse than before.
+
+
+# EXAMPLES
+    $ bup memtest -n300 -c5
+    PackIdxList: using 1 index.
+                   VmSize      VmRSS     VmData      VmStk 
+            0    20824 kB    4528 kB    1980 kB      84 kB 
+          300    20828 kB    5828 kB    1984 kB      84 kB 
+          600    20828 kB    6844 kB    1984 kB      84 kB 
+          900    20828 kB    7836 kB    1984 kB      84 kB 
+         1200    20828 kB    8736 kB    1984 kB      84 kB 
+         1500    20828 kB    9452 kB    1984 kB      84 kB 
+
+    $ bup memtest -n300 -c5 --ignore-midx
+    PackIdxList: using 361 indexes.
+                   VmSize      VmRSS     VmData      VmStk 
+            0    27444 kB    6552 kB    2516 kB      84 kB 
+          300    27448 kB   15832 kB    2520 kB      84 kB 
+          600    27448 kB   17220 kB    2520 kB      84 kB 
+          900    27448 kB   18012 kB    2520 kB      84 kB 
+         1200    27448 kB   18388 kB    2520 kB      84 kB 
+         1500    27448 kB   18556 kB    2520 kB      84 kB 
+
+    
+# DISCUSSION
+
+When optimizing bup indexing, the first goal is to keep the
+VmRSS reasonably low.  However, it might eventually be
+necessary to swap in all the indexes, simply because
+you're searching for a lot of objects, and this will cause
+your RSS to grow as large as VmSize eventually.
+
+The key word here is *eventually*.  As long as VmRSS grows
+reasonably slowly, the amount of disk activity caused by
+accessing pack indexes is reasonably small.  If it grows
+quickly, bup will probably spend most of its time swapping
+index data from disk instead of actually running your
+backup, so backups will run very slowly.
+
+The purpose of `bup memtest` is to give you an idea of how
+fast your memory usage is growing, and to help in
+optimizing bup for better memory use.  If you have memory
+problems you might be asked to send the output of `bup
+memtest` to help diagnose the problems.
+
+Tip: try using `bup midx -a` or `bup midx -f` to see if it
+helps reduce your memory usage.
+
+Trivia: index memory usage in bup (or git) is only really a
+problem when adding a large number of previously unseen
+objects.  This is because for each object, we need to
+absolutely confirm that it isn't already in the database,
+which requires us to search through *all* the existing pack
+indexes to ensure that none of them contain the object in
+question.  In the more obvious case of searching for
+objects that *do* exist, the objects being searched for are
+typically related in some way, which means they probably
+all exist in a small number of packfiles, so memory usage
+will be constrained to just those packfile indexes.
+
+Since git users typically don't add a lot of files in a
+single run, git doesn't really need a program like `bup
+midx`.  bup, on the other hand, spends most of its time
+backing up files it hasn't seen before, so its memory usage
+patterns are different.
+
+
+# SEE ALSO
+
+`bup-midx`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-meta(1) Bup %BUP_VERSION%
+% Rob Browning <rlb@defaultvalue.org>
+% %BUP_DATE%
+
+# NAME
+
+bup-meta - create or extract a metadata archive
+
+# SYNOPSIS
+
+bup meta \--create
+  ~ [-R] [-v] [-q] [\--no-symlinks] [\--no-paths] [-f *file*] \<*paths*...\>
+  
+bup meta \--list
+  ~ [-v] [-q] [-f *file*]
+  
+bup meta \--extract
+  ~ [-v] [-q] [\--numeric-ids] [\--no-symlinks] [-f *file*]
+  
+bup meta \--start-extract
+  ~ [-v] [-q] [\--numeric-ids] [\--no-symlinks] [-f *file*]
+  
+bup meta \--finish-extract
+  ~ [-v] [-q] [\--numeric-ids] [-f *file*]
+
+bup meta \--edit
+  ~ [\--set-uid *uid* | \--set-gid *gid* | \--set-user *user* | \--set-group *group* | ...] \<*paths*...\>
+
+# DESCRIPTION
+
+`bup meta` creates, extracts, or otherwise manipulates metadata
+archives.  A metadata archive contains the metadata information
+(timestamps, ownership, access permissions, etc.) for a set of
+filesystem paths.
+
+See `bup-restore`(1) for a description of the way ownership metadata
+is restored.
+
+# OPTIONS
+
+-c, \--create
+:   Create a metadata archive for the specified *path*s.  Write the
+    archive to standard output unless `--file` is specified.
+
+-t, \--list
+:   Display information about the metadata in an archive.  Read the
+    archive from standard input unless `--file` is specified.
+
+-x, \--extract
+:   Extract a metadata archive.  Conceptually, perform `--start-extract`
+    followed by `--finish-extract`.  Read the archive from standard input
+    unless `--file` is specified.
+
+\--start-extract
+:   Build a filesystem tree matching the paths stored in a metadata
+    archive.  By itself, this command does not produce a full
+    restoration of the metadata.  For a full restoration, this command
+    must be followed by a call to `--finish-extract`.  Once this
+    command has finished, all of the normal files described by the
+    metadata will exist and be empty.  Restoring the data in those
+    files, and then calling `--finish-extract` should restore the
+    original tree.  The archive will be read from standard input
+    unless `--file` is specified.
+
+\--finish-extract
+:   Finish applying the metadata stored in an archive to the
+    filesystem.  Normally, this command should follow a call to
+    `--start-extract`.  The archive will be read from standard input
+    unless `--file` is specified.
+
+\--edit
+:   Edit metadata archives.  The result will be written to standard
+    output unless `--file` is specified.
+
+-f, \--file=*filename*
+:   Read the metadata archive from *filename* or write it to
+    *filename* as appropriate.  If *filename* is "-", then read from
+    standard input or write to standard output.
+
+-R, \--recurse
+:   Recursively descend into subdirectories during `--create`.
+
+\--xdev, \--one-file-system
+:   don't cross filesystem boundaries -- though as with tar and rsync,
+    the mount points themselves will still be handled.
+
+\--numeric-ids
+:   Apply numeric IDs (user, group, etc.) rather than names during
+    `--extract` or `--finish-extract`.
+
+\--symlinks
+:   Record symbolic link targets when creating an archive, or restore
+    symbolic links when extracting an archive (during `--extract`
+    or `--start-extract`).  This option is enabled by default.
+    Specify `--no-symlinks` to disable it.
+
+\--paths
+:   Record pathnames when creating an archive.  This option is enabled
+    by default.  Specify `--no-paths` to disable it.
+
+\--set-uid=*uid*
+:   Set the metadata uid to the integer *uid* during `--edit`.
+
+\--set-gid=*gid*
+:   Set the metadata gid to the integer *gid* during `--edit`.
+
+\--set-user=*user*
+:   Set the metadata user to *user* during `--edit`.
+
+\--unset-user
+:   Remove the metadata user during `--edit`.
+
+\--set-group=*group*
+:   Set the metadata user to *group* during `--edit`.
+
+\--unset-group
+:   Remove the metadata group during `--edit`.
+
+-v, \--verbose
+:   Be more verbose (can be used more than once).
+
+-q, \--quiet
+:   Be quiet.
+
+# EXAMPLES
+
+    # Create a metadata archive for /etc.
+    $ bup meta -cRf etc.meta /etc
+    bup: removing leading "/" from "/etc"
+
+    # Extract the etc.meta archive (files will be empty).
+    $ mkdir tmp && cd tmp
+    $ bup meta -xf ../etc.meta
+    $ ls
+    etc
+
+    # Restore /etc completely.
+    $ mkdir tmp && cd tmp
+    $ bup meta --start-extract -f ../etc.meta
+    ...fill in all regular file contents using some other tool...
+    $ bup meta --finish-extract -f ../etc.meta
+
+    # Change user/uid to root.
+    $ bup meta --edit --set-uid 0 --set-user root \
+        src.meta > dest.meta
+
+# BUGS
+
+Hard links are not handled yet.
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-midx(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-midx - create a multi-index (`.midx`) file from several `.idx` files
+
+# SYNOPSIS
+
+bup midx [-o *outfile*] \<-a|-f|*idxnames*...\>
+
+# DESCRIPTION
+
+`bup midx` creates a multi-index (`.midx`) file from one or more
+git pack index (`.idx`) files.
+
+Note: you should no longer need to run this command by hand.
+It gets run automatically by `bup-save`(1) and similar
+commands.
+
+# OPTIONS
+
+-o, \--output=*filename.midx*
+:   use the given output filename for the `.midx` file.
+    Default is auto-generated.
+
+-a, \--auto
+:   automatically generate new `.midx` files for any `.idx`
+    files where it would be appropriate.
+
+-f, \--force
+:   force generation of a single new `.midx` file containing
+    *all* your `.idx` files, even if other `.midx` files
+    already exist.  This will result in the fastest backup
+    performance, but may take a long time to run.
+
+\--dir=*packdir*
+:   specify the directory containing the `.idx`/`.midx` files
+    to work with.  The default is $BUP_DIR/objects/pack and
+    $BUP_DIR/indexcache/*.
+
+\--max-files
+:   maximum number of `.idx` files to open at a time.  You
+    can use this if you have an especially small number of file
+    descriptors available, so that midx can complete
+    (though possibly non-optimally) even if it can't open
+    all your `.idx` files at once.  The default value of this
+    option should be fine for most people.
+    
+\--check
+:   validate a `.midx` file by ensuring that all objects in
+    its contained `.idx` files exist inside the `.midx`.  May
+    be useful for debugging.
+
+
+# EXAMPLES
+    $ bup midx -a
+    Merging 21 indexes (2278559 objects).
+    Table size: 524288 (17 bits)
+    Reading indexes: 100.00% (2278559/2278559), done.
+    midx-b66d7c9afc4396187218f2936a87b865cf342672.midx
+    
+# DISCUSSION
+
+By default, bup uses git-formatted pack files, which
+consist of a pack file (containing objects) and an idx
+file (containing a sorted list of object names and their
+offsets in the .pack file).
+
+Normal idx files are convenient because it means you can use
+`git`(1) to access your backup datasets.  However, idx
+files can get slow when you have a lot of very large packs
+(which git typically doesn't have, but bup often does).
+
+bup `.midx` files consist of a single sorted list of all the objects
+contained in all the .pack files it references.  This list
+can be binary searched in about log2(m) steps, where m is
+the total number of objects.
+
+To further speed up the search, midx files also have a
+variable-sized fanout table that reduces the first n
+steps of the binary search.  With the help of this fanout
+table, bup can narrow down which page of the midx file a
+given object id would be in (if it exists) with a single
+lookup.  Thus, typical searches will only need to swap in
+two pages: one for the fanout table, and one for the object
+id.
+
+midx files are most useful when creating new backups, since
+searching for a nonexistent object in the repository
+necessarily requires searching through *all* the index
+files to ensure that it does not exist.  (Searching for
+objects that *do* exist can be optimized; for example,
+consecutive objects are often stored in the same pack, so
+we can search that one first using an MRU algorithm.)
+
+
+# SEE ALSO
+
+`bup-save`(1), `bup-margin`(1), `bup-memtest`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-mux(1) Bup %BUP_VERSION%
+% Brandon Low <lostlogic@lostlogicx.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-mux - multiplexes data and error streams over a connection
+
+# SYNOPSIS
+
+bup mux \<command\> [options...]
+
+# DESCRIPTION
+
+`bup mux` is used in the bup client-server protocol to
+send both data and debugging/error output over the single
+connection stream.
+
+`bup mux server` might be used in an inetd server setup.
+
+# OPTIONS
+
+command
+:   the subcommand to run
+options
+:   options for command
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-newliner(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-newliner - make sure progress messages don't overlap with output
+
+# SYNOPSIS
+
+\<any command\> 2>&1 | bup newliner
+
+# DESCRIPTION
+
+`bup newliner` is run automatically by bup.  You shouldn't
+need it unless you're using it in some other program.
+
+Progress messages emitted by bup (and some other tools) are
+of the form "Message ### content\\r", that is, a status
+message containing a variable-length number, followed by a
+carriage return character and no newline.  If these
+messages are printed more than once, they overwrite each
+other, so what the user sees is a single line with a
+continually-updating number.
+
+This works fine until some other message is printed.  For
+example, progress messages are usually printed to stderr,
+but other program messages might be printed to stdout.  If
+those messages are shorter than the progress message line,
+the screen will be left with weird looking artifacts as the
+two messages get mixed together.
+
+`bup newliner` prints extra space characters at the right
+time to make sure that doesn't happen.
+
+If you're running a program that has problems with these
+artifacts, you can usually fix them by piping its stdout
+*and* its stderr through bup newliner.
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-on(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-on - run a bup server locally and client remotely
+
+# SYNOPSIS
+
+bup on \<hostname\> index ...
+
+bup on \<hostname\> save ...
+
+bup on \<hostname\> split ...
+
+
+# DESCRIPTION
+
+`bup on` runs the given bup command on the given host using
+ssh.  It runs a bup server on the local machine, so that
+commands like `bup save` on the remote machine can back up
+to the local machine.  (You don't need to provide a
+`--remote` option to `bup save` in order for this to work.)
+
+See `bup-index`(1), `bup-save`(1), and so on for details of
+how each subcommand works.
+
+This 'reverse mode' operation is useful when the machine
+being backed up isn't supposed to be able to ssh into the
+backup server.  For example, your backup server can be
+hidden behind a one-way firewall on a private or dynamic IP
+address; using an ssh key, it can be authorized to ssh into
+each of your important machines.  After connecting to each
+destination machine, it initiates a backup, receiving the
+resulting data and storing in its local repository.
+
+For example, if you run several virtual private Linux
+machines on a remote hosting provider, you could back them
+up to a local (much less expensive) computer in your
+basement.
+
+
+# EXAMPLES
+
+    # First index the files on the remote server
+    
+    $ bup on myserver index -vux /etc
+    bup server: reading from stdin.
+    Indexing: 2465, done.
+    bup: merging indexes (186668/186668), done.
+    bup server: done
+    
+    # Now save the files from the remote server to the
+    # local $BUP_DIR
+    
+    $ bup on myserver save -n myserver-backup /etc
+    bup server: reading from stdin.
+    bup server: command: 'list-indexes'
+    PackIdxList: using 7 indexes.
+    Saving: 100.00% (241/241k, 648/648 files), done.    
+    bup server: received 55 objects.
+    Indexing objects: 100% (55/55), done.
+    bup server: command: 'quit'
+    bup server: done
+    
+    # Now we can look at the resulting repo on the local
+    # machine
+    
+    $ bup ftp 'cat /myserver-backup/latest/etc/passwd'
+    root:x:0:0:root:/root:/bin/bash
+    daemon:x:1:1:daemon:/usr/sbin:/bin/sh
+    bin:x:2:2:bin:/bin:/bin/sh
+    sys:x:3:3:sys:/dev:/bin/sh
+    sync:x:4:65534:sync:/bin:/bin/sync
+    ...
+    
+# SEE ALSO
+
+`bup-index`(1), `bup-save`(1), `bup-split`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-random(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-random - generate a stream of random output
+
+# SYNOPSIS
+
+bup random [-S seed] [-fv] \<numbytes\>
+
+# DESCRIPTION
+
+`bup random` produces a stream of pseudorandom output bytes to
+stdout.  Note: the bytes are *not* generated using a
+cryptographic algorithm and should never be used for
+security.
+
+Note that the stream of random bytes will be identical
+every time `bup random` is run, unless you provide a
+different `seed` value.  This is intentional: the purpose
+of this program is to be able to run repeatable tests on
+large amounts of data, so we want identical data every
+time.
+
+`bup random` generates about 240 megabytes per second on a
+modern test system (Intel Core2), which is faster than you
+could achieve by reading data from most disks.  Thus, it
+can be helpful when running microbenchmarks.
+
+# OPTIONS
+
+\<numbytes\>
+:   the number of bytes of data to generate.  Can be used
+    with the suffices `k`, `M`, or `G` to indicate
+    kilobytes, megabytes, or gigabytes, respectively.
+    
+-S, \--seed=*seed*
+:   use the given value to seed the pseudorandom number
+    generator.  The generated output stream will be
+    identical for every stream seeded with the same value. 
+    The default seed is 1.  A seed value of 0 is equivalent
+    to 1.
+
+-f, \--force
+:   generate output even if stdout is a tty.  (Generating
+    random data to a tty is generally considered
+    ill-advised, but you can do if you really want.)
+    
+-v, \--verbose
+:   print a progress message showing the number of bytes that
+    has been output so far.
+
+# EXAMPLES
+    
+    $ bup random 1k | sha1sum
+    2108c55d0a2687c8dacf9192677c58437a55db71  -
+    
+    $ bup random -S1 1k | sha1sum
+    2108c55d0a2687c8dacf9192677c58437a55db71  -
+    
+    $ bup random -S2 1k | sha1sum
+    f71acb90e135d98dad7efc136e8d2cc30573e71a  -
+    
+    $ time bup random 1G >/dev/null
+    Random: 1024 Mbytes, done.
+    
+    real   0m4.261s
+    user   0m4.048s
+    sys    0m0.172s
+    
+    $ bup random 1G | bup split -t --bench
+    Random: 1024 Mbytes, done.
+    bup: 1048576.00kbytes in 18.59 secs = 56417.78 kbytes/sec
+    1092599b9c7b2909652ef1e6edac0796bfbfc573
+    
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-restore(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-restore - extract files from a backup set
+
+# SYNOPSIS
+
+bup restore [\--outdir=*outdir*] [\--exclude-rx *pattern*]
+[\--exclude-rx-from *filename*] [-v] [-q] \<paths...\>
+
+# DESCRIPTION
+
+`bup restore` extracts files from a backup set (created
+with `bup-save`(1)) to the local filesystem.
+
+The specified *paths* are of the form
+/_branch_/_revision_/_some/where_.  The components of the
+path are as follows:
+
+branch
+:   the name of the backup set to restore from; this
+    corresponds to the `--name` (`-n`) option to `bup save`.
+
+revision
+:   the revision of the backup set to restore.  The
+    revision *latest* is always the most recent
+    backup on the given branch.  You can discover other
+    revisions using `bup ls /branch`.
+    
+some/where
+:   the previously saved path (after any stripping/grafting) that you
+    want to restore.  For example, `etc/passwd`.
+    
+If _some/where_ names a directory, `bup restore` will restore that
+directory and then recursively restore its contents.
+
+If _some/where_ names a directory and ends with a slash (ie.
+path/to/dir/), `bup restore` will restore the children of that
+directory directly to the current directory (or the `--outdir`).  If
+_some/where_ does not end in a slash, the children will be restored to
+a subdirectory of the current directory.
+
+If _some/where_ names a directory and ends in '/.' (ie.
+path/to/dir/.), `bup restore` will do exactly what it would have done
+for path/to/dir, and then restore _dir_'s metadata to the current
+directory (or the `--outdir`).  See the EXAMPLES section.
+
+Whenever path metadata is available, `bup restore` will attempt to
+restore it.  When restoring ownership, bup implements tar/rsync-like
+semantics.  It will normally prefer user and group names to uids and
+gids when they're available, but it will not try to restore the user
+unless running as root, and it will fall back to the numeric uid or
+gid whenever the metadata contains a user or group name that doesn't
+exist on the current system.  The use of user and group names can be
+disabled via `--numeric-ids` (which can be important when restoring a
+chroot, for example), and as a special case, a uid or gid of 0 will
+never be remapped by name.  Additionally, some systems don't allow
+setting a uid/gid that doesn't correspond with a known user/group.  On
+those systems, bup will log an error for each relevant path.
+
+The `--map-user`, `--map-group`, `--map-uid`, `--map-gid` options may
+be used to adjust the available ownership information before any of
+the rules above are applied, but note that due to those rules,
+`--map-uid` and `--map-gid` will have no effect whenever a path has a
+valid user or group.  In those cases, either `--numeric-ids` must be
+specified, or the user or group must be cleared by a suitable
+`--map-user foo=` or `--map-group foo=`.
+
+Hardlinks will also be restored when possible, but at least currently,
+no links will be made to targets outside the restore tree, and if the
+restore tree spans a different arrangement of filesystems from the
+save tree, some hardlink sets may not be completely restored.
+
+Also note that changing hardlink sets on disk between index and save
+may produce unexpected results.  With the current implementation, bup
+will attempt to recreate any given hardlink set as it existed at index
+time, even if all of the files in the set weren't still hardlinked
+(but were otherwise identical) at save time.
+
+Note that during the restoration process, access to data within the
+restore tree may be more permissive than it was in the original
+source.  Unless security is irrelevant, you must restore to a private
+subdirectory, and then move the resulting tree to its final position.
+See the EXAMPLES section for a demonstration.
+
+# OPTIONS
+
+-C, \--outdir=*outdir*
+:   create and change to directory *outdir* before
+    extracting the files.
+
+\--numeric-ids
+:   restore numeric IDs (user, group, etc.) rather than names.
+
+\--exclude-rx=*pattern*
+:   exclude any path matching *pattern*, which must be a Python
+    regular expression (http://docs.python.org/library/re.html).  The
+    pattern will be compared against the full path rooted at the top
+    of the restore tree, without anchoring, so "x/y" will match
+    "ox/yard" or "box/yards".  To exclude the contents of /tmp, but
+    not the directory itself, use "^/tmp/.". (can be specified more
+    than once)
+
+    Note that the root of the restore tree (which matches '^/') is the
+    top of the archive tree being restored, and has nothing to do with
+    the filesystem destination.  Given "restore ... /foo/latest/etc/",
+    the pattern '^/passwd$' would match if a file named passwd had
+    been saved as '/foo/latest/etc/passwd'.
+
+    Examples:
+
+      * '/foo$' - exclude any file named foo
+      * '/foo/$' - exclude any directory named foo
+      * '/foo/.' - exclude the content of any directory named foo
+      * '^/tmp/.' - exclude root-level /tmp's content, but not /tmp itself
+
+\--exclude-rx-from=*filename*
+:   read --exclude-rx patterns from *filename*, one pattern per-line
+    (may be repeated).
+
+\--map-user *old*=*new*
+:   for every path, restore the *old* (saved) user name as *new*.
+    Specifying "" for *new* will clear the user.  For example
+    "--map-user foo=" will allow the uid to take effect for any path
+    that originally had a user of "foo", unless countermanded by a
+    subsequent "--map-user foo=..." specification.  See DESCRIPTION
+    above for further information.
+
+\--map-group *old*=*new*
+:   for every path, restore the *old* (saved) group name as *new*.
+    Specifying "" for *new* will clear the group.  For example
+    "--map-group foo=" will allow the gid to take effect for any path
+    that originally had a group of "foo", unless countermanded by a
+    subsequent "--map-group foo=..." specification.  See DESCRIPTION
+    above for further information.
+
+\--map-uid *old*=*new*
+:   for every path, restore the *old* (saved) uid as *new*, unless
+    countermanded by a subsequent "--map-uid *old*=..." option.  Note
+    that the uid will only be relevant for paths with no user.  See
+    DESCRIPTION above for further information.
+
+\--map-gid *old*=*new*
+:   for every path, restore the *old* (saved) gid as *new*, unless
+    countermanded by a subsequent "--map-gid *old*=..." option.  Note
+    that the gid will only be relevant for paths with no user.  See
+    DESCRIPTION above for further information.
+
+-v, \--verbose
+:   increase log output.  Given once, prints every
+    directory as it is restored; given twice, prints every
+    file and directory.
+
+-q, \--quiet
+:   don't show the progress meter.  Normally, is stderr is
+    a tty, a progress display is printed that shows the
+    total number of files restored.
+
+# EXAMPLES
+
+Create a simple test backup set:
+    
+    $ bup index -u /etc
+    $ bup save -n mybackup /etc/passwd /etc/profile
+    
+Restore just one file:
+    
+    $ bup restore /mybackup/latest/etc/passwd
+    Restoring: 1, done.
+    
+    $ ls -l passwd
+    -rw-r--r-- 1 apenwarr apenwarr 1478 2010-09-08 03:06 passwd
+
+Restore etc to test (no trailing slash):
+    
+    $ bup restore -C test /mybackup/latest/etc
+    Restoring: 3, done.
+    
+    $ find test
+    test
+    test/etc
+    test/etc/passwd
+    test/etc/profile
+    
+Restore the contents of etc to test (trailing slash):
+
+    $ bup restore -C test /mybackup/latest/etc/
+    Restoring: 2, done.
+    
+    $ find test
+    test
+    test/passwd
+    test/profile
+
+Restore the contents of etc and etc's metadata to test (trailing
+"/."):
+
+    $ bup restore -C test /mybackup/latest/etc/.
+    Restoring: 2, done.
+    
+    # At this point test and etc's metadata will match.
+    $ find test
+    test
+    test/passwd
+    test/profile
+
+Restore a tree without risk of unauthorized access:
+
+    # mkdir --mode 0700 restore-tmp
+
+    # bup restore -C restore-tmp /somebackup/latest/foo
+    Restoring: 42, done.
+
+    # mv restore-tmp/foo somewhere
+
+    # rmdir restore-tmp
+    
+Restore a tree, remapping an old user and group to a new user and group:
+
+    # ls -l /original/y
+    -rw-r----- 1 foo baz  3610 Nov  4 11:31 y
+    # bup restore -C dest --map-user foo=bar --map-group baz=bax /x/latest/y
+    Restoring: 42, done.
+    # ls -l dest/y
+    -rw-r----- 1 bar bax  3610 Nov  4 11:31 y
+
+Restore a tree, remapping an old uid to a new uid.  Note that the old
+user must be erased so that bup won't prefer it over the uid:
+
+    # ls -l /original/y
+    -rw-r----- 1 foo baz  3610 Nov  4 11:31 y
+    # ls -ln /original/y
+    -rw-r----- 1 1000 1007  3610 Nov  4 11:31 y
+    # bup restore -C dest --map-user foo= --map-uid 1000=1042 /x/latest/y
+    Restoring: 97, done.
+    # ls -ln dest/y
+    -rw-r----- 1 1042 1007  3610 Nov  4 11:31 y
+
+An alternate way to do the same by quashing users/groups universally
+with `--numeric-ids`:
+
+    # bup restore -C dest --numeric-ids --map-uid 1000=1042 /x/latest/y
+    Restoring: 97, done.
+
+# SEE ALSO
+
+`bup-save`(1), `bup-ftp`(1), `bup-fuse`(1), `bup-web`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-save(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-save - create a new bup backup set
+
+# SYNOPSIS
+
+bup save [-r *host*:*path*] \<-t|-c|-n *name*\> [-#] [-f *indexfile*]
+[-v] [-q] [\--smaller=*maxsize*] \<paths...\>;
+
+# DESCRIPTION
+
+`bup save` saves the contents of the given files or paths
+into a new backup set and optionally names that backup set.
+
+Note that in order to refer to your backup set later (i.e. for
+restoration), you must either specify `--name` (the normal case), or
+record the tree or commit id printed by `--tree` or `--commit`.
+
+Before trying to save files using `bup save`, you should
+first update the index using `bup index`.  The reasons
+for separating the two steps are described in the man page
+for `bup-index`(1).
+
+By default, metadata will be saved for every path, and the metadata
+for any unindexed parent directories of indexed paths will be taken
+directly from the filesystem.  However, if `--strip`, `--strip-path`,
+or `--graft` is specified, metadata will not be saved for the root
+directory (*/*).  See `bup-restore`(1) for more information about the
+handling of metadata.
+
+# OPTIONS
+
+-r, \--remote=*host*:*path*
+:   save the backup set to the given remote server.  If
+    *path* is omitted, uses the default path on the remote
+    server (you still need to include the ':').  The connection to the
+    remote server is made with SSH.  If you'd like to specify which port, user
+    or private key to use for the SSH connection, we recommend you use the
+    `~/.ssh/config` file.
+
+-t, \--tree
+:   after creating the backup set, print out the git tree
+    id of the resulting backup.
+    
+-c, \--commit
+:   after creating the backup set, print out the git commit
+    id of the resulting backup.
+
+-n, \--name=*name*
+:   after creating the backup set, create a git branch
+    named *name* so that the backup can be accessed using
+    that name.  If *name* already exists, the new backup
+    will be considered a descendant of the old *name*. 
+    (Thus, you can continually create new backup sets with
+    the same name, and later view the history of that
+    backup set to see how files have changed over time.)
+
+-d, \--date=*date*
+:   specify the date of the backup, in seconds since the epoch, instead
+    of the current time.
+
+-f, \--indexfile=*indexfile*
+:   use a different index filename instead of
+    `$BUP_DIR/bupindex`.
+
+-v, \--verbose
+:   increase verbosity (can be used more than once).  With
+    one -v, prints every directory name as it gets backed up.  With
+    two -v, also prints every filename.
+
+-q, \--quiet
+:   disable progress messages.
+
+\--smaller=*maxsize*
+:   don't back up files >= *maxsize* bytes.  You can use
+    this to run frequent incremental backups of your small
+    files, which can usually be backed up quickly, and skip
+    over large ones (like virtual machine images) which
+    take longer.  Then you can back up the large files
+    less frequently.  Use a suffix like k, M, or G to
+    specify multiples of 1024, 1024*1024, 1024*1024*1024
+    respectively.
+    
+\--bwlimit=*bytes/sec*
+:   don't transmit more than *bytes/sec* bytes per second
+    to the server.  This is good for making your backups
+    not suck up all your network bandwidth.  Use a suffix
+    like k, M, or G to specify multiples of 1024,
+    1024*1024, 1024*1024*1024 respectively.
+    
+\--strip
+:   strips the path that is given from all files and directories.
+    
+    A directory */root/chroot/etc* saved with "bup save -n chroot
+    \--strip /root/chroot" would be saved as */etc*.  Note that
+    currently, metadata will not be saved for the root directory (*/*)
+    when this option is specified.
+    
+\--strip-path=*path-prefix*
+:   strips the given path prefix *path-prefix* from all
+    files and directories.
+    
+    A directory */root/chroot/webserver* saved with "bup save -n
+    webserver \--strip-path=/root/chroot" would be saved as
+    */webserver/etc*.  Note that currently, metadata will not be saved
+    for the root directory (*/*) when this option is specified.
+    
+\--graft=*old_path*=*new_path*
+:   a graft point *old_path*=*new_path* (can be used more than
+    once).
+
+    A directory */root/chroot/a/etc* saved with "bup save -n chroot
+    \--graft /root/chroot/a=/chroot/a" would be saved as
+    */chroot/a/etc*.  Note that currently, metadata will not be saved
+    for the root directory (*/*) when this option is specified.
+
+-*#*, \--compress=*#*
+:   set the compression level to # (a value from 0-9, where
+    9 is the highest and 0 is no compression).  The default
+    is 1 (fast, loose compression)
+
+
+# EXAMPLES
+    $ bup index -ux /etc
+    Indexing: 1981, done.
+
+    $ bup save -r myserver: -n my-pc-backup --bwlimit=50k /etc
+    Reading index: 1981, done.
+    Saving: 100.00% (998/998k, 1981/1981 files), done.
+
+
+
+    $ ls /home/joe/chroot/httpd
+    bin var
+
+    $ bup index -ux /home/joe/chroot/httpd
+    Indexing: 1337, done.
+
+    $ bup save --strip -n joes-httpd-chroot /home/joe/chroot/httpd
+    Reading index: 1337, done.
+    Saving: 100.00% (998/998k, 1337/1337 files), done.
+
+    $ bup ls joes-httpd-chroot/latest/
+    bin/
+    var/
+
+
+    $ bup save --strip-path=/home/joe/chroot -n joes-chroot \
+         /home/joe/chroot/httpd
+    Reading index: 1337, done.
+    Saving: 100.00% (998/998k, 1337/1337 files), done.
+
+    $ bup ls joes-chroot/latest/
+    httpd/
+
+
+    $ bup save --graft /home/joe/chroot/httpd=/http-chroot \
+         -n joe
+         /home/joe/chroot/httpd
+    Reading index: 1337, done.
+    Saving: 100.00% (998/998k, 1337/1337 files), done.
+
+    $ bup ls joe/latest/
+    http-chroot/
+
+
+# SEE ALSO
+
+`bup-index`(1), `bup-split`(1), `bup-on`(1),
+`bup-restore`(1), `ssh_config`(5)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-server(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-server - the server side of the bup client-server relationship
+
+# SYNOPSIS
+
+bup server
+
+# DESCRIPTION
+
+`bup server` is the server side of a remote bup session. 
+If you use `bup-split`(1) or `bup-save`(1) with the `-r`
+option, they will ssh to the remote server and run `bup
+server` to receive the transmitted objects.
+
+There is normally no reason to run `bup server` yourself.
+
+# MODES
+
+smart
+:   In this mode, the server checks each incoming object
+    against the idx files in its repository.  If any object
+    already exists, it tells the client about the idx file
+    it was found in, allowing the client to download that
+    idx and avoid sending duplicate data.  This is
+    `bup-server`'s default mode.
+
+dumb
+:   In this mode, the server will not check its local index
+    before writing an object.  To avoid writing duplicate
+    objects, the server will tell the client to download all
+    of its `.idx` files at the start of the session.  This
+    mode is useful on low powered server hardware (ie
+    router/slow NAS).
+
+# FILES
+
+$BUP_DIR/bup-dumb-server
+:   Activate dumb server mode, as discussed above.  This file is not created by
+    default in new repositories.
+
+# SEE ALSO
+
+`bup-save`(1), `bup-split`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-split(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-split - save individual files to bup backup sets
+
+# SYNOPSIS
+
+bup split \[-t\] \[-c\] \[-n *name*\] COMMON\_OPTIONS
+
+bup split -b COMMON\_OPTIONS
+
+bup split \<--noop \[--copy\]|--copy\> COMMON\_OPTIONS
+
+COMMON\_OPTIONS
+  ~ \[-r *host*:*path*\] \[-v\] \[-q\] \[-d *seconds-since-epoch*\] \[\--bench\]
+    \[\--max-pack-size=*bytes*\] \[-#\] \[\--bwlimit=*bytes*\]
+    \[\--max-pack-objects=*n*\] \[\--fanout=*count*\]
+    \[\--keep-boundaries\] \[--git-ids | filenames...\]
+
+# DESCRIPTION
+
+`bup split` concatenates the contents of the given files
+(or if no filenames are given, reads from stdin), splits
+the content into chunks of around 8k using a rolling
+checksum algorithm, and saves the chunks into a bup
+repository.  Chunks which have previously been stored are
+not stored again (ie. they are 'deduplicated').
+
+Because of the way the rolling checksum works, chunks
+tend to be very stable across changes to a given file,
+including adding, deleting, and changing bytes.
+
+For example, if you use `bup split` to back up an XML dump
+of a database, and the XML file changes slightly from one
+run to the next, nearly all the data will still be
+deduplicated and the size of each backup after the first
+will typically be quite small.
+
+Another technique is to pipe the output of the `tar`(1) or
+`cpio`(1) programs to `bup split`.  When individual files
+in the tarball change slightly or are added or removed, bup
+still processes the remainder of the tarball efficiently. 
+(Note that `bup save` is usually a more efficient way to
+accomplish this, however.)
+
+To get the data back, use `bup-join`(1).
+
+# MODES
+
+These options select the primary behavior of the command, with -n
+being the most likely choice.
+
+-n, \--name=*name*
+:   after creating the dataset, create a git branch
+    named *name* so that it can be accessed using
+    that name.  If *name* already exists, the new dataset
+    will be considered a descendant of the old *name*.
+    (Thus, you can continually create new datasets with
+    the same name, and later view the history of that
+    dataset to see how it has changed over time.)  The original data
+    will also be available as a top-level file named "data" in the VFS,
+    accessible via `bup fuse`, `bup ftp`, etc.
+
+-t, \--tree
+:   output the git tree id of the resulting dataset.
+
+-c, \--commit
+:   output the git commit id of the resulting dataset.
+
+-b, \--blobs
+:   output a series of git blob ids that correspond to the chunks in
+    the dataset.  Incompatible with -n, -t, and -c.
+
+\--noop
+:   read the data and split it into blocks based on the "bupsplit"
+    rolling checksum algorithm, but don't do anything with the blocks.
+    This is mostly useful for benchmarking.  Incompatible with -n, -t,
+    -c, and -b.
+
+\--copy
+:   like `--noop`, but also write the data to stdout.  This can be
+    useful for benchmarking the speed of read+bupsplit+write for large
+    amounts of data.  Incompatible with -n, -t, -c, and -b.
+
+# OPTIONS
+
+-r, \--remote=*host*:*path*
+:   save the backup set to the given remote server.  If *path* is
+    omitted, uses the default path on the remote server (you still
+    need to include the ':').  The connection to the remote server is
+    made with SSH.  If you'd like to specify which port, user or
+    private key to use for the SSH connection, we recommend you use
+    the `~/.ssh/config` file.  Even though the destination is remote,
+    a local bup repository is still required.
+
+-d, \--date=*seconds-since-epoch*
+:   specify the date inscribed in the commit (seconds since 1970-01-01).
+
+-q, \--quiet
+:   disable progress messages.
+
+-v, \--verbose
+:   increase verbosity (can be used more than once).
+
+\--git-ids
+:   stdin is a list of git object ids instead of raw data.
+    `bup split` will read the contents of each named git
+    object (if it exists in the bup repository) and split
+    it.  This might be useful for converting a git
+    repository with large binary files to use bup-style
+    hashsplitting instead.  This option is probably most
+    useful when combined with `--keep-boundaries`.
+
+\--keep-boundaries
+:   if multiple filenames are given on the command line,
+    they are normally concatenated together as if the
+    content all came from a single file.  That is, the
+    set of blobs/trees produced is identical to what it
+    would have been if there had been a single input file. 
+    However, if you use `--keep-boundaries`, each file is
+    split separately.  You still only get a single tree or
+    commit or series of blobs, but each blob comes from
+    only one of the files; the end of one of the input
+    files always ends a blob.
+
+\--bench
+:   print benchmark timings to stderr.
+
+\--max-pack-size=*bytes*
+:   never create git packfiles larger than the given number
+    of bytes.  Default is 1 billion bytes.  Usually there
+    is no reason to change this.
+
+\--max-pack-objects=*numobjs*
+:   never create git packfiles with more than the given
+    number of objects.  Default is 200 thousand objects. 
+    Usually there is no reason to change this.
+    
+\--fanout=*numobjs*
+:   when splitting very large files, try and keep the number
+    of elements in trees to an average of *numobjs*.
+
+\--bwlimit=*bytes/sec*
+:   don't transmit more than *bytes/sec* bytes per second
+    to the server.  This is good for making your backups
+    not suck up all your network bandwidth.  Use a suffix
+    like k, M, or G to specify multiples of 1024,
+    1024*1024, 1024*1024*1024 respectively.
+
+-*#*, \--compress=*#*
+:   set the compression level to # (a value from 0-9, where
+    9 is the highest and 0 is no compression).  The default
+    is 1 (fast, loose compression)
+
+
+# EXAMPLES
+
+    $ tar -cf - /etc | bup split -r myserver: -n mybackup-tar
+    tar: Removing leading /' from member names
+    Indexing objects: 100% (196/196), done.
+    
+    $ bup join -r myserver: mybackup-tar | tar -tf - | wc -l
+    1961
+    
+
+# SEE ALSO
+
+`bup-join`(1), `bup-index`(1), `bup-save`(1), `bup-on`(1), `ssh_config`(5)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-tag(1) Bup %BUP_VERSION%
+% Gabriel Filion <lelutin@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-tag - tag a commit in the bup repository
+
+# SYNOPSIS
+
+bup tag
+
+bup tag [-f] \<tag name\> \<committish\>
+
+bup tag -d [-f] \<tag name\>
+
+# DESCRIPTION
+
+`bup tag` lists, creates or deletes a tag in the bup repository.
+
+A tag is an easy way to retrieve a specific commit. It can be used to mark a
+specific backup for easier retrieval later.
+
+When called without any arguments, the command lists all tags that can
+be found in the repository. When called with a tag name and a commit ID
+or ref name, it creates a new tag with the given name, if it doesn't
+already exist, that points to the commit given in the second argument. When
+called with '-d' and a tag name, it removes the given tag, if it exists.
+
+bup exposes the contents of backups with current tags, via any command that
+lists or shows backups. They can be found under the /.tag directory.  For
+example, the 'ftp' command will show the tag named 'tag1' under /.tag/tag1.
+
+Tags are also exposed under the branches from which they can be reached. For
+example, if you create a tag named 'important' under branch 'computerX', you
+will also be able to retrieve the contents of the backup that was tagged under
+/computerX/important. This is done as a convenience, and should the branch
+'computerX' be deleted, the contents of the tagged backup will be available
+through /.tag/important as long as the tag is not deleted.
+
+# OPTIONS
+
+-d, \--delete
+:   delete a tag
+
+-f, \--force
+:  Overwrite the named tag even if it already exists. With -f, don't
+   report a missing tag as an error.
+
+# EXAMPLES
+
+    $ bup tag new-puppet-version hostx-backup
+    
+    $ bup tag
+    new-puppet-version
+    
+    $ bup ftp "ls /.tag/new-puppet-version"
+    files..
+
+    $ bup tag -d new-puppet-version
+
+# SEE ALSO
+
+`bup-save`(1), `bup-split`(1), `bup-ftp`(1), `bup-fuse`(1), `bup-web`(1)
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-tick(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-tick - wait for up to one second
+
+# SYNOPSIS
+
+bup tick
+
+# DESCRIPTION
+
+`bup tick` waits until `time`(2) returns a different value
+than it originally did.  Since time() has a granularity of
+one second, this can cause a delay of up to one second.
+
+This program is useful for writing tests that need to
+ensure a file date will be seen as modified.  It is
+slightly better than `sleep`(1) since it sometimes waits
+for less than one second.
+
+# EXAMPLES
+
+    $ date; bup tick; date
+    Sat Feb  6 16:59:58 EST 2010
+    Sat Feb  6 16:59:59 EST 2010
+    
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup-ftp(1) Bup %BUP_VERSION%
+% Joe Beda <jbeda@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup-web - Start web server to browse bup repositiory
+
+# SYNOPSIS
+
+bup web [[hostname]:port]
+
+# DESCRIPTION
+
+`bup web` starts a web server that can browse bup repositories. The file
+hierarchy is the same as that shown by `bup-fuse`(1), `bup-ls`(1) and
+`bup-ftp`(1).
+
+`hostname` and `port` default to 127.0.0.1 and 8080, respectively, and hence
+`bup web` will only offer up the web server to locally running clients. If
+you'd like to expose the web server to anyone on your network (dangerous!) you
+can omit the bind address to bind to all available interfaces: `:8080`.
+
+# OPTIONS
+
+--human-readable
+:   display human readable file sizes (i.e. 3.9K, 4.7M)
+
+# EXAMPLES
+
+    $ bup web
+    Serving HTTP on 127.0.0.1:8080...
+    ^C
+
+    $ bup web :8080
+    Serving HTTP on 0.0.0.0:8080...
+    ^C
+
+
+# SEE ALSO
+
+`bup-fuse`(1), `bup-ls`(1), `bup-ftp`(1), `bup-restore`(1)
+
+
+# BUP
+
+Part of the `bup`(1) suite.
+
+% bup(1) Bup %BUP_VERSION%
+% Avery Pennarun <apenwarr@gmail.com>
+% %BUP_DATE%
+
+# NAME
+
+bup - Backup program using rolling checksums and git file formats
+
+# SYNOPSIS
+
+bup [global options...] \<command\> [options...]
+
+# DESCRIPTION
+
+`bup` is a program for making backups of your files using
+the git file format.
+
+Unlike `git`(1) itself, bup is
+optimized for handling huge data sets including individual
+very large files (such a virtual machine images).  However,
+once a backup set is created, it can still be accessed
+using git tools.
+
+The individual bup subcommands appear in their own man
+pages.
+
+# GLOBAL OPTIONS
+
+\--version
+:   print bup's version number.  Equivalent to
+    `bup-version`(1)
+
+-d, \--bup-dir=*BUP_DIR*
+:   use the given BUP_DIR parameter as the bup repository
+    location, instead of reading it from the $BUP_DIR
+    environment variable or using the default `~/.bup`
+    location.
+
+
+# COMMONLY USED SUBCOMMANDS
+
+`bup-fsck`(1)
+:   Check backup sets for damage and add redundancy information
+`bup-ftp`(1)
+:   Browse backup sets using an ftp-like client
+`bup-fuse`(1)
+:   Mount your backup sets as a filesystem
+`bup-help`(1)
+:   Print detailed help for the given command
+`bup-index`(1)
+:   Create or display the index of files to back up
+`bup-on`(1)
+:   Backup a remote machine to the local one
+`bup-restore`(1)
+:   Extract files from a backup set
+`bup-save`(1)
+:   Save files into a backup set (note: run "bup index" first)
+`bup-web`(1)
+:   Launch a web server to examine backup sets
+
+
+# RARELY USED SUBCOMMANDS
+
+`bup-damage`(1)
+:   Deliberately destroy data
+`bup-drecurse`(1)
+:   Recursively list files in your filesystem
+`bup-init`(1)
+:   Initialize a bup repository
+`bup-join`(1)
+:   Retrieve a file backed up using `bup-split`(1)
+`bup-ls`(1)
+:   Browse the files in your backup sets
+`bup-margin`(1)
+:   Determine how close your bup repository is to armageddon
+`bup-memtest`(1)
+:   Test bup memory usage statistics
+`bup-midx`(1)
+:   Index objects to speed up future backups
+`bup-newliner`(1)
+:   Make sure progress messages don't overlap with output
+`bup-random`(1)
+:   Generate a stream of random output
+`bup-server`(1)
+:   The server side of the bup client-server relationship
+`bup-split`(1)
+:   Split a single file into its own backup set
+`bup-tick`(1)
+:   Wait for up to one second.
+`bup-version`(1)
+:   Report the version number of your copy of bup.
+
+
+# SEE ALSO
+
+`git`(1) and the *README* file from the bup distribution.
+
+The home of bup is at <http://github.com/bup/bup/>.
+
+README.md
+bup: It backs things up
+=======================
+
+bup is a program that backs things up.  It's short for "backup." Can you
+believe that nobody else has named an open source program "bup" after all
+this time?  Me neither.
+
+Despite its unassuming name, bup is pretty cool.  To give you an idea of
+just how cool it is, I wrote you this poem:
+
+                             Bup is teh awesome
+                          What rhymes with awesome?
+                            I guess maybe possum
+                           But that's irrelevant.
+			
+Hmm.  Did that help?  Maybe prose is more useful after all.
+
+
+Reasons bup is awesome
+----------------------
+
+bup has a few advantages over other backup software:
+
+ - It uses a rolling checksum algorithm (similar to rsync) to split large
+   files into chunks.  The most useful result of this is you can backup huge
+   virtual machine (VM) disk images, databases, and XML files incrementally,
+   even though they're typically all in one huge file, and not use tons of
+   disk space for multiple versions.
+   
+ - It uses the packfile format from git (the open source version control
+   system), so you can access the stored data even if you don't like bup's
+   user interface.
+   
+ - Unlike git, it writes packfiles *directly* (instead of having a separate
+   garbage collection / repacking stage) so it's fast even with gratuitously
+   huge amounts of data.  bup's improved index formats also allow you to
+   track far more filenames than git (millions) and keep track of far more
+   objects (hundreds or thousands of gigabytes).
+   
+ - Data is "automagically" shared between incremental backups without having
+   to know which backup is based on which other one - even if the backups
+   are made from two different computers that don't even know about each
+   other.  You just tell bup to back stuff up, and it saves only the minimum
+   amount of data needed.
+   
+ - You can back up directly to a remote bup server, without needing tons of
+   temporary disk space on the computer being backed up.  And if your backup
+   is interrupted halfway through, the next run will pick up where you left
+   off.  And it's easy to set up a bup server: just install bup on any
+   machine where you have ssh access.
+   
+ - Bup can use "par2" redundancy to recover corrupted backups even if your
+   disk has undetected bad sectors.
+   
+ - Even when a backup is incremental, you don't have to worry about
+   restoring the full backup, then each of the incrementals in turn; an
+   incremental backup *acts* as if it's a full backup, it just takes less
+   disk space.
+   
+ - You can mount your bup repository as a FUSE filesystem and access the
+   content that way, and even export it over Samba.
+   
+ - It's written in python (with some C parts to make it faster) so it's easy
+   for you to extend and maintain.
+
+
+Reasons you might want to avoid bup
+-----------------------------------
+
+ - This is a very early version. Therefore it will most probably not work
+   for you, but we don't know why.  It is also missing some
+   probably-critical features.
+   
+ - It requires python >= 2.5, a C compiler, and an installed git
+   version >= 1.5.3.1.  It also requires par2 if you want fsck to be
+   able to generate the information needed to recover from some types
+   of corruption.
+ 
+ - It currently only works on Linux, MacOS X >= 10.4,
+   NetBSD, Solaris, or Windows (with Cygwin).  Patches to support
+   other platforms are welcome.
+
+ - Any items in "Things that are stupid" below.
+
+   
+Getting started
+===============
+
+
+From source
+-----------
+
+ - Check out the bup source code using git:
+ 
+        git clone git://github.com/bup/bup
+
+ - Install the required python libraries (including the development
+   libraries).
+
+   On very recent Debian/Ubuntu versions, this may be sufficient (run
+   as root):
+
+            apt-get build-dep bup
+
+   Otherwise try this (substitute python2.5-dev or python2.6-dev if
+   you have an older system):
+
+            apt-get install python2.7-dev python-fuse
+            apt-get install python-pyxattr python-pylibacl
+            apt-get install linux-libc-dev
+            apt-get install acl attr
+            apt-get install python-tornado # optional
+
+   On CentOS (for CentOS 6, at least), this should be sufficient (run
+   as root):
+
+            yum groupinstall "Development Tools"
+            yum install python python-devel
+            yum install fuse-python pyxattr pylibacl
+            yum install perl-Time-HiRes
+
+   In addition to the default CentOS repositories, you may need to add
+   RPMForge (for fuse-python) and EPEL (for pyxattr and pylibacl).
+
+   On Cygwin, install python, make, rsync, and gcc4.
+
+   If you would like to use the optional bup web server on systems
+   without a tornado package, you may want to try this:
+
+            pip install tornado
+
+ - Build the python module and symlinks:
+
+        make
+ 	
+ - Run the tests:
+ 
+        make test
+ 	
+    (The tests should pass.  If they don't pass for you, stop here and send
+     an email to bup-list@googlegroups.com.)
+
+ - You can install bup via "make install", and override the default
+   destination with DESTDIR and PREFIX.
+
+   Files are normally installed to "$DESTDIR/$PREFIX" where DESTDIR is
+   empty by default, and PREFIX is set to /usr.  So if you wanted to
+   install bup to /opt/bup, you might do something like this:
+
+        make install DESTDIR=/opt/bup PREFIX=''
+
+
+From binary packages
+--------------------
+
+Binary packages of bup are known to be built for the following OSes:
+
+ - Debian:
+    http://packages.debian.org/search?searchon=names&keywords=bup
+ - Ubuntu:
+    http://packages.ubuntu.com/search?searchon=names&keywords=bup
+ - pkgsrc (NetBSD, Dragonfly, and others)
+    http://pkgsrc.se/sysutils/bup
+    http://cvsweb.netbsd.org/bsdweb.cgi/pkgsrc/sysutils/bup/
+
+
+Using bup
+---------
+
+ - Get help for any bup command:
+
+        bup help
+        bup help init
+        bup help index
+        bup help save
+        bup help restore
+        ...
+
+ - Initialize the default BUP_DIR (~/.bup):
+
+        bup init
+
+ - Make a local backup (-v or -vv will increase the verbosity):
+
+        bup index /etc
+        bup save -n local-etc /etc
+
+ - Restore a local backup to ./dest:
+
+        bup restore -C ./dest local-etc/latest/etc
+        ls -l dest/etc
+
+ - Look at how much disk space your backup took:
+
+        du -s ~/.bup
+
+ - Make another backup (which should be mostly identical to the last one;
+   notice that you don't have to *specify* that this backup is incremental,
+   it just saves space automatically):
+
+        bup index /etc
+        bup save -n local-etc /etc
+
+ - Look how little extra space your second backup used (on top of the first):
+
+        du -s ~/.bup
+
+ - Get a list of your previous backups:
+
+        bup ls local-etc
+
+ - Restore your first backup again:
+
+        bup restore -C ./dest-2 local-etc/2013-11-23-11195/etc
+
+ - Make a backup on a remote server (which must already have the 'bup' command
+   somewhere in the server's PATH (see /etc/profile, etc/environment,
+   ~/.profile, or ~/.bashrc), and be accessible via ssh.
+   Make sure to replace SERVERNAME with the actual hostname of your server):
+
+        ssh SERVERNAME bup init
+        bup index /etc
+        bup save -r SERVERNAME: -n local-etc /etc
+
+ - Restore a backup from a remote server.  (FAIL: unfortunately,
+   unlike "bup join", "bup restore" does not yet support remote
+   restores.  See both "bup join" and "Things that are stupid" below.)
+
+ - Defend your backups from death rays (OK fine, more likely from the
+   occasional bad disk block).  This writes parity information
+   (currently via par2) for all of the existing data so that bup may
+   be able to recover from some amount of repository corruption:
+
+        bup fsck -g
+
+ - Use split/join instead of index/save/restore.  Try making a local
+   backup using tar:
+ 
+        tar -cvf - /etc | bup split -n local-etc -vv
+ 	
+ - Try restoring the tarball:
+ 
+        bup join local-etc | tar -tf -
+ 	
+ - Look at how much disk space your backup took:
+ 
+        du -s ~/.bup
+ 	
+ - Make another tar backup:
+ 
+        tar -cvf - /etc | bup split -n local-etc -vv
+ 	
+ - Look at how little extra space your second backup used on top of
+   the first:
+ 
+ 	du -s ~/.bup
+ 	
+ - Restore the first tar backup again (the ~1 is git notation for "one
+   older than the most recent"):
+   
+        bup join local-etc~1 | tar -tf -
+ 
+ - Get a list of your previous split-based backups:
+ 
+        GIT_DIR=~/.bup git log local-etc
+	
+ - Make a backup on a remote server:
+   
+        tar -cvf - /etc | bup split -r SERVERNAME: -n local-etc -vv
+ 
+ - Try restoring the remote backup tarball:
+ 
+        bup join -r SERVERNAME: local-etc | tar -tf -
+ 	
+That's all there is to it!
+
+
+Notes on FreeBSD
+----------------
+
+- FreeBSD's default 'make' command doesn't like bup's Makefile. In order to
+  compile the code, run tests and install bup, you need to install GNU Make
+  from the port named 'gmake' and use its executable instead in the commands
+  seen above. (i.e. 'gmake test' runs bup's test suite)
+
+- Python's development headers are automatically installed with the 'python'
+  port so there's no need to install them separately.
+
+- To use the 'bup fuse' command, you need to install the fuse kernel module
+  from the 'fusefs-kmod' port in the 'sysutils' section and the libraries from
+  the port named 'py-fusefs' in the 'devel' section.
+
+- The 'par2' command can be found in the port named 'par2cmdline'.
+
+- In order to compile the documentation, you need pandoc which can be found in
+  the port named 'hs-pandoc' in the 'textproc' section.
+
+
+Notes on NetBSD/pkgsrc
+----------------------
+
+ - See pkgsrc/sysutils/bup, which should be the most recent stable
+   release and includes man pages.  It also has a reasonable set of
+   dependencies (git, par2, py-fuse-bindings).
+
+ - The "fuse-python" package referred to is hard to locate, and is a
+   separate tarball for the python language binding distributed by the
+   fuse project on sourceforge.  It is available as
+   pkgsrc/filesystems/py-fuse-bindings and on NetBSD 5, "bup fuse"
+   works with it.
+
+ - "bup fuse" presents every directory/file as inode 0.  The directory
+   traversal code ("fts") in NetBSD's libc will interpret this as a
+   cycle and error out, so "ls -R" and "find" will not work.
+
+ - There is no support for ACLs.  If/when some entrprising person
+   fixes this, adjust t/compare-trees.
+
+
+Notes on Cygwin
+---------------
+
+ - There is no support for ACLs.  If/when some enterprising person
+   fixes this, adjust t/compare-trees.
+
+ - In t/test.sh, two tests have been disabled.  These tests check to
+   see that repeated saves produce identical trees and that an
+   intervening index doesn't change the SHA1.  Apparently Cygwin has
+   some unusual behaviors with respect to access times (that probably
+   warrant further investigation).  Possibly related:
+   http://cygwin.com/ml/cygwin/2007-06/msg00436.html
+
+
+Notes on OS X
+-------------
+
+ - There is no support for ACLs.  If/when some enterprising person
+   fixes this, adjust t/compare-trees.
+
+
+How it works
+============
+
+Basic storage:
+--------------
+
+bup stores its data in a git-formatted repository.  Unfortunately, git
+itself doesn't actually behave very well for bup's use case (huge numbers of
+files, files with huge sizes, retaining file permissions/ownership are
+important), so we mostly don't use git's *code* except for a few helper
+programs.  For example, bup has its own git packfile writer written in
+python.
+
+Basically, 'bup split' reads the data on stdin (or from files specified on
+the command line), breaks it into chunks using a rolling checksum (similar to
+rsync), and saves those chunks into a new git packfile.  There is one git
+packfile per backup.
+
+When deciding whether to write a particular chunk into the new packfile, bup
+first checks all the other packfiles that exist to see if they already have that
+chunk.  If they do, the chunk is skipped.
+
+git packs come in two parts: the pack itself (*.pack) and the index (*.idx).
+The index is pretty small, and contains a list of all the objects in the
+pack.  Thus, when generating a remote backup, we don't have to have a copy
+of the packfiles from the remote server: the local end just downloads a copy
+of the server's *index* files, and compares objects against those when
+generating the new pack, which it sends directly to the server.
+
+The "-n" option to 'bup split' and 'bup save' is the name of the backup you
+want to create, but it's actually implemented as a git branch.  So you can
+do cute things like checkout a particular branch using git, and receive a
+bunch of chunk files corresponding to the file you split.
+
+If you use '-b' or '-t' or '-c' instead of '-n', bup split will output a
+list of blobs, a tree containing that list of blobs, or a commit containing
+that tree, respectively, to stdout.  You can use this to construct your own
+scripts that do something with those values.
+
+The bup index:
+--------------
+
+'bup index' walks through your filesystem and updates a file (whose name is,
+by default, ~/.bup/bupindex) to contain the name, attributes, and an
+optional git SHA1 (blob id) of each file and directory.
+
+'bup save' basically just runs the equivalent of 'bup split' a whole bunch
+of times, once per file in the index, and assembles a git tree
+that contains all the resulting objects.  Among other things, that makes
+'git diff' much more useful (compared to splitting a tarball, which is
+essentially a big binary blob).  However, since bup splits large files into
+smaller chunks, the resulting tree structure doesn't *exactly* correspond to
+what git itself would have stored.  Also, the tree format used by 'bup save'
+will probably change in the future to support storing file ownership, more
+complex file permissions, and so on.
+
+If a file has previously been written by 'bup save', then its git blob/tree
+id is stored in the index.  This lets 'bup save' avoid reading that file to
+produce future incremental backups, which means it can go *very* fast unless
+a lot of files have changed.
+
+ 
+Things that are stupid for now but which we'll fix later
+========================================================
+
+Help with any of these problems, or others, is very welcome.  Join the
+mailing list (see below) if you'd like to help.
+
+ - 'bup restore' can't pull directly from a remote server.
+
+    So in one sense "save -r" is a dead-end right now.  Obviously you
+    can use "ssh SERVER bup restore -C ./dest..." to create a tree you
+    can transfer elsewhere via rsync/tar/whatever, but that's *lame*.
+
+    Until we fix it, you may be able to mount the remote BUP_DIR via
+    sshfs and then restore "normally", though that hasn't been
+    officially tested.
+
+ - 'bup save' and 'bup restore' have immature metadata support.
+ 
+    On the plus side, they actually do have support now, but it's new,
+    and not remotely as well tested as tar/rsync/whatever's.  However,
+    you have to start somewhere, and as of 0.25, we think it's ready
+    for more general use.  Please let us know if you have any trouble.
+
+    Also, if any strip or graft-style options are specified to 'bup
+    save', then no metadata will be written for the root directory.
+    That's obviously less than ideal.
+
+ - bup is overly optimistic about mmap.  Right now bup just assumes
+   that it can mmap as large a block as it likes, and that mmap will
+   never fail.  Yeah, right... If nothing else, this has failed on
+   32-bit architectures (and 31-bit is even worse -- looking at you,
+   s390).
+
+   To fix this, we might just implement a FakeMmap[1] class that uses
+   normal file IO and handles all of the mmap methods[2] that bup
+   actually calls.  Then we'd swap in one of those whenever mmap
+   fails.
+
+   This would also require implementing some of the methods needed to
+   support "[]" array access, probably at a minimum __getitem__,
+   __setitem__, and __setslice__ [3].
+
+     [1] http://comments.gmane.org/gmane.comp.sysutils.backup.bup/613
+     [2] http://docs.python.org/2/library/mmap.html
+     [3] http://docs.python.org/2/reference/datamodel.html#emulating-container-types
+
+ - 'bup index' is slower than it should be.
+ 
+    It's still rather fast: it can iterate through all the filenames on my
+    600,000 file filesystem in a few seconds.  But it still needs to rewrite
+    the entire index file just to add a single filename, which is pretty
+    nasty; it should just leave the new files in a second "extra index" file
+    or something.
+   
+ - bup could use inotify for *really* efficient incremental backups.
+
+    You could even have your system doing "continuous" backups: whenever a
+    file changes, we immediately send an image of it to the server.  We could
+    give the continuous-backup process a really low CPU and I/O priority so
+    you wouldn't even know it was running.
+
+ - bup currently has no way to prune *old* backups.
+ 
+    Because of the way the packfile system works, backups become "entangled"
+    in weird ways and it's not actually possible to delete one pack
+    (corresponding approximately to one backup) without risking screwing up
+    other backups.
+   
+    git itself has lots of ways of optimizing this sort of thing, but its
+    methods aren't really applicable here; bup packfiles are just too huge.
+    We'll have to do it in a totally different way.  There are lots of
+    options.  For now: make sure you've got lots of disk space :)
+
+    Until we fix this, one possible workaround is to just start a new
+    BUP_DIR occasionally, i.e. bup-2013-10, bup-2013-11...
+
+ - bup has never been tested on anything but Linux, MacOS, and Windows+Cygwin.
+ 
+    There's nothing that makes it *inherently* non-portable, though, so
+    that's mostly a matter of someone putting in some effort.  (For a
+    "native" Windows port, the most annoying thing is the absence of ssh in
+    a default Windows installation.)
+    
+ - bup needs better documentation.
+ 
+    According to a recent article about bup in Linux Weekly News
+    (https://lwn.net/Articles/380983/), "it's a bit short on examples and
+    a user guide would be nice."  Documentation is the sort of thing that
+    will never be great unless someone from outside contributes it (since
+    the developers can never remember which parts are hard to understand).
+    
+ - bup is "relatively speedy" and has "pretty good" compression.
+ 
+    ...according to the same LWN article.  Clearly neither of those is good
+    enough.  We should have awe-inspiring speed and crazy-good compression. 
+    Must work on that.  Writing more parts in C might help with the speed.
+   
+ - bup has no GUI.
+ 
+    Actually, that's not stupid, but you might consider it a limitation. 
+    There are a bunch of Linux GUI backup programs; someday I expect someone
+    will adapt one of them to use bup.
+    
+    
+More Documentation
+==================
+
+bup has an extensive set of man pages.  Try using 'bup help' to get
+started, or use 'bup help SUBCOMMAND' for any bup subcommand (like split,
+join, index, save, etc.) to get details on that command.
+
+For further technical details, please see ./DESIGN.
+
+
+How you can help
+================
+
+bup is a work in progress and there are many ways it can still be improved.
+If you'd like to contribute patches, ideas, or bug reports, please join the
+bup mailing list.
+
+You can find the mailing list archives here:
+
+	http://groups.google.com/group/bup-list
+	
+and you can subscribe by sending a message to:
+
+	bup-list+subscribe@googlegroups.com
+
+Please see <a href="HACKING">./HACKING</a> for
+additional information, i.e. how to submit patches (hint - no pull
+requests), how we handle branches, etc.
+
+
+Have fun,
+
+Avery
+

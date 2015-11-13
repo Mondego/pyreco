@@ -1,0 +1,1620 @@
+# Renren Backup Demo App
+
+You can easily extend the 10 lines app to any other platforms supported by SNSAPI.
+As a demo, it does not take message deduplication into consideration. 
+You can see `forwarder.py` and `mysofa.py` for example deduplication methods.
+
+## Usage
+
+   * Copy `conf/channel.json.example` to `conf/channel.json`. 
+   Fill in your credentials accordingly, 
+   e.g. `app_key` and `app_secret`.
+   * Configure on Renren dev platform. 
+   Make sure the domain name there matches the `callback_url` in `conf/channel.json`.
+   * Run the script `python backup.py`.
+   * Your browser will be prompt to Renren's OAuth page.
+   * After authorize on Renren, 
+   we'll get the code and accomplish following procedures automatically.
+
+## More
+
+Recommend you use all default configurations as an initial test. 
+You can change the `callback_url` to your own later but make sure
+the `code` returned by OSN is redirected to SNSAPI.
+See [SNSAPI Configuraiton](https://github.com/hupili/snsapi/wiki/Configurations)
+for more information.
+
+# 怎么写一个钟？
+
+## 步骤
+
+   * 先去
+   [新浪开放平台](http://open.weibo.com/development)
+   注册开发者、注册应用、得到`app_key`和`app_secret`、
+   填写`call_backurl`
+   （随便填一个供新浪准许的url就可以，或者参考之后`channel.json`里面的`callback_url`）。
+   * 下载
+   [snsapi](https://github.com/hupili/snsapi/)。
+   可以`git clone`，也可以直接下载
+   [zip打包](https://github.com/hupili/snsapi/archive/master.zip)。
+   * 填写`channel.json`配置文件（后有样例），
+   这样就开启新浪微博这个通道了
+   （之后要支持其他平台，也就是注册app和填写`channel.json`而已）。
+   * 写clock的逻辑：
+   先准备语料；
+   然后“发状态--睡一会--发状态--睡一会”循环。
+   详情见
+   [clock.py](https://github.com/hupili/snsapi/blob/master/app/clock/clock.py)。
+   （没用过Python的同学可以参考注释版：
+   [clock-annotated.py](https://github.com/hupili/snsapi/blob/master/app/clock/clock-annotated.py) 
+   ）
+   * 将`clock.py`放入`snsapi`的根目录下执行。
+
+**注意：**
+第一次运行的时候，
+请按照console上的提示完成授权流程；
+snsapi默认会将授权信息记录在本地`*.save`中，
+之后调用会自动读取（可配置不保存）。
+（详情请参考后面“授权流程”）
+
+## `channel.json` 配置文件样例
+
+我们在`conf`下放有各种`*.example`文件，包括channel。
+对于这个clock程序，可以改写下面这个文件即可。
+
+```
+[
+  {
+    "platform": "SinaWeiboStatus", 
+    "methods": "home_timeline,update,forward",
+    "user_id": "可以不填", 
+    "user_name": "可以不填",
+    "channel_name": "sina_account_1", 
+    "auth_info": {
+      "save_token_file": "(default)", 
+      "callback_url": "http://snsapi.sinaapp.com/bouncer/redir/localhost/11111/", 
+      "cmd_fetch_code": "(console_input)", 
+      "cmd_request_url": "(console_output)"
+    }, 
+    "app_key": "填写你在开放平台上的app_key", 
+    "app_secret": "填写你在开放平台上的app_secret", 
+    "open": "yes", 
+    "home_timeline":{
+      "count": 100
+    }
+  } 
+]
+```
+
+注意：`callback_url`必须和你在“开放平台--应用信息--高级信息--OAuth2.0”处填写的一致。
+
+## 授权流程
+
+当`channel.json`配置好后，可以当即使用`snscli`进行简单测试
+（可以略过这节，直接跑`clock.py`，授权流程是一样的；
+使用`snscli`测试是因为这个脚本提供更多的功能）。
+
+执行`python -i snscli.py`：
+（“# xxxx”是注释）
+
+```
+# 略过一些输出
+https://api.weibo.com/oauth2/authorize?redirect_uri=https%3A//snsapi.ie.cuhk.edu.hk/aux/bouncer/redir/localhost/11111/&response_type=code&client_id=这里会显示你注册的app_key&display=json
+# 用浏览器访问上面的网址。
+# 完成授权后会重定向到你之前设置的callback_url。
+# 复制地址栏中的url到控制台，如下所示，
+Please input the whole url from Broswer's address bar:
+# 下面这行就是从浏览器中复制过来的，复制后回车。
+http://localhost:11111/auth/second/?code=b5ae这里是一串授权代码c827db
+# 略过一些输出，当你看到下面这行的时候，表示授权成功了！！！！
+[INFO][20130110-143254][snsbase.py][_oauth2_second][176]Channel 'sina_account_1' is authorized
+# 现在测试下得到自己的timeline上的一条新信息，如下
+>>> print ht(1)
+[INFO][20130110-143259][snspocket.py][home_timeline][254]Read 1 statuses
+<0>
+[程序媛念茜] at Thu, 10 Jan 2013 14:32:45 HKT 
+  已请辞CSDN论坛Android版块版主、Qt版块版主职务，感谢大家一直以来的支持和配合，最大的收获就是认识了一大帮新朋友，我就不一个一个@了，咱群里喷。如今实在分身乏术，时间精力有限，绝不是因为我爱上iOS了。今后也想多些时间陪陪父母。嗯，卸甲归田了，妥妥的。
+```
+
+## 扩展
+
+这只是一个proof of concept:
+
+   * 编写更复杂的钟逻辑。
+   写好后我可以把链接加在这里，
+   方便他人寻找更多的样例。
+   * 去[snsapi网站](http://snsapi.ie.cuhk.edu.hk/)
+   阅读snsapi入门材料。
+   * 遇到问题？发
+   [issue](https://github.com/hupili/snsapi/issues?state=open)。
+   有经验想分享？写
+   [wiki](https://github.com/hupili/snsapi/wiki)。
+
+## 后记
+
+写这个小app的原因是这两天微博上的几口钟比较火，
+很多同学对怎么实现的表示感兴趣。
+尽管对于会的人来说，用各种方法实现，代码都不过几十行，
+但对于不会的同学，总是不知从哪学起：
+学一门脚本，js、Python、PHP、……；
+怎么完成OAuth；
+需要直接query ajax接口吗？（模拟浏览器）；
+……。
+
+[snsapi](http://snsapi.ie.cuhk.edu.hk/)
+对常用的操作进行了封装，
+使得一处编码可以适用多个平台。
+面向snsapi这套中间件的app，可以很容易迁移。
+我一直在寻找至简但又有用的app做demo，
+希望更多的同学能把SNS“玩”起来。
+不是消遣地玩，
+而是从中获益地玩。
+
+信息是属于每个人的，
+而不是少数“精英”以及几个IT巨头的。
+我们一直在努力，
+探索更高效获取、处理、传播信息的方法。
+
+forwarder (OLD)
+====
+
+This is a general purpose forwarder. 
+You can configure some in channels and some out channels. 
+In channels should support the function 'home\_timeline()'
+and out channels should support the function 'update()'
+The forwarder only supports staight forwarding at present. 
+Since too fast forwarding will cause failure, 
+we restrict it to 1 forward / 1 channel / 1 run. 
+You can set the 'quota' in 'forwarder.py', 
+or add sleep period. 
+
+Caveats
+----
+
+This App is a demo before our 2nd round of intensive restructure. 
+The implementation is far from optimal now. One can simplify the 
+script to around 20 lines using our latest SNSPocket class. 
+Welcome anyone contribute. -- HU Pili, 20121018
+
+You'd better checkout the Commit 6d685f14c9b5fc2090804157c6c15e0d84ec9023 
+of snsapi to work this old example.
+
+
+Deployment and Initial Test
+----
+
+By default, the following operations assume 
+you're under the same folder as the current file. 
+
+   * Make symbolic links to essential 'snsapi' components: 
+```
+ln -s ../../snsapi
+ln -s ../../auxiliary
+```
+   * Copy default configurations:
+```
+cp channel.json.example channel.json
+cp forwarder.json.example forwarder.json
+```
+   * By default, two RSS channels are configured
+   as in channels, which points 
+   to the test RSS files in the repo. 
+   1 Sina channel is configured as out channels. 
+   * Fill in your 'app_key' and 'app_secret'
+   in 'channel.json'. 
+   * Manually run the forwarder:
+```
+python forwarder.py
+```
+
+If the intial test is OK, you can try to configure your own 
+channels and forwarding policies. 
+
+Configurations
+----
+
+All configurations are written in json style. 
+
+'channel.json':
+   * This is universal to all snsapi. 
+   Please refer to the document of 'snsapi'. 
+
+'forwarder.json':
+   * 'channel_in': a list of all in channels. 
+   * 'channel_out' a list of all out channels. 
+
+Advanced
+----
+
+   * You can reset the 'messages.json', to erase the 
+   memory of all messages. 
+   The initial 'messages.json' is an empty map. 
+```
+{}
+```
+
+Screenshots
+----
+
+Configure Sina Weibo to be one in channel, 
+and QQ Microblog to be one out channel. 
+Invoke `python forwarder.py` and pass all the authorization. 
+It forwards the first message:
+
+![cli 1](https://raw.github.com/hupili/snsapi/master/app/forwarder/screenshots/old/forwarder3.jpg)
+
+Now I publish some news on the Sina weibo through web interface:
+
+![sina web](https://raw.github.com/hupili/snsapi/master/app/forwarder/screenshots/old/forwarder1.jpg)
+
+Invoke forwarder again. 
+forwarder remembers the messages it has forwarded and avoid repitition. 
+It forwards the newly published status on Sina:
+
+![cli 2](https://raw.github.com/hupili/snsapi/master/app/forwarder/screenshots/old/forwarder4.jpg)
+
+This is what we see on QQ microblog:
+
+![qq web](https://raw.github.com/hupili/snsapi/master/app/forwarder/screenshots/old/forwarder2.jpg)
+
+
+Remarks
+----
+
+The forwarder app is by no means complete. 
+It is just a demo of the basic idea. 
+You can modify the codes a little 
+and  setup some rules governing the forwarding behaviour. 
+
+forwarder 
+====
+
+This is a general purpose forwarder. 
+You can configure some in-channels and some out-channels. 
+In-channels should support the function `home\_timeline()`
+and out-channels should support the function `update()`.
+The forwarder only supports staight forwarding at present. 
+Since too fast forwarding will cause failure, 
+we restrict it to 1 forward / 1 channel / 1 run. 
+You can set the "quota" in `forwarder.py`, 
+or add sleep period. 
+
+Deployment and Initial Test
+----
+
+By default, the following operations assume 
+you're under the same folder as the current file. 
+
+   * Configure `channel.json` and `forwarder.json` accordingly. 
+   You can try `snscli` first for a self-contianed tutorial of 
+   configuration `channel.json`. 
+   `forwarder.json` only contains two JSON-lists: 
+   `channel_in` and `channel_out`. 
+   Please follow the examples in the file. 
+   * Manually run the forwarder:
+```
+python forwarder.py
+```
+
+Advanced
+----
+
+   * You can reset the 'messages.json', to erase the 
+   memory of all messages. 
+   The initial 'messages.json' is an empty map. 
+```
+{}
+```
+
+   * To limit number of messages queried in one invoke, 
+   you can set the `count` entry in `channel.json`. 
+   * To limit the number of messages write to one channel, 
+   you can set `quota` dict in `forwarder.json`. 
+
+Screenshots (OLD)
+----
+
+The following screenshots are from running the 
+[old verion](old/)
+forwarder. 
+The current new one simply restructure the code to make it much much simpler. 
+You can preview the effect from the screenshots. 
+
+Configure Sina Weibo to be one in channel, 
+and Tencent Weibo to be one out channel. 
+Invoke `python forwarder.py` and pass all the authorization. 
+It forwards the first message:
+
+![cli 1](https://raw.github.com/hupili/snsapi/master/app/forwarder/old/screenshots/forwarder3.jpg)
+
+Now I publish some news on the Sina weibo through web interface:
+
+![sina web](https://raw.github.com/hupili/snsapi/master/app/forwarder/old/screenshots/forwarder1.jpg)
+
+Invoke forwarder again. 
+forwarder remembers the messages it has forwarded and avoid repitition. 
+It forwards the newly published status on Sina:
+
+![cli 2](https://raw.github.com/hupili/snsapi/master/app/forwarder/old/screenshots/forwarder4.jpg)
+
+This is what we see on Tencent Weibo:
+
+![qq web](https://raw.github.com/hupili/snsapi/master/app/forwarder/old/screenshots/forwarder2.jpg)
+
+
+Remarks
+----
+
+The forwarder app is by no means complete. 
+It is just a demo of the basic idea. 
+You can modify the codes a little 
+and setup some rules governing the forwarding behaviour.
+
+Hello SNS
+====
+
+Introduction
+----
+
+These three scripts can be your first examples:
+
+   * `test-read-all.py`: 
+   Read all messages from all channels. 
+   * `test-read-reply.py`: 
+   Read all messages from all channels and choose to reply one. 
+   * `test-read-write-all.py`: 
+   Read all messages from all channels
+   and write a message to all channels. 
+
+Deploy
+----
+
+Make link of the following folders to current folder:
+
+   * `snsapi`. 
+   * `conf`. 
+
+Fill in configuration information in `conf` folder. 
+You have learned that in our inline tutorial in `snscli`. 
+To be simple, you can use `snscli` to create channels, 
+save to config files and then copy to current conf folder. 
+
+mysofa
+====
+
+**Warning: The code is under reconstruction using new SNSAPI interface. Do not use this app until it is done.**
+
+Hope this be a super simple example to motivate you using snsapi~
+
+Caveats
+----
+
+This App is a demo before our 2nd round of intensive restructure. 
+The implementation is far from optimal now. One can simplify the 
+script to around 20 lines using our latest SNSPocket class. 
+Welcome anyone contribute.  -- HU Pili, 20121018
+
+Introduction
+----
+
+mysofa reads statuses of Renren,
+watch for certain conditions,
+and then replies them. 
+You can use it to grab sofa everytime!
+This is how it gets the name.
+
+By a few modifications, you can reply your 
+girlfriend whenever she posts a new status. 
+No matter it is rainy, sunny or stormy;
+No matter it is course time, midnight, or coding time;
+etc. 
+You'll never miss one piece!
+Imagine how astonished she is!
+Of course, you can add some random delay 
+to make this look as natural as possible. 
+You also do not want to reply a smile image every time. 
+Work out some intelligent stuffs~
+(there are some pointers in the end of this document)
+You are geeks! 
+You can do it!
+I believe you!
+
+First Test
+----
+
+   * Go to [http://app.renren.com/developers/newapp](http://app.renren.com/developers/newapp)
+   and apply for a new application.
+   Believe me, it does not take you more than 
+   2 minutes. Visualizing your girlfriend's face. 
+   It's absolutely worth the time!
+   * For Linux user, run './deploy.sh'. 
+   Equivalently you can manually make links
+   of '../../snsapi' and '../../conf' to 
+   the current folder. Here's how the directory tree
+   looks then
+
+<img src="https://raw.github.com/hupili/snsapi/master/app/mysofa/pics/renren_sofa_1.jpg" />
+
+   * Copy 'conf/channel.json.example' to 
+   'conf/channel.json' and configure your 
+   Renren channel accordingly. 
+   If you have hard time understanding the 
+   config file, use the following sample:
+
+```
+[
+{
+  "channel_name": "renren_account_1", 
+  "open": "yes", 
+  "platform": "renren", 
+  "app_key": "", 
+  "app_secret": "",
+  "user_id": "",
+  "auth_info":
+  {
+    "callback_url": "http://graph.renren.com/oauth/login_success.html",
+    "cmd_fetch_code": "(built-in)",
+    "cmd_request_url": "(built-in)",
+    "save_token_file": "(built-in)"
+  }
+}
+]
+```
+
+   You have to fill in your own "app_key" and 
+   "app_secret". You get them in the first step.
+   * Run 'python mysofa.py' .
+   It runs like this. 
+
+<img src="https://raw.github.com/hupili/snsapi/master/app/mysofa/pics/renren_sofa_2.jpg" />
+
+A Step Further
+----
+
+You may noticed that mysofa managed to read one status
+but nothing happened after that. 
+OK, it means everything is working well. 
+It's time to look into the simple codes. 
+Here are some pointers:
+   * 'MYSOFAR_NEWS_QUERY_COUNT' :
+   How many statuses are read in one execution. 
+   * 'MYSOFAR_REPLY_GAP' :
+   How long do you wait between two replies. 
+   It is suggested to be 10 seconds. 
+   Or the server may reply 
+   "service unavailable". 
+   * 'MYSOFAR_REPLY_STRING' :
+   What do you reply every time. 
+   * 'can_reply()' : 
+   The filtering rules. 
+   By default, it only replies the statuses 
+   posted by the users how have "hpl" in 
+   their names. I just don't want to bother 
+   other people in the test stage. You can change
+   it to your girl friend's name, or 
+   more complex rules!
+
+You can make a cron job to let the script 
+running periodically. 
+Renren's token expires in 30 days. 
+After initial authentication, you can copy 
+the whole thing to your server and do not
+worry about re-authentication for a month. 
+Or, you can modify 'mysofa.py' directly. 
+Infinitely loop the the main() function 
+with proper delay. 
+
+Leap Forward
+----
+
+I know you won't stop here. 
+Now let's do something intelligent. 
+Supposingly, after a few trials and 
+modifications of the codes, you already 
+get a hint of how to use SNSAPI. 
+Other channels DO have the same flavour. 
+Here's how to leverage the Internet to work for you:
+   * Find some weather report rss. 
+   e.g. [http://www.weather.com/weather/rss/subscription/](http://www.weather.com/weather/rss/subscription/)
+   * Configure two channels, one for the weather
+   feeds and the other for Renren. 
+   * Find the information you need from the weather rss. 
+   * Reply by something like:
+   "It's so hot. Drink more water. :)" ;
+   "It's very cold. Dress more."; 
+   etc. 
+   * You can also give some hearty reminder 
+   according to the current system time:
+   "Don't stay up too late in the night, baby. 
+   It's already 11:50pm". 
+   * You can also do some NLP analysis of 
+   the thing she posts and reply accordingly!
+
+Closing Remarks
+----
+I don't have enough time to build all these ideas. 
+There are many upgrades of 'snsapi' waiting for me. 
+I tried hard to come up with this simple document, 
+attracting your interest, helping you jumpstart, 
+and motivating your wildest dreams.  
+We did a lot (and is continue doing) 
+for the underlying layers. 
+Hope you can focus on the upper layer logic. 
+Come on, make some crazy applications!
+
+   * We look forward to any people who 
+can write new plugins to enable more channels. 
+   * We look forward to any people who 
+can help to maintain the project. 
+   * We look forward to any people who 
+are willing to make the architecture more clear. 
+
+myword
+====
+
+Introduction
+----
+
+myword is a demo app modified from mysofa
+myword reads the timeline and check if someone "at" him.
+If someone "at" myword with a word, it will reply the message with the word's translation.
+                                    ---hzhua 2013.2.25
+															
+Dictionary API is provided by "dic.zhan-dui.com"
+
+Steps:
+----
+
+1.Please fill in your app_key and app_secret in conf/channel.json. (You can read the introduction in demo mysofa for help)
+
+2.Replace MY_NAME in myword.py with your own user name
+
+3.(Optional) Change REPLY_GAP as your will. REPLY_GAP is to control time between two replies.
+
+4.(Optional) Change NEWS_QUERY_COUNT as your will. NEWS_QUERY_COUNT is to control the number of statuses are read in one execution
+
+Warning:
+----
+Only the message like "@your_name word" can be translated successfully. Any addtional spaces or other characters are not allowed.
+Some correct examples:
+"@peter china"
+"@peter new year"
+
+Some incorrect examples:
+" @peter china" (There is a space before)
+"@peter  china" (There are two space between "@peter" and "china")
+"@peter ---- china ----" (Too many illegal characters and space)
+
+You can improve the demo with higher resolution capability (find out the word even the message is obscure).
+
+
+
+app
+====
+
+How to deploy?
+----
+
+It's very simple to have a test of apps in this folder:
+   * Clone the whole git repository. 
+   * Make a symbolic link of 'snsapi' and other essential 
+   subdirectoreis to the app working directory. 
+   i.e. (from the path of this document) 
+```
+cd forwarder
+ln -s ../../snsapi
+ln -s ../../auxiliary
+```
+   * Refer to the app's document for the commands. 
+
+List of Apps
+----
+
+Here's a list of apps. 
+Please refer to their own directory for detailed information. 
+   * hellosns
+   * forwarder
+   * mysofa
+
+# Auth Aux Scripts
+
+Those scripts were developed before have the HTTP server to fetch code.
+Now you can safely ignore them in order to try SNSAPI out. 
+However, if you want to extend the authorization behaviour, 
+you can look at those scripts and how they are associated with 
+the two stage of authorization. 
+
+## How to use?
+
+You can try to configure corresponding entry in `channel.json` to the following. 
+
+```
+"auth_info":
+{
+  "callback_url": "http://copy.the.code.to.client/",
+  "cmd_fetch_code": "./auxiliary/auth/fetch_code_local.sh",
+  "cmd_request_url": "./auxiliary/auth/request_url_wget.sh",
+  "save_token_file": "(default)"
+}
+```
+
+If you login the OSN (say SinaWeibo), export cookie to current dir and run `snscli`, 
+it will automatically authorize using this auxiliary scripts. 
+The advantage is that not until your cookie is expired, 
+it can always authorize without user intervention. 
+
+## TODO
+
+This two scripts are not frequently used. 
+Please verify whether they work before real deployment. 
+Feel free to upgrade them if you find problems. 
+
+auxiliary 
+====
+
+This folder contains auxiliary scritps. 
+In principle, they are not a necesary part of 'snsapi'. 
+Some of them are useful to make your deployment individulized. 
+Without those scripts, your 'snsapi' should still 
+work well by default. 
+
+File list
+----
+
+   * 'request_url_wget.sh'. Request url through 'wget', instead of default webbrowser.
+   * 'fetch_code_local.sh'. Pull authenticated code from local storage. 
+     By default, this script is invoked after 'request_url_wget.sh'. 
+   * 'auto.sh'. A general purpose auto executing script. 
+     It is assumed to be invoked by cron. 
+     This script help you enable and disable some auto command 
+     in an easier way. 
+
+Configuration
+====
+
+Usage
+-----
+
+   * '.example' : the example file of configs. 
+   Generally, you should copy them to the corresponding
+   file without '.example' suffix and fill in your 
+   information. 
+
+File description
+----
+
+   * 'channel.json': Configure channels. 
+   The outmost data structure is a list. 
+   One channel is one element in the list. 
+   * 'pocket.json': Configure global settings of snspocket. 
+   e.g. encryption when storing access tokens. 
+
+# SNSAPI doc 
+
+The doc is automatically generated from codes by Sphinx. 
+
+See: <http://snsapi.ie.cuhk.edu.hk/doc/>
+
+snsapi
+======
+
+跨平台，跨网站的，社交网络的中间件。
+现在支持新浪微博、腾讯微博、人人网、RSS、Sqlite（试验状态）、Email（试验状态）、twitter（试验状态）。
+我们的宗旨是，统一各种信息渠道的接口。
+
+   * SNSAPI让社交网络应用程序的编写变得简单，使得一次编码就能应用于各种社交网络平台。
+   * SNSAPI使得在各个平台之间传递信息变得非常方便，应用开发者可以专注于信息本身。 
+   * SNSAPI支持plugin，你能很方便地利用现成的资源和模版开发其他平台的API，并无缝适用于基于SNSAPI的应用。
+   * SNSAPI附带提供一个CLI，使用stdin/stdout与其他程序交互。
+   不用学习Python，即可使用SNSAPI完成众多操作。
+
+snscli上手测试
+--------------
+
+   * 首先你需要装Python2.7。
+   其他兼容版本见
+   [相关的wiki页面](https://github.com/hupili/snsapi/wiki/Compatibility-report)。
+   * 获得该项目： 
+      * 使用Git： `git clone https://github.com/hupili/snsapi.git`。 
+      * 或直接下载zip包： [https://github.com/hupili/snsapi/zipball/master](https://github.com/hupili/snsapi/zipball/master)
+      * (大陆用户：如果上面链接无法取得项目源码，请尝试将`https`改为`http`）
+   * 安装依赖库：`[sudo] pip install -r requirements.txt`。
+   * 进入项目根目录，`python -i snscli.py`。
+
+我们在`snscli.py`中集成完整的教程，
+将带你了解SNSAPI的基本操作。
+可以使用`print helpdoc`随时开启帮助菜单。
+可以使用`print tut`浏览教程。
+你将在10分钟之内体验到SNSAPI的基本功能，
+以及便利的跨平台信息收发。
+
+如遇到中文乱码，请参考“编码问题”章节。
+
+以下将包含一些交互运行中的片段，希望能让大家对snscli有个大致印象。
+（人人的信息被打码了）
+
+```
+>>> auth()
+[INFO][20120911-163533]Read saved token for 'sina_account_1' successfully
+[INFO][20120911-163533]Read saved token for 'qq_account_1' successfully
+[INFO][20120911-163533]Read saved token for 'renren_account_1' successfully
+>>> sl = home_timeline(2)
+[INFO][20120911-163552]Read 2 statuses from 'renren_account_1'
+[INFO][20120911-163552]Read 6 statuses
+>>> print sl
+[创意铺子] at Tue Sep 11 16:30:10 +0800 2012 
+  女孩纸们看看哪款香水适合你？
+[百度开发者中心] at Tue Sep 11 16:27:57 +0800 2012 
+  百度技术沙龙第三十期：网页展示新技术实践（9月15日 周六）http://t.cn/zWgpOhE
+[wj_xlt] at 1347351357 
+  【外交掠影】9月7日，中国新任驻乍得大使胡志强在乍得总统府向乍总统代比递交国书。代比总统对胡大使履新表示欢迎，并希望乍中双方进一步丰富合作内涵，推动更多中国企业在乍发展。<a href="http://url.cn/519bG3" target="_blank">http://url.cn/519bG3</a> 
+[xylzx2011] at 1347350990 
+  【那英合肥“惊艳”开唱 甘当绿叶几度哽咽】9月8日晚，歌坛天后@那英 来到合肥举办个人演唱会，当天那英一改往日形象，带着金色假发、穿着透视装登台。演唱会当晚合肥正下着大雨，但这并没有减低歌迷们的热情。现场座无虚席，歌迷们更是一起随着音乐挥舞着荧光棒。 <a href="http://url.cn/6iafBP" target="_blank">http://url.cn/6iafBP</a> 
+[xxx] at 2012-09-11 13:53:58 
+  xxx
+[xxx] at 2012-09-11 13:37:43 
+  xxx
+>>> update("test", channel = "sina_account_1")
+[INFO][20120911-163946]Update status 'test'. Result:{'sina_account_1': True}
+{'sina_account_1': True}
+>>> sl = home_timeline(2, channel = "sina_account_1")
+[INFO][20120911-164017]Read 2 statuses
+>>> print sl
+[snsapi_test] at Tue Sep 11 16:39:46 +0800 2012 
+  test
+[百度] at Tue Sep 11 16:38:34 +0800 2012 
+  实用！把iphone调的比最大声音还大的方法[赞]
+>>> save_config()
+[INFO][20120911-164515]save configs done
+>>> quit()
+```
+
+还等什么？赶快开启snscli的教程吧。
+
+stdin/stdout测试
+----------------
+
+下面这行linux命令将向你展示snsapi的stdin/stdout接口。
+
+```
+$echo -e 'load_config()\nauth()\nprint home_timeline(10)' | python -i snscli.py -c | grep "snsapi_test" -A 1
+>>> [INFO][20120911-165746]Read configs done. Add 1 channels
+>>> [INFO][20120911-165746]Read saved token for 'sina_account_1' successfully
+>>> [INFO][20120911-165748]Read 10 statuses
+>>> 
+[snsapi_test] at Tue Sep 11 16:39:46 +0800 2012 
+  test
+```
+
+在新浪微波上关注`snsapi_test`，然后运行这个命令。
+如果前10条消息中，有`snsapi_test`发的，你将能把它grep出来。
+你完全可以用脚本实现更复杂的功能，
+通过stdin对snscli输入命令，并从stdout得到结果。
+你可以定制自己的过滤规则、转发规则，等等。
+
+
+编码问题
+--------
+
+整个工程是使用utf-8编码的。
+SNSAPI默认使用utf-8读写外部数据，
+在SNSAPI内部统一使用unicode。
+如果在中文系统下运行出编码问题，
+请打开snsapi/snsconf.py，把最后一行的
+
+```
+SNSAPI_CONSOLE_STDOUT_ENCODING = 'utf-8'
+```
+
+更改为（比如你系统使用的是gbk）
+
+```
+SNSAPI_CONSOLE_STDOUT_ENCODING = 'gbk'
+```
+    
+应用
+----
+
+基础应用:
+
+   * hellosns: 
+   [https://github.com/hupili/snsapi/tree/master/app/hellosns](https://github.com/hupili/snsapi/tree/master/app/hellosns).
+   hello SNS将向你展示怎样用10行代码完成与SNS交互的基本功能，
+   它就是利用SNSAPI开发app的hello world啦。
+   * clock: 
+   [https://github.com/hupili/snsapi/tree/master/app/clock](https://github.com/hupili/snsapi/tree/master/app/clock).
+   clock是一口SNS平台上的钟，你可以很方便的用它来定时发布消息。
+   * forwarder: 
+   [https://github.com/hupili/snsapi/tree/master/app/forwarder](https://github.com/hupili/snsapi/tree/master/app/forwarder).
+   forwarder可以把一个平台的信息自动地发送到其他
+   平台，你需要做地只是填写配置文件，告诉它接收哪个平台信息，发布到哪些平台上。
+   * mysofa: 
+   [https://github.com/hupili/snsapi/tree/master/app/mysofa](https://github.com/hupili/snsapi/tree/master/app/mysofa).
+   mysofa我想你已经猜到了，就是用来抢沙发的 :D
+
+进阶应用:
+
+   * SNSRouter:
+   [https://github.com/hupili/sns-router](https://github.com/hupili/sns-router). 
+   正如其名，这个app将构建跨平台的智能存档、转发系统。
+   它目前还在活跃的开发阶段。
+
+trial状态的插件
+---------------
+
+SNSAPI中会不断加入新的插件。
+标准插件会所需的代码会包含在项目中，打包下载即可使用。
+如果需要使用trial状态的插件，你可能需要先更新依赖关系的项目。
+
+切换到snsapi的根目录下：
+
+```
+git submodule init
+git submodule update
+```
+
+开启和关闭trial插件请见`snsapi/platform.py`，
+选择注释是否`import`他们即可。
+
+后记
+----
+
+如果你不了解geek的世界，我能理解你看到一个
+没有图形界面、充斥各种代码和术语的软件，
+是多么的糟糕和令你困惑，
+但如果你想很快地实践自己对社交网络的一些新奇想法，入手snsapi吧！
+
+项目还在成长，所以还有很多考虑不到的东西请多包涵，
+也请给我们多提建议，更加欢迎你能参与进来，与我们一起改造社交网络！
+
+资源
+----
+
+   * [SNSAPI官网](http://snsapi.ie.cuhk.edu.hk/)。
+   目前由hupili维护，如果发现问题，请通知管理员。
+   也欢迎直接发patch到[repo](https://github.com/hupili/snsapi-website)。
+   * [SNSAPI中文网](http://snsapi.sinaapp.com/)。
+   目前由xuanqinanhai维护。
+   * [SNSAPI文档](http://snsapi.ie.cuhk.edu.hk/doc/)。
+   用Sphinx从Python代码直接生成的Doc。
+   也可以在使用SNSAPI的过程中，通过`help(XXX)`唤出。
+   * [SNSAPI Github Wiki](https://github.com/hupili/snsapi/wiki)，
+   所有github用户均可进行编辑，欢迎分享你的经验！
+   * [SNSAPI Google Group](https://groups.google.com/forum/?fromgroups#!forum/snsapi)
+   请加入这个社区，一同推进SNSAPI，我们会及时解决你遇到的各种问题。
+
+Copy Left
+---------
+
+![copyleft](http://unlicense.org/pd-icon.png)
+
+[http://unlicense.org](http://unlicense.org)
+
+All files of this project are released to public domain,
+except for the followings:
+
+   * `snsapi/third/*`: The third party modules. 
+   Please refer to their original LICENSE. 
+   We have pointers in `snsapi/third/README.md`
+   for those third party modules. 
+
+# SNSAPI
+
+A cross-platform **middleware** for Social Networking Services (SNS):
+
+   * Unified interfaces and data structures.
+   * The building block of a **user-centric**
+   [meta social network](https://github.com/hupili/snsapi/wiki/Taxonomy).
+   * Near-zero infrastructure [requirements](https://github.com/hupili/snsapi/wiki/Installation).
+   * Play with your social channels 
+   [like a hacker](http://snsapi.ie.cuhk.edu.hk/).
+
+## Lightning Demo 1 -- Read Twitter Timeline
+
+### Step 1.
+
+Register user and developer on Twitter. 
+[Apply for application keys and access tokens](https://github.com/hupili/snsapi/wiki/Apply-for-app-key).
+
+### Step 2.
+
+Save the following codes to `mytest.py` in the root dir of this project:
+
+```python
+from snscli import *
+nc = new_channel('TwitterStatus')
+nc['app_key'] = 'Your Consumer Key from dev.twitter.com'
+nc['app_secret'] = 'Your Consumer Secret from dev.twitter.com'
+nc['access_key'] = 'Your Access Token from dev.twitter.com'
+nc['access_secret'] = 'Your Access Token Secret from dev.twitter.com'
+add_channel(nc)
+print home_timeline()
+```
+
+Filling your app credentials in the above script: 
+`app_key`,
+`app_secret`,
+`access_key`,
+`access_key`.
+
+### Step 3.
+
+Try it by `python mytest.py`.
+You will see your home timeline from twitter.
+
+### Remarks
+
+SNSApi **unifies the interfaces** of all SNS
+such that retrieving new messages from all other platforms are the same:
+
+   * Create a new channel configuration and `add_channel` it.
+   * Invoke a single `home_timeline()` to obtain an aggregated timeline 
+   from all channels in a batch.
+
+## Lightning Demo 2 -- Backup Your Data
+
+### Step 1.
+
+[Configure a channel.json](https://github.com/hupili/snsapi/wiki/Configurations) file
+with two channels:
+
+   * One is called "myrenren" and it 
+   interfaces with Renren (an OSN in China).
+   * The other is called "mysqlite" and it 
+   interfaces with a SQLite3 DB.
+
+See [one example](https://github.com/hupili/snsapi/tree/master/app/backup-renren/conf/channel.json.example)
+`channel.json` configuration.
+
+### Step 2.
+
+Save the following codes to `backup.py` in the root dir of this project:
+
+```python
+from snsapi.snspocket import SNSPocket
+sp = SNSPocket()
+sp.load_config()
+sp.auth()
+
+ml = sp['myrenren'].home_timeline()
+for m in ml:
+    sp['mysqlite'].update(m)
+```
+
+### Step 3.
+
+Try it by `python backup.py`.
+Now your timeline of Renren (latest 20 messages by default)
+is backed up to the SQLite DB.
+You can run this script on a regular basis to backup data from all kinds of SNS. 
+
+### Remarks
+
+SNSApi unifies the **data structures** of all SNS 
+so as to enable flexible/ programmable inter-operation between those services:
+
+   * Backup one message in SQLite is just "update a status" there.
+   * In order to read those messages, 
+   just invoke `home_timeline` of your SQLite channel.
+   * The data in SQLite DB are ready for further analysis.
+   For example, I remember someone said that "snsapi is awesome".
+   Who posted it? I can not recall.
+   Now, enter sqlite and use one line of command to get the answer:
+   `select * from message where text like '%snsapi%';`.
+   * You can also use EMail or RSS to distribute your statuses 
+   and follow the updates of your friends.
+   * When there are new platforms, it's just one configuration away to use them. 
+   The intervention from app developer is not needed.
+
+## Lightning Demo 3 -- An Ad-Hoc DSN
+   
+[Decentralized Social Network](https://github.com/hupili/snsapi/wiki/Taxonomy) (DSN)
+is the next paradigm of social networking.
+Current centralized services have a lot of problems, 
+e.g. [Spying for free](http://en.wikipedia.org/wiki/PRISM_%28surveillance_program%29).
+
+SNSApi is just a middleware to offload your burden in interfacing with different platforms.
+Now, try to build something without worrying about the interfacing detials.
+
+![](https://docs.google.com/drawings/d/1S-REIYN46lR6WpmimG1v5CPJdDYlfVnGDwY3vL5Tju4/pub?w=400)
+
+See [RSoc Community Page](https://github.com/hupili/snsapi/wiki/Rsoc) if you are interested.
+
+## Supported Platforms
+
+Enther the interactive shell by  `python -i snscli.py`.
+Get the supported platforms as follows:
+
+```
+Supported platforms:
+   * Email
+   * FacebookFeed
+   * RSS
+   * RSS2RW
+   * RSSSummary
+   * RenrenBlog
+   * RenrenFeed
+   * RenrenPhoto
+   * RenrenShare
+   * RenrenStatus
+   * RenrenStatusDirect
+   * SQLite
+   * SinaWeiboBase
+   * SinaWeiboStatus
+   * SinaWeiboWapStatus
+   * TencentWeiboStatus
+   * TwitterStatus
+   * ...
+
+```
+
+More platforms are coming!
+Please join us!
+
+## Get Started
+
+   * Clone and install dependencies via `pip`. 
+   Then you are ready to go. 
+   See [installation guide](https://github.com/hupili/snsapi/wiki/Installation)
+   if you need more detailed information.
+   See [troubleshooting](https://github.com/hupili/snsapi/wiki/Troubleshooting) page 
+   if you encounter problems in your initial tests.
+   * We have several 
+   [demo apps](https://github.com/hupili/snsapi/tree/master/app)
+   in this repo.
+   You can start with them and see how to use those classes of SNSAPI.
+   * Users who don't want to write Python or other non-Python programmers
+   can start with our command-line-interface (`snscli.py`).
+   [The official SNSAPI website](http://snsapi.ie.cuhk.edu.hk/)
+   should get your started quickly along this line.
+   This CLI can allow interfacing with other languages using STDIN/ STDOUT.
+   * Users who are not comfortable with CLI can use the 
+   graphical-user-interface (`snsgui.py`).
+   See [more user interfaces](https://github.com/hupili/snsapi/wiki/End-user-interfaces).
+
+## Resources
+
+   * [SNSApi Website](http://snsapi.ie.cuhk.edu.hk/):
+   maintained by [@hupili](https://github.com/hupili/);
+   welcome to report problems to admin, 
+   or send pull request to [website repo](https://github.com/hupili/snsapi-website) directly.
+   * [SNSApi Website (CN)](http://snsapi.sinaapp.com/):
+   maintained by [@xuanqinanhai](https://github.com/xuanqinanhai).
+   * [SNSApi doc](https://snsapi.readthedocs.org/en/latest/):
+   automatically generated from code using Sphinx;
+   also available as inline doc using `help(XXX)` from Python shell.
+   * [SNSApi Github Wiki](https://github.com/hupili/snsapi/wiki):
+   editable by all GitHub users; welcome to share your experience.
+   * [SNSApi Google Group](https://groups.google.com/forum/?fromgroups#!forum/snsapi):
+   The most efficient way to get help, discuss new ideas and organize community activities.
+   Please join us!
+
+## License
+
+[![copyleft](http://unlicense.org/pd-icon.png)](http://unlicense.org)
+
+All materials of this project are released to public domain,
+except for the followings:
+
+   * `snsapi/third/*`: The third party modules. 
+   Please refer to their original LICENSE. 
+   We have pointers in `snsapi/third/README.md`
+   for those third party modules. 
+
+## Other
+
+   * Old version of this readme [in Chinese](https://github.com/hupili/snsapi/blob/master/doc/snsapi-old-readme-cn.md)
+
+![master](https://travis-ci.org/hupili/snsapi.png?branch=master)
+![dev](https://travis-ci.org/hupili/snsapi.png?branch=dev)
+[![Analytics](https://ga-beacon.appspot.com/UA-37311363-5/hupili/snsapi)](https://github.com/igrigorik/ga-beacon)
+
+
+SNSAPI
+======
+
+A cross-platform **middleware** for Social Networking Services (SNS):
+
+-  Unified interfaces and data structures.
+-  The building block of a **user-centric** `meta social
+   network <https://github.com/hupili/snsapi/wiki/Taxonomy>`__.
+-  Near-zero infrastructure
+   `requirements <https://github.com/hupili/snsapi/wiki/Installation>`__.
+-  Play with your social channels `like a
+   hacker <http://snsapi.ie.cuhk.edu.hk/>`__.
+
+Lightning Demo 1 -- Read Twitter Timeline
+-----------------------------------------
+
+Step 1.
+~~~~~~~
+
+Register user and developer on Twitter. `Apply for application keys and
+access
+tokens <https://github.com/hupili/snsapi/wiki/Apply-for-app-key>`__.
+
+Step 2.
+~~~~~~~
+
+Save the following codes to ``mytest.py`` in the root dir of this
+project:
+
+.. code:: python
+
+    from snscli import *
+    nc = new_channel('TwitterStatus')
+    nc['app_key'] = 'Your Consumer Key from dev.twitter.com'
+    nc['app_secret'] = 'Your Consumer Secret from dev.twitter.com'
+    nc['access_key'] = 'Your Access Token from dev.twitter.com'
+    nc['access_secret'] = 'Your Access Token Secret from dev.twitter.com'
+    add_channel(nc)
+    print home_timeline()
+
+Filling your app credentials in the above script: ``app_key``,
+``app_secret``, ``access_key``, ``access_key``.
+
+Step 3.
+~~~~~~~
+
+Try it by ``python mytest.py``. You will see your home timeline from
+twitter.
+
+Remarks
+~~~~~~~
+
+SNSApi **unifies the interfaces** of all SNS such that retrieving new
+messages from all other platforms are the same:
+
+-  Create a new channel configuration and ``add_channel`` it.
+-  Invoke a single ``home_timeline()`` to obtain an aggregated timeline
+   from all channels in a batch.
+
+Lightning Demo 2 -- Backup Your Data
+------------------------------------
+
+Step 1.
+~~~~~~~
+
+`Configure a
+channel.json <https://github.com/hupili/snsapi/wiki/Configurations>`__
+file with two channels:
+
+-  One is called "myrenren" and it interfaces with Renren (an OSN in
+   China).
+-  The other is called "mysqlite" and it interfaces with a SQLite3 DB.
+
+See `one
+example <https://github.com/hupili/snsapi/tree/master/app/backup-renren/conf/channel.json.example>`__
+``channel.json`` configuration.
+
+Step 2.
+~~~~~~~
+
+Save the following codes to ``backup.py`` in the root dir of this
+project:
+
+.. code:: python
+
+    from snsapi.snspocket import SNSPocket
+    sp = SNSPocket()
+    sp.load_config()
+    sp.auth()
+
+    ml = sp['myrenren'].home_timeline()
+    for m in ml:
+        sp['mysqlite'].update(m)
+
+Step 3.
+~~~~~~~
+
+Try it by ``python backup.py``. Now your timeline of Renren (latest 20
+messages by default) is backed up to the SQLite DB. You can run this
+script on a regular basis to backup data from all kinds of SNS.
+
+Remarks
+~~~~~~~
+
+SNSApi unifies the **data structures** of all SNS so as to enable
+flexible/ programmable inter-operation between those services:
+
+-  Backup one message in SQLite is just "update a status" there.
+-  In order to read those messages, just invoke ``home_timeline`` of
+   your SQLite channel.
+-  The data in SQLite DB are ready for further analysis. For example, I
+   remember someone said that "snsapi is awesome". Who posted it? I can
+   not recall. Now, enter sqlite and use one line of command to get the
+   answer: ``select * from message where text like '%snsapi%';``.
+-  You can also use EMail or RSS to distribute your statuses and follow
+   the updates of your friends.
+-  When there are new platforms, it's just one configuration away to use
+   them. The intervention from app developer is not needed.
+
+Lightning Demo 3 -- An Ad-Hoc DSN
+---------------------------------
+
+`Decentralized Social
+Network <https://github.com/hupili/snsapi/wiki/Taxonomy>`__ (DSN) is the
+next paradigm of social networking. Current centralized services have a
+lot of problems, e.g. `Spying for
+free <http://en.wikipedia.org/wiki/PRISM_%28surveillance_program%29>`__.
+
+SNSApi is just a middleware to offload your burden in interfacing with
+different platforms. Now, try to build something without worrying about
+the interfacing detials.
+
+.. figure:: https://docs.google.com/drawings/d/1S-REIYN46lR6WpmimG1v5CPJdDYlfVnGDwY3vL5Tju4/pub?w=400
+   :alt: 
+
+See `RSoc Community Page <https://github.com/hupili/snsapi/wiki/Rsoc>`__
+if you are interested.
+
+Supported Platforms
+-------------------
+
+Enther the interactive shell by ``python -i snscli.py``. Get the
+supported platforms as follows:
+
+::
+
+    Supported platforms:
+       * Email
+       * FacebookFeed
+       * RSS
+       * RSS2RW
+       * RSSSummary
+       * RenrenBlog
+       * RenrenFeed
+       * RenrenPhoto
+       * RenrenShare
+       * RenrenStatus
+       * RenrenStatusDirect
+       * SQLite
+       * SinaWeiboBase
+       * SinaWeiboStatus
+       * SinaWeiboWapStatus
+       * TencentWeiboStatus
+       * TwitterStatus
+       * ...
+
+More platforms are coming! Please join us!
+
+Get Started
+-----------
+
+-  Clone and install dependencies via ``pip``. Then you are ready to go.
+   See `installation
+   guide <https://github.com/hupili/snsapi/wiki/Installation>`__ if you
+   need more detailed information. See
+   `troubleshooting <https://github.com/hupili/snsapi/wiki/Troubleshooting>`__
+   page if you encounter problems in your initial tests.
+-  We have several `demo
+   apps <https://github.com/hupili/snsapi/tree/master/app>`__ in this
+   repo. You can start with them and see how to use those classes of
+   SNSAPI.
+-  Users who don't want to write Python or other non-Python programmers
+   can start with our command-line-interface (``snscli.py``). `The
+   official SNSAPI website <http://snsapi.ie.cuhk.edu.hk/>`__ should get
+   your started quickly along this line. This CLI can allow interfacing
+   with other languages using STDIN/ STDOUT.
+-  Users who are not comfortable with CLI can use the
+   graphical-user-interface (``snsgui.py``). See `more user
+   interfaces <https://github.com/hupili/snsapi/wiki/End-user-interfaces>`__.
+
+Resources
+---------
+
+-  `SNSApi Website <http://snsapi.ie.cuhk.edu.hk/>`__: maintained by
+   `@hupili <https://github.com/hupili/>`__; welcome to report problems
+   to admin, or send pull request to `website
+   repo <https://github.com/hupili/snsapi-website>`__ directly.
+-  `SNSApi Website (CN) <http://snsapi.sinaapp.com/>`__: maintained by
+   `@xuanqinanhai <https://github.com/xuanqinanhai>`__.
+-  `SNSApi doc <https://snsapi.readthedocs.org/en/latest/>`__:
+   automatically generated from code using Sphinx; also available as
+   inline doc using ``help(XXX)`` from Python shell.
+-  `SNSApi Github Wiki <https://github.com/hupili/snsapi/wiki>`__:
+   editable by all GitHub users; welcome to share your experience.
+-  `SNSApi Google
+   Group <https://groups.google.com/forum/?fromgroups#!forum/snsapi>`__:
+   The most efficient way to get help, discuss new ideas and organize
+   community activities. Please join us!
+
+License
+-------
+
+|copyleft|
+
+All materials of this project are released to public domain, except for
+the followings:
+
+-  ``snsapi/third/*``: The third party modules. Please refer to their
+   original LICENSE. We have pointers in ``snsapi/third/README.md`` for
+   those third party modules.
+
+Other
+-----
+
+-  Old version of this readme `in
+   Chinese <https://github.com/hupili/snsapi/blob/master/doc/snsapi-old-readme-cn.md>`__
+
+Build Status
+------------
+
+-  master: |master|
+-  dev: |dev|
+
+.. |copyleft| image:: http://unlicense.org/pd-icon.png
+   :target: http://unlicense.org
+.. |master| image:: https://travis-ci.org/hupili/snsapi.png?branch=master
+.. |dev| image:: https://travis-ci.org/hupili/snsapi.png?branch=dev
+
+# Save
+
+This folder contains user data:
+
+   * Default saved token files.
+   * The default DB to support asynchronous operation.
+   * Other temporary data.
+
+plugins
+====
+
+Short Notice
+----
+
+   * New plugins should be placed in this directory. 
+   * Remember to add the name (module name, aka filename) of it 
+   to list `__all__` in  `__init__.py`.
+
+# Trial Plugins
+
+Trial plugins goes into this directory. 
+After full testing and code quality auditing, 
+it will be moved to "plugin" directory. 
+
+We allow kludgery plugins in this directory. 
+e.g. copy a full functioning encapsulation of certian 
+platform into this directory and only do method
+routing to fit into SNSAPI framework. 
+Before moving to formal "plugin" directory, 
+it must be tailored to keep the code tidy and clean. 
+
+Basic requirements to bring a trial plugin to formal plugin:
+
+   * Only keep essential functionality. 
+   * Reuse common operations provided in lower layer. 
+   e.g. `_http_get` in SNSAPI. 
+
+To disable/enable trial plugins please see "../platform.py". 
+
+third
+====
+
+This folder contains third-party libraries. 
+We do not guarantee an entire package of the 
+original release is present in this folder. 
+Without special reasons, only involved 
+files are put here. 
+If this operation make essential LICENSE
+information missing, please refer to original 
+releases. 
+
+We leave a pointer for each library:
+
+   * 'facebook.py'. 
+   [https://github.com/pythonforfacebook/facebook-sdk](https://github.com/pythonforfacebook/facebook-sdk)
+   * 'feedparser.py'. 
+   [http://code.google.com/p/feedparser/](http://code.google.com/p/feedparser/)
+   * 'PyRSS2Gen.py'. 
+   [http://www.dalkescientific.com/Python/PyRSS2Gen.html](http://www.dalkescientific.com/Python/PyRSS2Gen.html)
+   * 'pyDes.py'. 
+   [http://twhiteman.netfirms.com/des.html](http://twhiteman.netfirms.com/des.html)
+   * 'oauth.py'. 
+   [link-missing](link-missing)
+   * 'oauth2'. (dependency of python-twitter)
+   [https://github.com/simplegeo/python-oauth2](https://github.com/simplegeo/python-oauth2)
+   * 'python-twitter'.
+   [https://github.com/bear/python-twitter](https://github.com/bear/python-twitter)
+
+Test Suite of SNSAPI
+====
+
+To test SNSAPI, you need `nose` package. 
+Then issue the command **in this directory**: 
+(avoid running other files while appears like "tests" for nose)
+
+```
+nosetests -sv
+```
+
+SNSAPI 0.7.1
+============
+
+Version string convention: `x.y.z`
+
+   * `x`: Major version with architectural upgrades.
+   * `y`: Minor version with functional extension.
+   * `z`: Micro version with small fix.
+
+0.7.1
+-----
+
+   * Add Twitter Search channel.
+
+0.7.0
+-----
+
+Architecture upgrade:
+
+   * Attachment support, e.g. pic, link, etc.
+   The update() of Renren and SinaWeibo support image upload.
+   * Asynchronous I/O.
+   See the snscli-async for how to use it.
+
+New platforms:
+
+   * RenrenFeed.
+   A merge of several RenrenXXX platforms.
+
+0.6.x
+-----
+
+0.6.4, 0.6.5:
+
+   * Auto convert a `.rst` doc for PyPI use.
+
+0.6.3:
+
+   * Use readthedocs and travis CI.
+   * Fix UT of message digest (for travis CI)
+
+0.6.2:
+
+   * Solve static data support problem of setuptools
+
+0.6.1:
+
+   * Improve packaging
+
+0.6.0
+-----
+
+Majors:
+
+   * SinaWap platform is on
+   * Facebook platform is on
+   * New data field: `Message.parsed.attachment`.
+   Can be used to convey pictures, videos, and links.
+   Format can be both link, text, or binary.
+   * RSS Message is now fully JSON serializable.
+   (the `.raw` is serialized to a str first)
+   * snsgui now have RSSSummary and RenrenBlog platform
+   * Support static data dir.
+   * Detect and change storage dir intelligently.
+
+Minors:
+
+   * `RSS2RW.update` now supports a `Message`.
+   * Default log config is changed.
+   Developers please refer to `snsapi/custom_conf.py.example`.
+   * More UTs.
+
+0.5.0
+-----
+
+Main changes that may influence current running instances:
+
+   * Change default saved token path to `.save`
+   * Change old `(null)` notation.
+   All are unified to `None` internal SNSApi.
+   Use `null` in JSON.
+   * Change default `RSS` message str style.
+
+Main functional upgrades:
+
+   * Google Reader takeout format to SNSApi channel conf converter
+   * New platform: `RSSSummary`.
+   This can be used to format the RSS feeds with full-texts.
+   * Upgrade Twitter Api from 1.0 to 1.1.
+   * `RenrenStatus` specific forwarding is enabled.
+   * `forwarder` app is not more generic and flexible.
+
+Important fixes:
+
+   * Fix bad TZ object problem on some platforms.
+
+Miscellaneous:
+
+   * Upgrade main readme.
+   * A lot more wiki pages.
+   * SNSCLI code clean.
+   * Auto-doc upgrades.
+
+0.4.4
+-----
+
+   * Unify the Sina API request to `weibo_request()` method. 
+   * SinaWeibo support specialized forwarding. 
+   * Code clean for `snsgui.py`. 
+
+0.4.3
+-----
+
+   * URL expanding service (recursive) in SNSBase.
+   * URL shortening service for SinaWeibo.
+   * docstring upgrade for some platforms. 
+   * A word translation demo. 
+   * snsgui, GUI of SNSAPI built on Tkinter.
+
+0.4.2
+-----
+
+   * Two new methods for auto authorization prototyped for SinaWeiboStatus:
+   1) Use remote Autoproxy (see https://github.com/xuanqinanhai/weibo-simulator );
+   2) Use local username/password. 
+   * Upgrades for Sphinx autodoc:
+   1) improve decorator `require_authed` to retain docstring; 
+   2) make apps autodoc-able;
+   3) docstring upgrade to conform to Sphinx style;
+   * More UTs for snsbase methods: `_parse_code`; expiration check. 
+
+0.4.1
+-----
+
+   * Fix `load_config` in `app/hellosns/`
+   * Email platform: check expire;
+   support decode email header; 
+   support parse 'reply-to' header field;
+   * Fix import path error of unit test.
+   * More sample unit test of email channel. 
+   * Fix unicode error of `app/clock/`
+   * Fix Sphinx document. 
+   * All defaut auth helper is changed to http://snsapi.sinaapp.com/auth.php
+   * Support Module test of `renren.py` and `sina.py`. 
+
+
+0.4
+----
+
+   * New auth flow functions: `is_authed`, `need_auth`, `is_expired`. 
+   * Use `requirement.txt` to maintain dependency. 
+   * Add a "clock" demo app. 
+   * Rewrite "forwarder" using new architecture. 
+   * Support limiting home_timeline's count by config. (handy to operate multiple channels). 
+   * JsonDict function support stronger `get`: enumerate a list of properties. (handy to parse different version of data source)
+   * Fix an RSS date parsing error. 
+   * Change to nosetests. 
+
+0.3
+---
+
+   * Restructure nested Message class, allowing them to be pickled. 
+   * Fault tolerant auth flow. 
+   * Fault tolerant HTTP request/response. 
+   * A `report_time` decorator is added to `utils`. 
+   You can use it to get execution time of functions. 
+   * A `require_authed` decorator is added to `snsbase`. 
+   Plugin developers should put it before the methods, 
+   whose invokation require a authed state. 
+   * Fix Tencent Weibo html entity problem. 
+   The texts in Message object is unified to have html entities unescaped. 
+
+0.2
+---
+
+   * New platform reference mechanism. 
+   Support trial platforms. 
+   * One module file -> multiple platforms. 
+   This allows better code reuse. 
+   * Message class is re-designed. 
+   * Three levels of Message dump methods for different application. 
+   * Add SQLite platform. 
+   * Add Email platform. 
+   * Add Twitter platform. 
+
+0.1
+---
+
+   * Initial framework. 
+   * Setup website. 
+

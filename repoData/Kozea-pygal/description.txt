@@ -1,0 +1,377 @@
+## 2.0 BOOTSTRAP JS PHILOSOPHY
+These are the high-level design rules which guide the development of Bootstrap's plugin apis.
+
+---
+
+### DATA-ATTRIBUTE API
+
+We believe you should be able to use all plugins provided by Bootstrap purely through the markup API without writing a single line of javascript.
+
+We acknowledge that this isn't always the most performant and sometimes it may be desirable to turn this functionality off altogether. Therefore, as of 2.0 we provide the ability to disable the data attribute API by unbinding all events on the body namespaced with `'data-api'`. This looks like this:
+
+    $('body').off('.data-api')
+
+To target a specific plugin, just include the plugins name as a namespace along with the data-api namespace like this:
+
+    $('body').off('.alert.data-api')
+
+---
+
+### PROGRAMATIC API
+
+We also believe you should be able to use all plugins provided by Bootstrap purely through the JS API.
+
+All public APIs should be single, chainable methods, and return the collection acted upon.
+
+    $(".btn.danger").button("toggle").addClass("fat")
+
+All methods should accept an optional options object, a string which targets a particular method, or null which initiates the default behavior:
+
+    $("#myModal").modal() // initialized with defaults
+    $("#myModal").modal({ keyboard: false }) // initialized with now keyboard
+    $("#myModal").modal('show') // initializes and invokes show immediately afterqwe2
+
+---
+
+### OPTIONS
+
+Options should be sparse and add universal value. We should pick the right defaults.
+
+All plugins should have a default object which can be modified to effect all instance's default options. The defaults object should be available via `$.fn.plugin.defaults`.
+
+    $.fn.modal.defaults = { … }
+
+An options definition should take the following form:
+
+    *noun*: *adjective* - describes or modifies a quality of an instance
+
+examples:
+
+    backdrop: true
+    keyboard: false
+    placement: 'top'
+
+---
+
+### EVENTS
+
+All events should have an infinitive and past participle form. The infinitive is fired just before an action takes place, the past participle on completion of the action.
+
+    show | shown
+    hide | hidden
+
+---
+
+### CONSTRUCTORS
+
+Each plugin should expose it's raw constructor on a `Constructor` property -- accessed in the following way:
+
+
+    $.fn.popover.Constructor
+
+---
+
+### DATA ACCESSOR
+
+Each plugin stores a copy of the invoked class on an object. This class instance can be accessed directly through jQuery's data API like this:
+
+    $('[rel=popover]').data('popover') instanceof $.fn.popover.Constructor
+
+---
+
+### DATA ATTRIBUTES
+
+Data attributes should take the following form:
+
+- data-{{verb}}={{plugin}} - defines main interaction
+- data-target || href^=# - defined on "control" element (if element controls an element other than self)
+- data-{{noun}} - defines class instance options
+
+examples:
+
+    // control other targets
+    data-toggle="modal" data-target="#foo"
+    data-toggle="collapse" data-target="#foo" data-parent="#bar"
+
+    // defined on element they control
+    data-spy="scroll"
+
+    data-dismiss="modal"
+    data-dismiss="alert"
+
+    data-toggle="dropdown"
+
+    data-toggle="button"
+    data-toggle="buttons-checkbox"
+    data-toggle="buttons-radio"
+[Twitter Bootstrap](http://twitter.github.com/bootstrap) [![Build Status](https://secure.travis-ci.org/twitter/bootstrap.png)](http://travis-ci.org/twitter/bootstrap)
+=================
+
+Bootstrap is a sleek, intuitive, and powerful front-end framework for faster and easier web development, created and maintained by [Mark Otto](http://twitter.com/mdo) and [Jacob Thornton](http://twitter.com/fat) at Twitter.
+
+To get started, checkout http://getbootstrap.com!
+
+
+
+Quick start
+-----------
+
+Clone the repo, `git clone git://github.com/twitter/bootstrap.git`, or [download the latest release](https://github.com/twitter/bootstrap/zipball/master).
+
+
+
+Versioning
+----------
+
+For transparency and insight into our release cycle, and for striving to maintain backward compatibility, Bootstrap will be maintained under the Semantic Versioning guidelines as much as possible.
+
+Releases will be numbered with the following format:
+
+`<major>.<minor>.<patch>`
+
+And constructed with the following guidelines:
+
+* Breaking backward compatibility bumps the major (and resets the minor and patch)
+* New additions without breaking backward compatibility bumps the minor (and resets the patch)
+* Bug fixes and misc changes bumps the patch
+
+For more information on SemVer, please visit http://semver.org/.
+
+
+
+Bug tracker
+-----------
+
+Have a bug? Please create an issue here on GitHub that conforms with [necolas's guidelines](https://github.com/necolas/issue-guidelines).
+
+https://github.com/twitter/bootstrap/issues
+
+
+
+Twitter account
+---------------
+
+Keep up to date on announcements and more by following Bootstrap on Twitter, [@TwBootstrap](http://twitter.com/TwBootstrap).
+
+
+
+Blog
+----
+
+Read more detailed announcements, discussions, and more on [The Official Twitter Bootstrap Blog](http://blog.getbootstrap.com).
+
+
+
+Mailing list
+------------
+
+Have a question? Ask on our mailing list!
+
+twitter-bootstrap@googlegroups.com
+
+http://groups.google.com/group/twitter-bootstrap
+
+
+
+IRC
+---
+
+Server: irc.freenode.net
+
+Channel: ##twitter-bootstrap (the double ## is not a typo)
+
+
+
+Developers
+----------
+
+We have included a makefile with convenience methods for working with the Bootstrap library.
+
++ **dependencies**
+Our makefile depends on you having recess, connect, uglify.js, and jshint installed. To install, just run the following command in npm:
+
+```
+$ npm install recess connect uglify-js jshint -g
+```
+
++ **build** - `make`
+Runs the recess compiler to rebuild the `/less` files and compiles the docs pages. Requires recess and uglify-js. <a href="http://twitter.github.com/bootstrap/less.html#compiling">Read more in our docs &raquo;</a>
+
++ **test** - `make test`
+Runs jshint and qunit tests headlessly in [phantomjs](http://code.google.com/p/phantomjs/) (used for ci). Depends on having phantomjs installed.
+
++ **watch** - `make watch`
+This is a convenience method for watching just Less files and automatically building them whenever you save. Requires the Watchr gem.
+
+
+
+Contributing
+------------
+
+Please submit all pull requests against *-wip branches. If your unit test contains javascript patches or features, you must include relevant unit tests. Thanks!
+
+
+
+Authors
+-------
+
+**Mark Otto**
+
++ http://twitter.com/mdo
++ http://github.com/markdotto
+
+**Jacob Thornton**
+
++ http://twitter.com/fat
++ http://github.com/fat
+
+
+
+Copyright and license
+---------------------
+
+Copyright 2012 Twitter, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this work except in compliance with the License.
+You may obtain a copy of the License in the LICENSE file, or at:
+
+   http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+# Pygal
+
+
+@@TOC@@
+
+## Description
+
+**pygal** is a dynamic SVG charting library written in python.
+All the documentation is on http://pygal.org
+
+
+## Installation
+
+As simple as:
+
+```
+    $ pip install pygal
+```
+
+
+
+## Test
+
+Pygal is tested with py.test:
+
+
+```
+    $ pip install pytest
+    $ py.test
+```
+
+
+## Contribute
+
+You are welcomed to fork the project and make pull requests.
+Be sure to create a branch for each feature, write tests if needed and run the current tests !
+
+
+You can also support the project:
+
+[![Flattr](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=paradoxxx_zero&url=https://github.com/Kozea/pygal&title=Pygal&tags=github&category=software)
+[![gittip](http://i.imgur.com/IKcQB2P.png)](https://www.gittip.com/paradoxxxzero/)
+
+
+
+## License
+
+Copyright © 2012-2014 Kozea
+LGPLv3:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+# Pygal
+
+
+- [Pygal](#pygal)
+    - [Description](#description)
+    - [Installation](#installation)
+    - [Test](#test)
+    - [Contribute](#contribute)
+    - [License](#license)
+
+## Description
+
+**pygal** is a dynamic SVG charting library written in python.
+All the documentation is on http://pygal.org
+
+
+## Installation
+
+As simple as:
+
+```
+    $ pip install pygal
+```
+
+
+
+## Test
+
+Pygal is tested with py.test:
+
+
+```
+    $ pip install pytest
+    $ py.test
+```
+
+
+## Contribute
+
+You are welcomed to fork the project and make pull requests.
+Be sure to create a branch for each feature, write tests if needed and run the current tests !
+
+
+You can also support the project:
+
+[![Flattr](http://api.flattr.com/button/flattr-badge-large.png)](https://flattr.com/submit/auto?user_id=paradoxxx_zero&url=https://github.com/Kozea/pygal&title=Pygal&tags=github&category=software)
+[![gittip](http://i.imgur.com/IKcQB2P.png)](https://www.gittip.com/paradoxxxzero/)
+
+
+
+## License
+
+Copyright © 2012-2014 Kozea
+LGPLv3:
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+

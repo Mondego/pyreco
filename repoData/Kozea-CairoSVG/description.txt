@@ -1,0 +1,410 @@
+=========
+ Read Me
+=========
+
+CairoSVG is a SVG converter based on Cairo. It can export SVG files to PDF,
+PostScript and PNG files.
+
+For further information, please visit the `CairoSVG Website
+<http://www.cairosvg.org/>`_.
+
+===========
+ Animation
+===========
+
+The tests here fail because they rely on animations. We don't have to fix them.
+
+=======
+ Cairo
+=======
+
+These bugs are caused by cairo.
+
+
+Radial Gradient
+===============
+
+- ``pservers-grad-13-b``
+
+The radial gradients are broken in Cairo if the inner circle is outside the
+outer circle.
+
+==========
+ Line Cap
+==========
+
+Square line caps must be drawn with zero-length paths. When no direction is set
+to the path (lineto operation with the same begin and end points), cairo does
+not draw the caps. The SVG says that the caps must be drawn as if the path is
+horizontal, but there's no evident way to know when we're in this situation.
+
+=======
+ Color
+=======
+
+The tests here fail because they rely on color schemes. We don't have to fix them.
+
+=======
+ Draft
+=======
+
+.. info::
+
+   These tests are or were considered as drafts by the W3C, and we're not sure
+   that they should be correcly handled by CairoSVG.
+
+
+Arcs
+====
+
+- ``paths-data-20-f``
+
+This test tries to use the most horrible syntaxes for the `arc command
+<http://www.w3.org/TR/SVG/paths.html#PathDataEllipticalArcCommands>`_. But some
+of the sytaxes do not follow the `grammar for path data
+<http://www.w3.org/TR/SVG/paths.html#PathDataBNF>`_, especially for flags
+(defined as "0" or "1" in the BNF).
+
+
+Units
+=====
+
+- ``types-basic-02-f``
+
+This (draft) test looks at the case-(in)sensitivity of the units. As the
+reference PNG is broken, there's no need to dig this right now.
+
+
+Styling
+=======
+
+- ``styling-pres-*``
+
+These tests have empty PNG references.
+
+========
+ Filter
+========
+
+Raster Filters
+==============
+
+- ``enable-background-01``
+- ``feMorphology``
+- ``feTurbulence``
+- ``filters00``
+- ``filters01``
+- ``filters-background-01-f``
+- ``filters-composite-03-f``
+- ``filters-composite-04-f``
+- ``filters-composite-05-f``
+- ``filters-comptran-01-b``
+- ``filters-conv-01-f``
+- ``filters-conv-02-f``
+- ``filters-conv-03-f``
+- ``filters-conv-04-f``
+- ``filters-conv-05-f``
+- ``filters-diffuse-01-f``
+- ``filters-displace-01-f``
+- ``filters-displace-02-f``
+- ``filters-example-01-b``
+- ``filters-felem-01-b``
+- ``filters-felem-02-b``
+- ``filters-gauss-01-b``
+- ``filters-gauss-02-f``
+- ``filters-gauss-03-f``
+- ``filters-image-01-b``
+- ``filters-image-02-b``
+- ``filters-image-03-f``
+- ``filters-image-04-f``
+- ``filters-image-05-f``
+- ``filters-light-01-f``
+- ``filters-light-02-f``
+- ``filters-light-03-f``
+- ``filters-light-04-f``
+- ``filters-light-05-f``
+- ``filters-morph-01-f``
+- ``filters-overview-01-b``
+- ``filters-overview-02-b``
+- ``filters-overview-03-b``
+- ``filters-specular-01-f``
+- ``filters-turb-01-f``
+- ``filters-turb-02-f``
+
+These filters are `missing in Cairo <http://cairographics.org/missing/>`_, and
+CairoSVG won't include its own filters.
+
+
+Vector Filters
+==============
+
+- ``feColorMatrix``
+- ``feComponentTransfer``
+- ``feComposite``
+- ``filters-blend-01-b``
+- ``filters-color-01-b``
+- ``filters-color-02-b``
+- ``filters-composite-02-b``
+- ``filters-offset-01-b``
+- ``filters-tile-01-b``
+
+Some of these filters are `included in Cairo
+<http://cairographics.org/operators/>`_ and can be easily handled by
+CairoSVG. Come on, that's an easy feature, I'm pretty sure that you have enough
+motivation to add your name in the list of the contributors!
+
+======
+ Font
+======
+
+This one is hard. A lot of features about fonts are poorly or not handled at all, including:
+
+- Kerning
+- SVG fonts
+- Text directions other than left to right
+
+These tests will probably never be fixed.
+
+==========
+ Gradient
+==========
+
+These tests are weird. Please, help us if you understand them.
+
+=======
+ Image
+=======
+
+These test doesn't pass because the ``image`` tag is not handled correctly.
+
+=============
+ Interaction
+=============
+
+The tests here fail because they rely on interactions. We don't have to fix
+them.
+
+=========
+ Linking
+=========
+
+The tests here fail because they rely on links, and we don't really handle
+links. You will help us, won't you?
+
+========
+ Marker
+========
+
+Markers should be rewritten. Yes, really.
+
+======
+ Mask
+======
+
+Luminance Masks
+===============
+
+- ``masking-intro-01-f``
+- ``masking-path-11-b``
+
+SVG relies on the luminance and the alpha channel to apply masks, whereas Cairo
+only handles alpha. The only way to fix this is to find a "luminance-to-alpha"
+filter.
+
+
+Even-Odd Rule
+=============
+
+- ``masking-path-05-f``
+
+The even-odd rule must be handled by path according to the SVG
+specification. Unfortunately, Cairo clips all the paths with the same fill
+rule.
+
+
+Clip Path Intersections
+=======================
+
+- ``masking-path-07-b``
+
+This test is a hard one, and a lot of things fail here including nested
+clip-path properties and use/clipPath inherited attributes.
+
+======
+ Path
+======
+
+Bevel Shape
+===========
+
+- ``paths-data-18-f``
+
+This text fails because the bevel shape is different in Cairo and in the SVG
+specification.
+
+Cairo
+  "the join is cut off at half the line width from the joint point"
+SVG Specification
+  according to the drawing, the join is cut off at
+  (line width * (1 - cos(theta / 2))) from the join point
+
+===============
+ Failing Tests
+===============
+
+The tests included in the folders here are known to fail for various
+reasons. Some of them will never be fixed for evident reasons (animations or
+interactions, for example), some of them are really difficult to fix (raster
+filters, linking), some of them may not be bugs (draft tests), and the other
+ones must be fixed.
+
+You'll find in each folder an explaination about why the tests are failing and
+what can be done to fix them.
+
+========
+ Script
+========
+
+The tests here fail because they rely on scripts. We don't have to fix them.
+
+======
+ Text
+======
+
+.. info::
+
+   The ``text.py`` file has to be rewritten. The glyphs must be drawn one by
+   one in order to handle new features such as text on paths and glyph rotation.
+
+
+Text on a Path
+==============
+
+- ``text-path-02-b``
+- ``text-align-04-b``
+
+`Text on a path <http://www.w3.org/TR/SVG/text.html#TextOnAPath>`_ still
+suffers some little bugs with alignment.
+
+
+Decoration, Spacing, Bidi, Kerning, Alt Glyphs
+==============================================
+
+- ``textdecoration01``
+- ``styling-css-05-b``
+- other ``text-%*``
+
+Text decoration, kerning, and various other features are not handled
+in Cairo, and thus cannot be handled in CairoSVG. One solution to solve this
+problem would be to use Pango, but that's a huge dependency. You can consider
+these features as "won't fix".
+
+=====
+ Use
+=====
+
+Circular Dependencies
+=====================
+
+- ``struct-use-08-b``
+- ``struct-use-12-b``
+
+These tests fail because some of the ``use`` tags they include create circular
+dependencies.
+
+The way to handle circular dependancies in not really clear in the
+specification. You can find some information in the `specification of the use
+tag <http://www.w3.org/TR/SVG/struct.html#UseElement>`_, where it's said to be
+an error. If this error doesn't have to be handled according to the
+specification, then this test can safely fail.
+
+
+Root of URLs
+============
+
+- ``struct-use-05-b``
+
+Hash paths are inherited by ``use`` tags from original files without fixing the
+root of the URLs.
+
+=========
+ ViewBox
+=========
+
+No Size, Empty ViewBox
+======================
+
+- ``struct-frag-*``
+
+These tests fail because there's no viewbox (or an empty one) and no size set
+for the root ``svg`` tag. In this case, the SVG agent has to use the parent
+size, which is meaningless for CairoSVG.
+
+CairoSVG could get the bounding boxes of the children and try to get a kind of
+*minimal size* to create its Cairo surface, but that's not the easiest thing to
+code. Anyway, that's not a really important bug, as SVG files generally have a
+root viewbox set.
+
+
+Bad Viewbox and Nested ``svg`` Tags
+===================================
+
+- ``coords-viewattr-03-b``
+- ``masking-path-03-b``
+- ``masking-path-14-f``
+- ``struct-svg-03-f``
+- ``struct-group-02-b``
+
+The nested ``svg`` tags mean something different for CairoSVG, at least for
+multi-page formats: one non-root ``svg`` is another page, and the ``viewbox``
+is then something special. The PNG output should handle correctly the
+``viewbox`` attribute.
+
+=======
+ Tests
+=======
+
+The CairoSVG testing suite is based on the official SVG test suite available on
+the W3 website:
+
+http://www.w3.org/Graphics/SVG/WG/wiki/Test_Suite_Overview
+
+You'll find in this folder:
+
+- ``svg`` with the source SVG files
+- ``png`` with the reference PNG files
+- ``resources`` and ``images`` with various resources for the SVG files
+- ``fail`` with the failing tests
+- ``output`` with the test output PNG files
+
+You can test CairoSVG by launching ``nosetests`` in the root folder of the
+repository. You can launch the tests only on one image (or more than one,
+separated by a comma) using::
+
+  CAIROSVG_TEST_FILES=image.svg nosetests --match=test_images test
+
+As CairoSVG does not handle SVG fonts, you can generate OTF fonts and install
+them in order to test CairoSVG with the right fonts. They have already been
+generated for you in the ``resources`` folder. There's also a script called
+``generate.py`` in the ``resources`` folder that can do that again if you have
+FontForge installed on your system.
+
+The version of cairo needed to make these tests work perfectly is
+>=1.12.12. You also need freetype with infinality and Adobe's CFF engine.
+
+You need these fonts to be installed to get pixel-by-pixel equivalent images in
+the tests:
+
+- Anglepoise
+- Blocky
+- CalaLig
+- SVGFreeSans
+- Liberation Sans
+- FreeSerif*
+
+You also need Arial to be aliased by Liberation Sans (may already be done by
+your distribution).
+
+Last but not least, you have to install ``tinycss``, ``cssselect``, ``lxml``
+and ``pillow`` to make the CSS- and raster-related tests pass correctly.
+

@@ -1,0 +1,330 @@
+
+NAME
+====
+
+BaGoMa - A script to *Ba*ckup *Go*ogle *Ma*il.
+
+bAgOmA - A script to backup a *bag* *o*' *ma*il.
+
+SYNOPSIS
+========
+
+This software comes in two flavors:
+
+1. bagoma.py = the full-featured CLI version
+2. gui.pyw = a simple GUI wrapper for bagoma.py
+
+Linux and Friends
+-----------------
+
+`bagoma.py` \[*options*] `-e` <*Email*>
+
+Or, for the CLI-phobic:
+
+`gui.pyw`
+
+Windows
+-------
+
+Download the zip file containing the stand-alone exe then, execute:
+
+`gui.exe`
+
+The more adventurous can try from a DOS shell:
+
+`bagoma.exe` \[*options*] `-e` <*Email*>
+
+Alternatively, install python from [python.org][PythonDownload], [CygWin], or [ActiveState],
+then from a DOS or CygWin shell:
+
+`python bagoma.py` \[*options*] `-e` <*Email*>
+
+
+WEB SITES
+=========
+
+* Home: <http://sourceforge.net/p/bagoma/>
+* GitHub: <http://github.com/gburca/BaGoMa>
+* Downloads: <http://sourceforge.net/projects/bagoma/files/>
+* Documentation: <http://bagoma.sourceforge.net/> and <http://ebixio.com/blog/2011/05/28/smart-backup-for-your-gmail-account/>
+* Project page: <http://sourceforge.net/projects/bagoma/>
+* Freshmeat: <http://freshmeat.net/projects/bagoma/>
+
+
+DESCRIPTION
+===========
+
+BaGoMa backs-up and restores the contents of a GMail account. It can
+restore all the labels (folder structure), as well as the flags (seen/read,
+flagged) of a message. It differs from other similar solutions in a few
+important ways:
+
+* It is Open Source Software. You can read the code to make sure your password
+and email contents remain private.
+
+* Some backup solutions force you to use only ASCII characters in your labels.
+BaGoMa has no such restrictions on label names. Specifically, foreign
+characters and '/' (the label hierarchy delimiter) are allowed.
+
+* BaGoMa is tuned to work specifically with GMail. Each message is only
+downloaded and saved once. Backup solutions that are designed to work with
+regular IMAP accounts will download each message multiple times (once per
+label) when used to back up a GMail account. That can significantly increase
+the bandwidth requirements and the amount of storage required for backup.
+Additionally, a faithful restoration of your GMail account might not be
+possible from such a backup.
+
+* BaGoMa allows you to read/verify the local backup with an email client. You
+no longer have to wonder if your backup is good. Fire up an email client and
+verify it (see the MAILDIR section below for details).
+
+
+BaGoMa requires your GMail account to be IMAP accessible. Check the Mail
+Settings and make sure "Enable IMAP" is selected under the "Forwarding and
+POP/IMAP" tab. In the "Folder Size Limits" section on the same tab, make sure
+the following option is selected: "Do not limit the number of messages in an
+IMAP folder".
+
+BaGoMa never deletes any email from your account. A *restore* simply
+compares the contents of your local backup with the contents of your GMail
+account, and uploads any messages missing from your GMail account. It never
+deletes messages from GMail to make it match the local backup.
+
+Google sometimes imposes limits on how much data can be transfered from your
+account. If you run into such a limitation, just wait a few days and try the
+backup again. BaGoMa will pick up from where it left off. If the temporary
+loss of IMAP access is critical to you, think twice before using this script.
+As far as I'm aware, web access to your email should continue unimpeded even
+if IMAP access is blocked.
+
+
+OPTIONS
+=======
+
+-h, \--help
+:	show a help message and exit
+
+-e *EMAIL*, \--email=*EMAIL*
+:	the email address to log in with (MANDATORY)
+
+-p *PWD*, \--pwd=*PWD*
+:	the password to log in with (will prompt if missing)
+
+-d *BACKUPDIR*, \--dir=*BACKUPDIR*
+:	the backup/restore directory [default: same as email]
+
+-a *ACTION*, \--action=*ACTION*
+:	the action to perform: backup, restore, compact, printIndex, maildir or
+	debug. [default: backup]
+
+	* The function of the *backup* and *restore* actions should be obvious.
+
+	* BaGoMa retains all backed up messages, even if they are no longer
+	present on the GMail server during a subsequent backup. The *compact*
+	action will compact the local storage by deleting all such messages.
+
+	* The *printIndex* action displays all the meta-information BaGoMa
+	operates on. This action is primarily intended for developers.
+
+	* The *maildir* action creates a [Maildir type directory][MaildirFormat]
+	and sym-links all the backed-up email messages into it so that the mail
+	can be inspected using a mail reader that supports Maildir directly
+	(ex: [Mutt]). See the **MAILDIR** section below for more details.
+
+	* The "debug" action is also intended for developers and drops the user
+	into an interactive python session.
+
+\--dryRun
+:	When combined with the *compact* action, shows what files would be
+	deleted without actually deleting them.
+
+-s *SERVER*, \--server=*SERVER*
+:	the GMail server to use [default: imap.gmail.com]
+
+\--port=*PORT*
+:	the IMAP port to use for GMail [default: 993]
+
+-m *MAILDIR*, \--maildir=*MAILDIR*
+:	Used with the *maildir* action to specify the Maildir directory to create
+	[default: Maildir.BaGoMa]
+
+-l *LOGLEVEL*, \--log=*LOGLEVEL*
+:	the console log level (DEBUG, INFO, WARNING, ERROR, CRITICAL) [default:
+	WARNING]
+
+-f *LOGFILE*, \--file=*LOGFILE*
+:	the log file (set it to 'off' to disable logging) [default: log.txt]
+
+-c *CONFIG_FILE*, \--config=*CONFIG_FILE*
+:	the config file to use for options not specified on the command line.
+	See below for more details. [default: .BaGoMa]
+
+\--version
+:	show the version number
+
+INSTALL
+=======
+
+There's nothing really to install. Once you unpack the downloaded package,
+you'll find the bagoma.py script in the top directory. On Linux you can run the
+script directly. On Windows, you'll need to install python first (if you don't
+already have it) from [python.org][PythonDownload], [CygWin], or [ActiveState],
+then from a DOS or CygWin shell:
+
+`python bagoma.py` \[*options*] `-e` <*Email*>
+
+Man page can be viewed with:
+
+`man -l man/bagoma.1`
+
+For those that know what they're doing:
+
+`python setup.py install`
+
+
+CONFIG FILE
+===========
+
+It's usually not a good idea to provide the password on the command line. When
+BaGoMa is used from a script (cron job), the recommended solution is to create
+a configuration file and use it to store the password. The configuration file
+uses the _ini_ format with the email address as the section. For example:
+
+	[email_1@gmail.com]
+	pwd = pass1
+
+	[email_2@gmail.com]
+	pwd = pass2
+
+
+MAILDIR
+=======
+
+Note: Before spending time on the details in this section, be aware that this
+feature makes use of symbolic links (symlinks), so if you're not on a UNIX
+machine it will probably not work for you.
+
+Having all the email messages available locally as simple files has certain
+advantages, such as being able to use standard UNIX tools such as `grep` to
+search through them. It would be even more useful however if it were possible
+to use a full-featured email client (MUA) to navigate through the backup and
+take advantage of all the MUA features. This feature allows you to do just
+that.
+
+First a word of CAUTION. Any modifications made by the MUA may corrupt the
+backup. BaGoMa will not check for local modifications made to the backup. As
+long as the MUA only modifies the symlinks (by renaming, moving, or deleting
+them) you should be OK. To be on the safe side, I suggest changing the
+permissions on the backup directory contents so that the MUA can not make any
+modifications (for example, run the MUA as an unprivileged user that has only
+read permissions).
+
+To use this feature, run:
+
+`python bagoma.py` `-e` <*Email*\> `-a maildir`
+
+BaGoMa will create a directory called `Maildir.BaGoMa` and populate it with
+symlinks to messages in your backup. This new directory is in a proper [Maildir
+format][MaildirFormat], so it can be accessed with a MUA that handles the
+Maildir format. A sample configuration file
+[`muttrc.BaGoMa`](http://github.com/gburca/BaGoMa/blob/master/mutt.BaGoMa) is
+included and can be used with [Mutt] to access `Maildir.BaGoMa`. To view the
+messages modify `muttrc.BaGoMa` to point to the location of your
+`Maildir.BaGoMa` directory and run:
+
+`mutt -R -F muttrc.BaGoMa`
+
+If that doesn't work, bypass the system config file by adding the `-n` option:
+
+`mutt -n -R -F muttrc.BaGoMa`
+
+If you figure out how to get this working with other email clients, please
+consider documenting your experience (and sharing it on [GitHub]) so that
+others may benefit as well.
+
+
+LIMITATIONS
+===========
+BaGoMa will NOT backup any of the following:
+
+* Account settings (filter, etc...)
+* Contacts
+* Chat history
+* Labels you've chosen to hide in IMAP
+* Superstars (the additional star icons that can be enabled in Labs)
+* Contents of Trash and Spam
+
+The IMAP protocol does not provide a trully unique ID for an email message
+(UIDVALIDITY + UID doesn't count). In order to determine that message _A_ in
+folder _P_ is the same as message _B_ in folder _Q_ (and only needs to be
+downloaded once), the script computes its own unique ID using the following
+header fields:
+
+* From:
+* To:
+* Cc:
+* Date:
+* Subject:
+* X-GMail-Received:
+* Message-Id:
+* The server assigned timestamp of when the message was received
+
+Two messages that have identical values (ignoring whitespace) for _all_ of the
+fields enumerated above are considered to be identical and will only be
+downloaded and saved once. The chance of two messages having the same
+Message-Id header field is pretty slim. The chance of all the header fields
+mentioned above being identical is _almost_ 0.
+
+
+DOWNLOAD
+========
+Latest version available at: <http://sourceforge.net/projects/bagoma>
+
+Project homepage is at: <http://bagoma.sourceforge.net/>
+
+
+DEVELOPERS
+==========
+
+The source code is hosted both on SourceForge.net and on GitHub at
+<http://github.com/gburca/BaGoMa>. Collaboration will be easier on GitHub.
+
+The `imaplib` library is used to do the heavy lifting. In addition to the
+official `imaplib` documentation, some other useful information can be found
+at: <http://www.doughellmann.com/PyMOTW/imaplib/>
+
+The README file uses [Markdown] formatting with [pandoc] extensions so that it
+can be converted to a man page.
+
+If you want to help, see the _TODO_ file.
+
+
+REPORTING BUGS
+==============
+Bugs can be reported at the project's [GitHub] or [SourceForge] page. Better
+yet, provide patches through [GitHub] to fix the bugs.
+
+Bug reports should include relevant portions of the log file.
+
+
+COPYRIGHT
+=========
+Copyright (C) 2011-2012 by Gabriel Burca. License GPLv3+: GNU GPL version 3 or
+later <http://gnu.org/licenses/gpl.html>.  This is free software: you are free
+to change and redistribute it.  There is NO WARRANTY, to the extent permitted
+by law.
+
+
+[Markdown]:		http://daringfireball.net/projects/markdown/syntax
+[pandoc]:		http://johnmacfarlane.net/pandoc/README.html
+[SourceForge]: 		http://sourceforge.net/p/bagoma/
+[PythonDownload]:	http://www.python.org/download/releases/
+[ActiveState]:		http://www.activestate.com/activepython/downloads
+[CygWin]:		http://www.cygwin.com
+[GitHub]:		http://github.com/gburca/BaGoMa
+[MaildirFormat]:	http://cr.yp.to/proto/maildir.html
+[Mutt]:			http://www.mutt.org
+
+- http://bagoma.sourceforge.net/sample.html
+
+README

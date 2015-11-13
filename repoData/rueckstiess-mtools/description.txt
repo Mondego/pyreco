@@ -1,0 +1,1061 @@
+Changes to mtools
+=================
+
+#### version 1.1.5
+
+  * added workaround for compile errors with XCode 5.1 / clang 3.4 (#203)
+  * mlaunch: fixed bug when using `--binarypath` and passing arguments through to mongod/mongos (#217)
+  * mlaunch: fixed help text for default username and password (#207)
+  * mlogfilter: "iso8601-local" timestmap format now working with `--from` and `--to` (#209)
+  * mplotqueries: fixed bug where "0ms" lines couldn't be plotted with durline plots (#208)
+  * mgenerate: made it multi-threaded for performance boost (#204)
+  * mgenerate: fixed bug when using custom port number (#217)
+  * removed backward breaking `total_seconds()` from logevent parsing (#210)
+
+
+#### version 1.1.4
+
+  * performance improvements for log parsing (#187)
+  * mloginfo `--queries` section to aggregate queries (#131)
+  * mplotqueries: scatter plots now show "duration triangles" on double-click (#201)
+  * mplotqueries: a number of bug fixes and stability improvements (#183, #199, #198, #191, #184)
+  * mlaunch: a different `--binarypath` can be specified with `mlaunch start` (#181)
+  * mlaunch: general bug fixes and tests (#178, #179, #176)
+  * mlogfilter: timezone bug fixed (#186)
+  * added sort pattern parsing to LogEvent and added query pattern parsing for system.profile events (#200)
+
+For all changes, see the [closed issues tagged with milestone 1.1.4](https://github.com/rueckstiess/mtools/issues?direction=desc&milestone=9&page=1&sort=updated&state=closed)
+
+#### version 1.1.3
+
+  * all tools can now read from system.profile collections as if it was a logfile. Use this syntax as command line argument: "host:port/database.collection" (#164)
+  * mtools now uses [Travis CI](https://travis-ci.org/rueckstiess/mtools) for continuous integration testing
+  * all log-parsing tools are now timezone aware. If no timezone is specified (all log files <= 2.4.x), then UTC is assumed (#174)
+  * added new tool `mgenerate` to create structured randomized data for issue reproduction
+  * mlaunch: Added a `kill` command to send SIGTERM or any other signal to all or a subset of instances (#168)
+  * mlaunch: username + password is added for environments with `--authentication`. Configurable username, password, database, roles. Thanks, @sl33nyc (#156) 
+  * mlaunch: start command can receive new arguments to pass through to mongos/d, and a different `--binarypath` (#151)
+  * mlaunch: now checks in advance if port range is free, and warns if not (#166)
+  * mlaunch: `--version` was removed by accident in 1.1.2. It's back now (#160)
+  * mlogfilter: `--thread`, `--namespace` and `--operation` filters can now be combined arbitrarily (#167)
+  * mlogfilter: bugfix for when no log file was specified at command line. Now outputs clean error message (#124)
+  * mplotqueries: added a compatibility check for matplotlib version 1.1.1 for setting fontsize in legends (#128)
+
+For all changes, see the [closed issues tagged with milestone 1.1.3](https://github.com/rueckstiess/mtools/issues?direction=desc&milestone=8&page=1&sort=updated&state=closed)
+
+#### version 1.1.2
+
+  * mlaunch: completely rewritten, is now aware of the launched environment, commands: init, start, stop, list (#148)
+  * mlaunch: mongos nodes start at beginning of port range for easier access (#145)
+  * mlaunch: always uses absolute paths for the data directory, which shows up in `ps aux | grep mongo` output (#143)
+  * mlogfilter: added filter masks `--mask errors.log` to search for correlations around certain events (#138)
+  * mplotqueries: log parsing performance improvements for most plots
+  * mlogvis: log parsing performance improvements
+  * all tools: replaced shebang with `#!/usr/bin/env python`, to support non-standard python installations
+  
+
+#### version 1.1.1
+
+  * mplotqueries: introduced a new type of plot "durline", to visualize start and end of long-running operations
+  * mplotqueries: use start times of operations that have a duration, rather than end time with `--optime-start` (#130)
+  * mplotqueries: group by query pattern with `--group pattern` (#129)
+  * mlaunch: allow more than 7 nodes, everyone above 7 is non-voting (#123)
+  * mloginfo: fixed bug where anonymous unix sockets can't be parsed (#121)
+
+
+#### version 1.1.0
+
+###### Simpler Structure
+
+Simplified tool structure. A lot of the mini-scripts have been combined. There are only 5 scripts left: mlogfilter, mloginfo, mplotqueries, mlogvis, mlaunch. No features have been cut, they are all still available within the 5 scripts, but may have moved. 
+
+###### New Features
+
+**mlogfilter**
+* very fast binary search for time slicing
+* timestamp-format aware, can convert between formats
+* mlogmerge is now fully included into mlogfilter
+* can output in json format
+
+**mloginfo**
+* mloginfo supports multiple files
+* now with info sections on restarts, connections, distinct log lines
+* shows progress bar during distinct log file parsing
+
+**mplotqueries**
+* can now group on arbitrary regular expressions
+* has a new group limits feature, to group all but the top x groups together
+* range plots support gaps 
+* better color scheme
+* shows progress bar during log file parsing
+
+**mlaunch**
+* support multiple mongos 
+
+
+###### And Many Bug Fixes
+
+For a full list of fixed issues, visit the [github issue page](https://github.com/rueckstiess/mtools/issues) of mtools.
+
+
+#### version 1.0.5
+
+  * mplotqueries: included a new plot type 'connchurn' that shows opened vs. closed connections over time (#77, #74).
+  * mplotqueries: removed redundant `--type duration` plot and set the default to `--type scatter --yaxis duration`.
+  * mloginfo: new tool that summarizes log file information, including start/end time, version if present, and optionally restarts.
+  * added nosetests infrastructure and first tests for mlaunch and mlogfilter (#39).  
+  * added internal LogFile class that offers helper methods around log files (#80).
+  * fixed bug where `mlogfilter --shorten` was off by one character.
+
+#### version 1.0.4
+
+  * mlogvis: fixed a bug displaying the data in the wrong time zone (#70).
+  * mplotqueries: fixed bug where a plot's argument sub-parser (e.g. for --bucketsize) couldn't deal with stdin.
+  * mplotqueries: fixed bug that caused crash when there was no data to plot (#68).
+  * mlogfilter: fixed bug that prevented `--from` and `--to` to be used with stdin (#73).
+  * fixed bug parsing durations of log lines that have a float instead of int value (like 123.45ms).
+  * implemented ISO-8601 timestamp format parsing for upcoming change in MongoDB 2.6 (#76).
+
+#### version 1.0.3
+
+  * mplotqueries: new plot types: "scatter" can plot various counters on the y-axis, "nscanned/n" plots inefficient queries (#58).
+  * mplotqueries: added footnote ("created with mtools") including version. Can be toggled on/off with 'f' (#33).
+  * mplotqueries: added histogram plots (--type histogram) with variable bucket size (#25).
+  * mplotqueries: always plot full range of logfile on x-axis, even if data points start later or end earlier (#60).
+  * mlogfilter: added human-readable option (--human) that inserts `,` in large numbers and calculates durations in hrs,min,sec. (#8).
+  * mlogdistinct: improved log2code matching and cleaned up log2code match database.
+
+#### version 1.0.2
+
+  * mlogvis: doesn't require webserver anymore. Data is directly stored in self-contained html file (#57).
+  * mlogvis: when clicking reset, keep group selection, only reset zoom window (#56).
+  * mlaunch: different directory name will no longer create a nested `data` folder (#54).
+  * mlaunch: arguments unknown to mlaunch are checked against mongod and mongos and only passed on if they are accepted (#55).
+  * mlaunch: now you can specify a path for the mongod and mongos binaries with --binarypath PATH (#46).
+  * mlaunch: positional argument for directory name removed. directory name now requires `--dir`. default is `./data`.
+
+#### version 1.0.1
+
+  * fixed timezone bug in mlogmerge (#24)
+  * allow for multiple mongos in mlaunch with `--mongos NUM` parameter (#30)
+  * mlaunch can now take any additional single arguments (like `-vvv` or `--notablescan`) and pass it on to the mongod/s instances (#31)
+  * all scripts now have `--version` flag (inherited from BaseCmdLineTool) (#34)
+  * added `--fast` option to mlogfilter (#37)
+  * mlogvis title added and legend height determined automatically (#45)
+  * mlaunch now checks if port is available before trying to start and exits if port is already in use (#43)
+  * improved mlogfilter `--from` / `--to` parsing, now supports sole relative arguments for both arguments, millisecond parsing, month-only filtering (#12).
+  * restructured tools to derive from base class `BaseCmdLineTool` or `LogFileTool`
+  * fixed bug in logline parsing when detecting duration at the end of a line
+  * changed `--log` to `--logscale` argument for mplotqueries to avoid confusion with "log" files
+  * added [Contributing](tutorials/contributing.md) page under the tutorials section
+
+#### version 1.0.0
+
+This is the first version of mtools that has a version number. Some significant changes to its unnumbered predecessor are:
+
+  * installable via pip
+  * directory re-organization: All tools are now located under `mtools/mtools/`. This makes for easier `PYTHONPATH` integration, which will now have to point to the actual mtools directory, and not to the parent directory anymore. This is more in line with other Python projects.
+  * `mlogvis` tool added: a simplified version of `mplotqueries` that doesn't require `matplotlib` dependency. Instead, it will run in a browser window, using [d3.js](http://www.d3js.org/) for visualization. `mlogvis` is currently in BETA state.
+  * introduced versioning: The version is stored in mtools/version.py and can be accessed programmatically from a Python shell with
+
+        import mtools
+        mtools.__version__
+
+Installation Instructions for mtools
+====================================
+
+### Python
+
+You need to have a version of Python installed in order to use mtools. Python
+2.6.x and Python 2.7.x are currently supported. To check your Python version, 
+run `python --version` on the command line. Python 3.x is currently not supported.
+
+### mtools Installation
+
+#### Installation with `pip`
+
+The easiest way to install mtools is via `pip`. From the command line, run:
+
+    pip install mtools
+
+You need to have `pip` installed for this to work. If you don't have `pip` installed yet,
+try `sudo easy_install pip` from the command line first, or follow the instructions provided on the 
+[pip installation page](http://www.pip-installer.org/en/latest/installing.html#using-the-installer).
+
+Depending on your user rights, it may complain about not having permissions to install the module. 
+In that case, you need to add `sudo` in front of the command.
+
+##### Issues with XCode 5.1 (clang 3.4)
+
+If you install mtools prior to version 1.1.4 on OS X Mavericks with the latest update to clang 3.4, you may see installation errors due to the compilation of psutil's C-extension. See github issue #203 for details and a work-around. The issue is fixed in version 1.1.5 and above.
+
+
+#### Installation From Source
+
+If pip is not available and you want to install mtools from source, you can get the source code 
+by cloning the [mtools github repository](https://github.com/rueckstiess/mtools):
+
+    git clone git://github.com/rueckstiess/mtools.git
+
+Or download the tarball from <https://pypi.python.org/pypi/mtools> and extract it with
+
+    tar xzvf mtools-<version>.tar.gz
+
+Then `cd` into the mtools directory and run
+
+    sudo python setup.py install
+
+This will install mtools into your Python's site-packages folder, create links to the 
+scripts and set everything up. You should now be able to use all the scripts directly
+from the command line. 
+
+If you want to contribute to mtools development or test beta and release candidate versions,
+you should install mtools in "development mode". Instead of the last command, run
+
+    sudo python setup.py develop
+
+More information about switching to development mode can be found on the page [mtools Development Mode](https://github.com/rueckstiess/mtools/wiki/mtools-Development-Mode).
+
+Except for external dependencies like pymongo (required for mlaunch) or matplotlib (required
+for mplotqueries), mtools is now setup and ready to be used.
+
+
+
+### Additional Dependencies
+
+#### psutil
+
+*required for mlaunch*
+
+mlaunch can now kill processes or send other signals. For this feature, the `psutil` 
+module is required. It will install automatically when mtools is installed with `pip`. 
+
+To install `psutil` manually, you can run
+
+    pip install psutil
+
+
+#### pymongo
+
+*required for mlaunch*
+
+pymongo is MongoDB's official Python driver. Once you have installed `pip`, you can install 
+pymongo easily by running
+
+    pip install pymongo
+
+Depending on your user rights, it may complain about not having permissions to install the module. 
+In that case, you need to add `sudo` in front of the command.
+
+
+#### Matplotlib
+
+*required for mplotqueries*
+
+[matplotlib](http://matplotlib.org/) is a python 2D plotting library which produces 
+figures and graphs in a variety of formats and interactive environments across platforms.
+
+Installation instructions for matplotlib can be found under the [matplotlib Installation Guide](https://github.com/rueckstiess/mtools/wiki/matplotlib-Installation-Guide) page.
+
+
+#### NumPy
+
+*required for matplotlib (in mplotqueries)*
+
+[NumPy](http://numpy.scipy.org/) is a Python module for scientific computing and numerical calculations.
+Try installing NumPy with pip, by doing:
+
+    pip install numpy
+
+Depending on your user rights, it may complain about not having permissions to install the module. 
+In that case, you need to add `sudo` in front of the command.
+
+If this doesn't work for you, you can install a binary or install from source code. Refer to the 
+installation instructions on the [NumPy](http://numpy.scipy.org/) page.
+
+
+#### All Requirements
+
+The full list of requirements (some of which are already included in the Python standard library) can be found in the [requirements.txt](./requirements.txt) file.
+
+
+
+                                  Apache License
+                            Version 2.0, January 2004
+                         http://www.apache.org/licenses/
+
+    TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+    1. Definitions.
+
+       "License" shall mean the terms and conditions for use, reproduction,
+       and distribution as defined by Sections 1 through 9 of this document.
+
+       "Licensor" shall mean the copyright owner or entity authorized by
+       the copyright owner that is granting the License.
+
+       "Legal Entity" shall mean the union of the acting entity and all
+       other entities that control, are controlled by, or are under common
+       control with that entity. For the purposes of this definition,
+       "control" means (i) the power, direct or indirect, to cause the
+       direction or management of such entity, whether by contract or
+       otherwise, or (ii) ownership of fifty percent (50%) or more of the
+       outstanding shares, or (iii) beneficial ownership of such entity.
+
+       "You" (or "Your") shall mean an individual or Legal Entity
+       exercising permissions granted by this License.
+
+       "Source" form shall mean the preferred form for making modifications,
+       including but not limited to software source code, documentation
+       source, and configuration files.
+
+       "Object" form shall mean any form resulting from mechanical
+       transformation or translation of a Source form, including but
+       not limited to compiled object code, generated documentation,
+       and conversions to other media types.
+
+       "Work" shall mean the work of authorship, whether in Source or
+       Object form, made available under the License, as indicated by a
+       copyright notice that is included in or attached to the work
+       (an example is provided in the Appendix below).
+
+       "Derivative Works" shall mean any work, whether in Source or Object
+       form, that is based on (or derived from) the Work and for which the
+       editorial revisions, annotations, elaborations, or other modifications
+       represent, as a whole, an original work of authorship. For the purposes
+       of this License, Derivative Works shall not include works that remain
+       separable from, or merely link (or bind by name) to the interfaces of,
+       the Work and Derivative Works thereof.
+
+       "Contribution" shall mean any work of authorship, including
+       the original version of the Work and any modifications or additions
+       to that Work or Derivative Works thereof, that is intentionally
+       submitted to Licensor for inclusion in the Work by the copyright owner
+       or by an individual or Legal Entity authorized to submit on behalf of
+       the copyright owner. For the purposes of this definition, "submitted"
+       means any form of electronic, verbal, or written communication sent
+       to the Licensor or its representatives, including but not limited to
+       communication on electronic mailing lists, source code control systems,
+       and issue tracking systems that are managed by, or on behalf of, the
+       Licensor for the purpose of discussing and improving the Work, but
+       excluding communication that is conspicuously marked or otherwise
+       designated in writing by the copyright owner as "Not a Contribution."
+
+       "Contributor" shall mean Licensor and any individual or Legal Entity
+       on behalf of whom a Contribution has been received by Licensor and
+       subsequently incorporated within the Work.
+
+    2. Grant of Copyright License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       copyright license to reproduce, prepare Derivative Works of,
+       publicly display, publicly perform, sublicense, and distribute the
+       Work and such Derivative Works in Source or Object form.
+
+    3. Grant of Patent License. Subject to the terms and conditions of
+       this License, each Contributor hereby grants to You a perpetual,
+       worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+       (except as stated in this section) patent license to make, have made,
+       use, offer to sell, sell, import, and otherwise transfer the Work,
+       where such license applies only to those patent claims licensable
+       by such Contributor that are necessarily infringed by their
+       Contribution(s) alone or by combination of their Contribution(s)
+       with the Work to which such Contribution(s) was submitted. If You
+       institute patent litigation against any entity (including a
+       cross-claim or counterclaim in a lawsuit) alleging that the Work
+       or a Contribution incorporated within the Work constitutes direct
+       or contributory patent infringement, then any patent licenses
+       granted to You under this License for that Work shall terminate
+       as of the date such litigation is filed.
+
+    4. Redistribution. You may reproduce and distribute copies of the
+       Work or Derivative Works thereof in any medium, with or without
+       modifications, and in Source or Object form, provided that You
+       meet the following conditions:
+
+       (a) You must give any other recipients of the Work or
+           Derivative Works a copy of this License; and
+
+       (b) You must cause any modified files to carry prominent notices
+           stating that You changed the files; and
+
+       (c) You must retain, in the Source form of any Derivative Works
+           that You distribute, all copyright, patent, trademark, and
+           attribution notices from the Source form of the Work,
+           excluding those notices that do not pertain to any part of
+           the Derivative Works; and
+
+       (d) If the Work includes a "NOTICE" text file as part of its
+           distribution, then any Derivative Works that You distribute must
+           include a readable copy of the attribution notices contained
+           within such NOTICE file, excluding those notices that do not
+           pertain to any part of the Derivative Works, in at least one
+           of the following places: within a NOTICE text file distributed
+           as part of the Derivative Works; within the Source form or
+           documentation, if provided along with the Derivative Works; or,
+           within a display generated by the Derivative Works, if and
+           wherever such third-party notices normally appear. The contents
+           of the NOTICE file are for informational purposes only and
+           do not modify the License. You may add Your own attribution
+           notices within Derivative Works that You distribute, alongside
+           or as an addendum to the NOTICE text from the Work, provided
+           that such additional attribution notices cannot be construed
+           as modifying the License.
+
+       You may add Your own copyright statement to Your modifications and
+       may provide additional or different license terms and conditions
+       for use, reproduction, or distribution of Your modifications, or
+       for any such Derivative Works as a whole, provided Your use,
+       reproduction, and distribution of the Work otherwise complies with
+       the conditions stated in this License.
+
+    5. Submission of Contributions. Unless You explicitly state otherwise,
+       any Contribution intentionally submitted for inclusion in the Work
+       by You to the Licensor shall be under the terms and conditions of
+       this License, without any additional terms or conditions.
+       Notwithstanding the above, nothing herein shall supersede or modify
+       the terms of any separate license agreement you may have executed
+       with Licensor regarding such Contributions.
+
+    6. Trademarks. This License does not grant permission to use the trade
+       names, trademarks, service marks, or product names of the Licensor,
+       except as required for reasonable and customary use in describing the
+       origin of the Work and reproducing the content of the NOTICE file.
+
+    7. Disclaimer of Warranty. Unless required by applicable law or
+       agreed to in writing, Licensor provides the Work (and each
+       Contributor provides its Contributions) on an "AS IS" BASIS,
+       WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+       implied, including, without limitation, any warranties or conditions
+       of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+       PARTICULAR PURPOSE. You are solely responsible for determining the
+       appropriateness of using or redistributing the Work and assume any
+       risks associated with Your exercise of permissions under this License.
+
+    8. Limitation of Liability. In no event and under no legal theory,
+       whether in tort (including negligence), contract, or otherwise,
+       unless required by applicable law (such as deliberate and grossly
+       negligent acts) or agreed to in writing, shall any Contributor be
+       liable to You for damages, including any direct, indirect, special,
+       incidental, or consequential damages of any character arising as a
+       result of this License or out of the use or inability to use the
+       Work (including but not limited to damages for loss of goodwill,
+       work stoppage, computer failure or malfunction, or any and all
+       other commercial damages or losses), even if such Contributor
+       has been advised of the possibility of such damages.
+
+    9. Accepting Warranty or Additional Liability. While redistributing
+       the Work or Derivative Works thereof, You may choose to offer,
+       and charge a fee for, acceptance of support, warranty, indemnity,
+       or other liability obligations and/or rights consistent with this
+       License. However, in accepting such obligations, You may act only
+       on Your own behalf and on Your sole responsibility, not on behalf
+       of any other Contributor, and only if You agree to indemnify,
+       defend, and hold each Contributor harmless for any liability
+       incurred by, or claims asserted against, such Contributor by reason
+       of your accepting any such warranty or additional liability.
+
+    END OF TERMS AND CONDITIONS
+
+    Copyright (C) 2013, Thomas Rueckstiess
+
+    Licensed under the Apache License, Version 2.0 (the "License");
+    you may not use this file except in compliance with the License.
+    You may obtain a copy of the License at
+
+        http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing, software
+    distributed under the License is distributed on an "AS IS" BASIS,
+    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+    See the License for the specific language governing permissions and
+    limitations under the License.
+# mgenerate spec
+
+This is a spec to add a new script `mgenerate` to the mtools family. It will generate structured, semi-random data according to a template document. The template can be specified directly as a command line argument or it can be a file. The format for the template argument is in JSON. Additional arguments to `mgenerate` specify how many documents should be inserted. The generated documents are directly inserted into a mongod/s, as specified with `--host` and `--port`. The default host is `localhost` and the default port is `27017`.
+
+> ##### Example
+>     mgenerate <JSON or file> --num 10000 --port 27017
+> 
+> #### Generate 2 documents with a datetime type
+>     mgenerate '{ "d" : "$datetime" }' --num 2
+>     mongo
+>     > db.mgendata.find()
+>     {
+>       "_id": ObjectId("537ce37634181152d390f7ef"),
+>       "d": ISODate("1990-10-08T08:07:29Z")
+>     }
+>     {
+>       "_id": ObjectId("537ce37634181152d390f7f0"),
+>       "d": ISODate("1999-11-10T13:26:06Z")
+>     }
+
+
+## Parsing the JSON document
+
+All values are taken literally, except for special $-prefixed values.
+
+These values can be simple strings, or documents. Simple strings can be used if none of the additional options need to be specified. To customize the behavior of a command, use the document style.
+
+    { "_id": "$command" }
+    { "_id": { "$command": { <additional options> } } }
+
+Note that we are writing JSON, so field names have to be strings, the quotes cannot be left out.
+
+Some commands have a shortcut syntax, taking an array as their only value to the command key. This array syntax is always only syntactic sugar for their most common use case, and there is always a (more verbose) document-style syntax that will achieve the same. Each command section will specify exactly what the array-syntax means.
+    
+    { "_id": { "$command": [ <additional options> ] } }
+
+
+### `$objectid`
+
+Creates an ObjectId(). Alias is `$oid`.
+
+
+> ##### Example
+>     
+>     { "_id" : "$objectid" }
+> 
+> This command replaces `"$objectid"` with a proper newly generated ObjectId.
+
+
+#### Additional Parameters
+
+None
+
+
+### `$number`
+
+Creates a random number.
+
+> ##### Example
+>     
+>     { "age" : "$number" }
+> 
+> This command replaces `"$number"` with a uniformly random number between 0 and 100.
+
+
+#### Additional Parameters
+
+
+###### lower and upper bounds
+`{ "$number" : {"min" : 500, "max" : 1000 } }` <br>
+
+Generate a uniformly random number between the `min` and `max` values (both ends inclusive). Either parameter can be omitted, the fall-back is the default (0 for lower bound, 100 for upper bound). If `min` > `max`, the tool will throw an error.
+
+#### Array Syntax
+`{ "$number" : [ MIN, MAX ] }` <br>
+
+Short form for `{ "$number" : {"min" : MIN, "max" : MAX } }`.
+
+
+
+### `$datetime`
+
+Creates a random date and time. Alias is `$date`.
+
+
+> ##### Example
+>     
+>     { "_id" : "$datetime" }
+> 
+> This command replaces `"$datetime"` with a randomly generated date between Jan 1, 1970 0:00:00.000 (Epoch 0) and now. 
+
+
+#### Additional Parameters
+
+
+###### lower and upper bounds
+`{ "$datetime" : {"min" : 1358831035, "max" : 1390367035 } }` <br>
+
+Generate a random date and time between the `min` and `max` values (both ends inclusive).
+
+`min` and `max` values can be epoch numbers (see example above). They can also be strings that can be parsed as date (and optionally time), e.g. "2013-05-12 13:30". 
+
+
+#### Array Syntax
+`{ "$datetime" : [ MIN, MAX ] }` <br>
+
+Short form for `{ "$datetime" : {"min" : MIN, "max" : MAX } }`.
+
+
+### `$missing`
+
+Will not insert the key/value pair. A percentage of missing values can be specified.
+
+> ##### Example
+>     
+>     { "name" : "$missing" }
+> 
+> This will cause the entire key/value pair with key "name" to be missing.
+
+#### Additional Parameters
+
+
+###### Missing Percentage
+`{ "$missing" : { "percentage" : 30, "ifnot" : VALUE } }` <br>
+
+Will cause the key/value pair to be missing 30% of the time, and otherwise set the VALUE for the given key.
+
+
+### `$choose`
+
+Chooses one of the specified values. 
+
+> ##### Example
+>     
+>     { "status" : { "$choose" : { "from" : [ "read", "unread", "deleted" ] } } }
+> 
+> Will pick one of the values from the array with equal probability.
+
+
+#### Additional Parameters
+
+###### Ratio 
+`{ "$choose" : { "from" : [ VAL1, VAL2, ... ], "weights": [ W1, W2, ... ] } }` <br>
+
+Will pick the values proportionally to the given weights. The `weights` array must be the same length as the `from` array.
+
+> ##### Example
+>     
+>     { "status" : { "$choose" : { "from" : [ "read", "unread", "deleted" ], "weights" : [ 1, 1, 10 ] } } }
+> 
+> Will pick one of the values from the array. Will pick "deleted" 10 times more likely than read and unread.
+
+
+#### Array Syntax
+`{ "$choose" : [ VAL1, VAL2, ... ] }` <br>
+
+Short form for `{ "$choose" : { "from" : [ VAL1, VAL2, ... ] } }`.
+
+
+### `$array`
+
+Builds an array of elements of given length. Can be combined with $number to create random-length arrays.
+
+> ##### Example
+>     
+>     { "friends" : { "$array" : { "of": "$oid", "number": 20 } } }
+> 
+> This will create an array for friends containing 20 unique ObjectIds.
+
+
+#### Array Syntax
+`{ "$array" : [ VALUE, NUMBER ] }` <br>
+
+Short form for `{ "$array" : { "of" : VALUE, "number" : NUMBER } }`.
+
+
+
+
+### `$email`
+
+### `$concat`
+
+### `$geo`
+
+
+
+
+
+
+# mtools
+
+[![PyPi version](https://pypip.in/v/mtools/badge.png)](https://crate.io/packages/mtools/) 
+[![PyPi downloads](https://pypip.in/d/mtools/badge.png)](https://crate.io/packages/mtools/) 
+[![Build Status](https://travis-ci.org/rueckstiess/mtools.png?branch=master)](https://travis-ci.org/rueckstiess/mtools)
+
+**mtools** is a collection of helper scripts to parse and filter MongoDB log files (mongod, mongos), visualize log files and quickly set up complex MongoDB test environments on a local machine.
+
+![mtools box](./mtools.png)
+
+What's in the box?
+------------------
+
+The following tools are in the mtools collection:
+
+[mlogfilter](https://github.com/rueckstiess/mtools/wiki/mlogfilter) <br>
+slices log files by time, merges log files, filters slow queries, finds table scans, shortens log lines, filters by other atributes, convert to JSON
+
+[mloginfo](https://github.com/rueckstiess/mtools/wiki/mloginfo) <br>
+returns info about log file, like start and end time, version, binary, special sections like restarts, connections, distinct view
+
+[mplotqueries](https://github.com/rueckstiess/mtools/wiki/mplotqueries) <br>
+visualize logfiles with different types of plots (requires matplotlib)
+
+[mlogvis](https://github.com/rueckstiess/mtools/wiki/mlogvis) <br>
+creates a self-contained html file that shows an interactive visualization in a web browser (as an alternative to mplotqueries)
+
+[mlaunch](https://github.com/rueckstiess/mtools/wiki/mlaunch) <br>
+a script to quickly spin up local test environments, including replica sets and sharded systems (requires pymongo)
+
+
+You can find the manual and many usage examples on the [mtools wiki pages](https://github.com/rueckstiess/mtools/wiki).
+
+
+Requirements and Installation Instructions
+------------------------------------------
+
+The mtools collection is written in Python, and most of the tools only make
+use the standard packages shipped with Python version 2.6.x and 2.7.x, and should run out of the box.
+
+Some of the tools have additional dependencies, which are listed under the 
+specific tool's section. See the [INSTALL.md](./INSTALL.md) file for installation 
+instructions for these modules.
+
+
+Recent Changes
+--------------
+
+The current version of mtools is 1.1.5. See [CHANGES.md](./CHANGES.md) for a list of recent changes from previous versions of mtools.
+
+
+Contribute to mtools
+--------------------
+If you'd like to contribute to mtools, please read the [contributor page](tutorials/contributing.md) for instructions.
+
+
+Disclaimer
+----------
+
+This software is not supported by [MongoDB, Inc.](http://www.mongodb.com) under any of their commercial support subscriptions or otherwise. Any usage of mtools is at your own risk. 
+Bug reports, feature requests and questions can be posted in the [Issues](https://github.com/rueckstiess/mtools/issues?state=open) section here on github. 
+
+
+
+# Contributing to mtools
+
+Contributions to mtools are very welcome. Please check if the particular bug / issue has already been
+reported on the [mtools issues](https://github.com/rueckstiess/mtools/issues?state=open) page and create
+a new issue if it doesn't exist yet.
+
+### Development Installation
+
+You can install mtools in "development" mode, which will not move it into the Python `site-packages` 
+directory but keeps it in your local development directory instead. It will still install the necessary 
+hooks so you will be able to use it like normal, both from Python and the command line. In addition,
+you can modify the files directly in your local directory and test the changes right away.
+
+
+Clone the repository
+	
+	cd /your/code/path
+    git clone https://github.com/rueckstiess/mtools
+
+Then change into the directory and install in "development" mode
+
+	cd mtools
+	sudo python setup.py develop
+
+
+No changes to your `$PATH` and `$PYTHONPATH` environment variables are needed.
+
+
+
+### Branching Model
+
+mtools uses a simplified version of [this git branching model](http://nvie.com/posts/a-successful-git-branching-model/) 
+by [@nvie](https://twitter.com/nvie).
+
+The [master branch](https://github.com/rueckstiess/mtools) should only ever contain versioned releases. **Do not send
+pull requests against the master branch.**
+
+Development happens on the [develop branch](https://github.com/rueckstiess/mtools/tree/develop). 
+
+First, fork the [main repository](https://github.com/rueckstiess/mtools) into your own github account (&lt;username&gt;). 
+Then clone a copy to your local machine:
+
+    git clone https://github.com/<username>/mtools
+
+Now you need to add the upstream repository to pull in the latest changes.
+
+    cd mtools
+    git remote add upstream https://github.com/rueckstiess/mtools
+    git fetch upstream
+
+To get a local `develop` branch you need to check out and track your remote `develop` branch:
+
+    git checkout -b develop origin/develop
+
+If you want to work on a bug or feature implementation, first pull in the latest changes from upstream:
+
+    git checkout develop
+    git pull upstream develop
+
+Then create a feature/bugfix branch that forks off the local `develop` branch:
+
+    git checkout -b feature-37-fast develop
+
+The naming is not that relevant, but it's good practice to start with `feature-` or `bugfix-` and include the issue number
+in the branch name (if available).
+
+Now make your changes to the code. Commit as often as you like. Please use meaningful, descriptive git commit messages and
+avoid `asdf` or `changed stuff` descriptions.
+
+When you're happy with your changes, push your feature branch to github: 
+
+    git push origin feature-37-fast
+
+and raise a pull request against the upstream `develop` branch. Once the code is merged into the `develop` branch, 
+you can pull the change from upstream develop and then delete your local and github feature/bugfix branch.
+
+    git checkout develop
+    git pull upstream develop
+    git push origin --delete feature-37-fast
+    git branch -d feature-37-fast
+
+
+### Version Numbers
+
+The versioning standard in mtools is pretty straight-forward. It follows a major.minor.micro version system. We decided to start
+mtools at version 1.0.0  (it was already pretty stable and useable at that stage). Bugfixes and minor feature additions are released
+as part of micro releases in roughly a two-week cycle:  1.0.0 --> 1.0.1 --> 1.0.2 --> ...
+
+Minor releases will include more significant changes, including interface changes.  
+
+I'm not sure yet what a major release constitutes :-)
+
+The development version has the suffix `dev` attached. For example `1.0.1dev` is the development version leading up to `1.0.1` release.
+
+Minor and major releases might have release candidates leading up to the final release. Those are marked with the suffix `rcX` where `X` 
+is a number starting at 0. For example, version `1.2rc2` is the 3rd release candidate for upcoming release version `1.2`.
+
+Github milestones and git tags are named with a prefix `v`, for example `v1.0.1`.
+
+
+### Testing
+
+mtools uses the [nose testing framework](https://github.com/nose-devs/nose). You can install it with `sudo pip install nose` or 
+you can just run the test suite, which will take care of all the testing dependencies:
+
+    python setup.py test
+
+If you want to run the tests manually, go into the `mtools/test/` directory and run `nosetests`. The full test suite may take a while, as
+some of the tests have to set up and tear down replica sets and sharded clusters, especially for mlaunch testing. You can skip the slow tests
+with this command:
+
+    nosetests -a '!slow'
+
+If you implement a new feature anywhere in mlaunch, please write a test function or test class for the feature. If you fix a bug,
+please re-run the test suite after the code change and make sure the tests still pass. Please think carefully before changing
+a code and its related test concurrently, so it still tests the expected behavior and not what you consider as "fixed behavior".
+
+
+
+# How to Install Dependencies 
+
+While most mtools scripts only require Python, mplotqueries has some more dependencies which in some cases have proven tricky to install on Mac OS X.
+
+Here are some walk-through instructions to install all the necessary dependencies for Mac OS X Mountain Lion. For completeness, the instructions include installation of pymongo, which is only necessary for mlaunch.
+
+### Install Mac OS X Command Line Tools
+
+* Website: http://connect.apple.com
+* Login with Apple ID
+* Download _Command Line Tools for Mac OS X Mountain Lion_ and install
+
+Alternatively, you can install XCode from the Mac App Store.
+
+
+### Install pip
+
+    sudo easy_install pip
+
+
+
+### Install SciPySuperpack 
+
+See also: http://sergeykarayev.com/work/2012-08-08/setting-up-mountain-lion/
+
+The cloning may take a while.
+
+    mkdir ~/local && cd ~/local
+    git clone git://github.com/fonnesbeck/ScipySuperpack.git
+    cd ScipySuperpack
+    sh install_superpack.sh
+    
+verify by running `python` at the command line and typing `import matplotlib`. No error means it is installed.
+
+
+### Install pymongo (for mlaunch)
+
+    sudo pip install pymongo
+
+
+
+### Install mtools
+
+Website: https://github.com/rueckstiess/mtools
+
+    cd /path/to/github/repos
+    git clone git://github.com/rueckstiess/mtools.git
+
+add these lines to your `~/.bashrc` file:
+
+    export PYTHONPATH=$PYTHONPATH:/path/to/github/repos/mtools
+    export PATH=$PATH:/path/to/github/repos/mtools/scripts
+
+Then reload by running `source ~/.bashrc`.
+
+Now you should be able to tab-autocomplete any of the mtools scripts from any directory. Test this by typing `mplotq<tab>` and see if it works.
+
+# Tutorial for mplotqueries
+
+### Introduction
+
+mplotqueries is a tool to visualize operations in MongoDB logfiles. It is part of the [mtools](README.mk) collection.
+Before you can use mplotqueries, make sure you have [installed mtools](../INSTALL.md) as well as numpy and matplotlib. 
+These dependencies are necessary in order for mplotqueries to work. You can find detailed instructions on the [install](../INSTALL.md) page.
+
+## Basic Usage
+
+mplotqueries is a command line tool that takes a logfile or several logfiles and visualizes the log lines in a 2D plot, where the x-axis is the date and time of an event, and the y-axis is the duration of an event. By default, mplotqueries only visualizes timed loglines, i.e. those that have a duration at the end, specified in milliseconds. A typical log line that is a timed event could look like this:
+
+    Thu Feb 21 03:25:44 [conn5] command admin.$cmd command: { writebacklisten: ObjectId('5124bdb43bd5f630b542ff68') } ntoreturn:1 keyUpdates:0  reslen:44 300000ms
+    
+These "writebacklisten" commands are an essential part of a sharded setup, and their duration is often "300000ms", or 5 minutes. (If you don't see where the number 300000ms comes from, scroll to the far right of the line.) Their purpose is described on MongoDB's manual page on [sharding](http://docs.mongodb.org/manual/faq/sharding/#what-does-writebacklisten-in-the-log-mean).
+
+
+### Plotting Duration of Operations in the Logfile
+
+To plot a mongod or mongos logfile with mplotqueries, you can simply run:
+
+    mplotqueries mongod.log
+
+After parsing the logfile, you should see a window pop up that displays the queries, similar to this:
+
+<img src="img/mplotqueries-tutorial-1.png">
+
+On the x-axis we see the date and time of the events. This particular logfile seems to go from February 20-21. The y-axis represents the duration of events in milliseconds.
+
+Here we already run into our first problem. Most of the operations in MongoDB have sub-second duration, and we can see points on the bottom of the plot, but they are all squashed together. Unfortunately, the logfile also contains these writebacklisten messages, that are known to run for (comparatively) long times, 5 minutes. We can savely ignore those and focus on the "real" events.
+
+
+### Navigating the Main Window
+
+To navigate within a mplotqueries plot (which, by the way, uses [matplotlib](http://matplotlib.org/) to create the plots), you can use the tool palette at the bottom of the plot:
+
+<img src="img/mplotqueries-tutorial-2.png">
+
+The first symbol, the house, takes you back to the initial view, the one you see when the plot first opens. The two arrows on its side are like back and forward buttons in a browser. They let you navigate step by step backward or forward in the history of views. The crossed arrows next to it let you pan around in the plot, by click-dragging the mouse anywhere in the plot area. This lets you move the plot to a different position. The magnifying glass lets you draw a rectangle, that you want to zoom into. This is probably the most useful feature, as you can zoom into very small regions to see what happens close up. The button next to it is for subplot and margin configuration and not very useful in mplotqueries. Finally, the rightmost button, the floppy disk, lets you export your plot into a number of formats. A file dialog will pop up, and depending how you choose your file ending (e.g. `.pdf`, `.png`, `.jpg`), the exporter will write the correct format. Feel free to play around with each of these actions now to get a feel for navigating within a plot.
+
+Another thing you will have noticed by now is the legend in the top left corner. This shows the different "groups", that your plot contains. By default, the plot is grouped into namespaces, showing each namespace (database and collection, spearated by a period) in a different color. If you run out of colors, mplotqueries will also use different symbols (squares, diamonds, etc.) to help you distinguish your groups. We will talk about groups again further down in this tutorial, but for now let's just mention that you can change the grouping by using the parameter `--group <option>`, where `<option>` can for example be `namespace`, `operation`, `thread`, and some others.
+
+Back to the problem from above. Since we are only interested in the short events, let's use the zoom function to get a closer look. I'd like to include all points that are not at the 5 minute mark, and choose to zoom in on the y-axis to have 130 seconds at the top. This cuts of the blue writebacklisteners but still includes my two outliers (in red). The view is a little better, but without cutting off the outliers there's still not much to see at the bottom of the plot.
+
+### More Tricks: `--log`, pipes and combinations with mlogfilter
+
+This is where the `--log` option to plot the y-axis on a logarithmic scale really helps. mplotquery's default is a linear axis, but `--log` forces it to use a log scale, which is very useful to find outliers. Let's close this plot window and start a new one with this option. And while we're at it, we may as well get rid of these writebacklisten points for good. We could use 
+
+    grep -v "writebacklisten" mongod.log | mplotqueries
+
+to filter out all lines that contain the word "writebacklisten" and send the remaining ones to mplotqueries. As you see, mplotqueries doesn't just accept logfiles, you can also pipe a stream of loglines to it. There is a also another alternative. We know that those writebacklisten commands are all admin commands, and their namespace in the logfile is therefore `admin.$cmd`. `mlogfilter` has an option to exclude certain namespaces, so we could run 
+
+    mlogfilter mongod.log --namespace "admin.\$cmd" --exclude | mplotqueries
+    
+The result looks like this:
+
+<img src="img/mplotqueries-tutorial-3.png">
+
+Two things of notice: we have to escape the `$` sign, because the shell would otherwise interpret $cmd as a shell variable. And the colors have changed now, because mplotqueries plots the groups in the same order of colors. Since we just removed the first group "admin.$cmd", all groups move one step up in the order of colors.
+
+
+### Interactive Mode
+
+Now we see the outliers, but also get more detail on the bottom, thanks to the logarithmic scale. But we still don't know what these outliers are. In order to find that out we can use the interactive mode of mplotqueries. First, make sure that you're not in "zoom" or "pan" mode anymore. Check that the buttons at the bottom are not pushed in. If one of them is, click it again to toggle.
+
+Now we can actually click on individual points. Go ahead and click on one of the outlier points. The result will be displayed at the command line from where you started mplotqueries. You will likely see something similar to:
+
+<img src="img/mplotqueries-tutorial-4.png">
+
+The first two blocks were already there before we even clicked in the plot. The first block shows you an overview of the groups and the number of points that each contains. The second block is just a remainder that you can use the numeric keys to toggle individual plots on and off. Go and try it out: The keys [1-9] toggle the first 9 groups of a plot from visible to invisible and vice versa. The 0 key toggles all plots. Make sure that the focus is on the plot window, and not on the shell, or this won't work.
+
+The line that appeared after we clicked on one of the outliers is the one below that. mplotqueries outputs the exact log line that matches the point in the graph. Here we can see that this particular event was a "getmore" that returned close to 140,000 documents and took about 70 seconds. 
+
+## Advanced features
+
+The earlier versions of `mplotqueries` only had one type of plot: the one we used above, called a "duration" plot, because it plots the durations of log lines. Since then, mplotqueries has grown and now supports a number of different plot types as well as some other features, like grouping and multi-file plotting. When making the tool more general and adding more features, it was always a focus to keep the basic usage as easy as it was at the beginning. The idea was to develop a more abstract, general model, but keep the existing behavior as a "special case", which would plot a simple "duration" plot by default if no other options were specified. Since you are now quite familiar with the basic usage of `mplotqueries`, it's time to move to the more advanced features.
+
+
+### Group By Different Attributes
+
+Most of the time, we find a root cause for an unknown problem by comparing certain things to each other, with the goal of finding outliers. Very generally speaking, we do that by grouping items together, based on similarities in one attribute, and we contrast them with items that are different in the selected attribute. In `mplotqueries`, we call these attributes `groups`, and we can group by different attributes with the `--group` parameter. By default, the group attribute is on `namespace`. If you go back to the first screenshots at the beginning of this tutorial, you will see in the legend that the different colors (groups) are on `namespace`. In this specific case, we're dealing with a GridFS instance, therefore we have namespaces "a.fs.chunks" and "a.fs.files", as well as "local.oplog.rs" and a pseudo-namespace called "admin.$cmd". Each group contains all log lines that have the same namespace, and each group is displayed in a different color. If we want to use a different group, we can do something like this:
+
+    mplotqueries mongod.log --group operation
+    
+<img src="img/mplotqueries-tutorial-6.png">
+
+Now we can see different aspects of the same logfile, for example that most of the operations on Feb 20 were queries, while they were getmores, inserts, removes and very few updates on Feb 21. It's easy to spot what different groups there are in a plot by looking at the legend, which lists them all and assigns a color to them.
+
+Another attribute that can be used for grouping is `thread`. This creates an individual group for each thread, for example `[LockPinger]`,`[rsMgr]`, etc. and one combined group for all regular connections `[conn####]`, where #### is a number. Future plot types may have additional attributes that they can group by. 
+
+
+### Multiple files
+
+Sometimes the information we'd like to visualize is spread over several log files. `mplotqueries` lets you specify any number of files at the command line, not just a single one. If you specify more than one log file, then the plot is automatically grouped by a special group attribute, the _filename_. This makes it easy to compare different log files without plotting them all individually.
+
+<img src="img/mplotqueries-tutorial-7.png">
+
+
+### Three Basic Plot Types: `duration`, `event`, `range`
+
+`mplotqueries` can plot a number of different plot types, which can be selected by the `--type` command line parameter. If no type is specified, a `duration` plot is selected by default. This is why we didn't have to worry about it in the examples above. Currently, there are 3 basic plot types: `duration`, `event`, and `range`. Those three types represent different styles of plotting information. The `duration` plot prints dots on a 2D graph, where the x-axis is the date and time and the y-axis is the duration of the plotted line. This implies that a `duration` plot can only plot timed operations that have a duration (i.e. something like `1563ms` at the end of the line). 
+
+The `event` plot doesn't have that requirement. It can plot any event in the log file, with or without duration, and it does so with a vertical line at the respective time the event happened. Plotting a whole log file as an `event` plot doesn't make much sense, you probably wouldn't be able to see individual lines anymore because there are so many. The idea behind the `event` plot is to filter out certain events, with `grep` or `mlogfilter`, and to only plot these few events. Let's look at an example:
+
+Assume we know that there were some slow `serverStatus` messages in the logfile, and we want to know when those happened. Slow `serverStatus` warnings look like this:
+
+    Thu Feb 21 08:44:18 [conn2283] serverStatus was very slow: { after basic: 0, middle of mem: 650, after mem: 650, after connections: 650, after extra info: 650, after counters: 650, after repl: 650, after asserts: 650, after dur: 1080, at end: 1080 }
+
+They all say "serverStatus was very slow" and then list a number of values for how long different sections of the server status command took. Let's grep all those and make an `event` plot out of them.
+
+    grep "serverStatus was very slow" mongod.log | mplotqueries --type event
+    
+This results in some sort of barcode style plot that shows when exactly those slow serverStatus events occured. We can quickly see that there were more than usual just at the end of Feb 20. 
+
+<img src="img/mplotqueries-tutorial-5.png">
+
+Of course this works with all kinds of different events. One could grep for assertions, replica set state changes, server restarts, etc and pipe the remaining log lines into `mplotqueries --type event`. And just as with the markers of duration plots, the lines of event plots are clickable and output the log line to each event to stdout.
+
+The third basic plot type is the `range` plot. A range plot displays time periods, or ranges, as horizontal bars. This is useful to see how long certain events took, or when their first and last appearance in the log occurred. One example how this plot type can be quite useful is to see how several log files overlap. In this example, I have 3 logfiles, called
+  * mongod_primary.log
+  * mongod_secondary1.log
+  * mongod_secondary2.log
+
+I could specify all three filenames as parameters to `mplotqueries`, but it is easier to do something like this:
+
+    mplotqueries `ls mongod_*` --type range
+    
+The result is a plot that looks like the one below:
+
+<img src="img/mplotqueries-tutorial-8.png">
+
+And it shows that I really only have a few hours at the end of Feb 20, where I have overlapping information from all 3 logfiles.
+
+### More Plot Types
+
+It is fairly easy to create customized plot types that derive from one of the basic plot types above. One extended plot type that is already included with mplotqueries is `rsstate`. It derives from an event plot and visualizes state changes of replica set members. The colors are similar to the ones used in MMS: purple/magenta is used for a primary, yellow for secondary, red for state DOWN. If you are interested in writing your own plot types, have a look at the [implementation of the rsstate plot](../mplotqueries/plottypes/rsstate_type.py), it's straight forward and self-explanatory.
+
+Here is a graphical overview of the basic plot types and the first derived plot type:
+
+<img src="img/mplotqueries-tutorial-9.png" width="80%">
+
+
+### Plot Overlays
+
+While the different plot types are useful, sometimes it would be great if several plots could be combined in one window. This can be achieved with the `--overlay` parameter. If mplotqueries is started with the additional parameter `--overlay` (which is a shortcut for `--overlay add`), mplotqueries doesn't output the resulting plot window but instead stores the plot to a file located in `<home>/.mtools/mplotqueries/overlays/`, where `<home>` is your home directory. Several overlays can be created this way, and the first call to mplotqueries without the `--overlay` parameter will plot all plots stored that way in addition to the current plot (if any). Overlays are persistent and will have to be reset if they are not needed anymore. Use `--overlay list` to show a list of existing overlays, and `--overlay reset` to remove them all. Overlays are not still images, but can be interacted with as usual (i.e. you can click on lines, markers, etc). All plot-specific parameters (such as `--type`, `--group`) are preserved in an overlay, global parameters (such as `--log`) are applied to all overlays when plotting the resulting plot.
+
+Go ahead and try it out. Use:
+
+    mplotqueries mongod.log --group operation --overlay
+    mplotqueries mongod.log --type rsstate
+
+and you will get a combined duration / rsstate plot:
+
+<img src="img/mplotqueries-tutorial-10.png">
+
+
+    
+
+
+

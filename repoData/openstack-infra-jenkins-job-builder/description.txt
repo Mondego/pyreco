@@ -1,0 +1,146 @@
+===================
+Jenkins Job Builder
+===================
+
+Jenkins Job Builder takes simple descriptions of Jenkins jobs in YAML format,
+and uses them to configure Jenkins. You can keep your job descriptions in human
+readable text format in a version control system to make changes and auditing
+easier. It also has a flexible template system, so creating many similarly
+configured jobs is easy.
+
+To install::
+
+    $ sudo python setup.py install
+
+Online documentation:
+
+* http://ci.openstack.org/jenkins-job-builder/
+
+Developers
+==========
+Bug report:
+
+* https://bugs.launchpad.net/openstack-ci/
+
+Cloning:
+
+* https://git.openstack.org/openstack-infra/jenkins-job-builder
+
+Patches are submitted via Gerrit at:
+
+* https://review.openstack.org/
+
+Please do not submit GitHub pull requests, they will be automatically closed.
+
+More details on how you can contribute is available on our wiki at:
+
+* http://wiki.openstack.org/HowToContribute
+
+Writing a patch
+===============
+
+We ask that all code submissions be pep8_ and pyflakes_ clean.  The
+easiest way to do that is to run tox_ before submitting code for
+review in Gerrit.  It will run ``pep8`` and ``pyflakes`` in the same
+manner as the automated test suite that will run on proposed
+patchsets.
+
+When creating new YAML components, please observe the following style
+conventions:
+
+* All YAML identifiers (including component names and arguments)
+  should be lower-case and multiple word identifiers should use
+  hyphens.  E.g., "build-trigger".
+* The Python functions that implement components should have the same
+  name as the YAML keyword, but should use underscores instead of
+  hyphens. E.g., "build_trigger".
+
+This consistency will help users avoid simple mistakes when writing
+YAML, as well as developers when matching YAML components to Python
+implementation.
+
+Installing without setup.py
+===========================
+
+For YAML support, you will need libyaml_ installed.
+
+Mac OS X::
+
+    $ brew install libyaml
+
+Then install the required python packages using pip_::
+
+    $ sudo pip install PyYAML python-jenkins
+
+.. _pep8: https://pypi.python.org/pypi/pep8
+.. _pyflakes: https://pypi.python.org/pypi/pyflakes
+.. _tox: https://testrun.org/tox
+.. _libyaml: http://pyyaml.org/wiki/LibYAML
+.. _pip: https://pypi.python.org/pypi/pip
+
+# Jenkins Job Builder Examples #
+
+These examples demonstrate the use of particular features of Jenkins
+Job Builder that can be used as starting points for new projects.
+
+These examples are also used in the test framework - if you add a new
+example here, please ensure that it can be processed by Jenkins Job
+Builder.
+
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <publishers>
+    <hudson.plugins.descriptionsetter.DescriptionSetterPublisher>
+      <regexp>.*(&lt;a href=.*a&gt;)</regexp>
+      <regexpForFailed>.*(&lt;a href=.*a&gt;)</regexpForFailed>
+      <description>some description</description>
+      <descriptionForFailed>another description</descriptionForFailed>
+      <setForMatrix>true</setForMatrix>
+    </hudson.plugins.descriptionsetter.DescriptionSetterPublisher>
+  </publishers>
+</project>
+
+publishers:
+  - description-setter:
+      regexp: ".*(<a href=.*a>)"
+      regexp-for-failed: ".*(<a href=.*a>)"
+      description: "some description"
+      description-for-failed: "another description"
+      set-for-matrix: true
+
+<?xml version="1.0" encoding="utf-8"?>
+<project>
+  <publishers>
+    <hudson.plugins.descriptionsetter.DescriptionSetterPublisher>
+      <regexp>.*(&lt;a href=.*a&gt;)</regexp>
+      <regexpForFailed>.*(&lt;a href=.*a&gt;)</regexpForFailed>
+      <description>こんにちは</description>
+      <descriptionForFailed>さようなら</descriptionForFailed>
+      <setForMatrix>true</setForMatrix>
+    </hudson.plugins.descriptionsetter.DescriptionSetterPublisher>
+  </publishers>
+</project>
+
+publishers:
+  - description-setter:
+      regexp: ".*(<a href=.*a>)"
+      regexp-for-failed: ".*(<a href=.*a>)"
+      description: "こんにちは"
+      description-for-failed: "さようなら"
+      set-for-matrix: true
+
+This directory contains fixtures to test the publishers.
+
+The filename should start with a publisher name (example: xunit) and you must
+provide two files:
+ - .yaml : yaml snippet representing the publisher as it would be written
+           in jenkins job builder configuration file.
+ - .xml  : xml Jenkins snippet that should be rendered by the publisher
+
+Each yaml file MUST have a corresponding xml file.
+
+Once the YAML file has been parsed, it is prettify using python minidom
+which also means that:
+- your XML file must start with: <?xml version="1.0" encoding="utf-8"?>
+- self closing elements do not contains space eg: <element/>
+

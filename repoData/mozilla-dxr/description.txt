@@ -1,0 +1,1896 @@
+# osenv
+
+Look up environment settings specific to different operating systems.
+
+## Usage
+
+```javascript
+var osenv = require('osenv')
+var path = osenv.path()
+var user = osenv.user()
+// etc.
+
+// Some things are not reliably in the env, and have a fallback command:
+var h = osenv.hostname(function (er, hostname) {
+  h = hostname
+})
+// This will still cause it to be memoized, so calling osenv.hostname()
+// is now an immediate operation.
+
+// You can always send a cb, which will get called in the nextTick
+// if it's been memoized, or wait for the fallback data if it wasn't
+// found in the environment.
+osenv.hostname(function (er, hostname) {
+  if (er) console.error('error looking up hostname')
+  else console.log('this machine calls itself %s', hostname)
+})
+```
+
+## osenv.hostname()
+
+The machine name.  Calls `hostname` if not found.
+
+## osenv.user()
+
+The currently logged-in user.  Calls `whoami` if not found.
+
+## osenv.prompt()
+
+Either PS1 on unix, or PROMPT on Windows.
+
+## osenv.tmpdir()
+
+The place where temporary files should be created.
+
+## osenv.home()
+
+No place like it.
+
+## osenv.path()
+
+An array of the places that the operating system will search for
+executables.
+
+## osenv.editor() 
+
+Return the executable name of the editor program.  This uses the EDITOR
+and VISUAL environment variables, and falls back to `vi` on Unix, or
+`notepad.exe` on Windows.
+
+## osenv.shell()
+
+The SHELL on Unix, which Windows calls the ComSpec.  Defaults to 'bash'
+or 'cmd'.
+
+Just like node's `fs` module, but it does an incremental back-off when
+EMFILE is encountered.
+
+Useful in asynchronous situations where one needs to try to open lots
+and lots of files.
+
+ansi.js
+=========
+### Advanced ANSI formatting tool for Node.js
+
+`ansi.js` is a module for Node.js that provides an easy-to-use API for
+writing ANSI escape codes to `Stream` instances. ANSI escape codes are used to do
+fancy things in a terminal window, like render text in colors, delete characters,
+lines, the entire window, or hide and show the cursor, and lots more!
+
+The code for the example in the screenshot above can be found in the
+`examples/imgcat` directory.
+
+#### Features:
+
+ * 256 color support for the terminal!
+ * Make a beep sound from your terminal!
+ * Works with *any* writable `Stream` instance.
+ * Allows you to move the cursor anywhere on the terminal window.
+ * Allows you to delete existing contents from the terminal window.
+ * Allows you to hide and show the cursor.
+ * Converts CSS color codes and RGB values into ANSI escape codes.
+ * Low-level; you are in control of when escape codes are used, it's not abstracted.
+
+
+Installation
+------------
+
+Install with `npm`:
+
+``` bash
+$ npm install ansi
+```
+
+
+Example
+-------
+
+``` js
+var ansi = require('ansi')
+  , cursor = ansi(process.stdout)
+
+// You can chain your calls forever:
+cursor
+  .red()                 // Set font color to red
+  .bg.grey()             // Set background color to grey
+  .write('Hello World!') // Write 'Hello World!' to stdout
+  .bg.reset()            // Reset the bgcolor before writing the trailing \n,
+                         //      to avoid Terminal glitches
+  .write('\n')           // And a final \n to wrap things up
+
+// Rendering modes are persistent:
+cursor.hex('#660000').bold().underline()
+
+// You can use the regular logging functions, text will be green
+console.log('This is blood red, bold text')
+
+// To reset just the foreground color:
+cursor.fg.reset()
+
+console.log('This will still be bold')
+
+// Clean up after yourself!
+cursor.reset()
+```
+
+
+License
+-------
+
+(The MIT License)
+
+Copyright (c) 2012 Nathan Rajlich &lt;nathan@tootallnate.net&gt;
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+'Software'), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED 'AS IS', WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+# npmlog
+
+The logger util that npm uses.
+
+This logger is very basic.  It does the logging for npm.  It supports
+custom levels and colored output.
+
+By default, logs are written to stderr.  If you want to send log messages
+to outputs other than streams, then you can change the `log.stream`
+member, or you can just listen to the events that it emits, and do
+whatever you want with them.
+
+# Basic Usage
+
+```
+var log = require('npmlog')
+
+// additional stuff ---------------------------+
+// message ----------+                         |
+// prefix ----+      |                         |
+// level -+   |      |                         |
+//        v   v      v                         v
+    log.info('fyi', 'I have a kitty cat: %j', myKittyCat)
+```
+
+## log.level
+
+* {String}
+
+The level to display logs at.  Any logs at or above this level will be
+displayed.  The special level `silent` will prevent anything from being
+displayed ever.
+
+## log.record
+
+* {Array}
+
+An array of all the log messages that have been entered.
+
+## log.maxRecordSize
+
+* {Number}
+
+The maximum number of records to keep.  If log.record gets bigger than
+10% over this value, then it is sliced down to 90% of this value.
+
+The reason for the 10% window is so that it doesn't have to resize a
+large array on every log entry.
+
+## log.prefixStyle
+
+* {Object}
+
+A style object that specifies how prefixes are styled.  (See below)
+
+## log.headingStyle
+
+* {Object}
+
+A style object that specifies how the heading is styled.  (See below)
+
+## log.heading
+
+* {String} Default: ""
+
+If set, a heading that is printed at the start of every line.
+
+## log.stream
+
+* {Stream} Default: `process.stderr`
+
+The stream where output is written.
+
+## log.enableColor()
+
+Force colors to be used on all messages, regardless of the output
+stream.
+
+## log.disableColor()
+
+Disable colors on all messages.
+
+## log.pause()
+
+Stop emitting messages to the stream, but do not drop them.
+
+## log.resume()
+
+Emit all buffered messages that were written while paused.
+
+## log.log(level, prefix, message, ...)
+
+* `level` {String} The level to emit the message at
+* `prefix` {String} A string prefix.  Set to "" to skip.
+* `message...` Arguments to `util.format`
+
+Emit a log message at the specified level.
+
+## log\[level](prefix, message, ...)
+
+For example,
+
+* log.silly(prefix, message, ...)
+* log.verbose(prefix, message, ...)
+* log.info(prefix, message, ...)
+* log.http(prefix, message, ...)
+* log.warn(prefix, message, ...)
+* log.error(prefix, message, ...)
+
+Like `log.log(level, prefix, message, ...)`.  In this way, each level is
+given a shorthand, so you can do `log.info(prefix, message)`.
+
+## log.addLevel(level, n, style, disp)
+
+* `level` {String} Level indicator
+* `n` {Number} The numeric level
+* `style` {Object} Object with fg, bg, inverse, etc.
+* `disp` {String} Optional replacement for `level` in the output.
+
+Sets up a new level with a shorthand function and so forth.
+
+Note that if the number is `Infinity`, then setting the level to that
+will cause all log messages to be suppressed.  If the number is
+`-Infinity`, then the only way to show it is to enable all log messages.
+
+# Events
+
+Events are all emitted with the message object.
+
+* `log` Emitted for all messages
+* `log.<level>` Emitted for all messages with the `<level>` level.
+* `<prefix>` Messages with prefixes also emit their prefix as an event.
+
+# Style Objects
+
+Style objects can have the following fields:
+
+* `fg` {String} Color for the foreground text
+* `bg` {String} Color for the background
+* `bold`, `inverse`, `underline` {Boolean} Set the associated property
+* `bell` {Boolean} Make a noise (This is pretty annoying, probably.)
+
+# Message Objects
+
+Every log event is emitted with a message object, and the `log.record`
+list contains all of them that have been created.  They have the
+following fields:
+
+* `id` {Number}
+* `level` {String}
+* `prefix` {String}
+* `message` {String} Result of `util.format()`
+* `messageRaw` {Array} Arguments to `util.format()`
+
+Browser-friendly inheritance fully compatible with standard node.js
+[inherits](http://nodejs.org/api/util.html#util_util_inherits_constructor_superconstructor).
+
+This package exports standard `inherits` from node.js `util` module in
+node environment, but also provides alternative browser-friendly
+implementation through [browser
+field](https://gist.github.com/shtylman/4339901). Alternative
+implementation is a literal copy of standard one located in standalone
+module to avoid requiring of `util`. It also has a shim for old
+browsers with no `Object.create` support.
+
+While keeping you sure you are using standard `inherits`
+implementation in node.js environment, it allows bundlers such as
+[browserify](https://github.com/substack/node-browserify) to not
+include full `util` package to your client code if all you need is
+just `inherits` function. It worth, because browser shim for `util`
+package is large and `inherits` is often the single function you need
+from it.
+
+It's recommended to use this package instead of
+`require('util').inherits` for any code that has chances to be used
+not only in node.js but in browser too.
+
+## usage
+
+```js
+var inherits = require('inherits');
+// then use exactly as the standard one
+```
+
+## note on version ~1.0
+
+Version ~1.0 had completely different motivation and is not compatible
+neither with 2.0 nor with standard node.js `inherits`.
+
+If you are using version ~1.0 and planning to switch to ~2.0, be
+careful:
+
+* new version uses `super_` instead of `super` for referencing
+  superclass
+* new version overwrites current prototype while old one preserves any
+  existing fields on it
+
+# sigmund
+
+Quick and dirty signatures for Objects.
+
+This is like a much faster `deepEquals` comparison, which returns a
+string key suitable for caches and the like.
+
+## Usage
+
+```javascript
+function doSomething (someObj) {
+  var key = sigmund(someObj, maxDepth) // max depth defaults to 10
+  var cached = cache.get(key)
+  if (cached) return cached)
+
+  var result = expensiveCalculation(someObj)
+  cache.set(key, result)
+  return result
+}
+```
+
+The resulting key will be as unique and reproducible as calling
+`JSON.stringify` or `util.inspect` on the object, but is much faster.
+In order to achieve this speed, some differences are glossed over.
+For example, the object `{0:'foo'}` will be treated identically to the
+array `['foo']`.
+
+Also, just as there is no way to summon the soul from the scribblings
+of a cocain-addled psychoanalyst, there is no way to revive the object
+from the signature string that sigmund gives you.  In fact, it's
+barely even readable.
+
+As with `sys.inspect` and `JSON.stringify`, larger objects will
+produce larger signature strings.
+
+Because sigmund is a bit less strict than the more thorough
+alternatives, the strings will be shorter, and also there is a
+slightly higher chance for collisions.  For example, these objects
+have the same signature:
+
+    var obj1 = {a:'b',c:/def/,g:['h','i',{j:'',k:'l'}]}
+    var obj2 = {a:'b',c:'/def/',g:['h','i','{jkl']}
+
+Like a good Freudian, sigmund is most effective when you already have
+some understanding of what you're looking for.  It can help you help
+yourself, but you must be willing to do some work as well.
+
+Cycles are handled, and cyclical objects are silently omitted (though
+the key is included in the signature output.)
+
+The second argument is the maximum depth, which defaults to 10,
+because that is the maximum object traversal depth covered by most
+insurance carriers.
+
+# minimatch
+
+A minimal matching utility.
+
+[![Build Status](https://secure.travis-ci.org/isaacs/minimatch.png)](http://travis-ci.org/isaacs/minimatch)
+
+
+This is the matching library used internally by npm.
+
+Eventually, it will replace the C binding in node-glob.
+
+It works by converting glob expressions into JavaScript `RegExp`
+objects.
+
+## Usage
+
+```javascript
+var minimatch = require("minimatch")
+
+minimatch("bar.foo", "*.foo") // true!
+minimatch("bar.foo", "*.bar") // false!
+minimatch("bar.foo", "*.+(bar|foo)", { debug: true }) // true, and noisy!
+```
+
+## Features
+
+Supports these glob features:
+
+* Brace Expansion
+* Extended glob matching
+* "Globstar" `**` matching
+
+See:
+
+* `man sh`
+* `man bash`
+* `man 3 fnmatch`
+* `man 5 gitignore`
+
+## Minimatch Class
+
+Create a minimatch object by instanting the `minimatch.Minimatch` class.
+
+```javascript
+var Minimatch = require("minimatch").Minimatch
+var mm = new Minimatch(pattern, options)
+```
+
+### Properties
+
+* `pattern` The original pattern the minimatch object represents.
+* `options` The options supplied to the constructor.
+* `set` A 2-dimensional array of regexp or string expressions.
+  Each row in the
+  array corresponds to a brace-expanded pattern.  Each item in the row
+  corresponds to a single path-part.  For example, the pattern
+  `{a,b/c}/d` would expand to a set of patterns like:
+
+        [ [ a, d ]
+        , [ b, c, d ] ]
+
+    If a portion of the pattern doesn't have any "magic" in it
+    (that is, it's something like `"foo"` rather than `fo*o?`), then it
+    will be left as a string rather than converted to a regular
+    expression.
+
+* `regexp` Created by the `makeRe` method.  A single regular expression
+  expressing the entire pattern.  This is useful in cases where you wish
+  to use the pattern somewhat like `fnmatch(3)` with `FNM_PATH` enabled.
+* `negate` True if the pattern is negated.
+* `comment` True if the pattern is a comment.
+* `empty` True if the pattern is `""`.
+
+### Methods
+
+* `makeRe` Generate the `regexp` member if necessary, and return it.
+  Will return `false` if the pattern is invalid.
+* `match(fname)` Return true if the filename matches the pattern, or
+  false otherwise.
+* `matchOne(fileArray, patternArray, partial)` Take a `/`-split
+  filename, and match it against a single row in the `regExpSet`.  This
+  method is mainly for internal use, but is exposed so that it can be
+  used by a glob-walker that needs to avoid excessive filesystem calls.
+
+All other methods are internal, and will be called as necessary.
+
+## Functions
+
+The top-level exported function has a `cache` property, which is an LRU
+cache set to store 100 items.  So, calling these methods repeatedly
+with the same pattern and options will use the same Minimatch object,
+saving the cost of parsing it multiple times.
+
+### minimatch(path, pattern, options)
+
+Main export.  Tests a path against the pattern using the options.
+
+```javascript
+var isJS = minimatch(file, "*.js", { matchBase: true })
+```
+
+### minimatch.filter(pattern, options)
+
+Returns a function that tests its
+supplied argument, suitable for use with `Array.filter`.  Example:
+
+```javascript
+var javascripts = fileList.filter(minimatch.filter("*.js", {matchBase: true}))
+```
+
+### minimatch.match(list, pattern, options)
+
+Match against the list of
+files, in the style of fnmatch or glob.  If nothing is matched, and
+options.nonull is set, then return a list containing the pattern itself.
+
+```javascript
+var javascripts = minimatch.match(fileList, "*.js", {matchBase: true}))
+```
+
+### minimatch.makeRe(pattern, options)
+
+Make a regular expression object from the pattern.
+
+## Options
+
+All options are `false` by default.
+
+### debug
+
+Dump a ton of stuff to stderr.
+
+### nobrace
+
+Do not expand `{a,b}` and `{1..3}` brace sets.
+
+### noglobstar
+
+Disable `**` matching against multiple folder names.
+
+### dot
+
+Allow patterns to match filenames starting with a period, even if
+the pattern does not explicitly have a period in that spot.
+
+Note that by default, `a/**/b` will **not** match `a/.d/b`, unless `dot`
+is set.
+
+### noext
+
+Disable "extglob" style patterns like `+(a|b)`.
+
+### nocase
+
+Perform a case-insensitive match.
+
+### nonull
+
+When a match is not found by `minimatch.match`, return a list containing
+the pattern itself.  When set, an empty list is returned if there are
+no matches.
+
+### matchBase
+
+If set, then patterns without slashes will be matched
+against the basename of the path if it contains slashes.  For example,
+`a?b` would match the path `/xyz/123/acb`, but not `/xyz/acb/123`.
+
+### nocomment
+
+Suppress the behavior of treating `#` at the start of a pattern as a
+comment.
+
+### nonegate
+
+Suppress the behavior of treating a leading `!` character as negation.
+
+### flipNegate
+
+Returns from negate expressions the same as if they were not negated.
+(Ie, true on a hit, false on a miss.)
+
+
+## Comparisons to other fnmatch/glob implementations
+
+While strict compliance with the existing standards is a worthwhile
+goal, some discrepancies exist between minimatch and other
+implementations, and are intentional.
+
+If the pattern starts with a `!` character, then it is negated.  Set the
+`nonegate` flag to suppress this behavior, and treat leading `!`
+characters normally.  This is perhaps relevant if you wish to start the
+pattern with a negative extglob pattern like `!(a|B)`.  Multiple `!`
+characters at the start of a pattern will negate the pattern multiple
+times.
+
+If a pattern starts with `#`, then it is treated as a comment, and
+will not match anything.  Use `\#` to match a literal `#` at the
+start of a line, or set the `nocomment` flag to suppress this behavior.
+
+The double-star character `**` is supported by default, unless the
+`noglobstar` flag is set.  This is supported in the manner of bsdglob
+and bash 4.1, where `**` only has special significance if it is the only
+thing in a path part.  That is, `a/**/b` will match `a/x/y/b`, but
+`a/**b` will not.
+
+If an escaped pattern has no matches, and the `nonull` flag is set,
+then minimatch.match returns the pattern as-provided, rather than
+interpreting the character escapes.  For example,
+`minimatch.match([], "\\*a\\?")` will return `"\\*a\\?"` rather than
+`"*a?"`.  This is akin to setting the `nullglob` option in bash, except
+that it does not resolve escaped pattern characters.
+
+If brace expansion is not disabled, then it is performed before any
+other interpretation of the glob pattern.  Thus, a pattern like
+`+(a|{b),c)}`, which would not be valid in bash or zsh, is expanded
+**first** into the set of `+(a|b)` and `+(a|c)`, and those patterns are
+checked for validity.  Since those two are valid, matching proceeds.
+
+# Glob
+
+Match files using the patterns the shell uses, like stars and stuff.
+
+This is a glob implementation in JavaScript.  It uses the `minimatch`
+library to do its matching.
+
+## Attention: node-glob users!
+
+The API has changed dramatically between 2.x and 3.x. This library is
+now 100% JavaScript, and the integer flags have been replaced with an
+options object.
+
+Also, there's an event emitter class, proper tests, and all the other
+things you've come to expect from node modules.
+
+And best of all, no compilation!
+
+## Usage
+
+```javascript
+var glob = require("glob")
+
+// options is optional
+glob("**/*.js", options, function (er, files) {
+  // files is an array of filenames.
+  // If the `nonull` option is set, and nothing
+  // was found, then files is ["**/*.js"]
+  // er is an error object or null.
+})
+```
+
+## Features
+
+Please see the [minimatch
+documentation](https://github.com/isaacs/minimatch) for more details.
+
+Supports these glob features:
+
+* Brace Expansion
+* Extended glob matching
+* "Globstar" `**` matching
+
+See:
+
+* `man sh`
+* `man bash`
+* `man 3 fnmatch`
+* `man 5 gitignore`
+* [minimatch documentation](https://github.com/isaacs/minimatch)
+
+## glob(pattern, [options], cb)
+
+* `pattern` {String} Pattern to be matched
+* `options` {Object}
+* `cb` {Function}
+  * `err` {Error | null}
+  * `matches` {Array<String>} filenames found matching the pattern
+
+Perform an asynchronous glob search.
+
+## glob.sync(pattern, [options])
+
+* `pattern` {String} Pattern to be matched
+* `options` {Object}
+* return: {Array<String>} filenames found matching the pattern
+
+Perform a synchronous glob search.
+
+## Class: glob.Glob
+
+Create a Glob object by instanting the `glob.Glob` class.
+
+```javascript
+var Glob = require("glob").Glob
+var mg = new Glob(pattern, options, cb)
+```
+
+It's an EventEmitter, and starts walking the filesystem to find matches
+immediately.
+
+### new glob.Glob(pattern, [options], [cb])
+
+* `pattern` {String} pattern to search for
+* `options` {Object}
+* `cb` {Function} Called when an error occurs, or matches are found
+  * `err` {Error | null}
+  * `matches` {Array<String>} filenames found matching the pattern
+
+Note that if the `sync` flag is set in the options, then matches will
+be immediately available on the `g.found` member.
+
+### Properties
+
+* `minimatch` The minimatch object that the glob uses.
+* `options` The options object passed in.
+* `error` The error encountered.  When an error is encountered, the
+  glob object is in an undefined state, and should be discarded.
+* `aborted` Boolean which is set to true when calling `abort()`.  There
+  is no way at this time to continue a glob search after aborting, but
+  you can re-use the statCache to avoid having to duplicate syscalls.
+* `statCache` Collection of all the stat results the glob search
+  performed.
+* `cache` Convenience object.  Each field has the following possible
+  values:
+  * `false` - Path does not exist
+  * `true` - Path exists
+  * `1` - Path exists, and is not a directory
+  * `2` - Path exists, and is a directory
+  * `[file, entries, ...]` - Path exists, is a directory, and the
+    array value is the results of `fs.readdir`
+
+### Events
+
+* `end` When the matching is finished, this is emitted with all the
+  matches found.  If the `nonull` option is set, and no match was found,
+  then the `matches` list contains the original pattern.  The matches
+  are sorted, unless the `nosort` flag is set.
+* `match` Every time a match is found, this is emitted with the matched.
+* `error` Emitted when an unexpected error is encountered, or whenever
+  any fs error occurs if `options.strict` is set.
+* `abort` When `abort()` is called, this event is raised.
+
+### Methods
+
+* `abort` Stop the search.
+
+### Options
+
+All the options that can be passed to Minimatch can also be passed to
+Glob to change pattern matching behavior.  Also, some have been added,
+or have glob-specific ramifications.
+
+All options are false by default, unless otherwise noted.
+
+All options are added to the glob object, as well.
+
+* `cwd` The current working directory in which to search.  Defaults
+  to `process.cwd()`.
+* `root` The place where patterns starting with `/` will be mounted
+  onto.  Defaults to `path.resolve(options.cwd, "/")` (`/` on Unix
+  systems, and `C:\` or some such on Windows.)
+* `dot` Include `.dot` files in normal matches and `globstar` matches.
+  Note that an explicit dot in a portion of the pattern will always
+  match dot files.
+* `nomount` By default, a pattern starting with a forward-slash will be
+  "mounted" onto the root setting, so that a valid filesystem path is
+  returned.  Set this flag to disable that behavior.
+* `mark` Add a `/` character to directory matches.  Note that this
+  requires additional stat calls.
+* `nosort` Don't sort the results.
+* `stat` Set to true to stat *all* results.  This reduces performance
+  somewhat, and is completely unnecessary, unless `readdir` is presumed
+  to be an untrustworthy indicator of file existence.  It will cause
+  ELOOP to be triggered one level sooner in the case of cyclical
+  symbolic links.
+* `silent` When an unusual error is encountered
+  when attempting to read a directory, a warning will be printed to
+  stderr.  Set the `silent` option to true to suppress these warnings.
+* `strict` When an unusual error is encountered
+  when attempting to read a directory, the process will just continue on
+  in search of other matches.  Set the `strict` option to raise an error
+  in these cases.
+* `cache` See `cache` property above.  Pass in a previously generated
+  cache object to save some fs calls.
+* `statCache` A cache of results of filesystem information, to prevent
+  unnecessary stat calls.  While it should not normally be necessary to
+  set this, you may pass the statCache from one glob() call to the
+  options object of another, if you know that the filesystem will not
+  change between calls.  (See "Race Conditions" below.)
+* `sync` Perform a synchronous glob search.
+* `nounique` In some cases, brace-expanded patterns can result in the
+  same file showing up multiple times in the result set.  By default,
+  this implementation prevents duplicates in the result set.
+  Set this flag to disable that behavior.
+* `nonull` Set to never return an empty set, instead returning a set
+  containing the pattern itself.  This is the default in glob(3).
+* `nocase` Perform a case-insensitive match.  Note that case-insensitive
+  filesystems will sometimes result in glob returning results that are
+  case-insensitively matched anyway, since readdir and stat will not
+  raise an error.
+* `debug` Set to enable debug logging in minimatch and glob.
+* `globDebug` Set to enable debug logging in glob, but not minimatch.
+
+## Comparisons to other fnmatch/glob implementations
+
+While strict compliance with the existing standards is a worthwhile
+goal, some discrepancies exist between node-glob and other
+implementations, and are intentional.
+
+If the pattern starts with a `!` character, then it is negated.  Set the
+`nonegate` flag to suppress this behavior, and treat leading `!`
+characters normally.  This is perhaps relevant if you wish to start the
+pattern with a negative extglob pattern like `!(a|B)`.  Multiple `!`
+characters at the start of a pattern will negate the pattern multiple
+times.
+
+If a pattern starts with `#`, then it is treated as a comment, and
+will not match anything.  Use `\#` to match a literal `#` at the
+start of a line, or set the `nocomment` flag to suppress this behavior.
+
+The double-star character `**` is supported by default, unless the
+`noglobstar` flag is set.  This is supported in the manner of bsdglob
+and bash 4.1, where `**` only has special significance if it is the only
+thing in a path part.  That is, `a/**/b` will match `a/x/y/b`, but
+`a/**b` will not.
+
+If an escaped pattern has no matches, and the `nonull` flag is set,
+then glob returns the pattern as-provided, rather than
+interpreting the character escapes.  For example,
+`glob.match([], "\\*a\\?")` will return `"\\*a\\?"` rather than
+`"*a?"`.  This is akin to setting the `nullglob` option in bash, except
+that it does not resolve escaped pattern characters.
+
+If brace expansion is not disabled, then it is performed before any
+other interpretation of the glob pattern.  Thus, a pattern like
+`+(a|{b),c)}`, which would not be valid in bash or zsh, is expanded
+**first** into the set of `+(a|b)` and `+(a|c)`, and those patterns are
+checked for validity.  Since those two are valid, matching proceeds.
+
+## Windows
+
+**Please only use forward-slashes in glob expressions.**
+
+Though windows uses either `/` or `\` as its path separator, only `/`
+characters are used by this glob implementation.  You must use
+forward-slashes **only** in glob expressions.  Back-slashes will always
+be interpreted as escape characters, not path separators.
+
+Results from absolute patterns such as `/foo/*` are mounted onto the
+root setting using `path.join`.  On windows, this will by default result
+in `/foo/*` matching `C:\foo\bar.txt`.
+
+## Race Conditions
+
+Glob searching, by its very nature, is susceptible to race conditions,
+since it relies on directory walking and such.
+
+As a result, it is possible that a file that exists when glob looks for
+it may have been deleted or modified by the time it returns the result.
+
+As part of its internal implementation, this program caches all stat
+and readdir calls that it makes, in order to cut down on system
+overhead.  However, this also makes it even more susceptible to races,
+especially if the cache or statCache objects are reused between glob
+calls.
+
+Users are thus advised not to use a glob result as a guarantee of
+filesystem state in the face of rapid changes.  For the vast majority
+of operations, this is never a problem.
+
+# graceful-fs
+
+graceful-fs functions as a drop-in replacement for the fs module,
+making various improvements.
+
+The improvements are meant to normalize behavior across different
+platforms and environments, and to make filesystem access more
+resilient to errors.
+
+## Improvements over fs module
+
+graceful-fs:
+
+* keeps track of how many file descriptors are open, and by default
+  limits this to 1024. Any further requests to open a file are put in a
+  queue until new slots become available. If 1024 turns out to be too
+  much, it decreases the limit further.
+* fixes `lchmod` for Node versions prior to 0.6.2.
+* implements `fs.lutimes` if possible. Otherwise it becomes a noop.
+* ignores `EINVAL` and `EPERM` errors in `chown`, `fchown` or
+  `lchown` if the user isn't root.
+* makes `lchmod` and `lchown` become noops, if not available.
+* retries reading a file if `read` results in EAGAIN error.
+
+On Windows, it retries renaming a file for up to one second if `EACCESS`
+or `EPERM` error occurs, likely because antivirus software has locked
+the directory.
+
+## Configuration
+
+The maximum number of open file descriptors that graceful-fs manages may
+be adjusted by setting `fs.MAX_OPEN` to a different number. The default
+is 1024.
+
+# lru cache
+
+A cache object that deletes the least-recently-used items.
+
+## Usage:
+
+```javascript
+var LRU = require("lru-cache")
+  , options = { max: 500
+              , length: function (n) { return n * 2 }
+              , dispose: function (key, n) { n.close() }
+              , maxAge: 1000 * 60 * 60 }
+  , cache = LRU(options)
+  , otherCache = LRU(50) // sets just the max size
+
+cache.set("key", "value")
+cache.get("key") // "value"
+
+cache.reset()    // empty the cache
+```
+
+If you put more stuff in it, then items will fall out.
+
+If you try to put an oversized thing in it, then it'll fall out right
+away.
+
+## Options
+
+* `max` The maximum size of the cache, checked by applying the length
+  function to all values in the cache.  Not setting this is kind of
+  silly, since that's the whole purpose of this lib, but it defaults
+  to `Infinity`.
+* `maxAge` Maximum age in ms.  Items are not pro-actively pruned out
+  as they age, but if you try to get an item that is too old, it'll
+  drop it and return undefined instead of giving it to you.
+* `length` Function that is used to calculate the length of stored
+  items.  If you're storing strings or buffers, then you probably want
+  to do something like `function(n){return n.length}`.  The default is
+  `function(n){return 1}`, which is fine if you want to store `n`
+  like-sized things.
+* `dispose` Function that is called on items when they are dropped
+  from the cache.  This can be handy if you want to close file
+  descriptors or do other cleanup tasks when items are no longer
+  accessible.  Called with `key, value`.  It's called *before*
+  actually removing the item from the internal cache, so if you want
+  to immediately put it back in, you'll have to do that in a
+  `nextTick` or `setTimeout` callback or it won't do anything.
+* `stale` By default, if you set a `maxAge`, it'll only actually pull
+  stale items out of the cache when you `get(key)`.  (That is, it's
+  not pre-emptively doing a `setTimeout` or anything.)  If you set
+  `stale:true`, it'll return the stale value before deleting it.  If
+  you don't set this, then it'll return `undefined` when you try to
+  get a stale entry, as if it had already been deleted.
+
+## API
+
+* `set(key, value)`
+* `get(key) => value`
+
+    Both of these will update the "recently used"-ness of the key.
+    They do what you think.
+
+* `peek(key)`
+
+    Returns the key value (or `undefined` if not found) without
+    updating the "recently used"-ness of the key.
+
+    (If you find yourself using this a lot, you *might* be using the
+    wrong sort of data structure, but there are some use cases where
+    it's handy.)
+
+* `del(key)`
+
+    Deletes a key out of the cache.
+
+* `reset()`
+
+    Clear the cache entirely, throwing away all values.
+
+* `has(key)`
+
+    Check if a key is in the cache, without updating the recent-ness
+    or deleting it for being stale.
+
+* `forEach(function(value,key,cache), [thisp])`
+
+    Just like `Array.prototype.forEach`.  Iterates over all the keys
+    in the cache, in order of recent-ness.  (Ie, more recently used
+    items are iterated over first.)
+
+* `keys()`
+
+    Return an array of the keys in the cache.
+
+* `values()`
+
+    Return an array of the values in the cache.
+
+module.exports = extractDescription
+
+// Extracts description from contents of a readme file in markdown format
+function extractDescription (d) {
+  if (!d) return;
+  // the first block of text before the first heading
+  // that isn't the first line heading
+  d = d.trim().split('\n')
+  for (var s = 0; d[s] && d[s].trim().match(/^(#|$)/); s ++);
+  var l = d.length
+  for (var e = s + 1; e < l && d[e].trim(); e ++);
+  return d.slice(s, e).join(' ').trim()
+}
+
+
+1.1.1 / 2013-04-23 
+==================
+
+  * package.json: Move test stuff to devDeps
+
+1.1.0 / 2013-04-19 
+==================
+
+  * Add support for gist urls
+
+
+# github-url-from-git
+
+```js
+describe('parse(url)', function(){
+  it('should support git://*', function(){
+    var url = 'git://github.com/jamesor/mongoose-versioner';
+    parse(url).should.equal('https://github.com/jamesor/mongoose-versioner');
+  })
+
+  it('should support git://*.git', function(){
+    var url = 'git://github.com/treygriffith/cellar.git';
+    parse(url).should.equal('https://github.com/treygriffith/cellar');
+  })
+
+  it('should support https://*', function(){
+    var url = 'https://github.com/Empeeric/i18n-node';
+    parse(url).should.equal('https://github.com/Empeeric/i18n-node');
+  })
+
+  it('should support https://*.git', function(){
+    var url = 'https://jpillora@github.com/banchee/tranquil.git';
+    parse(url).should.equal('https://github.com/banchee/tranquil');
+  })
+
+  it('should return undefined on failure', function(){
+    var url = 'git://github.com/justgord/.git';
+    assert(null == parse(url));
+  })
+
+  it('should parse git@gist urls', function() {
+    var url = 'git@gist.github.com:3135914.git';
+    parse(url).should.equal('https://gist.github.com/3135914')
+  })
+
+  it('should parse https://gist urls', function() {
+    var url = 'https://gist.github.com/3135914.git';
+    parse(url).should.equal('https://gist.github.com/3135914')
+  })
+})
+```
+
+# normalize-package-data [![Build Status](https://travis-ci.org/meryn/normalize-package-data.png?branch=master)](https://travis-ci.org/meryn/normalize-package-data)
+
+normalize-package data exports a function that normalizes package metadata. This data is typically found in a package.json file, but in principle could come from any source - for example the npm registry.
+
+normalize-package-data is used by [read-package-json](https://npmjs.org/package/read-package-json) to normalize the data it reads from a package.json file. In turn, read-package-json is used by [npm](https://npmjs.org/package/npm) and various npm-related tools.
+
+## Installation
+
+```
+npm install normalize-package-data
+```
+
+## Usage
+
+Basic usage is really simple. You call the function that normalize-package-data exports. Let's call it `normalizeData`.
+
+```javascript
+normalizeData = require('normalize-package-data')
+packageData = fs.readfileSync("package.json")
+normalizeData(packageData)
+// packageData is now normalized
+```
+
+Optionally, you may pass a "warning" function. It gets called whenever the normalizeData function encounters something that doesn't look right. It indicates less than perfect input data.
+
+```javascript
+normalizeData = require('normalize-package-data')
+packageData = fs.readfileSync("package.json")
+warnFn = function(msg) { console.error(msg) }
+normalizeData(packageData, warnFn)
+// packageData is now normalized. Any number of warnings may have been logged.
+```
+
+If you don't provide a warning function, `normalizeData` functions silently.
+
+### Potential exceptions
+
+If the supplied data has an invalid name or version vield, `normalizeData` will throw an error. Depending on where you call `normalizeData`, you may want to catch these errors so can pass them to a callback.
+
+## What normalization (currently) entails
+
+* The value of `name` field gets trimmed.
+* The value of the `version` field gets cleaned by `semver.clean`. See [documentation for the semver module](https://github.com/isaacs/node-semver).
+* If `name` and/or `version` fields are missing, they are set to empty strings.
+* If `files` field is not an array, it will be removed.
+* If `bin` field is a string, then `bin` field will become an object with `name` set to the value of the `name` field, and `bin` set to the original string value.
+* If `man` field is a string, it will become an array with the original string as its sole member.
+* If `keywords` field is string, it is considered to be a list of keywords separated by one or more white-space characters. It gets converted to an array by splitting on `\s+`.
+* All people fields (`author`, `maintainers`, `contributors`) get converted into objects with name, email and url properties.
+* If `bundledDependencies` field (a typo) exists and `bundleDependencies` field does not, `bundledDependencies` will get renamed to `bundleDependencies`.
+* If the value of any of the dependencies fields  (`dependencies`, `devDependencies`, `optionalDependencies`) is a string, it gets converted into an object with familiar `name=>value` pairs.
+* The values in `optionalDependencies` get added to `dependencies`. The `optionalDependencies` array is left untouched.
+* If `description` field does not exists, but `readme` field does, then (more or less) the first paragraph of text that's found in the readme is taken as value for `description`.
+* If `repository` field is a string, it will become an object with `url` set to the original string value, and `type` set to `"git"`.
+* If `bugs` field is a string, the value of `bugs` field is changed into an object with `url` set to the original string value.
+* If `bugs` field does not exist, but `repository` field points to a repository hosted on GitHub, the value of the `bugs` field gets set to an url in the form of https://github.com/[owner-name]/[repo-name]/issues . If the repository field points to a GitHub Gist repo url, the associated http url is chosen.
+* If `bugs` field is an object, the resulting value only has email and url properties. If email and url properties are not strings, they are ignored. If no valid values for either email or url is found, bugs field will be removed.
+* If `homepage` field is not a string, it will be removed.
+* If the url in the `homepage` field does not specify a protocol, then http is assumed. For example, `myproject.org` will be changed to `http://myproject.org`.
+
+### Rules for name field
+
+If `name` field is given, the value of the name field must be a string. The string may not:
+
+* start with a period.
+* contain the following characters: `/@\s+%`
+* contain and characters that would need to be encoded for use in urls.
+* resemble the word `node_modules` or `favicon.ico` (case doesn't matter).
+
+### Rules for version field
+
+If `version` field is given, the value of the version field must be a valid *semver* string, as determined by the `semver.valid` method. See [documentation for the semver module](https://github.com/isaacs/node-semver).
+
+## Credits
+
+This package contains code based on read-package-json written by Isaac Z. Schlueter. Used with permisson.
+
+## License
+
+normalize-package-data is released under the [BSD 2-Clause License](http://opensource.org/licenses/MIT).  
+Copyright (c) 2013 Meryn Stol  
+# read-package-json
+
+This is the thing that npm uses to read package.json files.  It
+validates some stuff, and loads some default things.
+
+It keeps a cache of the files you've read, so that you don't end
+up reading the same package.json file multiple times.
+
+Note that if you just want to see what's literally in the package.json
+file, you can usually do `var data = require('some-module/package.json')`.
+
+This module is basically only needed by npm, but it's handy to see what
+npm will see when it looks at your package.
+
+## Usage
+
+```javascript
+var readJson = require('read-package-json')
+
+readJson('/path/to/package.json', function (er, data) {
+  if (er) {
+    console.error("There was an error reading the file")
+    return
+  }
+
+  console.error('the package data is', data)
+}
+```
+
+## readJson(file, cb)
+
+* `file` {String} The path to the package.json file
+* `cb` {Function}
+
+Reads the JSON file and does the things.
+
+## `package.json` Fields
+
+See `man 5 package.json` or `npm help json`.
+
+## readJson.log
+
+By default this is a reference to the `npmlog` module.  But if that
+module can't be found, then it'll be set to just a dummy thing that does
+nothing.
+
+Replace with your own `{log,warn,error}` object for fun loggy time.
+
+## readJson.extras(file, data, cb)
+
+Run all the extra stuff relative to the file, with the parsed data.
+
+Modifies the data as it does stuff.  Calls the cb when it's done.
+
+## readJson.extraSet = [fn, fn, ...]
+
+Array of functions that are called by `extras`.  Each one receives the
+arguments `fn(file, data, cb)` and is expected to call `cb(er, data)`
+when done or when an error occurs.
+
+Order is indeterminate, so each function should be completely
+independent.
+
+Mix and match!
+
+## readJson.cache
+
+The `lru-cache` object that readJson uses to not read the same file over
+and over again.  See
+[lru-cache](https://github.com/isaacs/node-lru-cache) for details.
+
+## Other Relevant Files Besides `package.json`
+
+Some other files have an effect on the resulting data object, in the
+following ways:
+
+### `README?(.*)`
+
+If there is a `README` or `README.*` file present, then npm will attach
+a `readme` field to the data with the contents of this file.
+
+Owing to the fact that roughly 100% of existing node modules have
+Markdown README files, it will generally be assumed to be Markdown,
+regardless of the extension.  Please plan accordingly.
+
+### `server.js`
+
+If there is a `server.js` file, and there is not already a
+`scripts.start` field, then `scripts.start` will be set to `node
+server.js`.
+
+### `AUTHORS`
+
+If there is not already a `contributors` field, then the `contributors`
+field will be set to the contents of the `AUTHORS` file, split by lines,
+and parsed.
+
+### `bindings.gyp`
+
+If a bindings.gyp file exists, and there is not already a
+`scripts.install` field, then the `scripts.install` field will be set to
+`node-gyp rebuild`.
+
+### `wscript`
+
+If a wscript file exists, and there is not already a `scripts.install`
+field, then the `scripts.install` field will be set to `node-waf clean ;
+node-waf configure build`.
+
+Note that the `bindings.gyp` file supercedes this, since node-waf has
+been deprecated in favor of node-gyp.
+
+### `index.js`
+
+If the json file does not exist, but there is a `index.js` file
+present instead, and that file has a package comment, then it will try
+to parse the package comment, and use that as the data instead.
+
+A package comment looks like this:
+
+```javascript
+/**package
+ * { "name": "my-bare-module"
+ * , "version": "1.2.3"
+ * , "description": "etc...." }
+ **/
+
+// or...
+
+/**package
+{ "name": "my-bare-module"
+, "version": "1.2.3"
+, "description": "etc...." }
+**/
+```
+
+The important thing is that it starts with `/**package`, and ends with
+`**/`.  If the package.json file exists, then the index.js is not
+parsed.
+
+### `{directories.man}/*.[0-9]`
+
+If there is not already a `man` field defined as an array of files or a
+single file, and
+there is a `directories.man` field defined, then that directory will
+be searched for manpages.
+
+Any valid manpages found in that directory will be assigned to the `man`
+array, and installed in the appropriate man directory at package install
+time, when installed globally on a Unix system.
+
+### `{directories.bin}/*`
+
+If there is not already a `bin` field defined as a string filename or a
+hash of `<name> : <filename>` pairs, then the `directories.bin`
+directory will be searched and all the files within it will be linked as
+executables at install time.
+
+When installing locally, npm links bins into `node_modules/.bin`, which
+is in the `PATH` environ when npm runs scripts.  When
+installing globally, they are linked into `{prefix}/bin`, which is
+presumably in the `PATH` environment variable.
+
+semver(1) -- The semantic versioner for npm
+===========================================
+
+## Usage
+
+    $ npm install semver
+
+    semver.valid('1.2.3') // true
+    semver.valid('a.b.c') // false
+    semver.clean('  =v1.2.3   ') // '1.2.3'
+    semver.satisfies('1.2.3', '1.x || >=2.5.0 || 5.0.0 - 7.2.3') // true
+    semver.gt('1.2.3', '9.8.7') // false
+    semver.lt('1.2.3', '9.8.7') // true
+
+As a command-line utility:
+
+    $ semver -h
+
+    Usage: semver -v <version> [-r <range>]
+    Test if version(s) satisfy the supplied range(s),
+    and sort them.
+
+    Multiple versions or ranges may be supplied.
+
+    Program exits successfully if any valid version satisfies
+    all supplied ranges, and prints all satisfying versions.
+
+    If no versions are valid, or ranges are not satisfied,
+    then exits failure.
+
+    Versions are printed in ascending order, so supplying
+    multiple versions to the utility will just sort them.
+
+## Versions
+
+A version is the following things, in this order:
+
+* a number (Major)
+* a period
+* a number (minor)
+* a period
+* a number (patch)
+* OPTIONAL: a hyphen, followed by a number (build)
+* OPTIONAL: a collection of pretty much any non-whitespace characters
+  (tag)
+
+A leading `"="` or `"v"` character is stripped off and ignored.
+
+## Comparisons
+
+The ordering of versions is done using the following algorithm, given
+two versions and asked to find the greater of the two:
+
+* If the majors are numerically different, then take the one
+  with a bigger major number. `2.3.4 > 1.3.4`
+* If the minors are numerically different, then take the one
+  with the bigger minor number. `2.3.4 > 2.2.4`
+* If the patches are numerically different, then take the one with the
+  bigger patch number. `2.3.4 > 2.3.3`
+* If only one of them has a build number, then take the one with the
+  build number.  `2.3.4-0 > 2.3.4`
+* If they both have build numbers, and the build numbers are numerically
+  different, then take the one with the bigger build number.
+  `2.3.4-10 > 2.3.4-9`
+* If only one of them has a tag, then take the one without the tag.
+  `2.3.4 > 2.3.4-beta`
+* If they both have tags, then take the one with the lexicographically
+  larger tag.  `2.3.4-beta > 2.3.4-alpha`
+* At this point, they're equal.
+
+## Ranges
+
+The following range styles are supported:
+
+* `>1.2.3` Greater than a specific version.
+* `<1.2.3` Less than
+* `1.2.3 - 2.3.4` := `>=1.2.3 <=2.3.4`
+* `~1.2.3` := `>=1.2.3 <1.3.0`
+* `~1.2` := `>=1.2.0 <2.0.0`
+* `~1` := `>=1.0.0 <2.0.0`
+* `1.2.x` := `>=1.2.0 <1.3.0`
+* `1.x` := `>=1.0.0 <2.0.0`
+
+Ranges can be joined with either a space (which implies "and") or a
+`||` (which implies "or").
+
+## Functions
+
+* valid(v): Return the parsed version, or null if it's not valid.
+* inc(v, release): Return the version incremented by the release type
+  (major, minor, patch, or build), or null if it's not valid.
+
+### Comparison
+
+* gt(v1, v2): `v1 > v2`
+* gte(v1, v2): `v1 >= v2`
+* lt(v1, v2): `v1 < v2`
+* lte(v1, v2): `v1 <= v2`
+* eq(v1, v2): `v1 == v2` This is true if they're logically equivalent,
+  even if they're not the exact same string.  You already know how to
+  compare strings.
+* neq(v1, v2): `v1 != v2` The opposite of eq.
+* cmp(v1, comparator, v2): Pass in a comparison string, and it'll call
+  the corresponding function above.  `"==="` and `"!=="` do simple
+  string comparison, but are included for completeness.  Throws if an
+  invalid comparison string is provided.
+* compare(v1, v2): Return 0 if v1 == v2, or 1 if v1 is greater, or -1 if
+  v2 is greater.  Sorts in ascending order if passed to Array.sort().
+* rcompare(v1, v2): The reverse of compare.  Sorts an array of versions
+  in descending order when passed to Array.sort().
+
+
+### Ranges
+
+* validRange(range): Return the valid range or null if it's not valid
+* satisfies(version, range): Return true if the version satisfies the
+  range.
+* maxSatisfying(versions, range): Return the highest version in the list
+  that satisfies the range, or null if none of them do.
+
+# Controlling Flow: callbacks are easy
+
+## What's actually hard?
+
+- Doing a bunch of things in a specific order.
+- Knowing when stuff is done.
+- Handling failures.
+- Breaking up functionality into parts (avoid nested inline callbacks)
+
+
+## Common Mistakes
+
+- Abandoning convention and consistency.
+- Putting all callbacks inline.
+- Using libraries without grokking them.
+- Trying to make async code look sync.
+
+## Define Conventions
+
+- Two kinds of functions: *actors* take action, *callbacks* get results.
+- Essentially the continuation pattern. Resulting code *looks* similar
+  to fibers, but is *much* simpler to implement.
+- Node works this way in the lowlevel APIs already, and it's very ﬂexible.
+
+## Callbacks
+
+- Simple responders
+- Must always be prepared to handle errors, that's why it's the first argument.
+- Often inline anonymous, but not always.
+- Can trap and call other callbacks with modified data, or pass errors upwards.
+
+## Actors
+
+- Last argument is a callback.
+- If any error occurs, and can't be handled, pass it to the callback and return.
+- Must not throw. Return value ignored.
+- return x ==> return cb(null, x)
+- throw er ==> return cb(er)
+
+```javascript
+// return true if a path is either
+// a symlink or a directory.
+function isLinkOrDir (path, cb) {
+  fs.lstat(path, function (er, s) {
+    if (er) return cb(er)
+    return cb(null, s.isDirectory() || s.isSymbolicLink())
+  })
+}
+```
+
+# asyncMap
+
+## Usecases
+
+- I have a list of 10 files, and need to read all of them, and then continue when they're all done.
+- I have a dozen URLs, and need to fetch them all, and then continue when they're all done.
+- I have 4 connected users, and need to send a message to all of them, and then continue when that's done.
+- I have a list of n things, and I need to dosomething with all of them, in parallel, and get the results once they're all complete.
+
+
+## Solution
+
+```javascript
+var asyncMap = require("slide").asyncMap
+function writeFiles (files, what, cb) {
+  asyncMap(files, function (f, cb) {
+    fs.writeFile(f, what, cb)
+  }, cb)
+}
+writeFiles([my, file, list], "foo", cb)
+```
+
+# chain
+
+## Usecases
+
+- I have to do a bunch of things, in order. Get db credentials out of a file,
+  read the data from the db, write that data to another file.
+- If anything fails, do not continue.
+- I still have to provide an array of functions, which is a lot of boilerplate,
+  and a pita if your functions take args like
+
+```javascript
+function (cb) {
+  blah(a, b, c, cb)
+}
+```
+
+- Results are discarded, which is a bit lame.
+- No way to branch.
+
+## Solution
+
+- reduces boilerplate by converting an array of [fn, args] to an actor
+  that takes no arguments (except cb)
+- A bit like Function#bind, but tailored for our use-case.
+- bindActor(obj, "method", a, b, c)
+- bindActor(fn, a, b, c)
+- bindActor(obj, fn, a, b, c)
+- branching, skipping over falsey arguments
+
+```javascript
+chain([
+  doThing && [thing, a, b, c]
+, isFoo && [doFoo, "foo"]
+, subChain && [chain, [one, two]]
+], cb)
+```
+
+- tracking results: results are stored in an optional array passed as argument,
+  last result is always in results[results.length - 1].
+- treat chain.first and chain.last as placeholders for the first/last
+  result up until that point.
+
+
+## Non-trivial example
+
+- Read number files in a directory
+- Add the results together
+- Ping a web service with the result
+- Write the response to a file
+- Delete the number files
+
+```javascript
+var chain = require("slide").chain
+function myProgram (cb) {
+  var res = [], last = chain.last, first = chain.first
+  chain([
+    [fs, "readdir", "the-directory"]
+  , [readFiles, "the-directory", last]
+  , [sum, last]
+  , [ping, "POST", "example.com", 80, "/foo", last]
+  , [fs, "writeFile", "result.txt", last]
+  , [rmFiles, "./the-directory", first]
+  ], res, cb)
+}
+```
+
+# Conclusion: Convention Profits
+
+- Consistent API from top to bottom.
+- Sneak in at any point to inject functionality. Testable, reusable, ...
+- When ruby and python users whine, you can smile condescendingly.
+
+# read-installed
+
+Read all the installed packages in a folder, and return a tree
+structure with all the data.
+
+npm uses this.
+
+## Usage
+
+```javascript
+var readInstalled = require("read-installed")
+// depth is optional, defaults to Infinity
+readInstalled(folder, depth, function (er, data) {
+  ...
+})
+```
+
+# npm-lockdown
+
+Put your dependencies on lockdown.
+
+![lockdown](https://github.com/mozilla/npm-lockdown/raw/master/npm-lockdown.png)
+
+## What's this?
+
+NPM Lockdown is a tool that locks your node.js app to
+specific versions of dependencies... So that you can:
+
+  1. know that the code you develop against is what you test and deploy
+  2. `npm install` and get the same code, every time.
+  3. not have to copy all of your dependencies into your project
+  4. not have to stand up a private npm repository to solve this problem.
+
+## Who is this for?
+
+Node.JS application developers, but not library authors.  Stuff published
+in npm as libraries probably wouldn't be interested.
+
+## Why Care?
+
+Even if you express verbatim versions in your package.json file, you're still
+vulnerable to your code breaking at any time.  This can happen if a dependency
+of a project you depend on with a specific version *itself* depends on another
+packages with a version range.
+
+How can other people accidentally or intentionally break your node.js app?
+Well, they might...
+
+  * ... push a new version that no longer supports your preferred version of node.js.
+  * ... fix a subtle bug that you actually depend on.
+  * ... accidentally introduce a subtle bug.
+  * ... be having a bad day.
+
+And, any author at any time can overwrite the package version they have published
+so one under-thought `npm publish -f` can mean a subtle bug that steals days
+of your week.
+
+## Usage!
+
+
+
+    npm install --save foo@0.8.1
+    ./node_modules/.bin/lockdown-relock
+
+`npm-lockdown` is easy to get started with.  It generates a single file that lists
+the versions and check-sums of the software you depend on, so any time something
+changes out from under you, `npm install` will fail and tell you what package has
+changed.
+
+### One Time Project Setup
+
+  1. npm install the version of lockdown you want: `npm install --save lockdown`
+  2. add a line to your package.json file: `"scripts": { "preinstall": "lockdown" }`
+  3. generate a lockdown.json: `node_modules/.bin/lockdown-relock`
+  4. commit: `git add package.json lockdown.json && git commit -m "be safe"`
+
+### Adding new modules
+
+  1. npm install the specific dependencies of your app `npm install --save foo@0.8.1`
+  4. re-generate your lockdown.json: `node_modules/.bin/lockdown-relock`
+  5. commit: `git add package.json lockdown.json && git commit -m "be safe"`
+
+### Changing dependencies once locked down
+
+You update your dependencies explicitly, relock, and commit:
+
+    npm install --save foo@1.2.3
+    node_modules/.bin/lockdown-relock
+    git add lockdown.json package.json
+    git commit -m "move to foo v1.2.3"
+
+done!
+
+## Notes:
+
+  * You should use the latest stable version of lockdown, find it from the [npm registry](https://npmjs.org/package/lockdown)
+
+## Installing dependencies once locked down
+
+    npm install
+
+## Related Tools
+
+**[npm shrinkwrap][]** - NPM itself has a feature called "shrinkwrap" that
+
+> locks down the versions of a package's dependencies so that you can control exactly which
+> versions of each dependency will be used when your package is installed.
+
+At present (as of npm v1.1.33), the implementation of shrinkwrap has a couple flaws
+which make it unusable for certain applications:
+
+  1. No checksums!  NPM shrinkwrap does not guarantee bit-wise equality of the installed
+     dependencies, so if an upstream server or author decides to change the contents of
+     version 1.2.3 of `foo`, you'll install something different than you intended without
+     knowing.
+  2. Does not play nice with `optionalDependencies` - If you "shrinkwrap" your app and you
+     have an installed dep that is optional, the dependency is no longer optional.  This might
+     not be what you want.
+
+  [npm shrinkwrap]: https://npmjs.org/doc/shrinkwrap.html
+
+*NOTE:* you can combine lockdown with shrinkwrap just fine.  If all you care about is #1 above.
+
+The path forward is to build checksums into shrinkwrap and kick lockdown to the curb, but until
+then, lockdown solves some problems.  (@izs is [interested in patches][]).
+
+  [interested in patches]: https://twitter.com/izs/status/234330784931143682
+
+**[npm-seal][]** - Solves the same problem as lockdown in a very different way.  Because seal
+is built to be used in concert with shrinkwrap, it suffers from the `optionalDependencies` issue
+described above.
+
+  [npm-seal]: https://github.com/zaach/npm-seal
+
+DXR, A Code Search and Cross-Reference Tool
+===========================================
+
+Introduction
+------------
+
+DXR is a source code browser and search engine, building on the work of
+LXR and MXR. It supports full-text and regex searches as well as
+structural queries like "Find all the callers of this function." Behind
+the scenes, it uses trigram indices, the re2 library, and static
+analysis data collected by instrumented compilers. DXR runs only on
+Linux for the moment.
+
+Documentation
+-------------
+
+DXR is fairly well documented, so whether you're looking to **deploy**
+DXR, **write plugins** or **templates** for DXR have a look at the
+``docs/`` folder. The documents in this folder is a great starting point
+for anybody who wants to deploy and/or develop DXR.
+
+Quick Start
+-----------
+
+To try out DXR on a HelloWorld-size project...
+
+::
+
+    git clone --recursive git://github.com/mozilla/dxr.git
+    cd dxr  # (the top level of the repository, not the dxr folder within it)
+
+    # If you want to customize VM configuration for your environment, run the
+    # line below, and change the settings you need, e.g. turning off NFS:
+    cp vagrantconfig_local.yaml-dist vagrantconfig_local.yaml
+
+    vagrant up
+    vagrant ssh
+
+On the VM...
+
+::
+
+    cd ~/dxr
+    make
+    cd ~/dxr/tests/test_basic
+    make
+    dxr-serve.py --all target
+
+You need to bind to all interfaces (--all) or else you will be unable to
+get to the Vagrant box's test server from the host machine. Then, on
+your host box, surf to http://33.33.33.77:8000/, and poke around to your
+heart's content. You may have to substitute the IP address of your
+Vagrant machine.
+
+Please note that the vagrant image is built against virtualbox 4.2.0. If
+your version is older, the image might not work as expected.
+
+Troubleshooting
+~~~~~~~~~~~~~~~
+
+If, after trying a search, you see the error...
+
+::
+
+    Server Error
+    .....
+    Database error: no such module: trilite
+
+SSH into the VM and, run ``ldconfig`` as root to sort out the shared
+library linking problem. Then restart ``dxr-serve.py``, and all should
+work as expected.
+
+Installing on a Real Machine
+----------------------------
+
+To install DXR on a machine of your choice, do the following
+
+1. Install the dependencies in ``docs/source/deployment.rst``.
+
+2. You can either install dxr at the system level (requires root) or
+   inside a `virtualenv <http://www.virtualenv.org/en/latest/>`__ which
+   is the recommended way.
+
+-  For a system-level install, run ``python2.6 setup develop`` (to hack
+   on DXR itself) or ``python2.6 setup.py install`` to install it.
+-  The recommended way is to install it as an unprivileged (non-root)
+   user. For this, use
+   `virtualenv <http://www.virtualenv.org/en/latest/>`__:
+
+   ::
+
+            virtualenv my-dxr-env
+            source my-dxr-env/bin/activate  # You'll have to repeat this line each time
+                                            # you want to use DXR in a new shell.
+            pip install -r requirements.txt
+            python setup.py develop         # Magic path munging will make this the
+                                            # copy of Python in the virtualenv.
+
+4. Next, you need to build the various binaries that ``dxr`` needs.
+   Running ``make`` at the top level should do the needful.
+
+-  It should build the ``libtrilite.so`` library inside the ``trilite``
+   directory.
+-  It should build the ``libclang-index-plugin.so`` inside the
+   ``dxr/plugins/clang`` directory. You might have to edit the
+   ``makefile`` in that directory to make the locations of
+   ``llvm-config``, ``clang`` and ``clang++`` accurate.
+
+5. The ``tests/test_basic`` directory contains a small tree which you
+   can build an index for to test your build. ``cd`` into this directory
+   and run ``make``. If it successfully runs, your build is fine.
+
+6. Then run
+   ``LD_LIBRARY_PATH=/path/to/dxr/trilite dxr-serve.py    tests/test_basic/target``
+   to start the server and browse the code. Without the
+   ``LD_LIBRARY_PATH``, it will complain about not being able to find
+   the ``trilite`` module when you do a search on the web interface. You
+   can dispense with this requirement by installing the library globally
+   on your machine: on Linux, move ``libtrilite.so`` to
+   ``/usr/local/lib``, then run ``ldconfig``.
+
+Things To Do
+------------
+
+*This is a short list of major things that could be done to improve
+DXR.*
+
+-  Refactor the database schema
+
+   -  Remove plugin specific tables
+   -  Provide data collection API for plugins (ie. no direct database
+      access for plugins)
+   -  Optimize schema for search queries
+
+      -  Store extents as a blob in \*\_refs, types, functions, etc.
+      -  Use trilite for functions, types, macros, etc.
+      -  Store the transitive closure of indirect calls
+
+   -  Port search logic to new schema
+
+-  Minor refactoring of template interface to minimize size
+
+   -  Reuse annotations (i.e., don't store the same annotation for each
+      line)
+   -  Reuse menus (i.e., don't store the same menu for each occurrence)
+
+-  Minor UI fixes and cleanup
+
+   -  Colorize highlighted matches (highlight with classes, .m1, .m2,
+      ..., use merge-extents)
+   -  Make the UI pretty
+   -  Add option in "Advanced" search to disable redirect (use cookies
+      to remember setting)
+   -  Minimize template size (at 20 MiB for 20k lines, this is a real
+      issue)
+
+
+
+This file should be indexed happily.
+
+Hello World
+===========
+_The most annoying sources in the world._
+
+These sources are designed to be as annoying as possible,
+this achieved by doing stuff such as having really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really really long lines :)
+Or I would include UTF-8 charaters, to see if something crashes, that would be really annoying as I think I've already fixed that bug...
+Well here we go... I'll just write something in Danish, then we'll have a little easter egg too :)
+Hej Verden,
+Håber godt nok aldrig jeg kommer til rette den der bug med UTF-8 fejl, for skal jeg være helt ærligt, så er det lavet så det virker...
+Jeg ved faktisk ikke rigtigt om det er korrekt lavet, mest af alt fordi jeg ikke finder encodings særligt spændende.
+Når, hvis jeg da så lige skal være et rigtigt røvhul kan jeg slutte denne tekst af med uden et linjeskift!!! Det er godt nok træls

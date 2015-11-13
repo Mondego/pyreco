@@ -1,0 +1,1122 @@
+K 14
+svn:executable
+V 0
+
+END
+
+Numerics and Python
+-------------------
+       
+    1. calc_derivative
+       Topics: NumPy arrays indexing and math.
+       
+       Caluculate the numerical derivative of sin from 0-2*pi.
+       Plot the resulting values and compare to cos.
+    
+       Bonus points: Implement integration of the same function
+                     using reimann sums or the trapazoidal rule.
+    
+       Here is a helpful starting point:
+       
+        from numpy import linspace, pi, sin, cos, cumsum
+        from matplotlib.pylab import plot, show, subplot, legend, title
+        
+        # calculate the sin() function on evenly spaced data.
+        x = linspace(0,2*pi,101)
+        y = sin(x)
+    
+    2. filter_image
+       Topics: Multi-dimensional array indexing and math.
+       
+       Read in the lena image and use an averging filter
+       to "smooth" the image.  Use a "5 point stencil" where
+       you average the current pixel with its neighboring pixels
+    
+                   0 0 0 0 0 0 0
+                   0 0 0 x 0 0 0
+                   0 0 x x x 0 0
+                   0 0 0 x 0 0 0 
+                   0 0 0 0 0 0 0
+    
+       Plot the image, the smoothed image, and the difference between the
+       two.
+        
+       Here is a reasonable starting point.
+       
+        from scipy import lena
+        from matplotlib.pylab import subplot, imshow, title, show, gray
+        
+        img = lena()
+    
+    3. sinc_function
+       Topics: Numpy array broadcasting and math.
+       
+       Calculate the sinc function, sin(r)/r.  Use a cartesian x,y grid
+       and calculate r = sqrt(x**2+y**2) with 0 in the center of the grid.
+       Calculate the function for -15,15 for both x and y.
+    
+        from numpy import linspace, sin, sqrt
+        from matplotlib.pylab import imshow, gray, show   
+
+    4. structured_array
+
+       1. Read all the logs out of a file and into a "structured" array.
+       2. Write a routine that will remove a "row" of the array if any
+          of the fields for that row are NULL (-999.25).
+       3. plot the VP vs VS logs.
+
+    5. Data fitting
+       Topics: polynomials, noise, leastsq
+        
+        This example looks at fitting data.
+        
+        It has multiple parts:
+        
+        a. Create a set of function with exponential decay
+           and plot it.
+           
+            y = a*exp(-b*x) + c
+            
+            where a=2.0, b = 0.76, c=0.1
+    
+        b. Now add some gaussian noise with 
+            mean=0.0 and std=.2
+           hint: from numpy.random import normal
+                 # use normal? to see its documentation.
+    
+        c. Calculate 1sr, 2nd and 3rd degree polynomial fit to the data.
+           hint: from numpy import polyfit, poly1d
+       
+        d. Bonus: Do a least squares fit to the orignal 
+           exponential function using optimize.leastsq.
+           Note: If you get to this one, ask for help or
+                 refer to the solution...
+
+    6. integrate_function
+       Topics: SciPy's integration library, vectorization.
+    
+       Integrate sin using scipy.integrate.quad.
+
+       A. Use scipy.integrate.quad to integrate sin from 
+          0 to pi/4.  Print out the result.  
+          hint: from scipy import integrate
+                integrate.quad?
+        
+       B. Integrate sin from 0 to x where x is a range of
+          values from 0 to 2*pi.  Compare this to the exact
+          solution, -cos(x) + cos(0), on a plot.  Also plot
+          the error between the two.
+          hint: use vectorize so that integrate.quad works
+                with arrays as inputs and produces arrays
+                as outputs.    
+
+Interfacing with other languages
+--------------------------------
+            
+    1. weave_compare
+       Topics: weave.blitz and weave.inline        
+       
+       Compare the speed of numpy, weave.blitz and weave.inline
+       for the following equation:
+    
+        result=a+b*(c-d)
+    
+       Set up all arrays so that they are 1 dimensional and have 1 million 
+       element in them.
+
+    2. blitz_inline_compare
+       Topics: weave.blitz and weave.inline        
+       
+       This example takes the numpy expression used in the filter_image
+       exercise and compares the speed of numpy to that of weave.blitz.
+        
+       Read in the lena image and use an averging filter
+       to "smooth" the image.  Use a "5 point stencil" where
+       you average the current pixel with its neighboring pixels
+    
+                      0 0 0 0 0 0 0
+                      0 0 0 x 0 0 0
+                      0 0 x x x 0 0
+                      0 0 0 x 0 0 0 
+                      0 0 0 0 0 0 0
+        
+       Once you have a numpy expression that works correctly, time it
+       using time.time (or time.clock on windows).
+        
+       Use scipy.weave.blitz to run the same expression.  Again time it.
+        
+       Compare the speeds of the two function and calculate the speed-up 
+       (numpy_time/weave_time).
+        
+       Plot two images that result from the two approaches and compare them.
+
+    3. f2py_fcopy
+       Topics: f2py
+       
+       In this example we'll use f2py to wrap a simple fortran function
+       found in fcopy.f so that it can be called by python.  The file
+       already has a working version of the wrapper.  Your job is to
+       improve the wrapper so that it is more pythonic.  The example
+       follows along exactly with the notes from the lecture.
+
+       See the readme.txt file in the f2py_fcopy directory for more
+       information.
+
+K 14
+svn:executable
+V 0
+
+END
+
+In this example we'll use f2py to wrap a simple fortran function
+found in fcopy.f so that it can be called by python.  The file
+already has a working version of the wrapper.  Your job is to
+improve the wrapper so that it is more pythonic.  The example
+follows along exactly with the notes from the lecture.
+
+1. Examine the following:
+
+    fcopy.f -- fortran file that implements the algorithm.
+    fcopy.pyf -- simplistic f2py interface definition.
+    setup.py -- Equivalent of a Python "make" file to build the 
+                fcopy extension module.
+    fcopy_test.py -- A Test module that will ensure that fcopy
+                     works correctly.
+
+2. Build the fcopy.pyf module using the following:
+   
+   ~/exercises/f2py_copy> setup.py build_src build_ext --inplace
+
+   This tells setup that you need to convert the pyf file into
+   a source file (build_src step) and that you would like the
+   extension modules built in this directory instead of a separate
+   build directory (build_ext --inplace).
+    
+3. Now run fcopy_test.py to ensure that the build worked.  If it
+   runs without error and prints a few results, it is working
+   fine.
+   
+4. Your job is now to make a new interface called fcopy2 that
+   improves the fcopy function so that it is called like this:
+   
+     b = fcopy2.fcopy(a)
+   
+   This is exactly the same interface as the function in the
+   lecture notes, so use this as guidance.
+    
+   a. Generate a f2py wrapper file for f2py by calling the
+      following from a *shell* command line:
+   
+         f2py fcopy.f -m fcopy2 -h fcopy2.pyf
+         
+   b. Modify the fcopy2.pyf file accordingly.
+   c. uncomment the following lines in the setup.py and run
+      the setup.py file exactly as in step 2.
+
+       #fcopy2 = Extension(name='fcopy2',
+       #                   sources=['fcopy2.pyf', 'fcopy.f'])
+       #ext_modules.append(fcopy2)
+      
+In this example we'll use f2py to wrap a simple fortran function
+found in fcopy.f so that it can be called by python.  The file
+already has a working version of the wrapper.  Your job is to
+improve the wrapper so that it is more pythonic.  The example
+follows along exactly with the notes from the lecture.
+
+1. Examine the following:
+
+    fcopy.f -- fortran file that implements the algorithm.
+    fcopy.pyf -- simplistic f2py interface definition.
+    setup.py -- Equivalent of a Python "make" file to build the 
+                fcopy extension module.
+    fcopy_test.py -- A Test module that will ensure that fcopy
+                     works correctly.
+
+2. Build the fcopy.pyf module using the following:
+   
+   ~/exercises/f2py_copy> setup.py build_src build_ext --inplace
+
+   This tells setup that you need to convert the pyf file into
+   a source file (build_src step) and that you would like the
+   extension modules built in this directory instead of a separate
+   build directory (build_ext --inplace).
+    
+3. Now run fcopy_test.py to ensure that the build worked.  If it
+   runs without error and prints a few results, it is working
+   fine.
+   
+4. Your job is now to make a new interface called fcopy2 that
+   improves the fcopy function so that it is called like this:
+   
+     b = fcopy2.fcopy(a)
+   
+   This is exactly the same interface as the function in the
+   lecture notes, so use this as guidance.
+    
+   a. Generate a f2py wrapper file for f2py by calling the
+      following from a *shell* command line:
+   
+         f2py fcopy.f -m fcopy2 -h fcopy2.pyf
+         
+   b. Modify the fcopy2.pyf file accordingly.
+   c. uncomment the following lines in the setup.py and run
+      the setup.py file exactly as in step 2.
+
+       #fcopy2 = Extension(name='fcopy2',
+       #                   sources=['fcopy2.pyf', 'fcopy.f'])
+       #ext_modules.append(fcopy2)
+      
+Numerics and Python
+-------------------
+       
+    1. calc_derivative
+       Topics: NumPy arrays indexing and math.
+       
+       Caluculate the numerical derivative of sin from 0-2*pi.
+       Plot the resulting values and compare to cos.
+    
+       Bonus points: Implement integration of the same function
+                     using reimann sums or the trapazoidal rule.
+    
+       Here is a helpful starting point:
+       
+        from numpy import linspace, pi, sin, cos, cumsum
+        from matplotlib.pylab import plot, show, subplot, legend, title
+        
+        # calculate the sin() function on evenly spaced data.
+        x = linspace(0,2*pi,101)
+        y = sin(x)
+    
+    2. filter_image
+       Topics: Multi-dimensional array indexing and math.
+       
+       Read in the lena image and use an averging filter
+       to "smooth" the image.  Use a "5 point stencil" where
+       you average the current pixel with its neighboring pixels
+    
+                   0 0 0 0 0 0 0
+                   0 0 0 x 0 0 0
+                   0 0 x x x 0 0
+                   0 0 0 x 0 0 0 
+                   0 0 0 0 0 0 0
+    
+       Plot the image, the smoothed image, and the difference between the
+       two.
+        
+       Here is a reasonable starting point.
+       
+        from scipy import lena
+        from matplotlib.pylab import subplot, imshow, title, show, gray
+        
+        img = lena()
+    
+    3. sinc_function
+       Topics: Numpy array broadcasting and math.
+       
+       Calculate the sinc function, sin(r)/r.  Use a cartesian x,y grid
+       and calculate r = sqrt(x**2+y**2) with 0 in the center of the grid.
+       Calculate the function for -15,15 for both x and y.
+    
+        from numpy import linspace, sin, sqrt
+        from matplotlib.pylab import imshow, gray, show   
+
+    4. structured_array
+
+       1. Read all the logs out of a file and into a "structured" array.
+       2. Write a routine that will remove a "row" of the array if any
+          of the fields for that row are NULL (-999.25).
+       3. plot the VP vs VS logs.
+
+    5. Data fitting
+       Topics: polynomials, noise, leastsq
+        
+        This example looks at fitting data.
+        
+        It has multiple parts:
+        
+        a. Create a set of function with exponential decay
+           and plot it.
+           
+            y = a*exp(-b*x) + c
+            
+            where a=2.0, b = 0.76, c=0.1
+    
+        b. Now add some gaussian noise with 
+            mean=0.0 and std=.2
+           hint: from numpy.random import normal
+                 # use normal? to see its documentation.
+    
+        c. Calculate 1sr, 2nd and 3rd degree polynomial fit to the data.
+           hint: from numpy import polyfit, poly1d
+       
+        d. Bonus: Do a least squares fit to the orignal 
+           exponential function using optimize.leastsq.
+           Note: If you get to this one, ask for help or
+                 refer to the solution...
+
+    6. integrate_function
+       Topics: SciPy's integration library, vectorization.
+    
+       Integrate sin using scipy.integrate.quad.
+
+       A. Use scipy.integrate.quad to integrate sin from 
+          0 to pi/4.  Print out the result.  
+          hint: from scipy import integrate
+                integrate.quad?
+        
+       B. Integrate sin from 0 to x where x is a range of
+          values from 0 to 2*pi.  Compare this to the exact
+          solution, -cos(x) + cos(0), on a plot.  Also plot
+          the error between the two.
+          hint: use vectorize so that integrate.quad works
+                with arrays as inputs and produces arrays
+                as outputs.    
+
+Interfacing with other languages
+--------------------------------
+            
+    1. weave_compare
+       Topics: weave.blitz and weave.inline        
+       
+       Compare the speed of numpy, weave.blitz and weave.inline
+       for the following equation:
+    
+        result=a+b*(c-d)
+    
+       Set up all arrays so that they are 1 dimensional and have 1 million 
+       element in them.
+
+    2. blitz_inline_compare
+       Topics: weave.blitz and weave.inline        
+       
+       This example takes the numpy expression used in the filter_image
+       exercise and compares the speed of numpy to that of weave.blitz.
+        
+       Read in the lena image and use an averging filter
+       to "smooth" the image.  Use a "5 point stencil" where
+       you average the current pixel with its neighboring pixels
+    
+                      0 0 0 0 0 0 0
+                      0 0 0 x 0 0 0
+                      0 0 x x x 0 0
+                      0 0 0 x 0 0 0 
+                      0 0 0 0 0 0 0
+        
+       Once you have a numpy expression that works correctly, time it
+       using time.time (or time.clock on windows).
+        
+       Use scipy.weave.blitz to run the same expression.  Again time it.
+        
+       Compare the speeds of the two function and calculate the speed-up 
+       (numpy_time/weave_time).
+        
+       Plot two images that result from the two approaches and compare them.
+
+    3. f2py_fcopy
+       Topics: f2py
+       
+       In this example we'll use f2py to wrap a simple fortran function
+       found in fcopy.f so that it can be called by python.  The file
+       already has a working version of the wrapper.  Your job is to
+       improve the wrapper so that it is more pythonic.  The example
+       follows along exactly with the notes from the lecture.
+
+       See the readme.txt file in the f2py_fcopy directory for more
+       information.
+
+Introduction to Numpy
+=====================
+
+ * Developed by Travis Oliphant
+ * 27 svn committers to the project
+ * Numpy replaces Numeric and Numarray
+ * Scipy sits on top of Numpy
+ * Written in C so very fast.  5 - 10 time faster than Python for same actions
+ 
+Getting started
+---------------
+
+ * Shell: Do ipython -pylab or from numpy import *
+ * from numpy import array,etc (For inside of code)
+ 
+ 
+Array Operations
+----------------
+ * a + b adds each element of each array to each other
+ * Use in place multiplication (\*-) for speed
+ * array([2, 3, 4, 5]) + array([1, 2, 3, 4]) -- array([3, 5, 7, 9])
+ * Since Python 2.1 with operator overloads Numpy lets you do add, minus, equals, greater than, etc with array objects
+
+Attributes of Arrays
+--------------------
+ * a.dtype # dtype('int32')
+ * a.itemsize # per element - 4
+ * a.shape # (4,) returns a tuple listing the lenght of the array along each dimension
+ * a.size # size of an array
+ * a.nbytes # size of bytes
+ * a.ndim # number of dimensions
+ * a.copy() # copy the array
+ * a.tolist() # converts to list
+ * list(a) slower and only works for 1d arrays
+ 
+Setting of arrays
+-----------------
+ * a.fill(0) # sets all values in an array [0,0,0,0]
+ * a[:] - 1 # standard python but much slower
+ * a[::2] - 200. # Make every other item 200
+ 
+Beware of type conversion
+-------------------------
+ * a[0] - 10.6 # assigning a float into a int32 type will truncate decimal part!
+ * a.fill(-4.8) # same as slicing!  Beware!
+
+Making a 10 X 10 array (2 dims)
+-------------------------------
+ * d - arange(100) # build a 100 element array
+ * d.shape - (10,10) #
+ * d # shows a 10 x 10 array
+
+Slicing a multi-dim array
+-------------------------
+ * d[0,1] # first is row, second is column
+ * d[0,3:5] # first row, columns 3, 4
+ * d[0,::2] # First row, every other one
+ * d[3:,[0,2,5]] # starts at third row and grabs the first, third, and sixth column
+
+Indexing with None
+------------------
+Need more research
+
+What are strides?
+-----------------
+ * Byte handling, useful for understanding underlying machine architecture.
+ * Really only important when converting from C to Fortran and stuff.
+ * Don't care
+
+Where 
+------
+ * a - array((0,12,5,20))
+ * where(a>10)
+ * Does not work with attributes, just whole values.  So where(a>10) works but a.method does not
+ * a--0 can work too
+ 
+Complex Numbers
+---------------
+Research this
+
+Numpy in other environments
+---------------------------
+ * Not in JVM or CLR yet
+ * Java has more issues with high level math than C#
+ 
+Type casting
+------------
+ * asarray is efficient.  It does not make a copy if the type is the same.  
+ * Really gotcha kinda thing, where it does copies or references so be careful.
+ 
+Calculation methods
+-------------------
+Not all are here
+
+ * sum(a) # adds all array values
+ * sum(a,axis-0) # adds by column in rows
+ * sum(a,axis--1) # supply the keword sxis to sum along the last axis
+ * a.min(a) # smallest value
+ * a.min(axis-1) # smallest value per row
+ * a.argmin # same as min but provides index of smallest item
+ * a.mean(axis-0) # mean value of each column
+ 
+Other array methods
+-------------------
+ * a.clip(3,5) # sets values lower than 3 to 3 and values higher than 5 to 5
+ * Round goes to evens.  So 1.5 and 2.5 both go to 2.
+ 
+Matrix
+------
+ * ESRI guy doesn't like them.
+
+Pickling
+--------
+ * Pickling header changes can cause you grief if the Python verson changes
+ * user Numpy save method instead
+ 
+Memory Mapped Arrays
+--------------------
+ * Create a memory mapped array whose memory is on disk, on a file of your choice.  You have to flush() to save data. 
+ * Possible for distributed systems.
+ 
+Structured Arrays
+-----------------
+ * Gives ability to have views into more complex objects
+ * Kind of like adding in extra attributes.  Slide #83
+ * look up stocks
+ 
+Broadcasting arrays
+---------------------
+ * You can add two arrays together so long as axis are closely matched.
+
+Array Functions
+---------------
+ * Choose lets you select things in a multi-dim array
+ 
+Other things to research
+------------------------
+ * Pytables
+ * Numpy error handling
+Why write automate tests
+========================
+ * Because you want your code to work
+ * You want your code to meet customer expectations
+ * Because you want to simplify your programming life
+ * Because you often over/under design your code
+ 
+Goal: Become 'Test Infected'
+============================
+ * Integrate 'testing way' into your daily life
+ * It is now actually psychologically uncomfortable for me to write code that is difficult to test
+ 
+Some test guidelines
+====================
+ * keep your testing infrastructure as simple and stupid as possible
+ * Testing should help you write & debug your other code, not become a major part of the codebase in and of itself...
+ * Always be ready to throw out your test code!
+ * start small
+ * build tests incrementally
+ * Smoke tests are absurdly useful
+ * Test simply, at many levels
+ * focus on actual problem areas (existing bugs).
+ * Continuously integrate
+ 
+Using testing as part of your process
+=====================================
+ * Use tests personally, even if other people don't
+ * Manage up and across
+ * Automate what can be easily automated, nothing more. (Corollary: plan for testability)
+ * Smart small and KISS
+ 
+Test Enhanced Development
+=========================
+ * Test Driven Development: write tests first
+ * Stupidity driven testing: write tests after you do something stupid, to make sure you never make the same mistake again.  a.k.a. Test Enhanced Development
+ 
+Constrain your code
+===================
+ * Document your expectations, internally and externally
+ * Use asset more
+ * Write unit, functional, and regression tests in terms of expectations
+ 
+Tracer Bullet Development
+=========================
+ * Check to see your basics work before testing anything else
+ * If it does not work, go no further
+ * Exercise your your setup and teardown code
+ * Gives you a base from which to expand
+
+Build a test umbrella
+=====================
+ * One command -> all tests
+ * Integrate reporting
+ * Ease of use and startup
+ * No memory required
+ 
+Code coverage
+=============
+ * People will tell you that 100% line coverage is a bad idea
+ * But if you don't test every line of code then you can't know if every line of code works
+ 
+Continuous Integration
+======================
+ * Run all tests with a single click
+ * Help you figure out if your code still works
+ * Helps you in many subtle ways like package dependencies
+ 
+Deliver Test results as part of the customer interaction process
+================================================================
+ * Try and show them the test results on a periodic basis
+ 
+Summary
+=======
+ * Testing should be an integral part of your process
+ * If its not working for you, don't force it but don't give up, either
+ * Address real problems
+ * Simplify
+ * There is no try, only do
+ 
+Twill
+=========
+ * Really nice testing suite
+ * Combined with WSGI intercept is really nice
+
+Figleaf
+=======
+import figleaf
+figleaf.start()
+...
+figleaf.stop()
+figleaf.write_coverage('.figlead')
+
+figleaf app.py
+figleaf2html
+
+Nose
+=======
+ * nosetests looks in files called 'tests' and will run the tests there
+ * Runs 'em as you wrote them.  Nice for integrated tests
+ 
+Fitness
+=======
+ * Look up this testing tool
+ * Referred as PyFit
+Why write automate tests
+========================
+ * Because you want your code to work
+ * You want your code to meet customer expectations
+ * Because you want to simplify your programming life
+ * Because you often over/under design your code
+ 
+Goal: Become 'Test Infected'
+============================
+ * Integrate 'testing way' into your daily life
+ * It is now actually psychologically uncomfortable for me to write code that is difficult to test
+ 
+Some test guidelines
+====================
+ * keep your testing infrastructure as simple and stupid as possible
+ * Testing should help you write & debug your other code, not become a major part of the codebase in and of itself...
+ * Always be ready to throw out your test code!
+ * start small
+ * build tests incrementally
+ * Smoke tests are absurdly useful
+ * Test simply, at many levels
+ * focus on actual problem areas (existing bugs).
+ * Continuously integrate
+ 
+Using testing as part of your process
+=====================================
+ * Use tests personally, even if other people don't
+ * Manage up and across
+ * Automate what can be easily automated, nothing more. (Corollary: plan for testability)
+ * Smart small and KISS
+ 
+Test Enhanced Development
+=========================
+ * Test Driven Development: write tests first
+ * Stupidity driven testing: write tests after you do something stupid, to make sure you never make the same mistake again.  a.k.a. Test Enhanced Development
+ 
+Constrain your code
+===================
+ * Document your expectations, internally and externally
+ * Use asset more
+ * Write unit, functional, and regression tests in terms of expectations
+ 
+Tracer Bullet Development
+=========================
+ * Check to see your basics work before testing anything else
+ * If it does not work, go no further
+ * Exercise your your setup and teardown code
+ * Gives you a base from which to expand
+
+Build a test umbrella
+=====================
+ * One command -> all tests
+ * Integrate reporting
+ * Ease of use and startup
+ * No memory required
+ 
+Code coverage
+=============
+ * People will tell you that 100% line coverage is a bad idea
+ * But if you don't test every line of code then you can't know if every line of code works
+ 
+Continuous Integration
+======================
+ * Run all tests with a single click
+ * Help you figure out if your code still works
+ * Helps you in many subtle ways like package dependencies
+ 
+Deliver Test results as part of the customer interaction process
+================================================================
+ * Try and show them the test results on a periodic basis
+ 
+Summary
+=======
+ * Testing should be an integral part of your process
+ * If its not working for you, don't force it but don't give up, either
+ * Address real problems
+ * Simplify
+ * There is no try, only do
+ 
+Twill
+=========
+ * Really nice testing suite
+ * Combined with WSGI intercept is really nice
+
+Figleaf
+=======
+import figleaf
+figleaf.start()
+...
+figleaf.stop()
+figleaf.write_coverage('.figlead')
+
+figleaf app.py
+figleaf2html
+
+Nose
+=======
+ * nosetests looks in files called 'tests' and will run the tests there
+ * Runs 'em as you wrote them.  Nice for integrated tests
+ 
+Fitness
+=======
+ * Look up this testing tool
+ * Referred as PyFit
+README
+
+"Core Python Programming", 2nd Edition, by Wesley J. Chun
+
+These directories contain all of the source code for the
+applications in the book, e.g., Example x.y, with each
+directory representing the code for a chapter in the book
+which features at least one code Example.
+
+In each directory, you may also find a subdirectory named
+"alt" which will contain alternative source code.  These
+can include:
+
+- Applications that have been more fully-commented
+- Some of the more lengthy code snippets featured as
+    chapter reading
+- Modified applications which run on older (or newer)
+    versions of Python
+
+Also be sure to check out the COLOPHON.txt, COPYRIGHT.txt,
+and LICENSE.txt files.  The "ls-lFR.txt" file contains a
+fully-recursive directory listing.  The "all.zip" and
+"all.tgz" files represent snapshots of everything here.
+
+First, create a conf file like:
+
+server = 127.0.0.1
+server_type = 5
+port = 1080
+
+export TSOCKS_CONF_FILE=/path/to/that.file
+tsocks python
+
+First, create a conf file like:
+
+server = 127.0.0.1
+server_type = 5
+port = 1080
+
+export TSOCKS_CONF_FILE=/path/to/that.file
+tsocks python
+
+The code in this directory shows you a few ways
+to interact with JavaScript code from Python.
+
+Generally, I advise using Selenium RC instead.
+
+The code in this directory shows you a few ways
+to interact with JavaScript code from Python.
+
+Generally, I advise using Selenium RC instead.
+
+=======================
+Re-Introduction to C
+=======================
+
+* By Noah Kantrowitz
+* Good speaker, knows topic
+* Should have gone over fundamentals in second half before having us code
+* My proposed change
+
+    # Insist people type out working code example presented (muscle memory)
+    # Brain dump (what was second half)
+    # Another insist type out of working code example based on brain dump material
+    # Go to attendee excercises where they have to figure things out themselves
+
+Talk Notes
+-----------
+
+Stack vs Heap
+==================
+
+* Stack is very specific memory buffers
+* Heap is everything else
+
+Pointer Arithmetic
+==================
+
+C knows how many bytes in each variable:
+
+.. sourcecode:: c
+
+    int arr[10];
+    arr = 1000
+    arr + 1 = 1004
+    char arr2[10];
+    arr2 = 1000
+    arr2+1 == 1001
+
+Strings
+========
+
+.. sourcecode:: c
+
+    char*s = "abc";
+    *s == 'a';
+    char s[4] = "abc";
+    *(s+1)=='b';
+
+Structures
+===========
+
+Structures are the closest in C to having OO style classes. Use **typedef** to ensure that you can more easily construct the structure.
+
+* Named+typed offsets
+* **Syntax**:
+
+.. sourcecode:: c
+
+    `typedef struct Foo {int x; char y;} Foo;`
+
+* Inside the curly braces you can stick in variables to be called on instantiation
+
+.. sourcecode:: c
+
+    Foo f = {1,2};
+    f.x==1;
+    Foo f = {0};
+
+    * Useful in that everything is set to Zero even if there is more than one variable. Even works with chars! Yay
+    
+Unions
+=======
+
+Rare thing used in C, and then specifically for high performance C.
+
+* Also named+typed offsets
+* Overlapping (?)
+* **syntax**: 
+
+.. sourcecode:: c
+
+    typed union Foo {int x; char y[4];} Foo;
+    f.y[3] = 1;
+    f.x == 0x01000000;
+
+Enumerations
+=============
+
+Enumerations are symbolic references to numbers. While numbers you should not do math on them. Nice syntax sugar.
+
+* **syntax**:
+
+.. sourcecode:: c
+
+    typedef enum Foo {BAR, BAZ} Foo;
+
+* BAR is equal to 0
+* BAZ is equal to 1
+
+.. sourcecode:: c
+
+    Foo f = BAR;
+    f = 1;
+    BAR + 1;
+    BAZ == BAR + 1;
+
+Comments
+========
+
+Same as in JavaScript.
+
+Function Declarations
+=====================
+
+* `int foo(int x, char y);`
+
+    * returns int
+    * accepts int x and char y.
+
+* `void foo(void);`
+
+    * Don't return anything
+    * Don't accept any arguments
+    
+* `void foo();`
+
+    * Don't return anything
+    * Accept any number of arguments
+
+If C cannot find something it will report an Int error
+
+Main
+====
+
+This is why python has `"__name__" == "__main__"`!
+
+.. sourcecode:: c
+
+    int main(int argc, char **argv);
+    ./prog foo bar
+    argc == 3
+    argv == {"./prog", "foo", "bar"}
+
+printf
+======
+
+How to do a print in C:
+
+.. sourcecode:: c
+
+    #include <stdio.h>
+    def printf(fmt, *args) return fmt%args
+    printf("%s %u\n", "foo", 42);
+
+* Coming from a user do this to make sure that their percent signs (%) are not accidentally made part of the format strings:
+
+    * `printf("%s", s);`
+    
+blocks
+======
+
+Blocks are curly braces and then statements. **Variable statements must happen at the top of a block**.
+
+.. sourcecode:: c
+
+    { stmt; stmt; }
+    if (expr) stmt; else stmt;
+    if (){} else {};
+    if () {int x=0; foo(x);}
+    if (x==1){y=1;} else if (x==2) {y=2;};
+
+while
+=====
+
+Same as python
+
+.. sourcecode:: c
+
+    while (x==0){y++;}
+
+do while
+=========
+
+Same as while but runs it once first
+
+Switch
+=======
+
+Basically a structured GOTO system that jumps to each case as in other languages. How I think it works if expr evaluates to a number (confirm later):
+
+.. sourcecode:: c
+
+    switch (expr)
+        {
+            case 1: {
+                    y = 1;
+                    break;
+                };
+            case 2:
+                y = 2;
+                break;
+            default:
+                y = 3;
+        }
+        
+Preprocessor
+============
+
+Transforms your code before it hits the compiler. Don't use '#' to start any lines except for directives!
+
+* #include
+
+    * Takes the entire contents of this file and pastes it in. Not quite import!
+    * `#include "file.h"` looks in the local path
+    * `#include <stdio.h>` looks in the system libraries
+
+* #define
+
+    * Values that the preprocessor replaces (simple macros)
+    * `#define Y 1.0` now works in the rest of the file. Think of it as a global. Can't do C expressions but can define text based replacements.
+    * Don't put semi-colons at the end of a #define macro.
+    
+* #define can take arguments!
+
+.. sourcecode:: c
+
+    #define Z(a,b) foo (A * 2, b, 0)
+    Z(1,2);
+    foo(x +1 * 2, 2, 0);
+    `#define Z(a,b) foo((a) * 2, (b), 0)
+
+* #if include other preprocessor bits:
+
+.. sourcecode:: c
+
+    #if X
+        #define Y 1.0
+        #include "file.h"
+    #endif
+    
+* `#ifdef` is used in older code and is simply `#ifdefined(X)`.
+
+* `#pragma once`
+
+    * Include guard
+    * Makes sure you include something only once since you might have multiple files including the same thing and that can be bad.
+    * Don't do `#ifdef __FILE_H__`!
+    
+Headers
+=======
+
+Headers are files that end in '.h' and contain function declarations. This way the compiler knows what functions are going to be used:
+
+.. sourcecode:: c
+
+    #pragma once
+
+    void handle_request(int sockfd, const char *request);
+
+Sometimes you see `typedef struct Foo Foo` and this is to just let the compiler know there will be a struct called Foo.
+
+Useful functions
+================
+
+* string.h
+
+    * length: `size_t strlen(const char *s)`
+    * compare: `strcmp(char *s1, char *s2)`
+    * copy: `*strncpy(char *s1, char *s2, size_t n);`
+    * `memcpy(void *s1, void *s2, size_t n)`
+
+* malloc (buffer management)
+
+    * `#include <stdlib.h>`
+    * `void *malloc(size_t)`
+    * `void free(void *ptr)`
+    * `void *calloc(size_t count, size_t size)`
+    
+* stdio.h (I/O handling - files writing and reading)
+
+Runtimes
+=========
+
+Check out: http://docs.python.org/c-api/
+
+Convore
+==================
+
+https://convore.com/pycon-2011/reintro-to-c-tutorial/
+===================
+pydanny-event-notes
+===================
+
+This is where I accumulate and store notes and slides and other content gotten at events, meetups, classes, tutorials, and conferences over the years. 
+
+This is a work in progress. What you see here on github is partially rendered with some enhancements at http://pydanny-event-notes.rtfd.org.
+
+You can read the story about my live-noting at: http://pydanny.blogspot.com/2011/12/story-of-live-noting.html

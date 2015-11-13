@@ -1,0 +1,421 @@
+Your application's documentation here
+Flask on App Engine Project Template
+====================================
+
+Boilerplate project template for running a Flask-based application on
+Google App Engine (Python)
+
+Python 2.7 Runtime Support
+--------------------------
+* Support for the Python 2.7 runtime was added to this project in May 2012.
+
+
+About Flask
+-----------
+[Flask][flask] is a BSD-licensed microframework for Python based on
+[Werkzeug][wz], [Jinja2][jinja2] and good intentions.
+
+See <http://flask.pocoo.org> for more info.
+
+
+Setup/Configuration
+-------------------
+1. Download this repository via
+   `git clone git@github.com:kamalgill/flask-appengine-template.git`
+   or download the tarball at
+   <http://github.com/kamalgill/flask-appengine-template/tarball/master>
+2. Copy the src/ folder to your application's root folder
+3. Set the application id in `src/app.yaml`
+4. Configure datastore models at `src/application/models.py`
+5. Configure application views at `src/application/views.py`
+6. Configure URL routes at `src/application/urls.py`
+7. Configure forms at `src/application/forms.py`
+8. Add the secret keys for CSRF protection by running the `generate_keys.py`
+   script at `src/application/generate_keys.py`, which will generate the
+   secret keys module at src/application/secret_keys.py
+
+Note: Copy the .gitignore file from the tarball folder's root to your git
+repository root to keep the secret_keys module out of version control.
+
+Or, add the following to your .(git|hg|bzr)ignore file
+
+<pre class="console">
+  # Keep secret keys out of version control
+  secret_keys.py
+</pre>
+
+
+Install python dependencies
+---------------------------
+The local dev environment requires installation of Jinja2, PIL, and simplejson,
+which can be installed via:
+
+<pre class="console">
+  pip install -r requirements_dev.txt
+</pre>
+
+
+Front-end Customization
+-----------------------
+1. Customize the main HTML template at
+   `src/application/static/templates/base.html`
+2. Customize CSS styles at `src/application/static/css/main.css`
+3. Add custom JavaScript code at `src/application/static/js/main.js`
+4. Customize favicon at `src/application/static/img/favicon.ico`
+5. Customize 404 page at `src/application/templates/404.html`
+
+
+Previewing the Application
+--------------------------
+To preview the application using App Engine's development server,
+use [dev_appserver.py][devserver]
+
+<pre class="console">
+  dev_appserver.py src/
+</pre>
+
+Assuming the latest App Engine SDK is installed, the test environment is
+available at <http://localhost:8080>
+
+
+Admin Console
+-------------
+The admin console is viewable at http://localhost:8000 (note distinct port from dev app server)
+
+
+Flask-Cache
+-----------
+The handy Flask-Cache extension is included, pre-configured for App Engine's Memcache API.
+Use the "Flush Cache" button at http://localhost:8000/memcache to clear the cache.
+
+
+Testing
+-------
+Place all your tests in src/tests directory. Test runner is placed in src directory. To run your tests simply go to src directory and do:
+
+<pre class="console">
+  python apptest.py path/to/your/googleappengine/installation
+</pre>
+
+Path to your local google app engine installation must be provided as first argument to the script. If the path is long and you don't like to type it each time you run the tests you can also hardcode it in apptest.py, just edit the variable SDK_PATH and set it to your google app engine folder. 
+
+Before running tests set evironment variable FLASK_CONF to the value TEST. 
+
+In Linux this is done by:
+
+<pre class="console">
+  export FLASK_CONF=TEST
+</pre>
+
+In Powershell:
+
+<pre class="console">
+  [Environment]::SetEnvironmentVariable("FLASK_CONF", "TEST", "User");
+</pre>
+
+Remember to restart Powershell. Change of environment variable will take place after restarting Powershell. 
+
+You can specify your testing configuration (e.g. separate database for tests results) in src/application/settings.py.
+
+To switch back to development configuration just set FLASK_CONF to DEV.
+
+Deploying the Application
+-------------------------
+To deploy the application to App Engine, use [appcfg.py update][appcfg]
+<pre class="console">
+  appcfg.py update src/
+</pre>
+
+The application should be visible at http://{YOURAPPID}.appspot.com
+
+
+Folder structure
+----------------
+The App Engine app's root folder is located at `src/`.
+
+<pre class="console">
+  src/
+  |-- app.yaml (App Engine config file)
+  |-- application (application code)
+  |-- index.yaml (App Engine query index definitions)
+  |-- lib/
+  |   |-- blinker/ (library for event/signal support)
+  |   |-- flask/ (Flask core)
+  |   |-- flask_cache/  (Flask-Cache extension)
+  |   |-- flask_debugtoolbar/  (Port of Django Debug Toolbar to Flask)
+  |   |-- flaskext/ (Flask extensions go here)
+  |   |-- gae_mini_profiler/ (Appstats-based profiler)
+  |   |-- itsdangerous.py (required by Flask >= 0.10
+  |   |-- werkzeug/ (WSGI utilities for Python-based web development)
+  |   `-- wtforms/ (Jinja2-compatible web form utility)
+  |-- tests/ (unit tests)
+</pre>
+
+The application code is located at `src/application`.
+
+<pre class="console">
+  application/
+  |-- __init__.py (initializes Flask app)
+  |-- decorators.py (decorators for URL handlers)
+  |-- forms.py (web form models and validators)
+  |-- models.py (App Engine datastore models)
+  |-- settings.py (settings for Flask app)
+  |-- static
+  | |-- css
+  | | |-- bootstrap-*.css (Twitter Bootstrap styles)
+  | | |-- fontawesome-*.css (Fontawesome styles)
+  | | `-- main.css (custom styles)
+  | |-- font
+  | | `various fontawesome font files
+  | |-- img
+  | | |-- favicon.ico
+  | | |-- favicon.png
+  | | `-- glyphicons-*.png (Twitter bootstrap icons sprite)
+  | `-- js
+  |   |-- main.js (site-wide JS)
+  |   `-- lib/ (third-party JS libraries)
+  |     |--bootstrap-*.js (Bootstrap jQuery plugins
+  |     `--modernizer-*.js (HTML5 detection library)
+  |-- templates
+  | |-- includes/ (common include files)
+  | |-- 404.html (not found page)
+  | |-- 500.html (server error page)
+  | |-- base.html (master template)
+  | |-- list_examples.html (example list-based template)
+  | `-- new_example.html (example form-based template)
+  |-- urls.py (URL dispatch routes)
+  `-- views.py (Handlers for URL routes defined at urls.py)
+</pre>
+
+
+Removing Extended Attributes (@ flag)
+-------------------------------------
+A few of the files in the source tree were uploaded (with apologies) to
+GitHub with extended attributes (notice the '@' symbol when running ls -al).
+
+To remove the extended attributes, use `xattr -rd` at the root of the
+src/ folder.
+
+<pre class='console'>
+  xattr -rd com.apple.quarantine .
+  xattr -rd com.macromates.caret .
+</pre>
+
+Note: Windows users may safely ignore the xattr fix
+
+
+Licenses
+--------
+See licenses/ folder
+
+
+Package Versions
+----------------
+- Blinker: 1.1
+- Bootstrap: 2.3.1
+- Flask: 0.10
+- Flask-Cache 0.10.1
+- Flask-DebugToolbar: 0.7.1
+- Flask-WTF: 0.6
+- FontAwesome: 3.0
+- itsdangerous: 0.22
+- Jinja2: 2.6 (included in GAE)
+- jQuery: 1.9.1 (set in base.html)
+- Modernizr: 2.6.2
+- Werkzeug: 0.8.3
+- WTForms: 1.0.5
+
+
+Credits
+-------
+Project template layout was heavily inspired by Francisco Souza's
+[gaeseries Flask project][gaeseries]
+
+Incorporates [Flask-DebugToolbar][debugtoolbar] by Matt Good et. al.
+and [Flask-Cache][flaskcache] by Thadeus Burgess
+
+Layout, form, table, and button styles provided by [Bootstrap][bootstrap]
+
+[Font Awesome][fontawesome] by Dave Gandy
+
+HTML5 detection provided by [Modernizr 2][modernizr] (configured with all features)
+
+
+[appcfg]: http://code.google.com/appengine/docs/python/tools/uploadinganapp.html
+[bootstrap]: http://twitter.github.com/bootstrap
+[debugtoolbar]: https://readthedocs.org/projects/flask-debugtoolbar/
+[devserver]: http://code.google.com/appengine/docs/python/tools/devserver.html
+[flask]: http://flask.pocoo.org
+[flaskcache]: http://pythonhosted.org/Flask-Cache/
+[fontawesome]: http://fortawesome.github.com/Font-Awesome/
+[html5]: http://html5boilerplate.com/
+[jinja2]: http://jinja.pocoo.org/2/documentation/
+[gaeseries]: http://github.com/franciscosouza/gaeseries/tree/flask
+[modernizr]: http://www.modernizr.com/
+[profiler]: http://packages.python.org/Flask-GAE-Mini-Profiler/
+[wz]: http://werkzeug.pocoo.org/
+[wzda]: https://github.com/nshah/werkzeug-debugger-appengine
+
+# Google App Engine Mini Profiler
+
+gae_mini_profiler is a quick drop-in WSGI app that provides ubiquitous profiling of your existing GAE projects. It exposes RPC statistics and CPU profiling output for users of your choosing on your production site. Only requests coming from users of your choosing will be profiled, and others will not suffer any performance degradation, so you can use this profiler to learn about production performance without stressing about slowing users down. See screenshots and features below.
+
+This project is heavily inspired by the Stack Exchange team's impressive [mini-profiler](http://miniprofiler.com/).
+
+* <a href="#demo">See it in action</a>
+* <a href="#screens">Screenshots</a>
+* <a href="#start">Getting Started</a>
+* <a href="#features">Features</a>
+* <a href="#dependencies">Dependencies</a>
+* <a href="#bonus">Bonus</a>
+* <a href="#faq">FAQ</a>
+
+## <a name="demo">See it in action</a>
+
+Play around with a demo App Engine applications with gae_mini_profiler enabled at [http://mini-profiler.appspot.com](http://mini-profiler.appspot.com/).
+
+## <a name="screens">Screenshots</a>
+
+<strong>All profiled pages have total milliseconds in corner, which can be expanded...</strong><br/>
+<img src="http://i.imgur.com/Nqdtu.png"/><br/><br>
+<strong>...to show more details...</strong><br/>
+<img src="http://i.imgur.com/sjxE7.png"/><br/><br/>
+<strong>...about remote procedure call performance...</strong><br/>
+<img src="http://i.imgur.com/C29gC.png"/><br/><br>
+<strong>...or CPU profiler output.</strong><br/>
+<img src="http://i.imgur.com/XcBxG.png"/><br/><br/>
+<strong>Choose between an instrumented CPU profiler (above) or a sampling
+profiler (below).</strong><br/>
+<img src="http://i.imgur.com/KiwHv.png"><br><br>
+<strong>Ajax requests and redirects are also profiled and added to the corner of your page.</strong><br/>
+<img src="http://i.imgur.com/8gS4D.png"/><br/><br>
+<strong>Any Python logging module output is also available for easy access.</strong>
+<img src="http://i.imgur.com/6382r.png"/><br/>
+
+## <a name="start">Getting Started</a>
+
+1. Download this repository's source and copy the `gae_mini_profiler/` folder into your App Engine project's root directory.
+
+2. Add the following two handler definitions to `app.yaml`:
+
+        handlers:
+        - url: /gae_mini_profiler/static
+          static_dir: gae_mini_profiler/static
+        - url: /gae_mini_profiler/.*
+          script: gae_mini_profiler.main.application
+
+3. Modify the WSGI application you want to profile by wrapping it with the gae_mini_profiler WSGI application.
+
+        import gae_mini_profiler.profiler
+        ...
+        application = webapp.WSGIApplication([...])
+        application = gae_mini_profiler.profiler.ProfilerWSGIMiddleware(application)
+
+4. Modify your template to include our javascript and stylesheets just before your ending body tag.
+
+    There is a profiler_includes() function in gae_mini_profiler.templatetags that spits out the right code for these scripts and stylesheets.
+        
+    Using any template engine of your choice, call this function at the end of your template:
+    
+                ...
+                {% profiler_includes %}
+            </body>
+        </html>
+
+    Note that these resources will not be loaded on requests when the profiler is disabled, so you don't need to worry about extra HTTP requests slowing down your users.
+
+    Using Django?
+        You can register a simple_tag to expose this to your templates:
+        
+        register = template.create_template_register()
+        @register.simple_tag
+        def profiler_includes():
+            return gae_mini_profiler.templatetags.profiler_includes()
+                    
+    Using jinja2?
+        You can expose this function to your templates easily:
+        
+        webapp2_extras.jinja2.default_config = {
+            "globals": {
+                "profiler_includes": gae_mini_profiler.templatetags.profiler_includes
+            }
+        }
+                
+    Using anything else to generate your HTML?
+        Just find some way to spit the results of profiler_includes() into your HTML. Doesn't have to be anything fancy.
+
+5. You're all set! Now you just need to choose when you want to enable the profiler by overriding a simple function. By default it's enabled on the dev server and disabled in production. To enable it for App Engine admins in production, add the following to appengine_config.py:
+
+        def gae_mini_profiler_should_profile_production():
+                from google.appengine.api import users
+                return users.is_current_user_admin()
+                
+    In appengine_config.py you can override both of the following...
+    
+        def gae_mini_profiler_should_profile_production(): pass
+        def gae_mini_profiler_should_profile_development(): pass
+        
+    ...with any logic you want to choose when the profiler should be enabled.
+
+
+## <a name="features">Features</a>
+
+* Production profiling without impacting normal users
+* Easily profile all requests, including ajax calls
+* Summaries of RPC call types and their performance so you can quickly figure out whether datastore, memcache, or urlfetch is your bottleneck
+* Redirect chains are tracked -- quickly examine the profile of not just the currently rendered request, but any preceding request that issued a 302 redirect leading to the current page.
+* Share individual profile results with others by sending link
+* Duplicate RPC calls are flagged for easy spotting in case you're repeating memcache or datastore queries
+* Choose from either an instrumented or sampling CPU profiler to quickly figure out where your requests are spending time
+
+## <a name="dependencies">Dependencies</a>
+
+* jQuery must be included somewhere on your page.
+* (Optional) If you want the fancy slider selector for the Logs output, jQuery UI must also be included with its Slider plugin.
+
+## <a name="bonus">Bonus</a>
+
+gae_mini_profiler is currently in production use at [Khan Academy](http://khanacademy.org). If you make good use of it elsewhere, please lemme know.
+
+## <a name="faq">FAQ</a>
+
+1. What's the license? [MIT licensed](http://en.wikipedia.org/wiki/MIT_License).
+2. I had my appstats_RECORD_FRACTION variable set to 0.1, which means only 10% of my queries were getting profiles generated.  This meant that most of the time gae_mini_profiler was failing with a javascript error, because the appstats variable was null.
+
+    If you are using appengine_config.py to customize Appstats behavior you should add this to the top of your "appstats_should_record" method.
+<pre>def appstats_should_record(env):
+        from gae_mini_profiler.config import should_profile
+        if should_profile(env):
+            return True
+</pre>
+
+=================================
+Translation Submission Guidelines
+=================================
+
+To create a translation, the easiest way to start is to run:
+
+ $ python setup.py init_catalog --locale <your locale>
+
+Which will copy the template to the right location. To run that setup.py
+sub-command, you need Babel and setuptools/distribute installed.
+
+.po files:
+ - must be a valid utf-8 text file
+ - should have the header filled out appropriately
+ - should translate all messages
+
+You probably want to try setup.py compile_catalog and try loading your
+translations up to verify you did it all right.
+
+Submitting
+----------
+
+The best ways to submit your translation are as a pull request on bitbucket, or
+an email to james+i18n@simplecodes.com, with the file included as an attachment.
+
+utf-8 text may not format nicely in an email body, so please refrain from
+pasting the translations into an email body, and include them as an attachment
+instead. Also do not post translation files in the issue tracker text box, or
+onto the mailing list either, because again formatting may be broken.
+

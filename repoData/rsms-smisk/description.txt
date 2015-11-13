@@ -1,0 +1,362 @@
+A very simple demo.
+
+Run it like this:
+lighttpd -Df lighttpd.conf
+
+This demonstrates how to run distributed applications by running multiple
+stand-alone servers.
+
+process.py
+  This comprises the web application.
+  Start a single server listening on 127.0.0.1 on port 5000:
+    ./process.py --bind :5000
+	Start 3 servers listening on port 5000, 5001 and 5002:
+    ./process.py --bind :5000 --spawn 3
+  
+  Note:
+    (This process is programmed to die after 4 requests in order to test
+    fail-over and load balancing. You can disable this by editing the self-
+    explaining instance variable called "die_after_num_requests" in
+    process.py to have the value -1.)
+
+lighttpd.conf
+  After you have started one or more processes (on port 5000-5002), this 
+  configuration will setup a FastCGI-connection between lighttpd and the 
+  process and serve requests just as it would with a "local" process.
+  
+    lighttpd -Df lighttpd.conf
+
+Demonstrates user input handling, like query string parsing, POSTing,
+Cookies, sessions, etc.
+
+Run it like this:
+  lighttpd -Df lighttpd.conf
+
+You can send other kind of data using curl.
+For example:
+  curl --data-binary 'hello mister' --header 'Content-Type: text/plain' http://localhost:8080/receive
+
+RESTful key-value store
+=======================
+
+Backed by smisk.ipc.bsddb.shared_dict.
+Speaks JSON.
+
+There is also a much more feature-rich and production-like application doing the
+exact same thing, but built using smisk.mvc in examples/mvc/key-value-store.
+
+Example using curl::
+
+  $ curl http://localhost:8080/
+  {"keys": []}
+  $ curl http://localhost:8080/my-key
+  {"status": "No such key 'my-key'"}
+  $ curl -X PUT -d '"my value"' http://localhost:8080/my-key
+  {"status": "OK"}
+  $ curl http://localhost:8080/my-key
+  "my value"
+  $ curl http://localhost:8080/
+  {"keys": ["my-key"]}
+  $ curl -X DELETE http://localhost:8080/my-key
+  {"status": "OK"}
+  $ curl http://localhost:8080/my-key
+  {"status": "No such key 'my-key'"}
+  $ curl http://localhost:8080/
+  {"keys": []}
+
+
+A very simple demo.
+
+Run it like this:
+lighttpd -Df lighttpd.conf
+
+This simple demo shows how to send files in an effective way.
+
+Run it like this:
+lighttpd -Df lighttpd.conf
+
+Custom serialization
+====================
+
+This simple example demonstrates how to create custom data serializers.
+
+In this example, we have created a custom XML serializer which builds upon the
+xmlbase Element Tree backed base serializer, minimizing code. We have also
+created a very simple text serializer without building upon any readymade code.
+
+
+Trying it out
+-------------
+
+Start a server::
+
+  $ cd examples/mvc/custom-serialization
+  $ lighttpd -Df lighttpd.conf
+
+In another terminal, run a client::
+
+  $ curl -i localhost:8080/.mytext
+
+This will give you some sample data serialized with my_text_serializer. Let's
+try to have the sample data (built-in -- see app.py) returned as xml, using our
+my_xml_serializer::
+
+  $ curl -i localhost:8080/.xml
+
+It's that simple!
+
+In app.py we have defined another method which echoes back whatever parameters 
+was sent to it. Let's convert some JSON-formatted data into our custom XML
+format::
+
+  $ curl -i \
+    -d '{"name":"Bulgur R.", "age":42}' \
+    -H 'Content-Type: application/json' \
+    localhost:8080/echo.xml
+
+Or we could specify our capabilities and have Smisk choose the best representation::
+
+  $ curl -i \
+    -d '{"name":"Bulgur R.", "age":42}' \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: text/x-mytext, text/xml;q=0.5' \
+    localhost:8080/echo
+
+Let's also specify what kind of character encoding we accept. Smisk will chose
+the most appropriate character set, honoring our my_text_serializer's
+"prefered character encoding"::
+
+  $ curl -i \
+    -d '{"name":"Bulgur R.", "age":42}' \
+    -H 'Content-Type: application/json' \
+    -H 'Accept: text/x-mytext, text/xml;q=0.5' \
+    -H 'Accept-Charset: iso-8859-1, utf-8, ascii;q=0.5' \
+    localhost:8080/echo
+
+And we got the data returned, formatted using our my_text_serializer and characters
+encoded as utf-8 (because our serializer prefers it that way and the client accepts
+it without any quality limitations).
+
+Key-Value store
+===============
+
+This example illustrates using the full power of HTTP and Smisk in the form of
+a key-value store.
+
+* Restricting HTTP methods on controller tree leafs.
+* Mapping different methods to different leafs on the controller tree.
+
+Different request methods do different things:
+
+* GET requests reads entries
+* PUT or POST requests writes entries
+* DELETE requests removes entries
+* OPTIONS requests gives API reflection
+
+If you start the application and access it trough a web browser, there is an
+ajax interface for manipulating the key-value store, passing data as JSON.
+Parts of the javascript code within templates/__call__.html are universal and
+can be used to interface with any Smisk service which have JSON capabilities.
+
+Example
+-------
+
+Example of interfacing with this service using curl::
+
+  $ curl -X GET localhost:8080/entry/my-key
+  404 Not Found
+  $ curl -X PUT -d value=hello localhost:8080/entry/my-key
+  $ curl -X GET localhost:8080/entry/my-key.txt
+  value: hello
+  $ curl -X PUT \
+    -H 'Content-Type: application/json' \
+    -d '{"value":{"message": "hello internets", "time":123456}}' \
+    localhost:8080/entry/something-else
+  $ curl -X GET localhost:8080/entry/something-else.txt
+  value: 
+    message: hello internets
+    time: 123456
+  $ curl -X PUT -d '{"value":5}' localhost:8080/entry/something-else.json
+  $ curl -X GET localhost:8080/entry/something-else.txt
+  value: 5
+  $ curl -X POST -d 'value=internets' localhost:8080/entry/something-else
+  $ curl -X GET localhost:8080/entry/something-else.txt
+  value: internets
+  $ curl -X DELETE localhost:8080/entry/something-else
+  $ curl -X GET localhost:8080/entry/something-else.txt
+  404 Not Found
+
+
+Tip
+^^^
+
+If you are using bash as your shell (which you probably are if you don't know what that is), you can create 100 keys to play with using this line::
+
+  for (( i=0; i<=100; i++ )); do curl -X PUT -d 'value=hello'$i 'localhost:8080/entry/my-key'$i; done
+
+ORM example
+===========
+
+This application demonstrates how to write a
+`CRUD <http://en.wikipedia.org/wiki/Create,_read,_update_and_delete>`_ service,
+in this case backed by a RDBM (relational database).
+
+Fire up a server instance::
+
+  $ cd examples/mvc/kittens-orm
+  $ lighttpd -Df lighttpd.conf
+
+Create a kitten::
+
+  $ curl -id 'name=Leo&color=orange&year_born=2008' localhost:8080/create
+
+Pet it::
+
+  $ curl -i localhost:8080/read?name=Leo
+
+Recolor it::
+
+  $ curl -id 'name=Leo&color=purple' localhost:8080/update
+
+Kill the poor little kitten::
+
+  $ curl -id 'name=Leo' localhost:8080/delete
+
+List all live kittens::
+
+  $ curl -i localhost:8080/
+
+You can also use a regular web browser since this demo include HTML templates
+with *really* fancy input forms ;)
+
+Minimal example
+===============
+
+This application is more of a skeleton with a minimal implementation.
+
+RML-RPC example
+===============
+
+This is a simple, yet realistic, example of a pure XML-RPC service,
+allowing only XML-RPC communication. It manages a value, an arbitrary object,
+which can be set and aquired.
+
+In order to fit more into this example, we have also overridden the media type
+of the XML-RPC serializer, simulating a client that sends requests and accepts
+responses only in text/xml.
+
+Try it out
+----------
+
+**Using curl, we can trying it out in a terminal:**
+  
+Aquire (or read) the value::
+
+  curl -i -H 'Content-Type: text/xml' -d '<?xml version="1.0"?>
+  <methodCall>
+    <methodName>examples.getValue</methodName>
+  </methodCall>' localhost:8080
+  
+Set (or write) the value::
+
+  curl -i -H 'Content-Type: text/xml' -d '<?xml version="1.0"?>
+  <methodCall>
+    <methodName>examples.setValue</methodName>
+    <params>
+      <param>
+          <value><string>Goodbye America</string></value>
+      </param>
+    </params>
+  </methodCall>' localhost:8080
+
+
+A simple Python client:
+^^^^^^^^^^^^^^^^^^^^^^^
+::
+  
+  # simple test program (from the XML-RPC specification)
+  from xmlrpclib import ServerProxy, Error
+  service = ServerProxy("http://localhost:8080")
+  try:
+    print service.examples.getValue()
+    print service.examples.setValue("internets rulez")
+    print service.examples.getValue()
+  except Error, v:
+    print "ERROR", v
+
+XSPF service
+============
+
+Demonstrates how to use the built-in XSPF serializer to respond with media playlists.
+
+Shows how to use Smisk as a backend for a WSGI application.
+
+The example handler is very simplistic, but is interchangable
+with a handler in a real application.
+
+Run it like this:
+lighttpd -Df lighttpd.conf
+
+Run Trac <http://trac.edgewall.org/> on Smisk.
+
+Runs Trac WSGI on Smisk through smisk.wsgi, speeding up Trac.
+
+See: http://trac.edgewall.org/wiki/TracFastCgi
+
+Smisk
++++++
+
+.. contents ::
+
+Summary
+=======
+
+Smisk is a simple, high-performance and scalable web service framework
+written in C, but controlled by Python.
+
+It is designed to widen the common bottle necks in heavy-duty web services.
+
+More information at the `Smisk website <http://python-smisk.org/>`_
+
+
+Getting Started
+===============
+
+* Install with ``easy_install smisk``, download from
+  `PyPI <http://pypi.python.org/pypi/smisk>`_ or 
+  `use a Debian package <http://python-smisk.org/downloads>`_
+  
+* Have a look at a few `examples <http://python-smisk.org/examples>`_
+
+
+Examples
+========
+
+This is a minimal Smisk service::
+
+  from smisk.core import Application
+  class MyApp(Application):
+    def service(self):
+      self.response.headers = ['Content-Type: text/plain']
+      self.response("Hello World!")
+
+  MyApp().run()
+
+And here we have a WSGI compatible application::
+
+  from smisk.wsgi import *
+  def hello_app(env, start_response):
+    start_response("200 OK", [('Content-Type', 'text/plain')])
+    return ["Hello, World!"]
+
+  main(hello_app)
+
+More examples `available here... <http://python-smisk.org/examples>`_
+
+
+Authors & Contributors
+======================
+* `Rasmus Andersson <http://hunch.se/>`_ rasmus-flajm.com
+* `Eric Moritz <http://themoritzfamily.com/>`_ eric-themoritzfamily.com
+* Ludvig Strigeus
+

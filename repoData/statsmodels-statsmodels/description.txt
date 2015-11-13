@@ -1,0 +1,299 @@
+Release Notes
+=============
+
+The list of changes for each statsmodels release can be found [here](http://statsmodels.sourceforge.net/devel/release/index.html). Full details are available in the [commit logs](https://github.com/statsmodels/statsmodels).
+
+The format for landing.json should be self-explanatory. The images should be placed in docs/source/_static/images/. They will be displayed at 360 x 225 (W x H). It's best to save them as a png with a resolution of a multiple of at least 720 x 450. If you want, you can use png crush to make the images smaller.
+
+=====================================
+numpydoc -- Numpy's Sphinx extensions
+=====================================
+
+Numpy's documentation uses several custom extensions to Sphinx.  These
+are shipped in this ``numpydoc`` package, in case you want to make use
+of them in third-party projects.
+
+The following extensions are available:
+
+  - ``numpydoc``: support for the Numpy docstring format in Sphinx, and add
+    the code description directives ``np-function``, ``np-cfunction``, etc.
+    that support the Numpy docstring syntax.
+
+  - ``numpydoc.traitsdoc``: For gathering documentation about Traits attributes.
+
+  - ``numpydoc.plot_directives``: Adaptation of Matplotlib's ``plot::``
+    directive. Note that this implementation may still undergo severe
+    changes or eventually be deprecated.
+
+  - ``numpydoc.only_directives``: (DEPRECATED)
+
+  - ``numpydoc.autosummary``: (DEPRECATED) An ``autosummary::`` directive.
+    Available in Sphinx 0.6.2 and (to-be) 1.0 as ``sphinx.ext.autosummary``,
+    and it the Sphinx 1.0 version is recommended over that included in
+    Numpydoc.
+
+What Statsmodels is
+===================
+What it is
+==========
+
+Statsmodels is a Python package that provides a complement to scipy for statistical computations including descriptive statistics and estimation and inference for statistical models.
+
+Main Features
+=============
+
+* linear regression models: Generalized least squares (including weighted least squares and
+  least squares with autoregressive errors), ordinary least squares.
+* glm: Generalized linear models with support for all of the one-parameter
+  exponential family distributions.
+* discrete: regression with discrete dependent variables, including Logit, Probit, MNLogit, Poisson, based on maximum likelihood estimators
+* rlm: Robust linear models with support for several M-estimators.
+* tsa: models for time series analysis
+  - univariate time series analysis: AR, ARIMA
+  - vector autoregressive models, VAR and structural VAR
+  - descriptive statistics and process models for time series analysis
+* nonparametric : (Univariate) kernel density estimators
+* datasets: Datasets to be distributed and used for examples and in testing.
+* stats: a wide range of statistical tests
+  - diagnostics and specification tests
+  - goodness-of-fit and normality tests
+  - functions for multiple testing
+  - various additional statistical tests
+* iolib
+  - Tools for reading Stata .dta files into numpy arrays.
+  - printing table output to ascii, latex, and html
+* miscellaneous models
+* sandbox: statsmodels contains a sandbox folder with code in various stages of
+  developement and testing which is not considered "production ready".
+  This covers among others Mixed (repeated measures) Models, GARCH models, general method
+  of moments (GMM) estimators, kernel regression, various extensions to scipy.stats.distributions,
+  panel data models, generalized additive models and information theoretic measures.
+
+
+Where to get it
+===============
+
+The master branch on GitHub is the most up to date code
+
+    https://www.github.com/statsmodels/statsmodels
+
+Source download of release tags are available on GitHub
+
+    https://github.com/statsmodels/statsmodels/tags
+
+Binaries and source distributions are available from PyPi
+
+    http://pypi.python.org/pypi/statsmodels/
+
+
+Installation from sources
+=========================
+
+See INSTALL.txt for requirements or see the documentation
+
+    http://statsmodels.sf.net/devel/install.html
+
+
+License
+=======
+
+Modified BSD (3-clause)
+
+
+Documentation
+=============
+
+The official documentation is hosted on SourceForge
+
+    http://statsmodels.sf.net/
+
+
+Windows Help
+============
+The source distribution for Windows includes a htmlhelp file (statsmodels.chm).
+This can be opened from the python interpreter ::
+
+    >>> import statsmodels.api as sm
+    >>> sm.open_help()
+
+
+Discussion and Development
+==========================
+
+Discussions take place on our mailing list.
+
+    http://groups.google.com/group/pystatsmodels
+
+We are very interested in feedback about usability and suggestions for improvements.
+
+
+Bug Reports
+===========
+
+Bug reports can be submitted to the issue tracker at
+
+    https://github.com/statsmodels/statsmodels/issues
+
+What the l1 addition is
+=======================
+A slight modification that allows l1 regularized LikelihoodModel.
+
+Regularization is handled by a fit_regularized method.
+
+Main Files
+==========
+
+l1_demo/demo.py
+    $ python demo.py --get_l1_slsqp_results logit
+    does a quick demo of the regularization using logistic regression.
+
+l1_demo/sklearn_compare.py
+    $ python sklearn_compare.py
+    Plots a comparison of regularization paths.  Modify the source to use
+    different datasets.
+
+statsmodels/base/l1_cvxopt.py
+    fit_l1_cvxopt_cp()
+        Fit likelihood model using l1 regularization.  Use the CVXOPT package.
+    Lots of small functions supporting fit_l1_cvxopt_cp
+
+statsmodels/base/l1_slsqp.py
+    fit_l1_slsqp()
+        Fit likelihood model using l1 regularization.  Use scipy.optimize
+    Lots of small functions supporting fit_l1_slsqp
+
+statsmodels/base/l1_solvers_common.py
+    Common methods used by l1 solvers
+
+statsmodels/base/model.py
+    Likelihoodmodel.fit()
+        3 lines modified to allow for importing and calling of l1 fitting functions
+
+statsmodels/discrete/discrete_model.py
+    L1MultinomialResults class
+        Child of MultinomialResults
+    MultinomialModel.fit()
+        3 lines re-directing l1 fit results to the L1MultinomialResults class
+
+This README was copied from
+http://projects.scipy.org/scikits/browser/trunk/learn/scikits/learn/datasets/
+-----------------------------------------------------------------------------
+
+Last Change: Tue Jul 17 04:00 PM 2007 J
+
+This packages datasets defines a set of packages which contain datasets useful
+for demo, examples, etc... This can be seen as an equivalent of the R dataset
+package, but for python.
+
+Each subdir is a python package, and should define the function load, returning
+the corresponding data. For example, to access datasets data1, you should be able to do:
+
+>> from datasets.data1 import load
+>> d = load() # -> d contains the data of the datasets data1
+
+load can do whatever it wants: fetching data from a file (python script, csv
+file, etc...), from the internet, etc... Some special variables must be defined
+for each package, containing a python string:
+    - COPYRIGHT: copyright informations
+    - SOURCE: where the data are coming from
+    - DESCHOSRT: short description
+    - DESCLONG: long description
+    - NOTE: some notes on the datasets.
+
+For the datasets to be useful in the learn scikits, which is the project which initiated this datasets package, the data returned by load has to be a dict with the following conventions:
+    - 'data': this value should be a record array containing the actual data.
+    - 'label': this value should be a rank 1 array of integers, contains the
+      label index for each sample, that is label[i] should be the label index
+      of data[i].
+    - 'class': a record array such as class[i] is the class name. In other
+      words, this makes the correspondance label index <> label name.
+
+#########################################################################################################
+#													#
+#	This archive is part of the free distribution of data and statistical software code for		#
+#	"Generalized Linear Models: A Unified Approach", Jeff Gill, Sage QASS Series.  You are		#
+#	free to use, modify, distribute, publish, etc. provided attribution.  Please forward 		#
+#	bugs, complaints, comments, and useful changes to: jgill@latte.harvard.edu.  			#
+#													#
+#########################################################################################################
+
+Electoral Politics in Scotland.  These data are from the 1997 vote that established a Scottish
+Parliament with taxing powers.  The data are culled from several different official UK documents
+provided by the Office for National Statistics, the General Register Office for Scotland, the
+Scottish Office: Education and Industry Department, the Scottish Department for Education
+and Employment, The Scottish Office Office: Development Department, and David Boothroyd (thank you).
+The files in this zip archive are:
+
+scotland.readme			this file
+scotvote.dat			the data file with a header indicating 
+
+scotland_births.html
+scotland_changes.html
+scotland_devolution.html
+scotland_econ_summary.html
+scotland_economics.html
+scotland_education.html
+scotland_housing.html
+scotland_population.html	these are html files with various details on the variables included.
+
+Package: R2nparray
+Version: 0.1
+Date: 2011-08-23
+Title: R to Numpy Arrays
+Author: Skipper Seabold <jsseabold@gmail.com>
+Maintainer: Skipper Seabold <jsseabold@gmail.com>
+Description: Writes R matrices, vectors, and scalars to a file as numpy arrays
+License: BSD
+URL: http://www.github.com/statsmodels/statsmodels
+Repository: github
+
+To install run in the parent of this directory
+
+    R CMD INSTALL R2nparray
+
+This directory is only of interest to developers.  It contains files needed to build the docs automatically and to do code maintenance. The below is just a reminder of the commands to update things. It may not necessarily reflect the current workflow.
+
+How to update the main entry page
+---------------------------------
+
+If you want to update the main docs page from the statsmodels-website then
+run the following (with your credentials)
+
+make clean
+make html
+rsync -avPr -e ssh build/html/* jseabold,statsmodels@web.sourceforge.net:htdocs/
+
+How to update the nightly builds
+--------------------------------
+Note that this is done automatically with the update_web.py script except for
+new releases.  They should be done by hand if there are any backported changes.
+
+Important: Make sure you have the version installed for which you are building 
+the documentation if done by hand.
+
+To update devel branch (from the master branch)
+
+Make sure you have master installed
+cd to docs directory
+make clean
+make html
+
+rsync -avPr -e ssh build/html/* jseabold,statsmodels@web.sourceforge.net:htdocs/devel
+
+How to add a new directory
+---------------------------
+If you want to create a new directory on the sourceforge site. This can be done on linux as follows
+
+sftp jseabold,statsmodels@web.sourceforge.net
+<enter password>
+
+mkdir 0.2
+bye
+
+Then make sure you have the release installed, cd to the docs directory and run
+
+make clean
+make html
+
+rsync -avPr -e ssh build/html/* jseabold,statsmodels@web.sourceforge.net:htdocs/0.2
+

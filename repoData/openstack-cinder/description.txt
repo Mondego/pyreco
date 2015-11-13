@@ -1,0 +1,160 @@
+Brick is a new library that currently is maintained in Cinder for
+the Havana release.   It will eventually be moved external to Cinder,
+possibly oslo, or pypi.  Any defects found in Brick, should be submitted
+against Cinder and fixed there, then pulled into other projects that
+are using brick.
+
+* Brick is used outside of Cinder and therefore
+  cannot have any dependencies on Cinder and/or
+  it's database.
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+openstack-common
+----------------
+
+A number of modules from openstack-common are imported into this project.
+
+These modules are "incubating" in openstack-common and are kept in sync
+with the help of openstack-common's update.py script. See:
+
+  https://wiki.openstack.org/wiki/Oslo#Syncing_Code_from_Incubator
+
+The copy of the code should never be directly modified here. Please
+always update openstack-common first and then run the script to copy
+the changes across.
+
+=====================================
+OpenStack Cinder Testing Infrastructure
+=====================================
+
+A note of clarification is in order, to help those who are new to testing in
+OpenStack cinder:
+
+- actual unit tests are created in the "tests" directory;
+- the "testing" directory is used to house the infrastructure needed to support
+  testing in OpenStack Cinder.
+
+This README file attempts to provide current and prospective contributors with
+everything they need to know in order to start creating unit tests and
+utilizing the convenience code provided in cinder.testing.
+
+For more detailed information on cinder unit tests visit:
+http://docs.openstack.org/developer/cinder/devref/unit_tests.html
+
+Running Tests
+-----------------------------------------------
+
+In the root of the cinder source code run the run_tests.sh script. This will
+offer to create a virtual environment and populate it with dependencies.
+If you don't have dependencies installed that are needed for compiling cinder's
+direct dependencies, you'll have to use your operating system's method of
+installing extra dependencies. To get help using this script execute it with
+the -h parameter to get options `./run_tests.sh -h`
+
+Writing Unit Tests
+------------------
+
+- All new unit tests are to be written in python-mock.
+- Old tests that are still written in mox should be updated to use python-mock.
+    Usage of mox has been deprecated for writing Cinder unit tests.
+- use addCleanup in favor of tearDown
+
+If you would like to contribute to the development of OpenStack,
+you must follow the steps in the "If you're a developer, start here"
+section of this page: [http://wiki.openstack.org/HowToContribute](http://wiki.openstack.org/HowToContribute#If_you.27re_a_developer.2C_start_here:)
+
+Once those steps have been completed, changes to OpenStack
+should be submitted for review via the Gerrit tool, following
+the workflow documented at [http://wiki.openstack.org/GerritWorkflow](http://wiki.openstack.org/GerritWorkflow).
+
+Pull requests submitted through GitHub will be ignored.
+
+Bugs should be filed [on Launchpad](https://bugs.launchpad.net/cinder),
+not in GitHub's issue tracker.
+
+=================
+Building the docs
+=================
+
+Dependencies
+============
+
+Sphinx_
+  You'll need sphinx (the python one) and if you are
+  using the virtualenv you'll need to install it in the virtualenv
+  specifically so that it can load the cinder modules.
+
+  ::
+
+    pip install Sphinx
+
+Graphviz_
+  Some of the diagrams are generated using the ``dot`` language
+  from Graphviz.
+
+  ::
+
+    sudo apt-get install graphviz
+
+.. _Sphinx: http://sphinx.pocoo.org
+
+.. _Graphviz: http://www.graphviz.org/
+
+
+Use `make`
+==========
+
+Just type make::
+
+  % make
+
+Look in the Makefile for more targets.
+
+
+Manually
+========
+
+  1. Generate the code.rst file so that Sphinx will pull in our docstrings::
+     
+      % ./generate_autodoc_index.sh > source/code.rst
+
+  2. Run `sphinx_build`::
+
+      % sphinx-build -b html source build/html
+
+
+The docs have been built
+========================
+
+Check out the `build` directory to find them. Yay!
+
+This directory contains rally benchmark scenarios to be run by OpenStack CI.
+
+
+* more about rally: https://wiki.openstack.org/wiki/Rally
+* how to add rally-gates: https://wiki.openstack.org/wiki/Rally/RallyGates
+
+The Choose Your Own Adventure README for Cinder
+===============================================
+
+You have come across a storage service for an open cloud computing service.
+It has identified itself as "Cinder."   It was abstracted from the Nova project.
+
+To monitor it from a distance: follow `@openstack <http://twitter.com/openstack>`_ on twitter.
+
+To tame it for use in your own cloud: read http://docs.openstack.org
+
+To study its anatomy: read http://cinder.openstack.org
+
+To dissect it in detail: visit http://github.com/openstack/cinder
+
+To taunt it with its weaknesses: use http://bugs.launchpad.net/cinder
+
+To watch it: http://jenkins.openstack.org
+
+To hack at it: read `HACKING.rst <https://github.com/openstack/cinder/blob/master/HACKING.rst>`_
+

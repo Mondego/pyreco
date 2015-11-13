@@ -1,0 +1,1126 @@
+Using chopshop
+==============
+The chopshop program consists of a python script that is run on the command line. It
+requires Python 2.6+ and pynids to be installed. It also requires "modules"
+to be created that do the processing of network data. ChopShop, by itself, does
+not do any processing of pcap data -- it provides the facilities for the
+modules to do so.
+
+<pre>
+Usage: chopshop [options] ["bpf filter"] "list ; (of, many) | modules; and | more"
+
+Options:
+  -h, --help            show this help message and exit
+  -B BASE_DIR, --base_dir=BASE_DIR
+                        Base directory to load modules and external libraries
+                        from
+  -c CONFIGFILE, --configfile=CONFIGFILE
+                        Import a config file
+  -C SAVECONFIG, --saveconfig=SAVECONFIG
+                        Save current arguments to a config file
+  -E EXT_DIR, --ext_dir=EXT_DIR
+                        Directory to load external libraries from
+  -f FILENAME, --file=FILENAME
+                        input pcap file
+  -F FILEOUT, --fileout=FILEOUT
+                        Enable File Output
+  -g, --gui             Enable ChopShop Gui
+  -G, --GMT             timestamps in GMT (tsprnt and tsprettyprnt only)
+  -i INTERFACE, --interface=INTERFACE
+                        interface to listen on
+  -J JSONOUT, --jsonout=JSONOUT
+                        Enable JSON Output
+  -l, --aslist          Treat FILENAME as a file containing a list of files
+  -L, --long            Read from FILENAME forever even if there's no more
+                        pcap data
+  -m, --module_info     print information about module(s) and exit
+  -M MOD_DIR, --mod_dir=MOD_DIR
+                        Directory to load modules from
+  -s SAVEDIR, --savedir=SAVEDIR
+                        Location to save carved files
+  -S, --stdout          Explicitly enable output to stdout
+  -t, --module_tree     print information about module tree and exit
+  -v, --version         print version and exit
+
+</pre>
+
+Along with some basic command line options, chopshop requires the names of
+modules it is supposed to run. By default chopshop will look in the current 
+working directory for a "modules" directory and search for modules there.
+
+Note that -F, -J, and -s require a formatted string that understands the
+following variables:
+<pre>
+%N - the name of the module
+%T - the current unix timestamp
+%% - a literal '%'
+</pre>
+
+This enables files to be output to a location of the program invoker's
+choosing, more info can be found below in the examples.
+
+User Defined Directories
+==============
+Users have the option to override the default directories ChopShop uses to look for 
+modules and external libraries. ChopShop provides three options to override default values.
+The first is called the base directory, the argument for this in chopshop is -B or --base_dir.
+Up until ChopShop 4.1 (more on this below), this parameter took a string to a base path to look for both modules 
+and external libraries (ext_libs). So if you passed "/usr/local/chopshop-partner" as the base 
+directory, ChopShop would assume the 'modules' directory and the 'ext_libs' directory were
+located in that directory (e.g, '/usr/local/chopshop-partner/modules'). The other two options 
+are -M or --mod_dir and -E or --ext_dir. Both allow you to individually override the location of
+modules or external libraries as desired. For example, if you only need to override the default location
+of modules but are okay with the default location of external libraries, you can pass 
+"-M '/usr/local/chopshop-partner/modules/'" as an argument which will tell ChopShop to look in that
+directory for modules.
+
+As of ChopShop 4.1, the behavior of these parameters are slightly different and now allow you to specify
+multiple directories which will be checked be in priority order. ChopShop will also append the default path to
+the list automatically so if nothing is found in the list given by the user it will fall back to the built-in
+paths. Taking the example for base_dir from above, if a user passes "/usr/local/chopshop-partner" it should work
+the same way as before. But if, as an example, that base directory didn't contain the gh0st decoder, a user
+would not be able to call it. But now, they can call gh0st because ChopShop will automatically search the default
+path after failing to find the module in the path specified at commandline. To specify multiple directories
+on the commandline comma separate the paths 
+(e.g., "/usr/local/chopshop-development,/usr/local/chopshop-partner"). Again, as mentioned, ChopShop will 
+automatically append the default path to the end so adding it is not necessary.
+
+
+Configuration Files
+===============
+ChopShop introduced rough support for configuration files for 4.0, but as of 4.1 the usage 
+and design has been finalized and should make things easier for users. The chopshop program provides two
+relevant flags that allow you to create and consume configuration files. To create a configuration file
+based on the given commandline arguments just pass the -C flag to chopshop with a destination filename. 
+Then to consume that config file just use -c and chopshop will parse the given configuration file. 
+Further, chopshop will now check for a default file in the user's home directory, called .chopshop.cfg 
+for default config parameters. For users who often use the -B or -M/-E parameters this should save them 
+some time. Note that config files passed at the commandline override any config parameters found 
+in .chopshop.cfg and command line args override paramters from config files.
+
+
+User Interface
+==============
+When invoked with the -g flag, chopshop starts with a gui enabled. The GUI,
+written in curses, will take over the entire screen and display information in
+different windows. The following keys are recognized by the GUI:
+
+<pre>
+Left  or h: Cycles to the "left" window (the window above in the navigation window)
+Right or l: Cycles to the "right" window (the window below in the navigation window)
+Up    or k: Moves up one line in the data display window
+Down  or j: Moves down one line in the data display window
+PgDwn or J: Moves down 10 lines in the data display window
+PgUp  or K: Moves up 10 lines in the data display window
+         b: Moves to the beginning line in the data display window
+         n: Moves to the end line in the data display window
+         s: Toggles autoscroll for the given data display window -- default is True
+         q: Quits the entire program -- generally, also clears the screen on exit
+         Q: Quits the core -- leaves the UI up and running
+</pre>
+
+When moving around in the data window, remember to disable autoscroll or else
+the window will return to the end of the data shortly.
+
+Modules
+=======
+As mentioned, ChopShop requires modules to do the bulk of its work. Modules
+are, in essence, mini programs that do all of the grunt work to decode or
+analyze traffic. More information on the creation of modules can be found
+later.
+
+To use a module, it must be in the modules directory and be given the proper
+arguments (if required). All modules are capable of being given command line
+arguments and module documentation should be referenced for proper invocation
+requirements.
+
+Example Use Cases
+=================
+Example 1
+---------
+As an example let's assume we have a pcap (/pcaps/netcat.pcap) which has
+traffic that uses the netcat to access a remote shell. We can use the ChopShop 
+module called "payloads" to dump the traffic. Someone trying to run chopshop
+against this pcap would type:
+
+<code>
+chopshop -f /pcaps/netcat.pcap "host 192.168.1.10" "payloads -c -r"
+</code>
+
+The above invocation would run chopshop, load the payloads module, apply a BPF filter and run all traffic in the netcat.pcap file against the module.
+
+Example 2
+---------
+As a second example, let's assume we have a pcap /pcaps/data.pcap which has
+traffic that is either netcat traffic or could be gh0st traffic.  We're not
+quite sure which one it is and would like to try both.  Someone trying to
+analyze this data with chopshop would do:
+
+<code>
+chopshop -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+</code>
+
+The above invocation would run chopshop, load both the payloads and
+gh0st_decode modules and run all traffic in data.pcap through both. Both
+modules would also retain their own information and not clobber each other in
+the process.
+
+Example 3
+---------
+Let's assume the same information as the above example but this time we would
+like to output all data to the output directory in our current working
+directory:
+
+<code>
+chopshop -F "output/%N.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+</code>
+
+The above invocation would run chopshop, load both the payloads and
+gh0st_decode modules and run all traffic in data.pcap through both.
+Additionally, they would output all of their output to "output/payloads.txt"
+and "output/gh0st_decode.txt" respectively.  Note that by using -F, output to
+stdout is suppressed unless specifically invoked (by using -S).
+
+Example 4
+---------
+Building upon the last example let's output the modules output to their own
+directories and name each of the files after the module name and timestamp:
+
+<code>
+chopshop -F "output/%N/%N-%T.txt" -f /pcaps/data.pcap "payloads -c -r; gh0st_decode"
+</code>
+
+The above invocation would do the same thing as the above example but would
+output data to "output/payloads/payloads-[timestamp].txt" and
+"output/gh0st_decode/gh0st_decode-[timestamp].txt".
+
+Processing multiple pcaps
+=========================
+All examples and use cases so far have only shown chopshop processing one pcap
+at a time. ChopShop has the capability to process multiple pcaps in a few ways.
+The easiest of which is to pipe their names into chopshop from the command
+line:
+
+<code>
+find /pcaps -name "*.pcap" | sort | chopshop "host 192.168.1.10" "payloads -c -r"
+</code>
+
+The chopshop by default, if given no input information (-f or -i), will assume
+there is a list of filenames being passed via stdin.
+
+Example 5
+---------
+The chopshop can be used in a long running mode by using the -l and -L flags. These
+flags make chopshop assume that the input file is a list of files it should
+process and that it should continuously run until told to cancel (via Ctrl-C or
+'Q' in the gui).
+
+<code>
+chopshop -f myfilelist -l -L "host 192.168.1.10" "payloads -c -r"
+</code>
+
+If 'myfilelist' is a fifo, we can feed it a list of files and have chopshop
+process those files.
+
+Example 6
+---------
+Module chaining is achieved by using the pipe (|) character. An example using
+the provided http and http_extractor modules would look like:
+
+<code>
+chopshop -f foo.pcap "http | http_extractor"
+</code>
+
+
+Example 7
+_________
+ChopShop 4.0 also supports tees and reverse tees using parens and commas
+allowing you to feed the output of a module to multiple modules or vice 
+versa. A simple example follows below. Note that a child module (any module
+on the right hand side of a pipe) needs to be able to accept the types of
+data that the parents are creating.
+
+<code>
+chopshop -f malware.pcap "(dns, icmp) | malware_detector"
+</code>
+
+Using chopweb
+==============
+The chopweb program consists of a python script that is run on the command line that starts a web 
+server. It requires Python 2.6+, mod_pywebsocket, and pynids to be installed. It, like chopshop, 
+also requires 'modules' to be created to do any processing of network data.
+
+
+The chopweb program is currently in an alpha state and this documentation will
+be updated shortly
+
+
+
+Embedding ChopShop
+==================
+
+Starting with ChopShop 3.0 it is possible to embed the core of ChopShop aka,
+ChopLib into other python programs. Before going into how to do this, here's a
+quick overview of the design.
+
+ChopShop, which refers to the overall project (and not the specific program
+'chopshop') consists of disjointed pieces of code to accomplish its goals. The
+chopshop program leverages these pieces to present to the user the ability to
+analyze traffic more easily than would be done using manual processes. The
+chopshop program has three pieces, specifically consisting of the core
+library (ChopLib), a user interface (the chopshop program itself) and a
+presentation layer (the ChopUi). The library and the ui are then tied together
+using an interprocess message queue to pass messages.
+
+
+Before getting into each of the three pieces, let's discuss that interprocess
+message queue that was mentioned above. The queue is a one way queue that is
+meant to send data from the library to whatever element on the other side is being
+used for presentation. In chopshop, for example, ChopUi is consuming the
+queue.
+
+There are two high-level types of messages that are sent across the queue,
+'Control' messages and 'Data' messages. All messages are python data objects.
+Control messages have the following structure:
+
+<pre>
+ctrl_message = { 'type' : 'ctrl',
+                 'data' : { 'msg': 'X', 
+                             other dependant on 'X'}
+               }
+
+    if 'X' == 'finished':
+        'status': 'ok' | 'error'
+    if 'X' == 'addmod':
+        'name': "module name"
+        'id'  : "module id"
+    if 'X' == 'stop':
+        no other elements
+</pre>
+
+Data messages have the following format:
+
+<pre>
+message = { 'type'   : 'txt'|'json'|'filedata'
+            'module' : 'module name',
+            'id'     : 'module id',
+            'time'   : 'packet timestamp',
+            'addr'   : (('src','srcprt'),('dst','dstprt')),
+            'proto'  : 'tcp'|'udp',
+            'data'   : {type dependant data dictionary}
+          }
+
+
+    if 'type' == 'txt':
+        'data' = { 'data' : 'string data',
+                   'suppress' : True|False -- suppress the \n at the end of the line
+                   'color' : 'Requested Color'
+                 }
+    if 'type' == 'json':
+        'data' = { 'data' : 'string of json data'}
+
+    if 'type' == 'filedata':
+        'data' = { 'data' : data to output,
+                   'mode' : requested write mode (w|a),
+                   'finalize': True|False -- whether this is the final write and the file should be closed
+                 }
+</pre>
+
+The 'type' and 'data' fields are the only consistent names across all of
+messages and any usage of a message should at the least check the type before
+using it.
+
+
+So now that we've looked at the message format, let's look at all three pieces 
+and see how to embed them. We will be using the chopshop program as an example.
+
+
+ChopLib:
+ChopLib is the core of ChopShop, it does the actual handling of the modules
+and all of the real work, if you want to embed ChopShop into a program, this
+is more than likely what you'll want, at the least.
+
+An instance of ChopLib is instantiated like any other python class:
+
+
+```python
+#The following line assumes the shop is in your path
+from ChopLib import ChopLib
+
+choplib = ChopLib()
+```
+
+ChopLib has the following options:
+
+<pre>
+mod_dir -- The directory to load modules from. Defaults to ChopShop's working
+directory + /modules. Should be set to an absolute path
+<default: CHOPSHOP_WD + '/modules/'>
+
+NEW: In ChopLib 4.1 mod_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
+
+ext_dir -- The directory to load external libraries from. Defaults to
+ChopShop's working directory + /ext_libs. Should be set to an absolute path
+<default: CHOPSHOP_WD + '/ext_libs/'>
+
+NEW: In ChopLib 4.1 ext_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
+
+base_dir -- The base directory to look for modules/ext_libs. This parameter
+takes precedence over mod_dir and ext_dir
+<default: None>
+
+NEW: In ChopLib 4.1 base_dir is now an array of strings. For backwards
+compatibility it will accept a string and auto-convert to an array
+
+filename -- Pcap file to use as input
+<default: ''>
+
+filelist -- List of Pcap files to use as input
+<default: None>
+
+bpf -- The BPF filter to send to nids
+<default: None>
+
+aslist -- Whether to treat 'filename' as a list of files to read in
+<default: False>
+
+longrun -- Reads from input forever even if there's no data to read, useful
+for reading from FIFO's
+<default: False>
+
+interface -- What interface to read from. This option has priority over
+reading from a file
+<default: ''>
+
+modinfo -- This instance of the ChopLib should only read the module_info and
+then exit
+<default: False>
+
+modtree -- This instance of ChopLib should output a tree of how modules would
+chain together and then exit
+<default: False>
+
+GMT -- Timestamps should be in GMT
+<default: False>
+
+savefiles -- If set to True, will enable ChopLib's saving of files
+<default: False>
+
+text -- If set to True, will enable ChopLib's hanlding of text data
+<default: False>
+
+jsonout -- If set to True, will enable ChopLib's handling of json data
+<default: False>
+
+modules -- The list of modules that is going to be processed. This is
+essentially what people type in at the commandline
+<default: ''>
+</pre>
+
+ChopLib has the following functions that are useful for embedding:
+
+<pre>
+start() -- Kicks off ChopLib to start processing
+
+finish() -- Should be called to properly kill intra-communication
+channels
+
+join() -- Inherited from Thread, should be called to properly join
+</pre>
+
+The above functions are the ones used by chopshop but other functions are
+available depending on what functionality is desired:
+
+<pre>
+get_message_queue() -- returns the interprocess message queue that is
+used for output
+
+get_stop_fn() -- returns the stop function used to stop the Library
+
+version() -- returns the version of ChopLib
+
+setup_local_chop(name = "ChopShop", pid = -1) -- usually not needed
+but allows the calling program (e.g., chopshop) to get its own local 'chop' library
+</pre>
+
+
+ChopUi:
+
+ChopUi is a wrapper around other functions and classes. It is designed to be
+overridable and simple. By default, ChopUi will use the output handlers
+available in ChopUiStd for all functionality but all of those handlers can be
+overriden by specifying an alternative object.
+
+ChopUi has the following options:
+
+<pre>
+stdout - Set to True to enable handling of output to stdout, set to an
+Object to override the stdout handler.
+<default: False>
+
+gui - Set to True to enable hanlding of output to gui, set to an Object
+to override the gui handler.
+<default: False>
+
+fileout - Set to True to enable handling of text output to a file, set to an
+Object to override the handler.
+<default: False>
+
+filedir - Set to the format string to where the file should be saved
+<default: None>
+
+savefiles - Set to True to enable handling of file saving, set to an
+Object to override the handler.
+<default: False>
+
+savedir - Set to the format string as to where to save files
+<default: None>
+
+jsonout - Set to True to enable handling of json output data, set to an
+Object to override the handler.
+<default: False>
+
+jsondir - Set to a format string as to where to save json output data
+<default: None>
+</pre>
+
+The following functions are useful when using ChopUi:
+
+<pre>
+start() - Kicks off the ui
+
+bind(ChopLib_Instance) - 'Binds' a ChopLib instance to this ui instance
+
+stop() - Stops the ui
+</pre>
+
+A few other functions exist that shouldn't be needed for regular operations:
+
+<pre>
+set_message_queue(message_queue) - Sets the message queue to be
+consumed from -- called by ChopUi.bind()
+
+set_library_stop_fn(lib_stop_fn) - Sets the library stop function --
+called by ChopUi.bind()
+</pre>
+
+
+Putting it together, we create a program like chopshop. As the glue chopshop
+has the following responsibilities:
+
+* Parse all command line arguments
+* Handle reading from stdin if necesary
+* Handle signals
+* Setting up options to the library and ui
+* Starting the ui and the library
+* Cleaning up properly
+
+Overriding UI handlers:
+All Ui handlers need four functions to be defined to be callable by ChopUi:
+
+<pre>
+Handler.__init__(ui_stop_fn, lib_stop_fn) -- This function will start up the
+handler, giving it functions to stop either the Ui or the Library if
+necessary. Most handlers will ignore those variables
+
+Handler.handle_message(message) -- This function is meant to handle the data
+messsage for the type it is. For example a stdout handler will only get 'txt'
+messages and should never get 'json' messages
+
+Handler.handle_ctrl(message) -- This function is meant to handle 'ctrl'
+messages
+
+Handler.stop() -- This function is called when ChopUi is ending and gives the
+handler a chance to shutdown properly
+</pre>
+
+To override the handler, you simply need to assign the handler you want to
+override with the object you want to replace it. For example:
+
+```python
+from ChopUi import ChopUi
+chopui = ChopUi()
+chopui.stdout = MyAwesomeStdoutHandler
+```
+
+As long as that object 'MyAwesomeStdoutHandler' has the four required
+functions, it will be used without issue to handle any 'txt' data
+
+
+Module Development
+==================
+Introduction
+------------
+Creating ChopShop modules consists of creating a python file with a unique name
+and placing it in the modules directory. This file must have a .py extension in
+order to be recognized by the framework.
+
+newmod.sh
+---------
+ChopShop provides a shell script to setup a simple module stub for you. You can use
+'newmod.sh' to create this stub and open an editor for you to get right to
+work. The newmod.sh script takes two arguments. The first is the name of the
+module you want to create and the second is a string (either 'tcp' or 'udp')
+depending upon the layer 4 payload you intend to parse.
+
+<code>
+./newmod.sh awesome_decoder tcp
+</code>
+
+
+ChopShop 4.0 Changes
+----------
+A few changes have been introduced with ChopShop 4.0, the majority of which will not
+change or break functionality and should be mostly un-obtrusive to module authors:
+
+<code>
+Usage of 'print' in module_info has been removed -- it was deprecated in 3.0. 
+Module Authors should return a string instead
+
+ChopShop 4.0 modules require 'moduleVersion' and 'minimumChopLib' to be defined 
+alongside 'moduleName' -- note that if you do not specify these two extra variables
+your module will be assumed to be a ChopShop 3.x module (legacy).
+
+The module_args['proto'] element is now different to support multiple protocols and
+chaining. It now looks like 'proto' : [{'input', 'output'}]. Note that the old style
+'proto' : 'tcp' will still work fine for old/legacy modules.
+</code>
+
+Transitioning Your Module
+----------
+If you'd like to transition your module to ChopShop 4.0, there's only a few steps
+to follow:
+
+<code>
+Add 'moduleVersion' and 'minimumChopLib' to your module
+
+Modify the 'proto' element in module_args as described above. 
+Tcp modules will look like:
+
+module_args = {'proto': [{'tcp': ''}]}
+
+Udp modules will look like:
+
+module_args = {'proto': [{'udp': ''}]}
+
+</code>
+
+
+
+tcp_data structure
+------------------
+The tcp data that is passed to modules contains the following elements:
+
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
+as nids' addr
+
+<b>nids_state</b> - same as nids' state, using this should not generally be
+necessary unless better granularity of the end state (in the teardown) is
+necessary
+
+<b>client</b> - object which contains information about the client
+
+<b>server</b> - object which contains information about the server
+
+<b>timestamp</b> - variable that contains the timestamp of this packet, same as
+a call to nids.get_pkt_ts()
+
+<b>module_data</b> - dictionary that is passed back and forth and persists data
+across the lifetime of a module
+
+<b>stream_data</b> - dictionary that is passed back and forther and persists
+data across the lifetime of a stream
+
+Along with the following functions
+
+<b>discard(integer)</b> -- tells ChopShop that this module wants to discard
+"integer" bytes of the stream, same as in nids
+
+<b>stop()</b> -- tells ChopShop that this module no longer cares about
+collecting on this stream -- only useful in handleStream
+
+Both the client and server objects contain the following fields:
+
+<b>state</b>
+
+<b>data</b>
+
+<b>urgdata</b>
+
+<b>count</b>
+
+<b>offset</b>
+
+<b>count_new</b>
+
+<b>count_new_urg</b>
+
+All elements are the same as described in nids/pynids documentation.
+
+udp_data structure
+------------------
+The udp_data structure that is passed to functions contains the following
+elements:
+
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
+as nids' addr
+
+<b>data</b> - array of UDP payload contents
+
+<b>timestamp</b> - variable that contains the timestamp of this packet, same as
+a call to nids.get_pkt_ts()
+
+<b>module_data</b> - dictionary that is passed back and forth and persists data
+across the lifetime of a module
+
+<b>ip</b> - array of IP layer and payload. This may be removed in future
+versions, do not rely upon it
+
+The udp_data structure has the following functions:
+
+<b>stop()</b> -- tells ChopShop that this quad-tuple should be ignored for the
+lifetime of the module
+
+ip_data structure
+------------------
+New to ChopShop 4.0 ip data is now available and contains elements cooresponding to the ip header spec:
+    
+<b>version</b> - The version of ip (note that libnids doesn't support v6 so this should always be 4)
+
+<b>ihl</b> - Internet Header Length
+
+<b>dscp</b> - Differentiated Services Code Point
+
+<b>ecn</b> - Explicit Congestion Notification
+
+<b>length</b> - Total packet length including header and data (as according to the packet)
+
+<b>identification</b> - Identification field from packet
+
+<b>flags</b> - Fragmentation Flags
+
+<b>frag_offset</b> - Fragmentation Offset
+
+<b>ttl</b> - The Time To Live of the packet
+
+<b>protocol</b> - The protocol this is carrying (e.g., icmp or tcp)
+
+<b>checksum</b> - The header checksum
+
+<b>src</b> - The ip source
+
+<b>dst</b> - The ip destination
+
+<b>raw</b> - This is the raw ip packet
+
+<b>addr</b> - A quadtuple containing source and destination elements. Note that the port values are blank.
+
+
+ChopProtocol structure
+----------------------
+The ChopProtocol base class is what secondary modules will receive through the
+'handleProtocol' function. It has the following elements:
+
+<b>addr</b> - quadtuple containing source ip/port and destination ip/port same
+as nids' addr
+
+<b>timestamp</b> - variable that contains the timestamp of this packet, same as
+a call to nids.get_pkt_ts()
+
+<b>module_data</b> - dictionary that is passed back and forth and persists data
+across the lifetime of a module
+
+<b>type</b> - variable specifying the 'type' of the data
+
+<b>clientData</b> - arbitrary python data structure defined by primary modules for data
+from the client
+
+<b>serverData</b> - arbitrary python data structure defined by primary modules for data
+from the server
+
+
+
+
+
+Variables
+---------
+Every module <b>must</b> define the following global variables:
+
+"moduleName" -- The module name (string) [E.g., 'myawesomemodule']
+
+"moduleVersion" -- The module version (string) [E.g., '0.1']
+
+"minimumChopLib" -- The minimum version of ChopLib [E.g., '4.0']
+
+
+Modules will not function without "moduleName"
+Any module that does not define 'moduleVersion' or 'minimumChopLib'
+will be considerd 'legacy' (pre 4.0) and will not be able to access
+module pipelining and some other newer features.
+
+
+Required Functions
+------------------
+###ALL MODULES
+Modules must define the following functions to be used with ChopShop:
+
+<b>module_info()</b> -- invoked when a chopshop user uses the -m/--module_info
+flag, module may write out any information it wants to inform the user of its
+functionality/usage by returning a string. The usage of 'print' in this function
+has been removed.
+
+<b>init(module_data)</b> -- Initialize the module, before processing any
+packets.
+
+    module_data is a dictionary with at least the following key(s):
+        'args': an array of command-line args suitable to pass to
+            the parse_args() function of an
+            optparse.OptionParser() object.
+
+    Returns: dictionary with at least the following key(s):
+        'proto': Array of dictionaries linking input types to outputs
+            E.g., proto = [ {'tcp' : ''}]
+                  proto = [ {'tcp' : 'http'}]
+            Note: 'tcp', 'udp', and 'ip' are considered pre-defined types and should
+            not be used as return types
+
+    Optional: the return dictionary may also include:
+        'error': indicates an error in the module has occured
+                 set to a friendly string so that ChopShop can
+                 inform the user
+
+###TCP MODULES
+<b>taste(tcp_data)</b> -- Called when a new stream is detected (SYN, SYN/ACK,
+ACK), but before any data is received.
+  Treat tcp_data like the object sent to callbacks for nids' register_tcp.
+  (ex: o.addr, o.client.count_new, o.discard(0))
+
+  Returns: True or False, specifying whether or not to further
+           process data from this stream.
+
+<b>handleStream(tcp_data)</b> -- Treat this like the callback for
+nids.register_tcp().
+  Treat tcp_data like the object sent to callbacks for nids' register_tcp.
+  (ex: o.addr, o.client.count_new, o.discard(0))
+
+###UDP MODULES
+<b>handleDatagram(udp_data)</b> -- Called once per UDP datagram. Calling
+udp.stop() tells ChopShop to ignore this quad-tuple for the lifetime of the
+module. This is very different from TCP behavior, so be aware!
+
+
+###IP MODULES
+<b>handlePacket(ip)</b> -- handler for ip data -- refer to above structure
+to understand what data is passed
+
+
+###SECONDARY MODULES
+<b>handleProtocol(protocol)</b> -- handler for secondary, module-defined
+types. Refer to documentation above for the structure of data passed to
+this function (more below on module chaning)
+
+Optional Functions
+------------------
+Modules do not need to define the following functions but doing so provides
+extra functionality or information.
+
+###ALL MODULES
+<b>shutdown(module_data)</b> -- Called when ChopShop is shutting down;
+gives the module one last chance to do what it needs to.
+
+
+###TCP MODULES
+<b>teardown(tcp_data)</b> -- Called when a stream is closed (RST, etc.)
+  Treat tcp_data like the object sent to callbacks for nids' register_tcp.
+  (ex: o.addr, o.client.count_new, o.discard(0))
+
+
+Module Chaining
+__________________
+###Primary Modules
+Modules that ingest the core types 'tcp', 'udp', and 'ip' can return an instance of ChopProtocol to
+be consumed by secondary modules (see below). Before use, ChopProtocol must be imported by doing:
+
+<pre>
+from ChopProtcol import ChopProtocol
+</pre>
+
+To instantiate an instance of ChopProtocol you can do something like:
+
+<pre>
+myhttpinstance = ChopProtocol('http')
+</pre>
+
+After instantiating an object based on ChopProtocol you have access to the following functions:
+
+<b>setAddr</b> - Set the quadtuple containing source ip/port and destination ip/port -- this
+will be auto set by the framework if you do not
+
+<b>setTimestamp</b> - Set variable that contains the timestamp of the protocol -- this will be autoset to the timestamp of whatever packet you return data on if you do not set it
+
+<b>setClientData</b> - Set the arbitrary data structure for the data coming from the client
+
+<b>setServerData</b> - Set the arbitrary python data structure for the data coming from the server
+
+Note that the format of ChopProtocol is not meant to be restrictive. You can and should override or ignore
+some functionality if it doesn't fit your model of how data should be handled (e.g., creating a 'data' element instead
+of having client and server elements)
+
+
+_clone function
+-----------------
+
+ChopLib requires the ability to create copies of ChopProtocol to provide modules with their
+own unique copy. By default ChopProtocol contains a _clone function that uses copy's 'deepcopy'
+function. If your data (e.g., clientData and serverData) are complex enough, this might not be enough
+to copy your data. In these instances you should create an inherited class based on ChopProtocol
+and redefine the _clone function.
+
+
+
+
+###Secondary Modules
+With ChopShop 4.0, it is now possible to chain modules allowing more generic work
+to be done by one module and then passed to multiple children modules for further processing.
+For example, if you want to write a decoder for a protcol that runs on top of http, normally
+you would first parse the http traffic out and then proceed to parse the protocol that you
+were <b>actually</b> trying to decode. With 4.0 though, you can pass the data through a primary
+module that takes tcp and turns it into http and then focus on only the protocol you care about
+
+As documented above, secondary modules have one function they must define to handle data:
+
+<b>handleProtocol(protocol)</b> -- Protocol data, partially defined by primary module
+
+
+Secondary modules can further return data to be used by other, downstream secondary modules
+
+
+
+
+
+
+The "chop" library
+==================
+ChopShop provides the "chop" library for module usage to interact with the
+outside world. This allows the module writer to worry less about how to output
+data. The chop library provides output "channels" to allow you to very easily
+output data to the location of the module invoker's choosing. The following
+output channels are supported:
+
+<pre>
+chop.prnt - Function that works similar to print, supports output to a gui,
+stdout, or a file depending on the users command line arguments
+chop.debug - Debug function that outputs to a gui, stderr, or a file depending
+on the users command line arguments
+chop.json - Outputs a json string based on an object passed to it, enabled if
+JSON output is enabled by the user
+</pre>
+
+chop also provides the following other related functions:
+<pre>
+chop.tsprnt - same as chop.prnt but prepends the packet timestamp to the string
+chop.prettyprnt - same as chop.prnt but the first argument is a color string,
+e.g., "RED"
+chop.tsprettyprnt - same as chop.tsprnt but the first argument is a color
+string, e.g., "CYAN"
+chop.set_custom_json_encoder - given a reference to a function will attempt to
+use it as a custom json encoder for all calls to chop.json
+chop.set_ts_format_short - accepts a boolean that enables short time format
+'[H:M:S]' (default is '[Y-M-D H:M:S TZ]')
+</pre>
+
+<b>NO methods should use python's regular "print" command</b>
+
+The following colors are currently supported with chop.prettyprnt and
+chop.tsprettyprnt:
+
+<pre>
+"YELLOW" - Yellow on a Black Background
+"CYAN" - Cyan on a Black Background
+"MAGENTA" - MAGENTA on a Black Background
+"RED" - Red on a Black Background
+"GREEN" - Green on a Black Background
+"BLUE" - Blue on a Black Background
+"BLACK" - Black on a White Background
+"WHITE" - White on a Black Background
+</pre>
+
+Note that if a gui is not available or colors are not supported in the terminal
+running ChopShop, chop.prettyprnt's functionality is equivalent to chop.prnt.
+
+Examples
+--------
+Using the chop library is pretty straightforward, if you want to output regular
+text data just type:
+<pre>
+chop.prnt("foo")
+chop.prnt("foo", "bar", "hello")
+chop.prnt("The answer is: %s" % data)
+</pre>
+
+If you would like to mirror the functionality of python's print's ability to
+supress the trailing '\n' added to output, you can do the following:
+<pre>
+chop.prnt("foo", None)
+</pre>
+
+To color the data (for gui purposes) just type:
+<pre>
+chop.prettyprnt("RED", "foo")
+chop.prettyprnt("MAGENTA", "bar")
+chop.prettyprnt("YELLOW", "bah", None)
+</pre>
+
+If you would like to support outputting json data, you can utilize chop.json to
+do so:
+<pre>
+myobj = {'foo': ['bar', 'bah']}
+chop.json(myobj)
+</pre>
+
+If you feel the need to make your own custom json encoder, you can use
+"chop.set_custom_json_encoder(encoder_function)" to customize how the json will
+be output.
+
+Note that the default json encoder does not support any non standard types
+
+File Saving
+-----------
+ChopShop provides a simple API for saving files using the chop.*file() family
+of functions. There are three functions in this family:
+
+<pre>
+chop.savefile
+chop.appendfile
+chop.finalizefile
+</pre>
+
+The definition of chop.savefile() looks like:
+<pre>
+    def savefile(filename, data, finalize = True)
+</pre>
+
+To use chop.savefile() you provide the filename and the data. The optional
+third argument (a boolean) is used to determine if the file object should be
+kept open or closed. This allows you to do (pseudo-code):
+
+<pre>
+while (chunk_of_data = decode_some_data_from_pcap):
+    if on_last_chunk:
+        finalize = True
+    else:
+        finalize = False
+    chop.savefile('foo', chunk_of_data, finalize)
+</pre>
+
+If not given, the default behavior is to close the file object. Since each file
+object is opened in write mode module authors need to be aware of this behavior
+as it will overwrite any existing files with the same name.
+
+Similar to chop.savefile(), chop.appendfile() has the following definition:
+<pre>
+    def appendfile(filename, data, finalize = False)
+</pre>
+
+To use chop.appendfile() you provide the filename and the data. The optional
+third argument (a boolean) is used to determine if the file object should be
+kept open or closed. If not given, the default behavior is to leave the file
+object open. Note, that unlike savefile, appendfile opens files in "append"
+mode, so it will not overwrite any file that already exists.
+
+The last function in the file family is chop.finalizefile() -- as the name
+implies, it allows you to finalize (or close) a file once you are done with it.
+It has the following definition:
+<pre>
+    def finalizefile(filename)
+</pre>
+
+If the filename given is not open, finalizefile will do nothing. Also note that
+you can use savefile or appendfile to the same affect by calling them with an
+empty string as the data and finalize set to True. E.g.:
+<pre>
+    chop.appendfile(filename, "", True)
+    chop.savefile(filename, "", True)
+</pre>
+
+finalizefile gives you a shorter, quicker way to close the file that is easier
+to see in code.
+
+Note that as a module author you only provide the filename, <b>not</b> the full
+path to the file you want created on disk. The full path is handled by the -s
+argument to chopshop. For example:
+<pre>
+chopshop -f foo.pcap -s "/tmp/%N" "gh0st_decode -s; awesome_carver -s"
+</pre>
+
+This will make sure each carved file from gh0st_decode go into
+/tmp/gh0st_decode and files from awesome_carver will go in /tmp/awesome_carver.
+The other supported format string is "%T" which will be translated into the
+current UNIX timestamp (/tmp/%N/%T would put files in
+/tmp/module_name/timestamp).
+
+Best Practices for Module Writing
+=================================
+Module writers should follow the best practices outlined below:
+
+* Never use function calls that can adversely affect ChopShop or any other
+  module.
+* Calls like sys.exit() should not be used as your module might kill ChopShop
+  or affect another module.
+* Teardown your module so that other modules may continue processing.
+* If it is possible to determine early on if a flow is useful, do so.
+* Do not wait until teardown to examine a flow unless it is absolutely
+  necessary.
+* Transaction based communication might require processing in the teardown.
+* Do not use globals, their usage and behavior can be unpredictable. Put them
+  in module_data or stream_data where appropriate.
+* Use the code available in ext_libs to reduce work and duplication.
+* Do not roll your own code if it exists already.
+* If you duplicate code often enough, take it out and put into the ext_libs.
+* In the init if there's an error add a key 'error' to the dictionary you
+  return to indicate there was an error and what the error is (error string).
+* If your module parses arguments please use OptionParser() in your init()
+  function (or a function unconditionally called from init) to do so. This
+  allows the -m argument to chopshop to print the appropriate usage for your
+  module.
+* Never use any output functions like print or sys.stdout.write().
+* If you can, use chop.prettyprnt to stylize the data so it's easier to see and
+  keep track of in the gui.
+
+ChopShop
+========
+
+Terminology
+==========
+Usage of ChopShop terminology and capitalization has been a bit confusing and so the developers 
+have created a set of standards as to how to reference ChopShop and its different pieces.
+
+* ChopShop - References the project as a whole and all of its pieces
+* chopshop - References the command line program 'chopshop'
+* The core - References the main libraries that make up ChopShop, also sometimes called the 'shop'
+* The Library - References the ChopShop Library, i.e., ChopLib located in the shop
+* The Ui - References the ChopShop Ui Handler Library, i.e.,  ChopUi located in the shop 
+* Primary Module - References a module that ingests the core types that ChopShop supports, namely 'tcp', 'udp', and 'ip'
+* Secondary Module - References a module that ingests non-core types that are primary or secondary module defined, e.g., 'http'
+
+ChopShop 4.0
+========
+
+Protocol Analysis/Decoder Framework
+
+Description
+===========
+ChopShop is a MITRE developed framework to aid analysts in the creation and execution of pynids based decoders and detectors of APT tradecraft.
+
+Note that ChopShop is still in perpetual beta and is dependent on libnids/pynids for the majority of its underlying functionality.
+
+Documentation has been moved to the docs folder. Please reference that folder for information such as:
+- Chopshop Usage
+- Module Authoring
+- Embedding Chopshop
+
+
+Note: There is a known issue when running ChopShop on Ubuntu where the version of pynids obtained via apt causes an ImportError.  Per https://bugs.launchpad.net/ubuntu/+source/python-nids/+bug/795991, this issue affects some variants of at least 11.10 and 12.04.  A workaround is to compile pynids from source which can be obtained from http://jon.oberheide.org/pynids/.
+

@@ -1,0 +1,244 @@
+# mongo-copier
+
+## Purpose
+
+Perform a live copy of a collection from one sharded MongoDB cluster to another, with a minimum of downtime. Also do this safely with a lot of verification.
+
+## General Design
+
+The two main scripts, `copy_collection.py` and `compare_collections.py`, are written in Python. The main 3rd-party libraries used are [gevent](http://www.gevent.org/) (version 1.0rc2) and [pymongo](http://api.mongodb.org/python/current/). Both scripts fork a worker process for each shard that handles all data contained in a secondary mongod instance. After much trial and error, using `mongos` was ruled out for severe performance issues.
+
+
+## Code Description
+
+### copy_collection.py
+
+`copy_collection.py` is the core tool. As mentioned before, it has a worker process per shard that it's reading from. Reads are done directly from `mongod` instances. Any IPC is done through a sqlite database, known as the "state db."
+
+The main function in `copy_collection.py` is `copy_collection_parent()`, which implements a relatively simple state machine with this logic:
+
+1. (`copier.py`) Each worker process calls `copier.copy_collection()` to perform an initial copy of the data from one `mongod` instance to the destination `mongos`.
+	* `copier.copy_collection()` does the following:
+		* updates the state db with the current oplog position
+		* queries for all `_id`'s in source collection
+		* for each batch of `_id`'s (currently 500), spawns the greenlet `_find_and_insert_batch_worker` to to read all documents in the batch and insert them into destination
+2. (`copier.py`) When *all* worker processes have finished step #1, the parent process calls `copier.copy_indexes()` to copy all indexes from the source to the destination collection.
+	* Carries over index names (though you shouldn't really use these in hints), sparseness, and uniqueness.
+3. (`oplog_applier.py`) When indexes have finished building, we create worker processes to apply oplogs from each shard.
+	* **NOTE:** it is critical that the chunk balancer be disabled; otherwise, nasty race conditions can occur while applying ops
+	* for all ops performed after the oplog timestamp recorded in step #1, `oplog_applier.apply_oplog()` does the following:
+		* for *inserts*, we insert the new document
+		* for *removes*, we remove the referenced document
+		* for *updates*, we query the source for the updated version of the document and save that to the destination (the format of update oplog entries is pretty funky, and most drivers can't actually read it correctly)
+	* All ops are applied in parallel. *However*, we temporarily stop applying new ops when we read an op that touches the same `_id` as an already pending op. This avoids a nasty race condition that can be caused by out-of-order op execution on the same `_id`.
+
+`copy_collection.py` is designed to be fully resumable after step #1 finishes. All state is persisted through the state sqlite db.
+
+#### copy_collection.py - useful debugging options
+
+* `--percent`: copies a percentage of documents; pair this with `compare_collections.py`'s `--percent` parameter
+* `--restart`: restart a failed copy; this reinitializes the state db
+
+
+### compare_collections.py
+
+Compared to `copy_collection.py`, `compare_collections.py` is very straightforward. It ensures that all documents that exist in the source collection exist with identical contents in the destination collection. It is intended to run in parallel with `copy_collection.py`, once it has caught up in its application of oplog entries.
+
+For each source shard, `copy_collection.py` spawns a worker process to compare documents in the source and destination collections. Each comparison is done by a separate greenlet. Each comparison also calls `EmailDocumentManager.should_copy_doc()` to check whether the document should be compared at all (see the above description for `copy_collection.py` for an explanation).
+
+If a mismatch is detected, a fixed number of retries (currently 5) is attempted after increasingly long sleeps. This allows us to verify "eventual consistency," which is necessary for asynchronous replication.
+
+#### compare_collections.py -- useful options
+
+* `--percent`: see description of identical option for `copy_collection.py`
+* `--recent-ops`: this one is **vital**; it compares all documents touched by the last *N* ops, which ensures that op replays are fully caught up
+
+### cluster_cop.py
+
+Simple tool to ensure that the following are true throughout the collection migration process:
+
+* chunk balancing is off
+* no new shards are added
+* no primary promotions happen (we don't want broken cursors)
+
+The tool also prints the time of the most recent op in the cluster. This helps ensure that no new ops are hitting the "old" cluster before the final cutover.
+
+
+# MongoDB oplog format notes (for MongoDB 2.2.x)
+
+## high level
+
+* by default, oplog is in `oplog.rs`, in database `local`
+* op log entries are idempotent
+* `applyLog` internal MongoDB command is used to apply oplog entries for built-in replication
+
+## example oplog entry
+
+    {
+        "ts" : Timestamp(1366075364000, 109),
+        "h" : NumberLong("338445281403071495"),
+        "v" : 2,
+        "op" : "u",
+        "ns" : "prod_maestro.emails",
+        "o2" : {
+            "_id" : BinData(0,"RexdN/+nCUlwlQkhvxZXf20T3SxC11tgAw==")
+        },
+        "o" : {
+            "$set" : {
+                "_r" : true
+            },
+        "$unset" : {
+            "st" : 1
+         }
+        }
+    }
+
+## fields
+
+* `ts`: MongoDB timestamp (time + counter to serialize op entries)
+* `h`: unique operation ID
+* `op`: type of operation
+	* `i` - insert
+	* `u` - update
+	* `d` - delete
+	* `c` - db command
+	* `n` - no op
+* `v`: oplog version # (should be "2" for our MongoDB 2.2.x)
+* `ns`: the namespace that this op should be applied to (e.g. `prod_maestro.emails`)
+* `o`: object whose meaning depends on `op`, as follows:
+	* inserts: the document to be inserted
+	* deletes: document containing the `_id` of the document to be removed
+	* updates: contains the updates to be done (e.g. `$set: foo`, `$inc: foo`)
+	* commands: unknown (don't occur in our oplog)
+* `o2`: extra object, used as follows:
+	* updates: document containing the `_id` of the document to be updated using the update operators in `o` 
+	
+## relevant MongoDB source files
+
+* `src/mongo/db/oplog.h`
+* `src/mongo/db/repl/rs_sync.cpp`
+
+## relevant open-source projects
+
+Node-based oplog watcher:
+<https://github.com/TorchlightSoftware/mongo-watch>
+# hydra - the multi-process MongoDB sharded collection copier
+
+## License
+
+See the accompanying LICENSE.txt file for licensing terms.
+
+## Purpose
+
+This is working *reference code* that performs a live copy from one MongoDB collection to another, with minimal or no visible impact to your production MongoDB clusters. Keeps the destination up-to-date with changes from the source with a typically small amount of lag.
+
+There are two conditions that must remain true while running the tools in this suite:
+
+1. `mongos`'s chunk balancer must be disabled using [sh.setBalancerState()](http://docs.mongodb.org/manual/reference/method/sh.setBalancerState/).
+2. The set of source `mongod` instances (I recommend using secondaries) must remain up. Also, primary sources must remain primaries, and secondary sources must remain secondaries. This prevents dead cursors from interfering with the copy.
+
+This has only been tested on MongoDB 2.2.3 on Ubuntu 12.04. This should work on other Linux platforms but may require work to operate with MongoDB 2.4.x and beyond.
+
+## Required Python Packages
+
+To use this software, use [pip](http://www.pip-installer.org/en/latest/) to install the following packages into your Python environment:
+
+* [pymongo](https://pypi.python.org/pypi/pymongo/)
+* [gevent version 1.0rc2](https://github.com/surfly/gevent#installing-from-github)
+	* NOTE: Do not use anything older than 1.0rc2. Earlier versions may have stability issues under load.
+
+## Usage
+
+### copy_collection.py
+
+`copy_collection.py` copies a MongoDB collection from one MongoDB cluster or standalone `mongod` instance to another. It does this in three steps:
+
+1. Creates an initial snapshot of the source collection on the destination cluster/instance.
+2. Copies indexes from source to destination.
+3. Applies oplog entries from source to destination.
+
+Steps #1 and #3 are performed by worker processeses, one for each source you define (more on this below). `copy_collection.py` routinely records its progress in its *state database*. After step #1 finishes, steps #2 and #3 can be resume at any time without issue.
+
+Typical usage for `copy_collection.py` looks like:
+
+~~~
+copy_collection.py --source source_file.txt --dest mongos_host/database/collection
+~~~
+
+The file passed to `--source` must have the following format:
+
+~~~
+source_database_name.source_collection_name
+mongod-instance-1.foo.com
+mongod-instance-2.foo.com:27019
+mongod-instance-3.foo.com:27018
+~~~
+
+Alternatively, `--source` can also accept as a parameter a `mongod` URL of a form similar to `--dest` (host[:port]/database/collection).
+
+**NOTE:** sources need to be `mongod` instances, and preferably secondaries rather than primaries. I had a difficult time getting sufficient reliability and performance when copying from a `mongos` instance. However, the destination must be either a `mongod` instance (for a non-shared MongoDB setup) or a `mongos` instance (for a sharded setup).
+
+Useful options:
+
+* `--percent PCT`: limits your copy to a percentage of the source's documents; meant to be used with the corresponding `--percent` option for `compare_collections.py`
+* `--restart`: re-initialize the state database, to restart from the initial snapshot, rather than continuing where we left off
+* `--state-db`: specify a path in which to store the state database; this defaults to the current directory
+
+
+#### copy_collection.py output
+
+~~~
+06-04 00:59:27 [INFO:MainProcess   ] using state db /home/user/hydra/test.collection.db
+...
+06-04 00:59:29 [INFO:shard1.foo.com] 4% | 5000 / 103993 copied | 2215/sec | 0 dupes | 0 exceptions | 0 retries
+06-04 00:59:29 [INFO:shard2.foo.com] 3% | 3500 / 105326 copied | 1579/sec | 0 dupes | 0 exceptions | 0 retries
+...
+06-04 01:06:23 [INFO:shard1.foo.com] done with initial copy
+06-04 01:06:23 [INFO:shard2.foo.com] done with initial copy
+06-04 01:06:23 [INFO:parent process] building indices
+06-04 01:06:23 [INFO:parent process] ensuring index on [(u'_id', 1)] (options = {'name': u'_id_'})
+06-04 01:06:23 [INFO:parent process] starting oplog apply
+06-04 01:06:23 [INFO:stats         ] OPS APPLIED                                    | WARNINGS
+06-04 01:06:23 [INFO:stats         ] total     lag    inserts   removes   updates   | sleeps    exceptions retries
+06-04 01:06:26 [INFO:shard1.foo.com] 204        2      0         0         204       | 0         0          0
+06-04 01:06:29 [INFO:shard2.foo.com] 214        1      0         0         214       | 0         0          0
+~~~
+
+Watch out for an excessive number of retries and exceptions. Sleeps are generally OK unless there are an excessive number. Unfortunately, the definition of "excessive" depends on your specific situation.
+
+After `copy_collection.py` begins applying ops, keep an eye on the `lag` column, which shows how many seconds behind `copy_collection.py`'s replication is.
+
+### compare_collections.py
+
+`compare_collections.py` compares two collections and is meant to be used with `copy_collection.py`. The two scripts can run simultaneously, once `copy_collection.py` is up-to-date with applying ops.
+
+To compensate for small amounts of `copy_collection.py` lag, `compare_collections.py` tries the comparison of each document multiple times to check whether the documents eventually match. The number of retries and delay between retries is generous, to compensate for frequently updated documents and lag in `copy_collection.py`.
+
+#### compare_collections.py output
+
+~~~
+06-04 01:23:00 [INFO:shard1.foo.com] 30% | 32000 / 104001 compared | 7659/sec | 1 retries | 0 mismatches
+06-04 01:23:00 [INFO:shard2.foo.com] 21% | 22700 / 105831 compared | 5402/sec | 0 retries | 0 mismatches
+~~~
+
+Retries are OK, but watch out for frequent retries. Those might presage mismatches. The `_id`'s for mismatching documents are written to a file named `COLLECTION_mismatches.txt`. For example, if your collection name is albums, you'll find any mismatches in `albums_mismatches.txt`. The mismatches file can be used with the `copy_stragglers.py` tool that will be discussed below.
+
+### copy_stragglers.py
+
+Given the list of `_id`s in the `[collection_name]_mismatches.txt` file generated by `compare_collections.py`, this tool re-copies all documents with the given `_id`s.
+
+For example, if you had just finished comparing the collection `albums` and `compare_collections.py` reported some mismatches, you'd run `copy_stragglers.py` as follows:
+
+
+~~~
+./copy_stragglers.py --source source-mongos.foo.com --dest destination-mongos.foo.com --mismatches-file albums_mismatches.txt
+~~~
+
+**NOTE**: Unlike `copy_collection.py` and `compare_collections.py`, `copy_stragglers.py` expects the source to be a `mongos` instance. This is mainly to keep the code extremely simple.
+
+### cluster_cop.py
+
+`cluster_cop.py` monitors the source MongoDB cluster for configuration changes that can impact `copy_collection.py` and `compare_collections.py`. These are:
+
+1. Chunk balancing must be off throughout the whole migration
+2. Primary `mongod` instances must remain primaries, secondaries must remain secondaries (this prevents cursors from dying while being used)

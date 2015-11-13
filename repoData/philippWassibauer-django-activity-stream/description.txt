@@ -1,0 +1,69 @@
+Django Activity Stream
+=======================
+
+FYI: there is a second django-activity-stream. Some people have been telling me that it is simpler to use, has less joins etc. I don't have time to double check that, so see for yourself: http://github.com/justquick/django-activity-stream .
+
+This is a reusable Django application with which you can log activities your users are making
+and displaying a stream similar to the activity stream in facebook.
+
+Users can choose to Follow other Users activity Streams.
+
+Activity Items can have a safetylevel...so you can decide if they are public or just for friends.
+
+Activity Items can be commented and "liked". If you like an activity item of another user,
+all your followers will see it too.
+
+
+To define different Types of Activities:
+ActivityTypes.objects.create(name="started_following", batch_time_minutes=30, is_batchable=True, is_batchable=True)
+
+
+To create an activity (when the user does something):
+from activity_stream.models import create_activity_item
+create_activity_item(type, user, subject, data=None, safetylevel=1, custom_date=None)
+
+* custom_date can be used to create activities now that wont display until a date in the future. This is useful when content can be created 
+  by the user that should not show up on the site until a certain time.
+* safetylevel is used to define if activities can only be seen by friends, or if they are public
+* data is a hashmap of extra context variables that can be used in the template rendering
+
+
+Integration into existing Networks:
+If you have preexisting networks like Friends, Contacts etc. you can define two functions in your settings file
+that the activity app will use to find the people you follow when your stream is rendered.
+
+ACTIVITY_GET_PEOPLE_I_FOLLOW = lambda user: get_people_i_follow(user)
+ACTIVITY_GET_MY_FOLLOWERS = lambda user: get_my_followers(user)
+
+
+Templates for Rendering:
+The app looks for the templates to render the stream in the following folder:
+templates/activity_stream/<activity_type>/full.html
+templates/activity_stream/<activity_type>/full_batched.html
+
+
+What is Batching?
+Some actions happen a lot, eg.: placing images on a map (thats my case). So instead of displaying an activity item
+each and every time these actions can be batched by using:
+
+is_batchable=True
+
+furthermore you can set the batch time:
+
+batch_time_minutes=30
+
+so if repeat an action within 30 Minutes they will be one activity item with 2 Subjects, instead of 2 Activities with
+one Subject each.
+
+TODO:
+Comments don't work yet
+Blocking people in your news stream
+filter for only certain activities
+realtime update for activities ... like foursquare
+
+================================================================
+This is still the Alpha version...improvements coming soon.
+
+------------------------------
+Follow me: twitter.com/scalar
+

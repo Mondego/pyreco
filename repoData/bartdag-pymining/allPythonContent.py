@@ -1,0 +1,883 @@
+__FILENAME__ = assocrules
+def mine_assoc_rules(isets, min_support=2, min_confidence=0.5):
+    rules = []
+    visited = set()
+    for key in sorted(isets, key=lambda k: len(k), reverse=True):
+        support = isets[key]
+        if support < min_support or len(key) < 2:
+            continue
+
+        for item in key:
+            left = frozenset([item])
+            right = key.difference([item])
+            _mine_assoc_rules(left, right, support, visited, isets,
+                    min_support, min_confidence, rules)
+
+    return rules
+
+
+def _mine_assoc_rules(left, right, rule_support, visited, isets, min_support,
+        min_confidence, rules):
+    if (left, right) in visited or len(right) < 1:
+        return
+    else:
+        visited.add((left, right))
+
+    support_a = isets[left]
+    confidence = float(rule_support) / float(support_a)
+    if confidence >= min_confidence:
+        rules.append((left, right, rule_support, confidence))
+        # We can try to increase left!
+        for item in right:
+            new_left = left.union([item])
+            new_right = right.difference([item])
+            _mine_assoc_rules(new_left, new_right, rule_support, visited, isets,
+                    min_support, min_confidence, rules)
+
+########NEW FILE########
+__FILENAME__ = compat
+import sys
+
+if sys.version_info[0] < 3:
+    range = xrange
+else:
+    range = range
+
+########NEW FILE########
+__FILENAME__ = itemmining
+from collections import defaultdict, deque, OrderedDict
+
+
+def _sort_transactions_by_freq(transactions, key_func, reverse_int=False,
+        reverse_ext=False, sort_ext=True):
+    key_seqs = [{key_func(i) for i in sequence} for sequence in transactions]
+    frequencies = get_frequencies(key_seqs)
+
+    asorted_seqs = []
+    for key_seq in key_seqs:
+        if not key_seq:
+            continue
+        # Sort each transaction (infrequent key first)
+        l = [(frequencies[i], i) for i in key_seq]
+        l.sort(reverse=reverse_int)
+        asorted_seqs.append(tuple(l))
+    # Sort all transactions. Those with infrequent key first, first
+    if sort_ext:
+        asorted_seqs.sort(reverse=reverse_ext)
+
+    return (asorted_seqs, frequencies)
+
+
+def get_frequencies(transactions):
+    '''Computes a dictionary, {key:frequencies} containing the frequency of
+       each key in all transactions. Duplicate keys in a transaction are
+       counted twice.
+
+       :param transactions: a sequence of sequences. [ [transaction items...]]
+    '''
+    frequencies = defaultdict(int)
+    for transaction in transactions:
+        for item in transaction:
+            frequencies[item] += 1
+    return frequencies
+
+
+def get_sam_input(transactions, key_func=None):
+    '''Given a list of transactions and a key function, returns a data
+       structure used as the input of the sam algorithm.
+
+       :param transactions: a sequence of sequences. [ [transaction items...]]
+       :param key_func: a function that returns a comparable key for a
+        transaction item.
+    '''
+
+    if key_func is None:
+        key_func = lambda e: e
+
+    (asorted_seqs, _) = _sort_transactions_by_freq(transactions, key_func)
+
+    # Group same transactions together
+    sam_input = deque()
+    visited = {}
+    current = 0
+    for seq in asorted_seqs:
+        if seq not in visited:
+            sam_input.append((1, seq))
+            visited[seq] = current
+            current += 1
+        else:
+            i = visited[seq]
+            (count, oldseq) = sam_input[i]
+            sam_input[i] = (count + 1, oldseq)
+    return sam_input
+
+
+def sam(sam_input, min_support=2):
+    '''Finds frequent item sets of items appearing in a list of transactions
+       based on the Split and Merge algorithm by Christian Borgelt.
+
+       :param sam_input: The input of the algorithm. Must come from
+        `get_sam_input`.
+       :param min_support: The minimal support of a set to be included.
+       :rtype: A set containing the frequent item sets and their support.
+    '''
+    fis = set()
+    report = {}
+    _sam(sam_input, fis, report, min_support)
+    return report
+
+
+def _sam(sam_input, fis, report, min_support):
+    n = 0
+    a = deque(sam_input)
+    while len(a) > 0 and len(a[0][1]) > 0:
+        b = deque()
+        s = 0
+        i = a[0][1][0]
+        while len(a) > 0 and len(a[0][1]) > 0 and a[0][1][0] == i:
+            s = s + a[0][0]
+            a[0] = (a[0][0], a[0][1][1:])
+            if len(a[0][1]) > 0:
+                b.append(a.popleft())
+            else:
+                a.popleft()
+        c = deque(b)
+        d = deque()
+        while len(a) > 0 and len(b) > 0:
+            if a[0][1] > b[0][1]:
+                d.append(b.popleft())
+            elif a[0][1] < b[0][1]:
+                d.append(a.popleft())
+            else:
+                b[0] = (b[0][0] + a[0][0], b[0][1])
+                d.append(b.popleft())
+                a.popleft()
+        while len(a) > 0:
+            d.append(a.popleft())
+        while len(b) > 0:
+            d.append(b.popleft())
+        a = d
+        if s >= min_support:
+            fis.add(i[1])
+            report[frozenset(fis)] = s
+            #print('{0} with support {1}'.format(fis, s))
+            n = n + 1 + _sam(c, fis, report, min_support)
+            fis.remove(i[1])
+    return n
+
+
+def _new_relim_input(size, key_map):
+    i = 0
+    l = []
+    for key in key_map:
+        if i >= size:
+            break
+        l.append(((0, key), []))
+        i = i + 1
+    return l
+
+
+def _get_key_map(frequencies):
+    l = [(frequencies[k], k) for k in frequencies]
+    l.sort(reverse=True)
+    key_map = OrderedDict()
+    for i, v in enumerate(l):
+        key_map[v] = i
+    return key_map
+
+
+def get_relim_input(transactions, key_func=None):
+    '''Given a list of transactions and a key function, returns a data
+       structure used as the input of the relim algorithm.
+
+       :param transactions: a sequence of sequences. [ [transaction items...]]
+       :param key_func: a function that returns a comparable key for a
+        transaction item.
+    '''
+
+    # Data Structure
+    # relim_input[x][0] = (count, key_freq)
+    # relim_input[x][1] = [(count, (key_freq, )]
+    #
+    # in other words:
+    # relim_input[x][0][0] = count of trans with prefix key_freq
+    # relim_input[x][0][1] = prefix key_freq
+    # relim_input[x][1] = lists of transaction rests
+    # relim_input[x][1][x][0] = number of times a rest of transaction appears
+    # relim_input[x][1][x][1] = rest of transaction prefixed by key_freq
+
+    if key_func is None:
+        key_func = lambda e: e
+
+    (asorted_seqs, frequencies) = _sort_transactions_by_freq(transactions,
+            key_func)
+    key_map = _get_key_map(frequencies)
+
+    relim_input = _new_relim_input(len(key_map), key_map)
+    for seq in asorted_seqs:
+        if not seq:
+            continue
+        index = key_map[seq[0]]
+        ((count, char), lists) = relim_input[index]
+        rest = seq[1:]
+        found = False
+        for i, (rest_count, rest_seq) in enumerate(lists):
+            if rest_seq == rest:
+                lists[i] = (rest_count + 1, rest_seq)
+                found = True
+                break
+        if not found:
+            lists.append((1, rest))
+        relim_input[index] = ((count + 1, char), lists)
+    return (relim_input, key_map)
+
+
+def relim(rinput, min_support=2):
+    '''Finds frequent item sets of items appearing in a list of transactions
+       based on Recursive Elimination algorithm by Christian Borgelt.
+
+       In my synthetic tests, Relim outperforms other algorithms by a large
+       margin. This is unexpected as FP-Growth is supposed to be superior, but
+       this may be due to my implementation of these algorithms.
+
+       :param rinput: The input of the algorithm. Must come from
+        `get_relim_input`.
+       :param min_support: The minimal support of a set to be included.
+       :rtype: A set containing the frequent item sets and their support.
+    '''
+    fis = set()
+    report = {}
+    _relim(rinput, fis, report, min_support)
+    return report
+
+
+def _relim(rinput, fis, report, min_support):
+    (relim_input, key_map) = rinput
+    n = 0
+    # Maybe this one isn't necessary
+    #a = deque(relim_input)
+    a = relim_input
+    while len(a) > 0:
+        item = a[-1][0][1]
+        s = a[-1][0][0]
+        if s >= min_support:
+            fis.add(item[1])
+            #print('Report {0} with support {1}'.format(fis, s))
+            report[frozenset(fis)] = s
+            b = _new_relim_input(len(a) - 1, key_map)
+            rest_lists = a[-1][1]
+
+            for (count, rest) in rest_lists:
+                if not rest:
+                    continue
+                k = rest[0]
+                index = key_map[k]
+                new_rest = rest[1:]
+                # Only add this rest if it's not empty!
+                ((k_count, k), lists) = b[index]
+                if len(new_rest) > 0:
+                    lists.append((count, new_rest))
+                b[index] = ((k_count + count, k), lists)
+            n = n + 1 + _relim((b, key_map), fis, report, min_support)
+            fis.remove(item[1])
+
+        rest_lists = a[-1][1]
+        for (count, rest) in rest_lists:
+            if not rest:
+                continue
+            k = rest[0]
+            index = key_map[k]
+            new_rest = rest[1:]
+            ((k_count, k), lists) = a[index]
+            if len(new_rest) > 0:
+                lists.append((count, new_rest))
+            a[index] = ((k_count + count, k), lists)
+        a.pop()
+    return n
+
+
+class FPNode(object):
+
+    root_key = object()
+
+    def __init__(self, key, parent):
+        self.children = {}
+        self.parent = parent
+        self.key = key
+        self.count = 0
+        self.next_node = None
+
+    def add_path(self, path, index, length, heads, last_insert):
+        if index >= length:
+            return
+
+        child_key = path[index]
+        index += 1
+
+        try:
+            child = self.children[child_key]
+        except Exception:
+            child = self._create_child(child_key, heads, last_insert)
+        child.count += 1
+        heads[child_key][1] += 1
+
+        child.add_path(path, index, length, heads, last_insert)
+
+    def _create_child(self, child_key, heads, last_insert):
+        child = FPNode(child_key, self)
+        self.children[child_key] = child
+        try:
+            last_child = last_insert[child_key]
+            last_child.next_node = child
+        except Exception:
+            heads[child_key] = [child, 0]
+        last_insert[child_key] = child
+
+        return child
+
+    def get_cond_tree(self, child, count, visited, heads, last_insert,
+            dont_create=False):
+
+        key = self.key
+
+        if dont_create:
+            # This is a head, we don't want to copy it.
+            cond_node = None
+        else:
+            try:
+                cond_node = visited[self]
+            except Exception:
+                cond_node = self._create_cond_child(visited, heads,
+                        last_insert)
+
+        if self.parent is not None:
+            # Recursion
+            parent_node = self.parent.get_cond_tree(cond_node, count, visited,
+                    heads, last_insert, False)
+            if cond_node is not None:
+                cond_node.count += count
+                heads[key][1] += count
+                cond_node.parent = parent_node
+
+        return cond_node
+
+    def _create_cond_child(self, visited, heads, last_insert):
+        key = self.key
+        cond_node = FPNode(key, None)
+        visited[self] = cond_node
+        try:
+            last_cond_node = last_insert[key]
+            last_cond_node.next_node = cond_node
+        except Exception:
+            # Don't add root!
+            if self.parent is not None:
+                heads[key] = [cond_node, 0]
+        last_insert[key] = cond_node
+
+        return cond_node
+
+    def _find_ancestor(self, heads, min_support):
+        ancestor = self.parent
+        while ancestor.key != FPNode.root_key:
+            support = heads[ancestor.key][1]
+            if support >= min_support:
+                break
+            else:
+                ancestor = ancestor.parent
+        return ancestor
+
+    def prune_me(self, from_head_list, visited_parents, merged_before,
+            merged_now, heads, min_support):
+        try:
+            # Parent was merged
+            new_parent = merged_before[self.parent]
+            self.parent = new_parent
+        except KeyError:
+            # Ok, no need to change parent
+            pass
+
+        ancestor = self._find_ancestor(heads, min_support)
+        self.parent = ancestor
+
+        try:
+            # Oh, we visited another child of this parent!
+            other_node = visited_parents[ancestor]
+            merged_now[self] = other_node
+            other_node.count += self.count
+            # Remove yourself from the list
+            if from_head_list is not None:
+                from_head_list.next_node = self.next_node
+            self.next_node = None
+        except KeyError:
+            # We are a new child!
+            visited_parents[ancestor] = self
+
+    def __str__(self):
+        child_str = ','.join([str(key) for key in self.children])
+        return '{0} ({1})  [{2}]  {3}'.format(self.key, self.count, child_str,
+                self.next_node is not None)
+
+    def __repr__(self):
+        return self.__str__()
+
+
+def get_fptree(transactions, key_func=None, min_support=2):
+    '''Given a list of transactions and a key function, returns a data
+       structure used as the input of the relim algorithm.
+
+       :param transactions: a sequence of sequences. [ [transaction items...]]
+       :param key_func: a function that returns a comparable key for a
+        transaction item.
+       :param min_support: minimum support.
+    '''
+
+    if key_func is None:
+        key_func = lambda e: e
+
+    asorted_seqs, frequencies = _sort_transactions_by_freq(transactions,
+            key_func, True, False, False)
+    transactions = [[item[1] for item in aseq if item[0] >= min_support] for
+            aseq in asorted_seqs]
+
+    root = FPNode(FPNode.root_key, None)
+    heads = {}
+    last_insert = {}
+    for transaction in transactions:
+        root.add_path(transaction, 0, len(transaction), heads, last_insert)
+
+    # Here, v[1] is = to the frequency
+    sorted_heads = sorted(heads.values(), key=lambda v: (v[1], v[0].key))
+    new_heads = OrderedDict()
+    for (head, head_support) in sorted_heads:
+        new_heads[head.key] = (head, head_support)
+    #new_heads = tuple(heads.values())
+
+    return (root, new_heads)
+
+
+def _init_heads(orig_heads):
+    new_heads = OrderedDict()
+    for key in orig_heads:
+        new_heads[key] = (None, 0)
+    return new_heads
+
+
+def _create_cond_tree(head_node, new_heads, pruning):
+    visited = {}
+    last_insert = {}
+    while head_node is not None:
+        head_node.get_cond_tree(None, head_node.count, visited, new_heads,
+                last_insert, True)
+        head_node = head_node.next_node
+    return new_heads
+
+
+def _prune_cond_tree(heads, min_support):
+    merged_before = {}
+    merged_now = {}
+    for key in reversed(heads):
+        (node, head_support) = heads[key]
+        if head_support > 0:
+            visited_parents = {}
+            previous_node = None
+            while node is not None:
+                # If the node is merged, we lose the next_node
+                next_node = node.next_node
+                node.prune_me(previous_node, visited_parents, merged_before,
+                        merged_now, heads, min_support)
+                if node.next_node is not None:
+                    # Only change the previous node if it wasn't merged.
+                    previous_node = node
+                node = next_node
+        merged_before = merged_now
+        merged_now = {}
+
+
+def fpgrowth(fptree, min_support=2, pruning=False):
+    '''Finds frequent item sets of items appearing in a list of transactions
+       based on FP-Growth by Han et al.
+
+       :param fptree: The input of the algorithm. Must come from
+        `get_fptree`.
+       :param min_support: The minimal support of a set.
+       :param pruning: Perform a pruning operation. Default to False.
+       :rtype: A set containing the frequent item sets and their support.
+    '''
+    fis = set()
+    report = {}
+    _fpgrowth(fptree, fis, report, min_support, pruning)
+    return report
+
+
+def _fpgrowth(fptree, fis, report, min_support=2, pruning=True):
+    (_, heads) = fptree
+    n = 0
+    for (head_node, head_support) in heads.values():
+        if head_support < min_support:
+            continue
+
+        fis.add(head_node.key)
+        #print('Report {0} with support {1}'.format(fis, head_support))
+        report[frozenset(fis)] = head_support
+        new_heads = _init_heads(heads)
+        _create_cond_tree(head_node, new_heads, pruning)
+        if pruning:
+            _prune_cond_tree(new_heads, min_support)
+        n = n + 1 + _fpgrowth((None, new_heads), fis, report, min_support,
+                pruning)
+        fis.remove(head_node.key)
+    return n
+
+########NEW FILE########
+__FILENAME__ = perftesting
+from time import time
+import random
+import string
+from pymining.itemmining import _fpgrowth, get_fptree, _relim,\
+        get_relim_input, _sam, get_sam_input
+from pymining.compat import range
+
+
+def get_default_transactions():
+    '''Returns a small list of transactions. For testing purpose.'''
+    return (
+            ('a', 'd'),
+            ('a', 'c', 'd', 'e'),
+            ('b', 'd'),
+            ('b', 'c', 'd'),
+            ('b', 'c'),
+            ('a', 'b', 'd'),
+            ('b', 'd', 'e'),
+            ('b', 'c', 'd', 'e'),
+            ('b', 'c'),
+            ('a', 'b', 'd')
+            )
+
+
+def get_default_transactions_alt():
+    '''Returns a small list of transactions. For testing purpose.'''
+    return (
+            ('a', 'b'),
+            ('b', 'c', 'd'),
+            ('a', 'c', 'd', 'e'),
+            ('a', 'd', 'e'),
+            ('a', 'b', 'c'),
+            ('a', 'b', 'c', 'd'),
+            ('a'),
+            ('a', 'b', 'c'),
+            ('a', 'b', 'd'),
+            ('b', 'c', 'e'),
+            )
+
+
+def get_default_sequences():
+    '''Returns a small list of sequences. For testing purpose.'''
+    return ( 'caabc', 'abcb', 'cabc', 'abbca' )
+
+
+def get_random_transactions(transaction_number=500,
+        max_item_per_transaction=100, max_key_length=50,
+        key_alphabet=string.ascii_letters, universe_size=1000):
+    '''Generates a random list of `transaction_number` transactions containing
+       from 0 to `max_item_per_transaction` from a collection of
+       `universe_size`. Each key has a maximum length of `max_key_length` and
+       is computed from a sequence of characters specified by `key_alphabet`
+       (default is ascii letters).
+
+       If `key_alphabet` is None, range(universize_size) is used as the
+       alphabet and `max_key_length` is ignored.
+    '''
+
+    if key_alphabet is None:
+        words = list(range(universe_size))
+    else:
+        words = []
+        for _ in range(universe_size):
+
+            word = ''.join((random.choice(key_alphabet) for x in
+                range(random.randint(1, max_key_length))))
+            words.append(word)
+
+    transactions = []
+    for _ in range(transaction_number):
+        transaction = {word for word in random.sample(words, random.randint(0,
+            max_item_per_transaction))}
+        transactions.append(transaction)
+
+    return transactions
+
+
+def test_sam(should_print=False, ts=None, support=2):
+    if ts is None:
+        ts = get_default_transactions()
+    sam_input = get_sam_input(ts, lambda e: e)
+    fis = set()
+    report = {}
+    n = _sam(sam_input, fis, report, support)
+    if should_print:
+        print(n)
+        print(report)
+    return (n, report)
+
+
+def test_relim(should_print=False, ts=None, support=2):
+    if ts is None:
+        ts = get_default_transactions()
+    relim_input = get_relim_input(ts, lambda e: e)
+    fis = set()
+    report = {}
+    n = _relim(relim_input, fis, report, support)
+    if should_print:
+        print(n)
+        print(report)
+    return (n, report)
+
+
+def test_fpgrowth(should_print=False, ts=None, support=2, pruning=False):
+    if ts is None:
+        ts = get_default_transactions()
+    fptree = get_fptree(ts, lambda e: e, support)
+    fis = set()
+    report = {}
+    n = _fpgrowth(fptree, fis, report, support, pruning)
+    if should_print:
+        print(n)
+        print(report)
+    return (n, report)
+
+
+def test_itemset_perf(perf_round=10, sparse=True, seed=None):
+    '''Non-scientifically tests the performance of three algorithms by running
+       `perf_round` rounds of FP-Growth, FP-Growth without pruning, Relim, and
+       SAM.
+
+       A random set of transactions is created (the same is obviously used
+       for all algorithms).
+
+       If `sparse` is False, the random transactions are more dense, i.e., some
+       elements appear in almost all transactions.
+
+       The `seed` parameter can be used to obtain the same sample across
+       multiple calls.
+    '''
+    random.seed(seed)
+
+    if sparse:
+        universe_size = 2000
+        transaction_number = 500
+        support = 10
+    else:
+        universe_size = 110
+        transaction_number = 75
+        support = 25
+    transactions = get_random_transactions(
+            transaction_number=transaction_number,
+            universe_size=universe_size,
+            key_alphabet=None)
+    print('Random transactions generated with seed {0}\n'.format(seed))
+
+    start = time()
+    for i in range(perf_round):
+        (n, report) = test_fpgrowth(False, transactions, support,
+                pruning=True)
+        print('Done round {0}'.format(i))
+    end = time()
+    print('FP-Growth (pruning on) took: {0}'.format(end - start))
+    print('Computed {0} frequent item sets.'.format(n))
+
+    start = time()
+    for i in range(perf_round):
+        (n, report) = test_fpgrowth(False, transactions, support,
+                pruning=False)
+        print('Done round {0}'.format(i))
+    end = time()
+    print('FP-Growth (pruning off) took: {0}'.format(end - start))
+    print('Computed {0} frequent item sets.'.format(n))
+
+    start = time()
+    for i in range(perf_round):
+        (n, report) = test_relim(False, transactions, support)
+        print('Done round {0}'.format(i))
+    end = time()
+    print('Relim took: {0}'.format(end - start))
+    print('Computed {0} frequent item sets.'.format(n))
+
+    start = time()
+    for i in range(perf_round):
+        (n, report) = test_sam(False, transactions, support)
+        print('Done round {0}'.format(i))
+    end = time()
+    print('Sam took: {0}'.format(end - start))
+    print('Computed {0} frequent item sets.'.format(n))
+
+########NEW FILE########
+__FILENAME__ = seqmining
+from collections import defaultdict
+
+
+def freq_seq_enum(sequences, min_support):
+    '''Enumerates all frequent sequences.
+
+       :param sequences: A sequence of sequences.
+       :param min_support: The minimal support of a set to be included.
+       :rtype: A set of (frequent_sequence, support).
+    '''
+    freq_seqs = set()
+    _freq_seq(sequences, tuple(), 0, min_support, freq_seqs)
+    return freq_seqs
+
+
+def _freq_seq(sdb, prefix, prefix_support, min_support, freq_seqs):
+    if prefix:
+        freq_seqs.add((prefix, prefix_support))
+    locally_frequents = _local_freq_items(sdb, prefix, min_support)
+    if not locally_frequents:
+        return
+    for (item, support) in locally_frequents:
+        new_prefix = prefix + tuple(item)
+        new_sdb = _project(sdb, new_prefix)
+        _freq_seq(new_sdb, new_prefix, support, min_support, freq_seqs)
+
+
+def _local_freq_items(sdb, prefix, min_support):
+    items = defaultdict(int)
+    freq_items = []
+    for entry in sdb:
+        visited = set()
+        for element in entry:
+            if element not in visited:
+                items[element] += 1
+                visited.add(element)
+    # Sorted is optional. Just useful for debugging for now.
+    for item in items:
+        support = items[item]
+        if support >= min_support:
+            freq_items.append((item, support))
+    return freq_items
+
+
+def _project(sdb, prefix):
+    new_sdb = []
+    if not prefix:
+        return sdb
+    current_prefix_item = prefix[-1]
+    for entry in sdb:
+        j = 0
+        projection = None
+        for item in entry:
+            if item == current_prefix_item:
+                projection = entry[j + 1:]
+                break
+            j += 1
+        if projection:
+            new_sdb.append(projection)
+    return new_sdb
+
+########NEW FILE########
+__FILENAME__ = assocrules_tests
+import unittest
+from pymining import itemmining, perftesting, assocrules
+
+class TestAssocRule(unittest.TestCase):
+
+    def testDefaultSupportConf(self):
+        ts1 = perftesting.get_default_transactions()
+        relim_input = itemmining.get_relim_input(ts1)
+        report = itemmining.relim(relim_input, 2)
+        rules = assocrules.mine_assoc_rules(report, min_support=2)
+        self.assertEqual(20, len(rules))
+
+        a_rule = (frozenset(['b', 'e']), frozenset(['d']), 2, 1.0)
+        self.assertTrue(a_rule in rules)
+
+        ts2 = perftesting.get_default_transactions_alt()
+        relim_input = itemmining.get_relim_input(ts2)
+        report = itemmining.relim(relim_input, 2)
+        rules = assocrules.mine_assoc_rules(report, min_support=2)
+        self.assertEqual(20, len(rules))
+
+        a_rule = (frozenset(['e']), frozenset(['a', 'd']), 2, 2.0/3.0)
+        self.assertTrue(a_rule in rules)
+
+    def testConfidence075(self):
+        ts1 = perftesting.get_default_transactions()
+        relim_input = itemmining.get_relim_input(ts1)
+        report = itemmining.relim(relim_input, 2)
+        rules = assocrules.mine_assoc_rules(report, min_support=2,
+                min_confidence=0.75)
+        self.assertEqual(5, len(rules))
+
+        a_rule = (frozenset(['b']), frozenset(['d']), 6, 0.75)
+        self.assertTrue(a_rule in rules)
+
+    def testSupport5(self):
+        ts1 = perftesting.get_default_transactions()
+        relim_input = itemmining.get_relim_input(ts1)
+        report = itemmining.relim(relim_input, 5)
+        rules = assocrules.mine_assoc_rules(report, min_support=5)
+        self.assertEqual(2, len(rules))
+
+        a_rule = (frozenset(['d']), frozenset(['b']), 6, 0.75)
+        self.assertTrue(a_rule in rules)
+
+########NEW FILE########
+__FILENAME__ = itemmining_tests
+import unittest
+from pymining import itemmining, perftesting
+
+
+class TestItemSetAlgo(unittest.TestCase):
+
+    def test_relim(self):
+        ts1 = perftesting.get_default_transactions()
+        relim_input = itemmining.get_relim_input(ts1)
+        report = itemmining.relim(relim_input, 2)
+        self.assertEqual(17, len(report))
+        self.assertEqual(6, report[frozenset(['b', 'd'])])
+
+        ts2 = perftesting.get_default_transactions_alt()
+        relim_input = itemmining.get_relim_input(ts2)
+        report = itemmining.relim(relim_input, 2)
+        self.assertEqual(19, len(report))
+        self.assertEqual(5, report[frozenset(['a', 'b'])])
+
+    def test_sam(self):
+        ts1 = perftesting.get_default_transactions()
+        sam_input = itemmining.get_sam_input(ts1)
+        report = itemmining.sam(sam_input, 2)
+        self.assertEqual(17, len(report))
+        self.assertEqual(6, report[frozenset(['b', 'd'])])
+
+        ts2 = perftesting.get_default_transactions_alt()
+        sam_input = itemmining.get_sam_input(ts2)
+        report = itemmining.sam(sam_input, 2)
+        self.assertEqual(19, len(report))
+        self.assertEqual(5, report[frozenset(['a', 'b'])])
+
+    def test_fpgrowth_pruning_on(self):
+        ts1 = perftesting.get_default_transactions()
+        fp_input = itemmining.get_fptree(ts1)
+        report = itemmining.fpgrowth(fp_input, 2, pruning=True)
+        self.assertEqual(17, len(report))
+        self.assertEqual(6, report[frozenset(['b', 'd'])])
+
+        ts2 = perftesting.get_default_transactions_alt()
+        fp_input = itemmining.get_fptree(ts2)
+        report = itemmining.fpgrowth(fp_input, 2, pruning=True)
+        self.assertEqual(19, len(report))
+        self.assertEqual(5, report[frozenset(['a', 'b'])])
+
+    def test_fpgrowth_pruning_off(self):
+        ts1 = perftesting.get_default_transactions()
+        fp_input = itemmining.get_fptree(ts1)
+        report = itemmining.fpgrowth(fp_input, 2, pruning=False)
+        self.assertEqual(17, len(report))
+        self.assertEqual(6, report[frozenset(['b', 'd'])])
+
+        ts2 = perftesting.get_default_transactions_alt()
+        fp_input = itemmining.get_fptree(ts2)
+        report = itemmining.fpgrowth(fp_input, 2, pruning=False)
+        self.assertEqual(19, len(report))
+        self.assertEqual(5, report[frozenset(['a', 'b'])])
+
+########NEW FILE########

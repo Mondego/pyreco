@@ -1,0 +1,659 @@
+For instructions on compling the module yourself, please read:
+
+http://www.bishoujo.us/renpy/dl/lgpl/README.txt
+==============================
+The Ren'Py Visual Novel Engine
+==============================
+
+http://www.renpy.org
+
+Ren'Py development takes place on the ``master`` branch, and occasionally
+on feature branches.
+
+Getting Started
+===============
+
+Ren'Py depends on a number of python modules written in Cython and C. For
+changes to Ren'Py that only involve python modules, you can use the modules
+found in the latest nightly build. Otherwise, you'll have to compile the
+modules yourself.
+
+The development scripts assume a POSIX-like platform. The scripts should run
+on Linux or Mac OS X, and can be made to run on Windows using an environment
+like Msys.
+
+Nightly Build
+-------------
+
+Nightly builds can be downloaded from:
+
+   http://nightly.renpy.org
+
+Note that the latest nightly build is at the bottom of the list. Once you've
+unpacked the nightly, change into this repository, and run::
+
+    ./after_checkout.sh <path-to-nightly>
+
+Once this script completes, you should be able to run Ren'Py using renpy.sh,
+renpy.app, or renpy.exe, as appropriate for your platform.
+
+If the current nightly build doesn't work, please wait 24 hours for a new
+build to occur. If that build still doesn't work, contact Tom (`pytom at bishoujo.us`,
+or @renpytom on twitter) to find out what's wrong.
+
+The ``doc`` symlink will dangle until documentation is built, as described
+below.
+
+Compiling the Modules
+----------------------
+
+Building the modules requires you have the many dependencies installed on
+your system. On Ubuntu and Debian, these dependencies can be installed with
+the command::
+
+    apt-get install python-dev python-pygame libavcodec-dev libavformat-dev \
+        libavresample-dev libfreetype6-dev libglew1.6-dev libsdl1.2-dev \
+        libsdl-image1.2-dev libfribidi-dev libswscale-dev libesd0-dev libpulse-dev
+
+Other platforms may have an equivalent command. Otherwise, you'll need to
+build `renpy-deps <https://github.com/renpy/renpy-deps>`_.
+
+We strongly suggest installing the Ren'Py modules into a Python
+virtualenv. `This page <http://dabapps.com/blog/introduction-to-pip-and-virtualenv-python/>`_
+describes how to install pip and the virtualenv tool, and set up a new virtualenv.
+
+After activating the virtualenv, install cython::
+
+    pip install -U cython
+
+Next, set RENPY_DEPS_INSTALL To a \::-separated list of paths containing the
+dependencies, and RENPY_CYTHON to the name of the cython command::
+
+    export RENPY_DEPS_INSTALL=/usr::/usr/lib/x86_64-linux-gnu/
+    export RENPY_CYTHON=cython
+
+Finally, change into the `modules` directory, and run::
+
+    python setup.py install
+
+Ren'Py will be installed into the activated virtualenv. It can then be run
+using the command::
+
+    python -O renpy.py
+
+
+Documentation
+=============
+
+Building
+--------
+
+Building the documentation requires Ren'Py to work. You'll either need to
+link in a nightly build, or compile the modules as described above. You'll
+also need the `Sphinx <http://sphinx-doc.org/>`_ documentation generator.
+If you have pip working, install Sphinx using::
+
+    pip install -U sphinx
+
+Once Sphinx is installed, change into the ``sphinx`` directory inside the
+Ren'Py checkout and run::
+
+    ./build.sh
+
+Format
+------
+
+Ren'Py's documentation consists of reStructuredText files found in sphinx/source, and
+generated documentation found in function docstrings scattered throughout the code. Do
+not edit the files in sphinx/source/inc directly, as they will be overwritten.
+
+Docstrings may include tags on the first few lines:
+
+\:doc: `section` `kind`
+    Indicates that this functions should be documented. `section` gives
+    the name of the include file the function will be documented in, while
+    `kind` indicates the kind of object to be documented (one of ``function``,
+    ``method`` or ``class``. If omitted, `kind` will be auto-detected.
+\:name: `name`
+    The name of the function to be documented. Function names are usually
+    detected, so this is only necessary when a function has multiple aliases.
+\:args: `args`
+    This overrides the detected argument list. It can be used if some arguments
+    to the function are deprecated.
+
+For example::
+
+    def warp_speed(factor, transwarp=False):
+        """
+        :doc: warp
+        :name: renpy.warp_speed
+        :args: (factor)
+
+        Exceeds the speed of light.
+        """
+
+        renpy.engine.warp_drive.engage(factor)
+
+
+Contributing
+============
+
+For bug fixes, documentation improvements, and simple changes, just
+make a pull request. For more complex changes, it might make sense
+to file an issue first so we can discuss the design.
+
+
+<html>
+<head>
+    <meta charset="utf-8" />
+<title>README</title>
+<style>
+
+BODY {
+background: #fff;
+color: #444;
+padding-left: 20%;
+padding-top: 1em;
+padding-bottom: 1em;
+padding-right: 20%;
+font-family: sans-serif;
+line-height: 1.6em;
+}
+
+DT {
+font-weight: bold;
+margin-top: .33em;
+}
+
+H2 {
+color: #000;
+margin-left: -2.5em;
+}
+
+H3 {
+color: #000;
+margin-left: -1.5em;
+}
+
+.editsection {
+display: none;
+}
+
+</style>
+</head>
+<body>
+
+<div id="renpy_help"></div>
+
+
+
+
+<p><a name="Basic_Help" id="Basic_Help"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=1" title="Edit section: Basic Help">edit</a>]</span> <span class="mw-headline">Aide rapide</span></h2> 
+<p>Pour avancer dans le jeu, effectuez un <tt>clic-gauche</tt> ou bien pressez la touche <tt>espace</tt> ou <tt>entrée</tt>. Dans les menus, faites un <tt>clic-gauche</tt> pour faire un choix, ou utilisez les flèches, et validez votre choix avec la touche <tt>Entrée</tt> pour l'activer.</p> 
+<p><a name="Game_Menu" id="Game_Menu"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=2" title="Edit section: Game Menu">edit</a>]</span> <span class="mw-headline">Menu du jeu</span></h3> 
+<p>Durant le jeu, un <tt>clic-droit</tt> ou la touche <tt>échap</tt> permettent d'afficher le menu du jeu. Ce menu vous propose les options suivantes:</p> 
+<dl> 
+<dt>Retour</dt> 
+<dd>Retourner au jeu.</dd> 
+<dt>Sauvegarder</dt> 
+<dd>Cela vous permet de sauvegarder le jeu en cliquant sur un emplacement de sauvegarde.</dd> 
+<dt>Charger</dt> 
+<dd>Vous permet de charger un jeu en cliquant sur un emplacement de sauvegarde. Cliquer sur "Auto" vous donne accès aux sauvegardes automatiques.</dd> 
+<dt>Préférences</dt> 
+<dd>Change les préférences du jeu:
+<dl> 
+<dt>Affichage</dt> 
+<dd>Alterne entre plein-écran et mode fenêtré.</dd> 
+<dt>Transitions</dt> 
+<dd>Contrôle le type de transitions entre les écrans de jeu.</dd> 
+<dt>Vitesse du texte</dt> 
+<dd>Contrôle la vitesse à laquelle le texte défile. Plus l'indicateur est à droite, plus le texte défilera rapidement. Un indicateur totalement à droite impliquera un texte affiché instantanément.</dd> 
+<dt>Joystick</dt> 
+<dd>Permet de jouer avec un joystick.</dd> 
+<dt>Sauter</dt> 
+<dd>Alterner entre le saut des messages qui ont déjà été affiché (y compris au cours d'une autre partie), et le saut de tous les messages.</dd> 
+<dt>Commencer à sauter</dt>
+<dd>Retourner au jeu en sautant les messages.</dd> 
+<dt>Après les choix</dt> 
+<dd>Contrôle si le saut s'arrête quand apparaît un menu.</dd> 
+<dt>Avancement automatique.</dt> 
+<dd>Contrôle l'avancement automatique en fonction du temps. Plus l'indicateur est à gauche, moins il faudra de temps pour que le jeu continue de lui-même. Si l'indicateur est totalement à droite, cela signifie que l'avancement automatique est désactivé.</dd> 
+<dt>Volume de la musique, des sons et des voix</dt> 
+<dd>Contrôle le volume de la musique, des sons et des voix. Plus les indicateurs sont à droite, plus les volumes sont forts.</dd> 
+</dl> 
+</dd> 
+</dl> 
+<dl> 
+<dt>Menu principal</dt> 
+<dd>Retourne au menu principal, met fin à la partie en cours.</dd> 
+<dt>Aide</dt> 
+<dd>Affiche cet écran d'aide.</dd> 
+<dt>Quitter</dt> 
+<dd>Quitter le jeu; la partie prend fin et se ferme.</dd> 
+</dl> 
+<p><a name="Key_and_Mouse_Bindings" id="Key_and_Mouse_Bindings"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=3" title="Edit section: Key and Mouse Bindings">edit</a>]</span> <span class="mw-headline">Actions de la souris et du clavier</span></h3> 
+<dl> 
+<dt>Clic-gauche, Entrée</dt> 
+<dd>Avance dans le jeu, active les options des menus, les boutons et les indicateurs.</dd> 
+<dt>Espace</dt> 
+<dd>Avance dans le jeu, mais n'active pas les options.</dd> 
+<dt>Flèches</dt> 
+<dd>Sélectionne les options des menus, les boutons et les indicateurs.</dd> 
+<dt>Control</dt> 
+<dd>Permet le saut lorsque la touche Control est pressée.</dd> 
+<dt>Tabulation</dt> 
+<dd>La pression de la touche tabulation cause le saut des messages, jusqu'à ce que celle-ci soit à nouveau pressée.</dd> 
+<dt>Molette en haut, Page en haut.</dt> 
+<dd>Effectue un retour en arrière. Ce retour permet de remonter le temps, affiche les textes précédents, et permet même de modifier ses choix dans les menus.</dd> 
+<dt>Molette en bas, Page en bas.</dt> 
+<dd>Permet de ré-avancer dans le jeu, annulant ainsi les retours en arrière.</dd> 
+<dt>Clic-droit, échap</dt> 
+<dd>Permet d'accéder au menu du jeu. Si on est dans le menu du jeu, permet de revenir au jeu.</dd> 
+<dt>Clic-milieu, H</dt> 
+<dd>Cache la fenêtre de texte et autres affichages temporaires.</dd> 
+<dt>F</dt> 
+<dd>Permet d'alterner le plein écran et le mode fenêtré</dd> 
+<dt>S</dt> 
+<dd>Effectue une capture d'écran nommée screenshotxxxx.png, avec xxxx un numéro de série.</dd> 
+<dt>Alt-M, Commande-H</dt> 
+<dd>Cache (minimise) la fenêtre.</dd> 
+<dt>Alt-F4, Commande-Q</dt> 
+<dd>Quitte le jeu.</dd> 
+<dt>Suppr</dt> 
+<dd>Quand un emplacement de sauvegarde est sélectionné, supprime la sauvegarde.</dd> 
+</dl> 
+<p><a name="Legal_Notice" id="Legal_Notice"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=4" title="Edit section: Legal Notice">edit</a>]</span> <span class="mw-headline">Notice légale</span></h2> 
+<p>Ce jeu utilise du code provenant de plusieurs projets de logiciels libres. Pour obtenir la liste, ainsi que les adresses à partir desquelles le code source peut être téléchargé, consultez le fichier LICENSE.txt dans le répertoire 'renpy', ou visitez <a href="http://www.renpy.org/wiki/renpy/License" class="external free" title="http://www.renpy.org/wiki/renpy/License" rel="nofollow">http://www.renpy.org/wiki/renpy/License</a> .</p> 
+
+
+</body>
+</html>
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+<title>README</title><style>
+
+BODY {
+background: #fff;
+color: #444;
+padding-left: 20%;
+padding-top: 1em;
+padding-bottom: 1em;
+padding-right: 20%;
+font-family: sans-serif;
+line-height: 1.6em;
+}
+
+DT {
+font-weight: bold;
+margin-top: .33em;
+}
+
+H2 {
+color: #000;
+margin-left: -2.5em;
+}
+
+H3 {
+color: #000;
+margin-left: -1.5em;
+}
+
+.editsection {
+display: none;
+}
+
+</style></head>
+<body>
+
+<div id="renpy_help"></div>
+
+
+
+
+<p><a name="Basic_Help" id="Basic_Help"></a></p>
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=1" title="Edit section: Basic Help">edit</a>]</span>&nbsp;<span class="mw-headline">操作方法</span></h2>
+<p>ゲームを読み進めるには、左クリックか、スペースキー、エンターキーを押してください。メニューが表示された場合、左クリックで選択するか、方向キーで選択してエンターキーで決定してください。</p>
+<p><a name="Game_Menu" id="Game_Menu"></a></p>
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=2" title="Edit section: Game Menu">edit</a>]</span> <span class="mw-headline">ゲームメニュー</span></h3>
+<p>ゲーム中に右クリックか Esc を押すと、ゲームメニューを開きます。ゲームメニューでは以下の操作をすることができます。</p>
+<dl>
+<dt>戻る</dt>
+<dd>ゲームに戻ります。</dd>
+<dt>セーブ</dt>
+<dd>セーブスロットをクリックすることで、現在の状態を保存できます。</dd>
+<dt>ロード</dt>
+<dd>セーブスロットをクリックすることで、データをロードできます。 ”オート”をクリックするとオートセーブされたデータをロードすることができます。</dd>
+<dt>環境設定<br></dt>
+<dd>ゲームの環境設定を変更することができます。<dl>
+<dt>画面表示</dt>
+<dd>フルスクリーンとウインドウモードを切り替えます。</dd>
+<dt>画面効果</dt>
+<dd>画面切替時の効果の有無を選択できます。</dd>
+<dt>文字表示速度<br></dt>
+<dd>文字表示速度を変更します。スライダーを右に動かすほど早く、左に動かすほど遅く表示されます。右端に動かすと、瞬間的に表示されます。</dd>
+<dt>ジョイスティック</dt>
+<dd>ジョイスティックのボタンを割り当てます。</dd>
+<dt>スキップ<dt>
+<dd>既読メッセージのみをスキップするか、未読もスキップするか選択します。</dd>
+<dt>スキップ開始<br></dt>
+<dd>ゲームに戻り、スキップを開始します。</dd>
+<dt>選択肢後<br></dt>
+<dd>選択肢後にスキップを続けるかどうか選択します。<br></dd>
+<dt>オート待ち時間<br></dt>
+<dd>オートで読み進める待ち時間を設定します。スライダーを左に動かすほど、読み進める待ち時間が短くなります。右端に動かすと、オートで読み進めるのを止めます。</dd>
+<dt>音楽、効果音、ボイス音量</dt>
+<dd>音楽、効果音、ボイスの各音量を設定出来ます。スライダーを右へ動かすほど、音が大きくなります。</dd>
+</dl>
+</dd>
+</dl>
+<dl>
+<dt>メインメニュー<br></dt>
+<dd>現在のゲームを終了して、メインメニューに戻ります。</dd>
+<dt>ヘルプ</dt>
+<dd>ヘルプ画面を表示します。</dd>
+<dt>終了</dt>
+<dd>ゲームを全て終了して、ウインドウを閉じます。</dd>
+</dl>
+<p><a name="Key_and_Mouse_Bindings" id="Key_and_Mouse_Bindings"></a></p>
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=3" title="Edit section: Key and Mouse Bindings">edit</a>]</span> <span class="mw-headline">キーボードとマウスの割り当て</span></h3>
+<dl>
+<dt>左クリック、エンターキー</dt>
+<dd>ゲームを進めたり、メニューやボタン、スライダーを決定します。</dd>
+<dt>スペースキー</dt>
+<dd>ゲームを進めますが、メニューやボタン、スライダーを決定できません。</dd><dd><br></dd>
+<dt>方向キー</dt>
+<dd>メニューやボタン、スライダーを選択します。</dd>
+<dt>Ctrl</dt>
+<dd>キーを押している間、ゲームをスキップします。</dd>
+<dt>Tab</dt>
+<dd>一度押すとスキップを開始します。もう一度押すとスキップを停止します。</dd>
+<dt>マウスホイール上、PageUp</dt>
+<dd>ロールバックを行い、ゲームを巻き戻します。テキストを再び表示したり、別の選択肢を選んだりできるようになります。</dd>
+<dt>マウスホイール下、PageDown</dt>
+<dd>ロールフォワードを行い、ロールバック前の状態に戻ります。</dd>
+<dt>右クリック、Esc</dt>
+<dd>ゲームメニューを表示します。ゲームメニュー表示中は、ゲームに戻ります。</dd>
+<dt>中クリック、H<br></dt>
+<dd>テキストウィンドウやその他の表示を隠します。</dd>
+<dt>F</dt>
+<dd>フルスクリーンモードを切り替えます。<br></dd>
+<dt>S</dt>
+<dd>スクリーンショットを撮ります。スクリーンショットは screenshotxxxx.png  というファイル名で保存されます。</dd>
+<dt>Alt-M, Command-M</dt>
+<dd>ウインドウを最小化（アイコン化）します。</dd>
+<dt>Alt-F4, Command-Q</dt>
+<dd>ゲームを終了します。</dd>
+<dt>Delete</dt>
+<dd>選択しているセーブスロットを消去します。</dd>
+</dl>
+<p><a name="Legal_Notice" id="Legal_Notice"></a></p>
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=4" title="Edit section: Legal Notice">edit</a>]</span> <span class="mw-headline">法定通知</span></h2>
+<p>本ゲームは様々なオープンソースプロジェクトのソースコードを使用しています。そのリストとコード入手先は、Ren'py ディレクトリにある  LICENSE.txt  または  <a href="http://www.renpy.org/wiki/renpy/License" class="external free" title="http://www.renpy.org/wiki/renpy/License" rel="nofollow">http://www.renpy.org/wiki/renpy/License</a> を参照してください。</p>
+
+
+</body></html>
+
+﻿<html>
+<head>
+<title>README</title>
+<style>
+
+BODY {
+background: #fff;
+color: #444;
+padding-left: 20%;
+padding-top: 1em;
+padding-bottom: 1em;
+padding-right: 20%;
+font-family: sans-serif;
+line-height: 1.6em;
+}
+
+DT {
+font-weight: bold;
+margin-top: .33em;
+}
+
+H2 {
+color: #000;
+margin-left: -2.5em;
+}
+
+H3 {
+color: #000;
+margin-left: -1.5em;
+}
+
+.editsection {
+display: none;
+}
+
+</style>
+</head>
+<body>
+
+<div id="renpy_help"></div>
+
+
+
+<p><a name="Basic_Help" id="Basic_Help"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=1" title="Edit section: Basic Help">edit</a>]</span> <span class="mw-headline">기본 도움말</span></h2> 
+<p>게임을 진행하려면 <tt>마우스 좌클릭</tt> 또는 <tt>스페이스 바</tt>, <tt>엔터 키</tt>를 누르세요. 선택지 화면에서는 <tt>좌클릭으로</tt> 선택지를 고르거나, 화살표 키로 선택지를 고르고<tt>엔터 키</tt>로 선택할 수 있습니다..</p> 
+<p><a name="Game_Menu" id="Game_Menu"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=2" title="Edit section: Game Menu">edit</a>]</span> <span class="mw-headline">게임 메뉴</span></h3> 
+<p>게임을 플레이하는 도중, <tt>마우스 좌클릭</tt> 또는 <tt>Esc</tt> 키를 입력하면 게임 메뉴를 열 수 있습니다. 게임 메뉴에서 선택할 수 있는 기능은 다음과 같습니다.</p> 
+<dl> 
+<dt>돌아가기</dt> 
+<dd>게임 화면으로 돌아갑니다.</dd> 
+<dt>저장하기</dt> 
+<dd>세이브 슬롯을 클릭해 게임을 저장할 수 있습니다.</dd> 
+<dt>불러오기</dt> 
+<dd>세이브 슬롯을 클릭해 게임을 불러올 수 있습니다. "자동" 버튼을 클릭하면 자동 저장 슬롯을 확인합니다.</dd> 
+<dt>환경설정</dt> 
+<dd>게임 환경을 설정합니다.:
+<dl> 
+<dt>화면 모드</dt> 
+<dd>창 모드나 전체화면 모드로 변경합니다.</dd> 
+<dt>언어</dt> 
+<dd>게임 화면에서 표시할 언어를 선택합니다.</dd> 
+<dt>텍스트 표시 속도</dt> 
+<dd>텍스트 표시 속도를 제어합니다. 슬라이더를 오른쪽으로 이동할 수록 텍스트 표시 속도가 빨라집니다. 맨 오른쪽으로 이동하면 텍스트가 한번에 표시됩니다.</dd> 
+<dt>조이스틱</dt> 
+<dd>조이스틱을 사용해 게임을 진행할 수 있도록 합니다.</dd> 
+<dt>스킵</dt> 
+<dd>게임을 진행하면서 한 번 확인한 메시지를 스킵하거나, 모든 메시지를 스킵하도록 선택합니다.</dd> 
+<dt>스킵 시작</dt> 
+<dd>대사를 스킵하기 시작하고 게임 화면으로 돌아갑니다.</dd> 
+<dt>선택지 이후</dt> 
+<dd>선택지에 도달했을 때 스킵을 멈출 것인지 말 것인지 선택합니다.</dd> 
+<dt>자동 진행 시간</dt> 
+<dd>자동 진행 시간을 조절합니다. 슬라이더가 왼쪽으로 이동할 수록 다음으로 넘어가기까지 필요한 시간이 짧아집니다. 맨 오른쪽으로 이동하면 자동 진행을 하지 않습니다.</dd> 
+<dt>배경음, 효과음, 음성 크기</dt> 
+<dd>배경음, 효과음, 음성 채널의 크기를 조절합니다. 슬라이더가 오른쪽으로 이동할 수록 소리 크기가 커집니다.</dd> 
+</dl> 
+</dd> 
+</dl> 
+<dl> 
+<dt>메인 메뉴</dt> 
+<dd>현재 게임을 종료하고 메인 메뉴로 돌아갑니다.</dd> 
+<dt>도움말</dt> 
+<dd>현재 보고 있는 도움말 화면을 표시합니다.</dd> 
+<dt>나가기</dt> 
+<dd>게임을 종료합니다.</dd> 
+</dl> 
+<p><a name="Key_and_Mouse_Bindings" id="Key_and_Mouse_Bindings"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=3" title="Edit section: Key and Mouse Bindings">edit</a>]</span> <span class="mw-headline">키와 마우스 버튼의 기능</span></h3> 
+<dl> 
+<dt>좌클릭, Enter 키</dt> 
+<dd>게임을 진행하고, 선택지, 버튼, 슬라이더를 선택합니다.</dd> 
+<dt>Space 키</dt> 
+<dd>게임을 진행하지만 선택지를 선택하지는 않습니다.</dd> 
+<dt>화살표 키</dt> 
+<dd>선택지, 버튼, 슬라이더를 고릅니다.</dd> 
+<dt>Ctrl키</dt> 
+<dd>Ctrl 키를 누르고 있는 동안 메시지를 스킵합니다.</dd> 
+<dt>Tab 키</dt> 
+<dd>Tab 키를 누를 때마다 스킵 기능을 시작하거나 중단합니다.</dd> 
+<dt>마우스 휠 올리기, PageUp 키</dt> 
+<dd>롤백합니다. 롤백은 게임을 이전 상태로 돌리는 것으로, 이전 텍스트를 표시하거나 선택지를 변경할 수 있습니다.</dd> 
+<dt>마우스 휠 내리기, PageDown 키</dt> 
+<dd>롤포워드를 실행해 이전 롤백을 취소합니다.</dd> 
+<dt>좌클릭, Esc 키</dt> 
+<dd>게임 메뉴를 엽니다. 게임 메뉴가 열려있을 때에는 게임으로 돌아갑니다.</dd> 
+<dt>휠 버튼 클릭, H 키</dt> 
+<dd>텍스트 창이나 기타 UI를 숨깁니다.</dd> 
+<dt>F</dt> 
+<dd>전체 화면 모드나 창 모드로 전환합니다.</dd> 
+<dt>S</dt> 
+<dd>스크린샷을 찍어 screenshotxxxx.png 파일에 저장합니다. 파일 이름의 xxxx는 스크린샷을 찍을 수록 증가하는 숫자입니다.</dd> 
+<dt>Alt-M, Command-H</dt> 
+<dd>창을 작업표시줄로 이동시킵니다.</dd> 
+<dt>Alt-F4, Command-Q</dt> 
+<dd>게임을 종료합니다.</dd> 
+<dt>Delete 키</dt> 
+<dd>선택 중인 세이브 슬롯을 삭제합니다.</dd> 
+</dl> 
+<p><a name="Legal_Notice" id="Legal_Notice"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=4" title="Edit section: Legal Notice">edit</a>]</span> <span class="mw-headline">법적 사항 고지</span></h2> 
+<p>이 게임은 다양한 오픈 소스 프로젝트의 소스 코드를 사용합니다. 사용한 프로젝트 목록과 다운로드 위치를 확인하려면 렌파이 폴더에 있는 License.txt를 확인하거나 <a href="http://www.renpy.org/wiki/renpy/License" class="external free" title="http://www.renpy.org/wiki/renpy/License" rel="nofollow">http://www.renpy.org/wiki/renpy/License</a> 페이지를 확인하세요.</p> 
+
+
+</body>
+</html>
+
+<html>
+<head>
+    <meta charset="utf-8" />
+<title>README</title>
+<style>
+
+BODY {
+background: #fff;
+color: #444;
+padding-left: 20%;
+padding-top: 1em;
+padding-bottom: 1em;
+padding-right: 20%;
+font-family: sans-serif;
+line-height: 1.6em;
+}
+
+DT {
+font-weight: bold;
+margin-top: .33em;
+}
+
+H2 {
+color: #000;
+margin-left: -2.5em;
+}
+
+H3 {
+color: #000;
+margin-left: -1.5em;
+}
+
+.editsection {
+display: none;
+}
+
+</style>
+</head>
+<body>
+
+<div id="renpy_help"></div>
+
+
+
+
+<p><a name="Basic_Help" id="Basic_Help"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=1" title="Edit section: Basic Help">edit</a>]</span> <span class="mw-headline">Ayuda básica</span></h2> 
+<p>Para avanzar en el juego, haz clic con el <tt>botón izquierdo</tt> del ratón o presiona las teclas <tt>espacio</tt> o <tt>enter</tt>. En los menús, haz clic con el <tt>botón izquierdo</tt> para hacer una elección, o utiliza las teclas de cursor para seleccionar una opción y <tt>enter</tt> para activarla.</p> 
+<p><a name="Game_Menu" id="Game_Menu"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=2" title="Edit section: Game Menu">edit</a>]</span> <span class="mw-headline">Menú del juego</span></h3> 
+<p>Durante el juego, haz clic con el <tt>botón derecho</tt> o presiona la tecla <tt>ESC</tt> para entrar en el menú del juego. El menú del juego ofrece las siguientes opciones:</p> 
+<dl> 
+<dt>Volver</dt> 
+<dd>Vuelve al juego.</dd> 
+<dt>Guardar</dt> 
+<dd>Permite guardar el juego haciendo clic en uno de los espacios de guardado.</dd> 
+<dt>Cargar</dt> 
+<dd>Permite cargar una partida haciendo clic en uno de los espacios de guardado. Haciendo clic en "Auto" se accede a los espacios de guardado automático</dd> 
+<dt>Opciones</dt> 
+<dd>Cambia las opciones del juego:
+<dl> 
+<dt>Pantalla</dt> 
+<dd>Alterna entre la pantalla completa o el modo ventana.</dd> 
+<dt>Transiciones</dt> 
+<dd>Controla la presentación de transiciones entre las pantallas del juego.</dd> 
+<dt>Veloc. texto</dt> 
+<dd>Controla la velocidad con la que aparece el texto. Cuanto más a la derecha se selecciona esta barra, el texto se presentará más deprisa. La posición total a la derecha presenta el texto instantáneamente..</dd> 
+<dt>Joystick</dt> 
+<dd>Permite el control del joystick.</dd> 
+<dt>Saltar</dt> 
+<dd>Alterna entre saltar los mensajes ya vistos (en cualquiera de las partidas) y saltar todos los mensajes.</dd> 
+<dt>Comenzar salto</dt> 
+<dd>Vuelve al juego y comienza a saltar los mensajes.</dd> 
+<dt>Tras opciones</dt> 
+<dd>Controla si el salto se detiene cuando se llega a un menú.</dd> 
+<dt>Veloc. auto-avance</dt> 
+<dd>Controla el avance automático. Cuanto más a la izquierda se selecciona esta barra, más breve es el tiempo entre los avances del juego. La posición total a la derecha anula el auto-avance.</dd> 
+<dt>Volumen de música, sonido y voz</dt> 
+<dd>Controla el volumen de los canales de la música, los efectos de sonido y la voz, respectivamente. Cuanto más a la derecha se seleccionan, mayor es el volumen.</dd> 
+</dl> 
+</dd> 
+</dl> 
+<dl> 
+<dt>Menú principal</dt> 
+<dd>Vuelve al menú principal, finalizando la partida actual.</dd> 
+<dt>Ayuda</dt> 
+<dd>Muestra esta pantalla de ayuda.</dd> 
+<dt>Salir</dt> 
+<dd>Sale del juego; la partida terminará y el programa se cerrará.</dd> 
+</dl> 
+<p><a name="Key_and_Mouse_Bindings" id="Key_and_Mouse_Bindings"></a></p> 
+<h3><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=3" title="Edit section: Key and Mouse Bindings">edit</a>]</span> <span class="mw-headline">Acciones del teclado y el ratón</span></h3> 
+<dl> 
+<dt>Clic izquierdo, Enter</dt> 
+<dd>Avanza en el juego, activa las opciones de los menús, botones y barras.</dd> 
+<dt>Espacio</dt> 
+<dd>Avanza en el juego, pero no activa las opciones.</dd> 
+<dt>Flechas de cursor</dt> 
+<dd>Seleccionan las opciones del menú, de los botones y de las barras.</dd> 
+<dt>Control</dt> 
+<dd>Activa el salto de mensajes mientras se mantenga pulsada la tecla Ctrl.</dd> 
+<dt>Tabulador</dt> 
+<dd>Activa el salto de mensajes que continuará; hasta que el tabulador se presione de nuevo.</dd> 
+<dt>Rueda del ratón arriba, Re. Pág.</dt> 
+<dd>Activa el retroceso del juego. El retroceso vuelve atrás en la línea de tiempo del juego, muestra el texto anterior y permite la elección de opciones diferentes.</dd> 
+<dt>Rueda del ratón abajo, Av. Pág.</dt> 
+<dd>Avanza en el juego, eliminando el retroceso anterior.</dd> 
+<dt>Clic derecho, ESC</dt> 
+<dd>Accede al menú del juego. Si se presiona de nuevo, vuelve al juego.</dd> 
+<dt>Clic medio, H</dt> 
+<dd>Oculta la ventana de texto y otros elementos de la pantalla.</dd> 
+<dt>F</dt> 
+<dd>Alterna entre pantalla completa y ventana.</dd> 
+<dt>S</dt> 
+<dd>Toma la imagen de la pantalla y lo guarda en un archivo llamado screenshotxxxx.png, donde xxxx es un número progresivo.</dd> 
+<dt>Alt-M, Comando-H</dt> 
+<dd>Oculta (minimiza) la ventana.</dd> 
+<dt>Alt-F4, Comando-Q</dt> 
+<dd>Sale del juego.</dd> 
+<dt>Supr</dt> 
+<dd>Cuando se selecciona un espacio de guardado ocupado, lo elimina.</dd> 
+</dl> 
+<p><a name="Legal_Notice" id="Legal_Notice"></a></p> 
+<h2><span class="editsection">[<a href="/w/index.php?title=renpy/Help&amp;action=edit&amp;section=4" title="Edit section: Legal Notice">edit</a>]</span> <span class="mw-headline">Nota Legal</span></h2> 
+<p>Este juego utiliza código fuente de diversos proyectos de código abierto. La lista y las referencias a las fuentes se encuentran en el archivo LICENSE.txt del directorio 'renpy' y en <a href="http://www.renpy.org/wiki/renpy/License" class="external free" title="http://www.renpy.org/wiki/renpy/License" rel="nofollow">http://www.renpy.org/wiki/renpy/License</a> .</p> 
+
+
+</body>
+</html>
+

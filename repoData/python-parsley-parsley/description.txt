@@ -1,0 +1,191 @@
+.. -*- mode: rst -*-
+
+===============================================================
+Parsley: A Pattern-Matching Language Based on OMeta and Python
+===============================================================
+
+You can read further docs at: http://parsley.readthedocs.org/en/latest/
+
+Summary
+-------
+
+Parsley is a parsing library for people who find parsers scary or
+annoying. I wrote it because I wanted to parse a programming language,
+and tools like PLY or ANTLR or Bison were very hard to understand and
+integrate into my Python code. Most parser generators are based on LL
+or LR parsing algorithms that compile to big state machine
+tables. It was like I had to wake up a different section of my brain
+to understand or work on grammar rules.
+
+Parsley, like pyparsing and ZestyParser, uses the PEG algorithm, so
+each expression in the grammar rules works like a Python
+expression. In particular, alternatives are evaluated in order, unlike
+table-driven parsers such as yacc, bison or PLY.
+
+Parsley is an implementation of OMeta, an object-oriented
+pattern-matching language developed by Alessandro Warth at
+http://tinlizzie.org/ometa/ . For further reading, see Warth's PhD
+thesis, which provides a detailed description of OMeta:
+http://www.vpri.org/pdf/tr2008003_experimenting.pdf
+
+How It Works
+------------
+
+Parsley compiles a grammar to a Python class, with the rules as methods. The
+rules specify parsing expressions, which consume input and return values if
+they succeed in matching.
+
+Basic syntax
+~~~~~~~~~~~~
+``foo = ....``:
+   Define a rule named foo.
+
+``expr1 expr2``:
+   Match expr1, and then match expr2 if it succeeds, returning the value of
+   expr2. Like Python's ``and``.
+
+``expr1 | expr2``:
+  Try to match ``expr1`` --- if it fails, match ``expr2`` instead. Like Python's
+  ``or``.
+
+``expr*``:
+  Match ``expr`` zero or more times, returning a list of matches.
+
+``expr+``:
+  Match ``expr`` one or more times, returning a list of matches.
+
+``expr?``:
+  Try to match ``expr``. Returns ``None`` if it fails to match.
+
+``expr{n, m}``:
+  Match ``expr`` at least ``n`` times, and no more than ``m`` times.
+
+``expr{n}``:
+  Match ``expr`` ``n`` times exactly.
+
+``~expr``:
+  Negative lookahead. Fails if the next item in the input matches
+  ``expr``. Consumes no input.
+
+``~~expr``:
+  Positive lookahead. Fails if the next item in the input does *not*
+  match ``expr``. Consumes no input.
+
+``ruleName`` or ``ruleName(arg1 arg2 etc)``:
+  Call the rule ``ruleName``, possibly with args.
+
+``'x'``:
+  Match the literal character 'x'.
+
+``<expr>``:
+  Returns the string consumed by matching ``expr``. Good for tokenizing rules.
+
+``expr:name``:
+  Bind the result of expr to the local variable ``name``.
+
+``-> pythonExpression``:
+  Evaluate the given Python expression and return its result. Can be
+  used inside parentheses too!
+
+``!(pythonExpression)``:
+  Invoke a Python expression as an action.
+
+``?(pythonExpression)``:
+  Fail if the Python expression is false, Returns True otherwise.
+
+Comments like Python comments are supported as well, starting with #
+and extending to the end of the line.
+
+Interface
+---------
+
+The starting point for defining a new grammar is
+``parsley.makeGrammar(grammarSource, bindings)``, which takes a grammar
+definition and a dict of variable bindings for its embedded
+expressions and produces a Python class. Grammars can be subclassed as
+usual, and makeGrammar can be called on these classes to override
+rules and provide new ones. Grammar rules are exposed as methods.
+
+Example Usage
+-------------
+
+::
+
+    from parsley import makeGrammar
+    exampleGrammar = """
+    ones = '1' '1' -> 1
+    twos = '2' '2' -> 2
+    stuff = (ones | twos)+
+    """
+    Example = makeGrammar(exampleGrammar, {})
+    g = Example("11221111")
+    result = g.stuff()
+    print result
+
+→  ``[1, 2, 1, 1]``
+
+README
+TermL is JSON's big brother.
+It's described here: http://www.erights.org/data/terml/terml-spec.html
+
+In addition to JSON's dict, list, string, and number types, TermL
+supports arbitrary identifiers as tags, with optional parenthesized
+arguments. It's a nice representation for ASTs and the like, where you
+have a tree of things with a relatively small set of names.
+
+To use this code, do something like this:
+
+>>> from terml.parser import parseTerm
+>>> parseTerm('[foo(x), 3, FancyObject("bits", "bobs")]')
+Term('[foo(x), 3, FancyObject("bits", "bobs")]')
+
+>>> t = parseTerm('[foo(x), 3, FancyObject("bits", "bobs")]')
+
+>>> t.arglist
+[Term('foo(x)'), Term('3'), Term('FancyObject("bits", "bobs")')]
+
+>>> t.functor
+Tag('.tuple.')
+
+>>> t.arglist[0]
+Term('foo(x)')
+
+>>> t.arglist[0].functor
+Tag('foo')
+
+
+>>> t2 = parseTerm('{foo: 1, "foo": 11, f(o(o, 1): 1}')
+
+{foo: 1, "foo": 11, f(o(o, 1): 1}
+                     ^
+Parse error at line 1, column 21: expected the token '}'
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "terml/parser.py", line 202, in parseTerm
+    return _parseTerm(termString)
+  File "terml/parser.py", line 186, in _parseTerm
+    result, error = p.apply("term")
+  File "/Users/washort/Projects/PyMeta/trunk/pymeta/runtime.py", line 278, in apply
+    return self._apply(r, ruleName, args)
+  File "/Users/washort/Projects/PyMeta/trunk/pymeta/runtime.py", line 307, in _apply
+    [rule(), self.input])
+  File "/pymeta_generated_code/pymeta_grammar__TermLParser.py", line 483, in rule_term
+  File "/Users/washort/Projects/PyMeta/trunk/pymeta/runtime.py", line 397, in _or
+    raise joinErrors(errors)
+pymeta.runtime.ParseError: (21, [('expected', 'token', "'}'")])
+
+>>> terml.parser.parseTerm("foo(())")
+
+foo(())
+    ^
+Parse error at line 1, column 4: expected one of ')', token '[', token '"', token "'", '0', a digit, a letter, '_', '$', '.', '<', ':', token '${', token '$', token '@{', token '@', token '{', '-', ' ', '\t', '\x0c', or '#'
+
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+  File "terml/parser.py", line 202, in parseTerm
+    return _parseTerm(termString)
+  File "terml/parser.py", line 192, in _parseTerm
+    raise error
+pymeta.runtime.ParseError: (4, [('expected', None, ')'), ('expected', 'token', '['), ('expected', 'token', '"'), ('expected', 'token', "'"), ('expected', None, '0'), ('expected', 'digit', None), ('expected', 'letter', None), ('expected', None, '_'), ('expected', None, '$'), ('expected', None, '.'), ('expected', None, '<'), ('expected', None, ':'), ('expected', 'token', '${'), ('expected', 'token', '$'), ('expected', 'token', '@{'), ('expected', 'token', '@'), ('expected', 'token', '{'), ('expected', None, '-'), ('expected', None, ' '), ('expected', None, '\t'), ('expected', None, '\x0c'), ('expected', None, '#')])
+

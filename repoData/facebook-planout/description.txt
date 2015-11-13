@@ -1,0 +1,629 @@
+# PlanOut Compiler
+
+`planout.js` is a script that parses a PlanOut experiment and outputs a serialized experiment in JSON format.
+
+## Using the Compiler
+The script can be run from the command line via [node.js](http://nodejs.org/) as follows.
+```
+node planout.js ../demos/exp1.planout
+```
+
+Alternatively, the script may be run from a web page.
+```
+<script src="planout.js"></script>
+<script>
+  var json = planout.parse(script);
+</script>
+```
+
+Here is a [demo](http://facebook.github.io/planout/demo/planout-compiler.html).
+
+## Extending the PlanOut language
+The PlanOut grammar is specified in `planout.jison`. If you wish to extend PlanOut to support custom operators, you can modify the grammar file and generate a new compiler script using [Jison](http://zaach.github.io/jison/) library.
+
+# PyData '14 PlanOut Tutorial
+Welcome to the PyData '14 Silicon Valley PlanOut tutorial! You'll find a collection of IPython notebooks for Eytan Bakshy's tutorial on PlanOut.
+
+If you want to follow along the live tutorial on your own computer (or are not at PyData!), you need to install some software and clone the PlanOut git repository.
+
+## Requirements
+### Software requirements
+The tutorial requires IPython, Pandas, and PlanOut. The former two come with Anaconda. PlanOut has only been tested on Mac OS X and Linux.
+
+ * IPython ([installation instructions](http://ipython.org/install.html). We recommend Anaconda.)
+ * PlanOut v0.2 or greater (first timers `sudo easy_install planout`, older timers `sudo easy_install --upgrade planout`)
+ * Node.js - optional (installation link on the [node.js homepage](http://nodejs.org))
+
+Note that you may need to re-install the `planout` package if you installed PlanOut before installing IPython.
+
+### Downloading the tutorial files
+If you have git, you can checkout PlanOut by typing:
+
+```
+git clone https://github.com/facebook/planout.git
+```
+
+or you can [click here](https://github.com/facebook/planout/archive/master.zip) to download a zip archive.
+
+
+## Loading up the tutorial notebooks
+Navigate to your checked out version of PlanOut and type:
+
+```
+cd contrib/pydata14_tutorial/
+ipython notebook --pylab inline
+```
+
+Tutorial files include:
+ * `0-getting-started.ipynb`: This teaches you the basics of how to implement experiments in pure Python.
+ * `1-logging.ipynb`: How data is logged in PlanOut and examples of how to analyze PlanOut log data with Pandas.
+ * `2-interpreter.ipynb`: How to generate serialized experiment definitions using (1) the PlanOut domain-specific language (2) automatically, e.g., via configuration files or GUIs.
+ * `3-namespaces.ipynb`: How to manage simultaneous and follow-on experiments.
+
+# Contributing to PlanOut
+We want to make contributing to this project as easy and transparent as
+possible.
+
+## Our Development Process
+... (in particular how this is synced with internal changes to the project)
+
+## Pull Requests
+We actively welcome your pull requests.
+1. Fork the repo and create your branch from `master`. 
+2. If you've added code that should be tested, add tests
+3. If you've changed APIs, update the documentation. 
+4. Ensure the test suite passes. 
+5. Make sure your code lints. 
+6. If you haven't already, complete the Contributor License Agreement ("CLA").
+
+## Contributor License Agreement ("CLA")
+In order to accept your pull request, we need you to submit a CLA. You only need
+to do this once to work on any of Facebook's open source projects.
+
+Complete your CLA here: <https://developers.facebook.com/opensource/cla>
+
+## Issues  
+We use GitHub issues to track public bugs. Please ensure your description is
+clear and has sufficient instructions to be able to reproduce the issue.
+
+Facebook has a [bounty program](https://www.facebook.com/whitehat/) for the safe
+disclosure of security bugs. In those cases, please go through the process
+outlined on that page and do not file a public issue.
+
+## Coding Style  
+* 2 spaces for indentation rather than tabs
+* 80 character line length
+* ...
+
+## License
+By contributing to PlanOut, you agree that your contributions will be licensed
+under its BSD license.
+
+# Getting started
+
+
+## Quick install
+You can install PlanOut using `pip`. Within a [`virtualenv`](http://www.virtualenv.org/en/latest/), install with
+
+```
+pip install planout
+```
+
+You can also install directly from source. Check out the git repository, create a virtualenv, activate it and run:
+
+```
+python setup.py install
+```
+
+A/B tests and other randomized experiments are widely used as part of continually improving Web and mobile apps and services. PlanOut makes it easy to run both simple and complex experiments.
+
+## Focus on parameters
+
+PlanOut is all about providing randomized values of parameters that control your service. Instead of using a constant, just use PlanOut to determine these parameters (e.g., text size or color, the presence of a new feature, the number of items in a list). Now you have an experiment.
+
+## From simple to complex
+
+It is easy to implement an A/B test in PlanOut, or other simple experiments like those involving a factorial design. But is not much harder to implement more complex designs. Multiple types of units (e.g., users, pieces of content) can be randomly assigned to parameter values in the same experiment. Experiments can also involve directly randomizing other inputs, such as randomly selecting which three friends to display to a user.
+
+## Automatic logging
+You will often want to keep track of which users (or other units) have been exposed to your experiment. This can make subsequent analysis more precise and prevent common errors in analysis. PlanOut calls your logging code whenever a parameter value is checked.
+
+
+## Advanced features
+
+We created PlanOut to meet requirements from running experiments at Facebook, which gives rise to some of its more advanced features.
+
+### Serialization
+Experiments can also be specified through JSON code. This can enable separate review processes for changes to the experiment, support multi-platform execution, and restrict the range of operations that should occur during experimental assignment (for reasons of, e.g., performance, correctness, static analysis). It also allows developers to implement their own tools to specify experiments without writing any code at all.
+
+### Domain-specific language
+PlanOut experiments can be specified through the PlanOut language, which concisely describes an experiment using a set of primitive operations.  PlanOut language code is compiled into the JSON serialization, which can be executed by the PlanOut interpreter as needed.
+
+### Iterative experimentation
+The PlanOut library includes a basic namespace class (link) for managing multiple, iterative experiments that run concurrently.
+
+# Extending PlanOut
+
+Experiments
+- Logging
+- Assignment scheme
+- Salt
+- Uses a mapper
+
+Assignment schemes
+- Mappers are helpers for doing deterministic pseudorandom assignment
+
+Mappers:
+ - One where you code in python
+ - 
+
+## Core concepts
+An *Experiment* object takes inputs and maps it to parameter assignments.  Experiment objects also handle logging and caching.
+
+*Mappers* are execution environments used to implement experiments. They execute *operators* which are functions that perform basic operations, including deterministic random assignment.
+
+
+## Mappers
+A mapper translates inputs to parameter assignments.
+There are two main types of PlanOut mappers: `PlanOutKitMapper`, which is useful for many (ad hoc) experimentation needs, and `PlanOutInterpreterMapper`, which reads in serialized experiment definitions and is suitable for use in production environments when experiments are centrally managed via a Web interface. ``PlanOutInterpreterMapper``
+
+## Experiment class
+
+The experiment class implements core functionality associated with each experiment. In particular, every experiment has a:
+ - name
+ - experiment-level salt
+ - an assignment scheme using a PlanOut mapper that translates inputs to parameter values.
+ - logging, which by default maintains an "exposure log" of when inputs (e.g., userids) get mapped to parameter. This makes it easier to keep track of who was in your experiment, and restrict your analysis to the experiment.
+
+To define a new experiment, one subclasses the Experiment class. By default, the name of the experiment will be the name of the subclass, and the experiment-level salt will be the name of the experiment.
+
+# How PlanOut works
+
+PlanOut works by hashing input data into numbers, and using these numbers to generate what are effectively pseudo-random values to pick numbers. All PlanOut operators include basic unit tests (link) to verify that they generate assignments with the expected distribution.
+
+Good randomization procedures produce assignments that are independent of one another. Below, we show how PlanOut uses experiment-level and variable-level "salts" (strings that get appended to the data thats being hashed) to make sure that variables within and across experiments remain independent.
+
+## Pseudo-random assignment through hashing
+Consider the following experiment:
+```python
+class SharingExperiment(SimpleExperiment):
+  def set_attributes(self):
+    self.name = 'sharing_name'
+    self.salt = 'sharing_salt'
+
+  def assign(self, params, userid):
+    params.button_text = UniformChoice(
+      choices=['OK', 'Share', 'Share with friends'],
+      unit=userid
+    )
+```
+Here, we define a single randomized parameter, `button_text`. The assignment is generated by first composing a string containing experiment-level salt, `sharing_salt`, the parameter-level salt `button_text`, and the input unit. By default, PlanOut uses the variable name as the parameter-level salt.
+
+When we choose the button text for a particular unit, e.g.,
+
+```python
+SharingExperiment(userid=4).get('button_text')
+```
+
+PlanOut would compute the SHA1 checksum for:
+```
+sharing_salt.button_text.4
+```
+and then use the last few digits of this checksum to index into the given list of `choices`.  Since SHA1 is cryptographically safe, even minor changes to the hashing string (e.g., considering `userid=41` instead of 4) will result in a totally different number.
+
+Multiple units are handled through concatenation. Had the `unit` parameter been `unit=[userid, url]`,
+
+```python
+SharingExperiment(userid=4, url='http://www.facebook.com').get('button_text')
+```
+
+PlanOut would compute the SHA1 checksum for:
+```
+sharing_salt.button_text.4.http://www.facebook.com
+```
+
+Note that because PlanOut simply concatenates the units, the order in which you specify lists of units matters.
+
+
+## Salts
+
+### Experiment-level salts
+Experiment-level salts can be manually in the  `set_attributes()` method (as we have above). If the salt is not specified, then the experiment name is used as the salt. With SimpleExperiment, if the name is not set in `set_attributes()`, then the name of the class is used as the experiment name.
+
+### Parameter-level salts
+The parameter name is automatically used to salt random assignment operations, but parameter level salts can be specified manually. For example, in the following code
+
+```python
+params.x = UniformChoice(choices=['a','b'], unit=userid)
+params.y = UniformChoice(choices=['a','b'], unit=userid, salt='x')
+```
+
+both `x` and `y` will always be assigned to the same exact same value.
+
+This lets you change the name of the variable you are logging without changing the assignment. Use variable level salts with caution, since they might lead to failures in randomization (link).
+
+### Salts with namespaces
+Namespaces (link) are a way to manage concurrent and iterative experiments. When using `SimpleNamespace`, the namespace-level salt is appended to the experiment-level salt. This ensures that random assignment is independent across experiments with the same name running under different namespaces.
+
+# Logging
+
+You will usually want to log which units (e.g., users) are exposed to your experiment.
+
+Logging this information enables monitoring your experiment and improving your analysis of the results. In particular, many experiments only change your service for the small portion of users that use a particular part of the service; keeping track of these users will make your analysis more precise.
+
+The `SimpleExperiment` class providing functionality for logging data to a file using Python's `logger` module. Additionally, you can extend `Experiment` to call your logging code instead (link to extending-logging).
+
+## Anatomy of a log
+Consider Experiment 1 from the PlanOut paper (link):
+```
+class Exp1(SimpleExperiment):
+  def assign(self, e, userid):
+    e.group_size = UniformChoice(choices=[1, 10], unit=userid);
+    e.specific_goal = BernoulliTrial(p=0.8, unit=userid);
+    if e.specific_goal:
+      e.ratings_per_user_goal = UniformChoice(
+        choices=[8, 16, 32, 64], unit=userid)
+      e.ratings_goal = e.group_size * e.ratings_per_user_goal
+    return e
+```
+It takes a `userid` as input, and assigns three paramers, `group_size`, `specific_goal`, and `ratings goal`. It does not specify a custom salt (link) or experiment name, so the experiment salt and name are automatically set to the class name `Exp3`. The default logger in `SimpleExperiment` log all of these fields:
+
+```
+{'inputs': {'userid': 3}, 'checksum': '4b80881d', 'salt': 'Exp1', 'name': 'Exp1', 'params': {'specific_goal': 1, 'ratings_goal': 160, 'group_size': 10, 'ratings_per_user_goal': 16}}
+```
+
+In addition, a `checksum` field is attached. This is part of an MD5 checksum of your code, so that analysts can keep track of when an experiments' assignments have potentially changed: whenever the checksum changes, the assignment procedure code is different, and whenever the salt changes, the assignments will be completely different.
+
+TODO: exposure-log logs should have a field that specifies its an exposure. This payload should also include a timestamp.
+
+## Types of logs
+
+### Auto-exposure logging
+By default, exposures are logged once per instance of an experiment object when you get a parameter. This is auto-exposure logging. It is recommended for most situations, since you will want to track whenever a unit is exposed to your experiment. Generally, any unit for which a parameter has been retrieved should be counted as exposed, unless you wish to make further assumptions.
+
+### Manual exposure logging
+In some cases, you might want to choose exactly when exposures are logged. You can disable auto-exposure logging  with the `set_auto_exposure_logging` method and instead choose to directly call `log_exposure` to keep track of exposures.
+
+Why might you want to do this? You might be adding experimental assignment information to other existing logs of outcome data, but many of the users who have outcome observations may not actually have been exposed. Other cases occur when some advance preparation of some components (e.g., UI) or data are required, but you can assume that parameter values set at this stage do not yet affect the user.
+
+### Conversion logging
+You want to see how the parameters you are manipulating affect outcomes or conversion events. It can also be convenient to log these events along with exposures. You can do this by calling the `log_outcome` method.
+
+You may have existing logs for many of these events. In this case, you could add experimental assignment information to these logs by instantiating an experiment, turning off auto-exposure logging for that instance, and adding parameter information to your logs. Alternatively, you can later join exposure and outcome data on unit identifiers (e.g., user IDs).
+
+## Extending logging functionality
+If you have already adopted some method for logging events, you may want to use that method to log experiment-related events, such as exposures and experiment-specific outcomes. You can do this by extending the `Experiment` abstract class and overriding the `log` method.
+
+### Overriding the `log` method
+To log exposures using your existing logging system, just override the `log` method when extending the `Experiment` abstract class. For example, if you write to your logs with `MyLogger`, then you might create a class as follows.
+```python
+
+  def log(self, data):
+    MyLogger.log(data)
+
+```
+
+### Writing a log configuration method
+For some logging frameworks, you may want to have a way to setup your logger once per `Experiment` instance. In this case, you can implement a method to do this setup, which then gets called, as needed, by your `log` method.
+
+
+### Adding caching
+By default, each instance of an Experiment class will only write to your logs once. But this can still result in a lot of writing when there are many instances created in a single request. So you may want to add some caching to prevent lots of unnecessary logging. Perhaps your logging system already handles this. Otherwise, you can add a key to a cache in the `log` method and check it before actually logging.
+
+# Namespaces
+
+Namespaces are used to manage related experiments that manipulate the same parameter. These experiments might be run sequentially (over time) or in parallel. When experiments are conducted in parallel, namespaces can be used to keep experiments "exclusive" or "non-overlapping".
+
+
+Namespaces and models like [Google's "layers"](http://research.google.com/pubs/pub36500.html) and Facebook's "universes" solve the overlapping experiment problem by centering experiments around a primary unit, such as user IDs.  Within a given namespace, each primary unit belongs to at most one experiment.
+
+
+### How do namespaces work?
+Rather than requesting a parameter from an experiment, developers request a parameter from a namespace, which then handles identifying the experiment (if there is one) that that unit is part of.
+
+Under the hood, primary units are mapped to one of a large number of segments (e.g., 10,000).
+These segments are allocated to experiments. For any given unit, a namespace manager looks up that unit's segment. If the segment is allocated to an experiment, the input data is passed to the experiment, and random assignment occurs using the regular logic of the corresponding `Experiment` object.
+
+If the primary unit is not mapped to an experiment, or a parameter is requested that is not defined by the experiment, a default experiment or value may be used.
+ This allows experimenters to configure default values for parameters on the fly in a way that does not interfere with currently running experiments.
+
+
+### When do I need to use a namespace?
+Namespaces are useful whenever there is at least one variable in your code base that you would like to experiment with, either over time or simultaneously.
+
+As a starting point, PlanOut provides a basic implementation of namespaces with the `SimpleNamespace` class.
+
+# Iterating on experiments with `SimpleNamespace`
+
+`SimpleNamespace` provides namespace functionality without being backed by a database or involving a larger experimentation management system. For both organizational and performance reasons, it is not recommended for namespaces that would be used to run many (e.g., thousands) experiments, but it should be sufficient for iterating on smaller-scale experiments.
+
+Similar to how you create experiments with the `SimpleExperiment` class, new namespaces are created through subclassing.  `SimpleNamespace` two requires that developers implement two methods:
+ - `setup_attributes()`: this method sets the namespace's name, the primary unit, and number of segments. The primary unit is the input unit that gets mapped to segments, which are allocated to experiments.
+ - `setup_experiments()`: this method allocates and deallocates experiments. When used in production, lines of code should only be added to this method.
+
+```python
+class ButtonNamespace(SimpleNamespace):
+  def setup_attributes(self):
+    self.name = 'my_demo'
+    self.primary_unit = 'userid'
+    self.num_segments = 1000
+
+  def setup_experiments():
+    # create and remove experiments here
+```
+
+In the example above, the name of the namespace is `my_demo`. This gets used, in addition to the experiment name and variable names, to hash units to experimental conditions. The number of segments is the granularity of the experimental groups.
+
+### Allocating and deallocating segments to experiments
+When you extend `SimpleNamespace` class, you implement the `setup_experiments` method. This specifies a series of allocations and deallocations of segments to experiments.
+
+For example, the following setup method:
+```python
+def setup_experiments():
+  self.add_experiment('first experiment', MyFirstExperiment, 100)
+```
+would allocate  'first experiment' is the name of your experiment, 100 of 1000 segments, selected at random to be allocated to the `MyFirstExperiment` class. In this example (see demo/demo_namespace.py), `MyFirstExperiment` is a subclass of `SimpleExperiment`.
+
+Adding additional experiments would just involve appending additional lines to the method. For example, you might run a larger follow-up experiment with the same design:
+```python
+def setup_experiments():
+  self.add_experiment('first experiment', MyFirstExperiment, 10)
+  self.add_experiment('first experiment, replication 1', MyFirstExperiment, 40)
+```
+Or you might run a new experiment with a different design:
+```python
+def setup_experiments():
+  self.add_experiment('first experiment', MyFirstExperiment, 10)
+  self.add_experiment('second experiment', MySecondExperiment, 20)
+```
+When an experiment is complete and you wish to make its segments available to new experiments, append a call to `remove_experiment`:
+```python
+def setup_experiments():
+  self.add_experiment('first experiment', MyFirstExperiment, 10)
+  self.add_experiment('second experiment', MySecondExperiment, 20)
+  self.remove_experiment('first experiment')
+  self.add_experiment('third experiment', MyThirdExperiment, 50)
+```
+Note: In modifying this method, you should only add lines after all previous lines. Inserting calls to `add_experiment` or `remove_experiment` will likely move segments from one experiment to another -- not what you want! This is because there is no stored allocation state (e.g., in a database), so the current allocation is dependent on the full history.
+
+# Best practices
+
+PlanOut makes it easy to implement bug-free code that randomly assigns users (or other units) to parameters. The Experiment and Namespace classes are designed to reduce common errors in deploying and logging experiments. Here are a few tips for running experiments:
+
+* Use auto-exposure logging (link), which is enabled by default.  Auto-exposure logging makes it easier to check that your assignment procedure is working correctly, increases the precision of your experiment, and reduces errors in downstream analysis.
+* Avoid changing an experiment while it is running. Instead, either run a follow-up experiment using a namespace (link), or create a new experiment with a different salt to re-randomize the units. These experiments should be analyzed separately from the original experiment.
+* Automate the analysis of your experiment. If you are running multiple related experiments, create a pipeline to automatically do the analysis.
+
+
+There are no hard and fast rules for what kinds of changes are actually a problem, but if you follow the best practices above, you should be in reasonable shape.
+
+
+## Randomization failures
+Experiments are used to test the change of one or more parameters on some average outcome (e.g., messages sent, or clicks on a button). Differences can be safely attributed to a change in parameters if treatments are assigned to users completely at random.
+
+In practice, there are a number of common ways for two groups to not be equivalent (beyond random imbalance):
+ - Some units from one group were previously in a different group, while users from the other group were not.
+ - Some units in one group were recently added to the experiment.
+ - There was a bug in the code for one group but not the other, and that bug recently got fixed.
+
+In these cases, we suggest that you launch a new experiment, either through the use of namespaces (links), or by re-assigning all of the units in your experiment.  This can be done by simply changing the salt of your experiment:
+
+```python
+class MyNewExperiment(MyOldExperiment):
+  def set_experiment_properties(self):
+    self.name = 'new_experiment_name'
+    self.salt = 'new_experiment_salt'
+```
+
+
+### Unanticipated consequences from changing experiments
+Changes to experiment definitions will generally alter which parameters users are assigned to. For example, consider an experiment that manipulates the label of a button for sharing a link. The main outcome of interest is the effect of this text on how many links users share per day.
+
+
+```python
+class SharingExperiment(SimpleExperiment):
+  def assign(self, params, userid):
+    params.button_text = UniformChoice(
+      choices=['OK', 'Share', 'Share with friends'],
+      unit=userid
+    )
+```
+Changing the variable name `button_text` changes the assignment, since it is used to salt (link) to assignment procedure (see `Experiment` intro document).
+
+Changing the number of choices for the `button_text` also affects users previously randomized into other conditions.  For example, removing the 'Share' item from the `choices` list, will allocate some users who were previosuly in the 'Share' condition to the 'OK' and 'Share with friends group'. Their outcomes will now be a weighted average of the two, which may decrease the observed difference between 'OK' and 'Share with friends'.
+
+If an additional choice were added to `choices`, some percentage of each prior choice would be allocated to the new choice, whose outcome represents an average of all groups. Comparisons between users still in the old groups (the newly added parameters may be subject to greater novelty effects.
+
+## Detecting problems
+If you suspect your experiment might have changed, check the `salt` and `checksum` fields of your log. If either of these items change, it is likely that your assignments have also changed mid-way through the experiment.
+
+## Learn more
+[Designing and Deploying Online Field Experiments](http://www-personal.umich.edu/~ebakshy/planout.pdf).  WWW 2014. Eytan Bakshy, Dean Eckles, Michael S. Bernstein.
+[Seven Pitfalls to Avoid when Running Controlled Experiments on the Web.](http://www.exp-platform.com/Documents/2009-ExPpitfalls.pdf) KDD 2009. Thomas Crook, Brian Frasca, Ron Kohavi, and Roger Longbotham.
+
+# The PlanOut Language
+The PlanOut language is a way to concisely define experiments.
+PlanOut language code is compiled into JSON.  The language is very basic: it contains basic logical operators, conditional execution, and arrays, but does not include things like loops and function definitions. This makes it easier to statically analyze experiments, and prevents users from shooting themselves in the foot. The syntax mostly resembles JavaScript.
+
+All variables set by PlanOut code are passed back via `Interpreter.get_params()` and by default, are automatically logged when used in conjunction with `SimpleInterpretedExperiment`.
+
+## Overview
+* Lines are terminated with a `;`
+* Arrays are defined like `[1,2,3]`, and are indexed starting at `0`.
+* Random assignment operators (e.g., `uniformChoice`, `weightedChoice`, `bernoulliTrial`) require named parameters, and the ordering of parameter is arbitrary.
+* `True` and `False` values are equivalent to `1` and `0`.
+* `#`s are used to write comments
+* You can use the `PlanOutLanguageInspector` class to validate whether all PlanOut operators use the required and optional methods.
+
+## Compiling PlanOut code
+PlanOut code can be compiled via the [Web-based compiler interface](http://facebook.github.io/planout/demo/planout-compiler.html) or using  the node.js script in the `compiler/` directory of the PlanOut github repository:
+
+```
+node compiler/planout.js planoutscriptname
+```
+
+## Built-in operators
+
+### Random assignment operators
+The operators described in [...] can be used similar to how they are used in Python, except are lower case. The variable named given on the left hand side of an assignment operation is used as the `salt' given random assignment operators if no salt is specified manually.
+
+```
+colors = ['#aa2200', '#22aa00', '#0022aa'];
+x = uniformChoice(choices=colors, unit=userid); # 'x' used as salt
+y = uniformChoice(choices=colors, unit=userid); # 'y' used as salt, generally != x
+z = uniformChoice(choices=colors, unit=userid, salt='x'); # same value as x
+```
+
+
+### Array operators
+Arrays can include constants and variables, and can be arbitrarily nested, and can contain arbitrary types.
+
+```
+a = [4, 5, 'foo'];
+b = [a, 2, 3];      # evaluates to [[1,2,'foo'], 2,3]
+x = a[0];           # evaluates to 4
+y = b[0][2]         # evaluates to 'foo'
+l = length(b);      # evaluates to 3
+```
+
+### Logical operators
+Logical operators include *and* (`&&`), *or* (`||`), *not* (`!`), as in:
+
+```
+  a = 1; b = 0; c = 1;
+  x = a && b;       # evaluates to False
+  y = a || b || c;  # evaluates to True
+  y = !b;           # evaluates to True
+```
+
+### Control flow
+PlanOut supports if / else if / else.
+```
+if (country == 'US') {
+  p = 0.2;
+} else if (country == 'UK') {
+  p = 0.4;
+} else {
+  p = 0.1;
+}
+```
+
+### Arithmetic
+Current arithmetic operators supported in the PlanOut language are: addition, subtraction, modulo, multiplication, and division.
+```
+ a = 2 + 3 + 4;  # 9
+ b = 2 * 3 * 4;  # 24
+ c = -2;         # -2
+ d = 2 + 3 - 4;  # 1
+ e = 4 % 2;      # 0
+ f = 4 / 2;      # 2.0
+```
+
+### Other operators
+Other operators that are part of the core language include `min` and `max`:
+```
+x = min(1, 2, -4);   # -4
+y = min([1, 2, -4])  # -4
+y = max(1, 2, -4)    # 2
+```
+
+# About PlanOut
+PlanOut was originally developed by Eytan Bakshy and Dean Eckles at Facebook as a language for  describing experimental designs. PlanOut is one of a few ways of setting up experiments at Facebook. The PlanOut interpreter runs on top of QuickExperiment, which is developed by Breno Roberto and Wesley May.
+
+This open source release accompanies "Designing and Deploying Online Field Experiments", which describes the PlanOut language and the semantics of our deployment and logging infrastructure.
+
+We hope that the software is useful for researchers and small businesses who want to run experiments out of the box, but have also tried to build things in a way that is easy to port and adapt to work with production systems.
+
+
+### Acknowledgements
+
+# PlanOut
+
+PlanOut is a Python-based toolkit and language for online field experimentation. PlanOut was created to make it easy to run more sophisticated experiments and to quickly iterate on these experiments, while satisfying the constraints of deployed Internet services with many users.
+
+Developers integrate PlanOut by defining experiments that detail how _units_ (e.g., users, cookie IDs) should get mapped onto conditions. For example, to create a 2x2 experiment randomizing both the color and the text on a button, you create a class like this:
+
+```python
+class MyExperiment(SimpleExperiment):
+  def assign(self, params, userid):
+    params.button_color = UniformChoice(choices=['#ff0000', '#00ff00'], unit=userid)
+    params.button_text = UniformChoice(choices=['I voted', 'I am a voter'], unit=userid)
+```
+
+Then, in the application code, you query the Experiment object to find out what values the current user should be mapped onto:
+```python
+my_exp = MyExperiment(userid=101)
+color = my_exp.get('button_color')
+text = my_exp.get('button_text')
+```
+
+PlanOut takes care of randomizing each ``userid`` into the right bucket. It does so by hashing the input, so each ``userid`` will always map onto the same values for that experiment.
+
+This release currently includes:
+  * An extensible Python class for defining experiments. This class comes with objects that make it easy to implement randomized assignments, and automatically logs key data.
+  * An extensible class for managing multiple mutually exclusive experiment namespaces.
+  * The reference implementation of the PlanOut interpreter, which executes serialized code generated by the PlanOut domain specific language.
+
+### Who is PlanOut for?
+This software release is a Python implementation of PlanOut designed for researchers, students, and small businesses wanting to run experiments. It is designed to be extensible, so that it may be adapted for use with large production environments.  The implementation here mirrors many of the key components of Facebook's PHP implementation of PlanOut which is used to conduct experiments with hundreds of millions of users.
+
+### Full Example
+
+To create a basic PlanOut experiment, you subclass ``SimpleExperiment`` object, and implement an assignment method. You can use PlanOut's random assignment operators by setting ``e.varname``, where ``params`` is the first argument passed to the ``assign()`` method, and ``varname`` is the name of the variable you are setting.
+```python
+
+from planout.experiment import SimpleExperiment
+from planout.ops.random import *
+
+class FirstExperiment(SimpleExperiment):
+  def assign(self, params, userid):
+    params.button_color = UniformChoice(choices=['#ff0000', '#00ff00'], unit=userid)
+    params.button_text = WeightedChoice(
+        choices=['Join now!', 'Sign up.'],
+        weights=[0.3, 0.7], unit=userid)
+
+my_exp = FirstExperiment(userid=12)
+# parameters may be accessed via the . operator
+print my_exp.get('button_text'), my_exp.get('button_color')
+
+# experiment objects include all input data
+for i in xrange(6):
+  print FirstExperiment(userid=i)
+```
+
+which outputs:
+```
+Join now! #ff0000
+{'inputs': {'userid': 0}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#ff0000', 'button_text': 'Sign up.'}}
+{'inputs': {'userid': 1}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#ff0000', 'button_text': 'Sign up.'}}
+{'inputs': {'userid': 2}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#00ff00', 'button_text': 'Sign up.'}}
+{'inputs': {'userid': 3}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#ff0000', 'button_text': 'Sign up.'}}
+{'inputs': {'userid': 4}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#00ff00', 'button_text': 'Join now!'}}
+{'inputs': {'userid': 5}, 'checksum': '22c13b16', 'salt': 'FirstExperiment', 'name': 'FirstExperiment', 'params': {'button_color': '#00ff00', 'button_text': 'Sign up.'}}
+```
+
+The ``SimpleExperiment`` class will automatically concatenate the name of the experiment, ``FirstExperiment``, the variable name, and the input data (``userid``) and hash that string to perform the random assignment. Parameter assignments and inputs are automatically logged into a file called ``firstexperiment.log'``.
+
+### Installation
+You can immediately install PlanOut using Easy Install with
+```
+sudo easy_install planout
+```
+
+Or you can check out the github and type:
+
+```
+sudo python setup.py install
+```
+
+### Learn more
+Learn more about PlanOut by [reading the PlanOut paper](http://www-personal.umich.edu/~ebakshy/planout.pdf). You can cite PlanOut as "Designing and Deploying Online Field Experiments". Eytan Bakshy, Dean Eckles, Michael S. Bernstein. Proceedings of the 23rd ACM conference on the World Wide Web. April 7–11, 2014, Seoul, Korea, or by copying and pasting the bibtex below:
+``` bibtex
+@inproceedings{bakshy2014www,
+	Author = {Bakshy, E. and Eckles, D. and Bernstein, M.S.},
+	Booktitle = {Proceedings of the 23rd ACM conference on the World Wide Web},
+	Organization = {ACM},
+	Title = {Designing and Deploying Online Field Experiments},
+	Year = {2014}}
+```
+

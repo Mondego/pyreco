@@ -1,0 +1,168 @@
+Include the following files in this directory so that newly-installed Djangy
+hosts have a known ssh key.  This is necessary to prevent prompting whether
+the ssh key is valid when the master manager connects to a new host.
+
+ssh_host_dsa_key
+ssh_host_dsa_key.pub
+ssh_host_rsa_key
+ssh_host_rsa_key.pub
+
+Include the following files in this directory so that root can ssh to Djangy
+hosts.  (Note that we ssh as root to perform host-wide administrative
+functions anyway, so there wouldn't be much benefit to using separate,
+non-administrative users.)
+
+root_key
+root_key.pub
+
+Put your SSL certificates and public keys in here.  Ideally you should use a
+wildcard SSL certificate, so that it works for subdomains too.  Note that
+you will need to modify the nginx-related configuration files and the
+installer itself in /install to use your domain instead of djangy.com
+
+djangy.com.crt
+djangy.com.key
+www.djangy.com.crt
+www.djangy.com.key
+
+Note: some subdirectories need to be populated with SSH and SSL keys before
+you can install.  Please see the README files in the subdirectories.
+
+see the SETUP file for a more up-to-date roadmap for this process.
+
+
+Requirements list for deploying Djangy
+
+NOTE: places where www-data is mentioned may be replaced by whatever user apache/wsgi is running under.
+
+Required symlinks:
+/etc/apache2/sites-available/api.djangy.com -> /srv/djangy/www/external_api/config/apache.conf
+/etc/apache2/sites-available/djangy.com -> /srv/djangy/www/d2/config/apache.conf
+/usr/share/git-core/templates/hooks/post-receive -> /srv/djangy/post_receive.py
+
+Gitosis must be set up according to:
+http://scie.nti.st/2007/11/14/hosting-git-repositories-the-easy-and-secure-way
+
+Gitosis repositories must live in:
+/srv/git/repositories
+
+Gitosis-admin must be accessible to (meaning gitosis.conf needs these and the public keys):
+www-data
+
+Required public keys:
+/srv/git/.ssh/id_rsa.pub
+/var/www/.ssh/id_rsa.pub
+
+Required permissions:
+/srv/git/repositories must be 755, owned by git
+/srv/bundles must be 777
+/srv/logs must be 777, owned by www-data
+/srv/scratch must be 777, owned by www-data
+
+Required database users:(username:password:db_name)
+(root:gatorade94)
+(djangy:djangy:djangy)
+
+To get databases sync'd, assuming the users exist:
+
+# this will run the fixtures and populate initial data
+cd /srv/djangy/www/external_api/application/external_api/
+python manage.py syncdb --settings=production
+
+# this might not be necessary.  let's think about this some more
+cd /srv/djangy/www/d2/application/d2
+python manage.py syncdb --settings=production
+
+Finally, ensure that each running django instance has a virtual environment (this should be scripted):
+
+cd /srv/djangy/www/d2
+virtualenv python-virtual
+source python-virtual/bin/activate
+easy_install django mako (and anything else we need)
+deactivate
+
+Good to go! (Hopefully)
+
+Djangy: an open source cloud hosting service for Python/Django web
+applications, inspired by Heroku.
+
+Authors:
+Sameer Sundresh <sameer@sundresh.org>
+Dave Paola <dpaola2@gmail.com>
+
+Licensed under the UIUC-NCSA open source license (see LICENSE for details).
+
+djangy.git layout
+=================
+
+docs@ -- symlink to user docs in web_ui/
+install/ -- used to install/deploy djangy to a host
+    conf/ -- configuration files installed on a host
+        apache/
+        git_hooks/
+            post_receive.py@
+        gitosis.conf
+        nginx.conf@
+        rc.local
+        ssh_keys/
+        ssl_keys/
+misc/
+src/
+    client/ -- code run by users on their own machine
+    server/
+        master/ -- code run on the master node
+            management_database/ -- used by master_manager, web_ui, web_api
+            master_api/ -- internal API used by web_api and web_ui
+            master_manager/ -- privileged operations of master_api
+            post_receive.py -- goes in git_hooks
+            web_api/ -- django project for API called by client
+            web_ui/ -- django project for website
+        proxycache/ -- code run on the frontend nginx proxy/cache nodes
+            nginx.conf
+            proxycache_manager/
+        shared/
+            lib/
+        worker/ -- code run on the application worker nodes
+            worker_manager/
+test/ -- test cases
+
+generated files
+===============
+
+run/ -- runtime environment; generated, not checked into repository
+    python-virtual/ -- used by all server components
+    master_manager/sbin/
+    proxycache_manager/sbin/
+    worker_manager/sbin/
+
+/srv layout
+===========
+
+/srv/
+    bundles/            0711 root      root
+        <bundle_name>/  0550 <web_uid> bundles
+    djangy/             0510 root      djangy
+    gitosis/            0700 gitosis   gitosis
+    local_manager/      0700 root      root
+    logs/               0710 root      www-data
+        <bundle_name>/  0710 root      www-data
+
+Notes:
+ * djangy group = root, gitosis, www-data
+ * <bundle_name> = <application_name>-<bundle_version>
+ * not 100% sure about all the permissions (e.g., logs)
+
+To build the client and install it locally, simply run:
+
+$ make
+
+To build the client and upload it to pypi, run:
+
+$ make upload
+
+The www_* projects will be exposed on the web:
+
+web_api is the django project that the djangy.py client calls.  It lives on api.djangy.com.
+
+web_ui is the django project we'll use as our main website, dashboard, and admin interface.  It lives on [www.]djangy.com
+

@@ -1,0 +1,142 @@
+## Got a issue/feature request or submitting a pull request?
+
+Make sure you think of the following things:
+
+## Issue
+ * Search through the existing (and closed) issues first, see if you can get your answer there.
+ * Double check the result manually, because it could be an external issue. 
+ * Post logs! Without seeing what is going on, I can't reproduce the error.
+ * Also check the logs before submitting, obvious errors like permission or http errors are often not related to CP.
+ * What is the movie + quality you are searching for?
+ * What are you're settings for the specific problem?
+ * What providers are you using? (While you're logs include these, scanning through hundred of lines of log isn't our hobby)
+ * Post the logs from config directory, please do not copy paste the UI. Use pastebin to store these logs!
+ * Give a short step by step of how to reproduce the error.
+ * What hardware / OS are you using and what are the limits? NAS can be slow and maybe have a different python installed then when you use CP on OSX or Windows for example.
+ * I will mark issues with the "can't reproduce" tag. Don't go asking "why closed" if it clearly says the issue in the tag ;)
+ * If you're running on a NAS (QNAP, Austor etc..) with pre-made packages, make sure these are setup to use our source repo (RuudBurger/CouchPotatoServer) and nothing else!!
+
+## Pull Request
+ * Make sure you're pull request is made for develop branch (or relevant feature branch)
+ * Have you tested your PR? If not, why?
+ * Are there any limitations of your PR we should know of?
+ * Make sure to keep you're PR up-to-date with the branch you're trying to push into.
+
+**If we don't get enough info, the chance of the issue getting closed is a lot bigger ;)**
+
+
+The ssl.match_hostname() function from Python 3.2
+=================================================
+
+The Secure Sockets layer is only actually *secure*
+if you check the hostname in the certificate returned
+by the server to which you are connecting,
+and verify that it matches to hostname
+that you are trying to reach.
+
+But the matching logic, defined in `RFC2818`_,
+can be a bit tricky to implement on your own.
+So the ``ssl`` package in the Standard Library of Python 3.2
+now includes a ``match_hostname()`` function
+for performing this check instead of requiring every application
+to implement the check separately.
+
+This backport brings ``match_hostname()`` to users
+of earlier versions of Python.
+Simply make this distribution a dependency of your package,
+and then use it like this::
+
+    from backports.ssl_match_hostname import match_hostname, CertificateError
+    ...
+    sslsock = ssl.wrap_socket(sock, ssl_version=ssl.PROTOCOL_SSLv3,
+                              cert_reqs=ssl.CERT_REQUIRED, ca_certs=...)
+    try:
+        match_hostname(sslsock.getpeercert(), hostname)
+    except CertificateError, ce:
+        ...
+
+Note that the ``ssl`` module is only included in the Standard Library
+for Python 2.6 and later;
+users of Python 2.5 or earlier versions
+will also need to install the ``ssl`` distribution
+from the Python Package Index to use code like that shown above.
+
+Brandon Craig Rhodes is merely the packager of this distribution;
+the actual code inside comes verbatim from Python 3.2.
+
+.. _RFC2818: http://tools.ietf.org/html/rfc2818.html
+
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+CouchPotato Server
+=====
+
+CouchPotato (CP) is an automatic NZB and torrent downloader. You can keep a "movies I want"-list and it will search for NZBs/torrents of these movies every X hours.
+Once a movie is found, it will send it to SABnzbd or download the torrent to a specified directory.
+
+
+## Running from Source
+
+CouchPotatoServer can be run from source. This will use *git* as updater, so make sure that is installed also.
+
+Windows, see [the CP forum](http://couchpota.to/forum/showthread.php?tid=14) for more details:
+
+* Install [Python 2.7](http://www.python.org/download/releases/2.7.3/)
+* Then install [PyWin32 2.7](http://sourceforge.net/projects/pywin32/files/pywin32/Build%20217/) and [GIT](http://git-scm.com/)
+* If you come and ask on the forums 'why directory selection no work?', I will kill a kitten, also this is because you need PyWin32
+* Open up `Git Bash` (or CMD) and go to the folder you want to install CP. Something like Program Files.
+* Run `git clone https://github.com/RuudBurger/CouchPotatoServer.git`.
+* You can now start CP via `CouchPotatoServer\CouchPotato.py` to start
+* Your browser should open up, but if it doesn't go to: `http://localhost:5050/`
+
+OSx:
+
+* If you're on Leopard (10.5) install Python 2.6+: [Python 2.6.5](http://www.python.org/download/releases/2.6.5/)
+* Install [GIT](http://git-scm.com/)
+* Open up `Terminal`
+* Go to your App folder `cd /Applications`
+* Run `git clone https://github.com/RuudBurger/CouchPotatoServer.git`
+* Then do `python CouchPotatoServer/CouchPotato.py`
+* Your browser should open up, but if it doesn't go to: `http://localhost:5050/`
+
+Linux (ubuntu / debian):
+
+* Install [GIT](http://git-scm.com/) with `apt-get install git-core`
+* 'cd' to the folder of your choosing.
+* Run `git clone https://github.com/RuudBurger/CouchPotatoServer.git`
+* Then do `python CouchPotatoServer/CouchPotato.py` to start
+* To run on boot copy the init script. `sudo cp CouchPotatoServer/init/ubuntu /etc/init.d/couchpotato`
+* Change the paths inside the init script. `sudo nano /etc/init.d/couchpotato`
+* Make it executable. `sudo chmod +x /etc/init.d/couchpotato`
+* Add it to defaults. `sudo update-rc.d couchpotato defaults`
+* Open your browser and go to: `http://localhost:5050/`
+ 
+
+FreeBSD :
+
+* Update your ports tree `sudo portsnap fetch update`
+* Install Python 2.6+ [lang/python](http://www.freshports.org/lang/python) with `cd /usr/ports/lang/python; sudo make install clean`
+* Install port [databases/py-sqlite3](http://www.freshports.org/databases/py-sqlite3) with `cd /usr/ports/databases/py-sqlite3; sudo make install clean`
+* Add a symlink to 'python2' `sudo ln -s /usr/local/bin/python /usr/local/bin/python2`
+* Install port [ftp/libcurl](http://www.freshports.org/ftp/libcurl) with `cd /usr/ports/ftp/fpc-libcurl; sudo make install clean`
+* Install port [ftp/curl](http://www.freshports.org/ftp/bcurl), deselect 'Asynchronous DNS resolution via c-ares' when prompted as part of config `cd /usr/ports/ftp/fpc-libcurl; sudo make install clean`
+* Install port [textproc/docbook-xml-450](http://www.freshports.org/textproc/docbook-xml-450) with `cd /usr/ports/textproc/docbook-xml-450; sudo make install clean`
+* Install port [GIT](http://git-scm.com/) with `cd /usr/ports/devel/git; sudo make install clean`
+* 'cd' to the folder of your choosing.
+* Run `git clone https://github.com/RuudBurger/CouchPotatoServer.git`
+* Then run `sudo python CouchPotatoServer/CouchPotato.py` to start for the first time
+* To run on boot copy the init script. `sudo cp CouchPotatoServer/init/freebsd /etc/rc.d/couchpotato`
+* Change the paths inside the init script. `sudo vim /etc/init.d/couchpotato`
+* Make init script executable. `sudo chmod +x /etc/rc.d/couchpotato`
+* Add init to startup. `sudo echo 'couchpotato_enable="YES"' >> /etc/rc.conf`
+* Open your browser and go to: `http://server:5050/`
+

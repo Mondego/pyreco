@@ -1,0 +1,423 @@
+# ZeroRPC Protocol
+
+THIS DOCUMENT IS INCOMPLETE, WORK IN PROGRESS!
+
+This document attempts to define the ZeroRPC protocol.
+
+## Introduction & History
+
+[ZeroRPC](http://zerorpc.dotcloud.com) is a modern communication layer for distributed systems built on top of [ZeroMQ](http://zeromq.org), developed at [dotCloud](http://dotcloud.com) since 2010 and open-sourced in 2012. It features a dead-simple API for exposing any object or module over the network, and a powerful gevent implementation which supports multiple ZMQ socket types, streaming, heartbeats and more. It also includes a simple command-line tool for interactive querying and introspection. The platform team at dotCloud uses it in production to transmit millions of messages per day across hundreds of services.
+
+ZeroRPC uses ZMQ as a transport, but uses a communication protocol that is transport-agnostic. For a long time the reference documentation for that protocol was the python code itself. However since its recent surge in popularity many people have expressed interest in porting it to other programming languages. We hope that this standalone protocol documentation will help them.
+
+A short warning: ZeroRPC started as a simple tool to solve a simple problem. It was progressively refined and improved to satisfy the growing needs of the dotCloud platform. The emphasis is on practicality, robustness and operational simplicity - sometimes at the expense of formal elegance and optimizations. We will gladly welcome patches focused on the latter so long as they don't hurt the former.
+
+> The python implementation of zerorpc act as a reference for the whole
+> protocol.  New features and experiments are implemented and tested in this
+> version first.  This is also this implementation that is powering dotCloud's
+> infrastructure.
+
+## Layers
+
+Before diving into any details, let's divide ZeroRPC's protocol in three
+different layers:
+
+ 1. Wire (or transport) layer; a combination of ZMQ <http://www.zeromq.org/>
+    and msgpack <http://msgpack.org/>.
+ 2. Event (or message) layer; this is probably the most complex part, since
+    it handles heartbeat, multiplexing, and events.
+ 3. RPC layer; that's where you can find the notion of request and response.
+
+## Wire layer
+
+The wire layer is a combination of ZMQ and msgpack.
+
+The basics:
+
+ - A ZeroRPC server can listen on as many ZMQ sockets as you like. Actually,
+   a ZMQ socket can bind to multiple addresses. It can even *connect* to the
+   clients (think about it as a worker connecting to a hub), but there are
+   some limitations in that case (see below). ZeroRPC doesn't
+   have to do anything specific for that: ZMQ handles it automatically.
+ - A ZeroRPC client can connect to multiple ZeroRPC servers. However, it should
+   create a new ZMQ socket for each connection.
+
+Since ZeroRPC implements heartbeat and streaming, it expects a kind of
+persistent, end-to-end, connection between the client and the server.
+It means that we cannot use the load-balancing features built into ZMQ.
+Otherwise, the various messages composing a single conversation could
+end up in different places.
+
+That's why there are limitations when the server connects to the client:
+if there are multiple servers connecting to the same client, bad things
+will happen.
+
+> Note that the current implementation of ZeroRPC for Python doesn't implement
+> its own load-balancing (yet), and still uses one ZMQ socket for connecting to
+> many servers. You can still use ZMQ load-balancing if you accept to disable
+> heartbeat and don't use streamed responses.
+
+Every event from the event layer will be serialized with msgpack. 
+
+
+## Event layer
+
+The event layer is the most complex of all three layers. The majority of the
+code for the Python implementation deals with this layer.
+
+This layer provides:
+
+ - basic events;
+ - multiplexed channels, allowing concurrency.
+
+
+### Basic Events
+
+An event is a tuple (or array in JSON), containing in the following order:
+
+ 1. the event's header -> dictionary (or object in JSON)
+ 2. the event's names -> string
+ 3. the event's arguments -> any kind of value; but in practice, for backward
+    compatibility, it is recommended that this is a tuple (an empty one is OK).
+
+All events headers must contain an unique message id and the protocol version:
+
+	{
+		"message_id": "6ce9503a-bfb8-486a-ac79-e2ed225ace79",
+		"v": 3
+	}
+
+The message id should be unique for the lifetime of the connection between a
+client and a server.
+
+> It doesn't need to be an UUID, but again, for backward compatibility reasons,
+> it is better if it follows the UUID format.
+
+This document talks only about the version 3 of the protocol.
+
+> The Python implementation has a lot of backward compatibility code, to handle
+> communication between all three versions of the protocol.
+
+
+### Multiplexed Channels
+
+ - Each new event opens a new channel implicitly.
+ - The id of the new event will represent the channel id for the connection.
+ - Each consecutive event on a channel will have the header field "response_to"
+   set to the channel id:
+
+		{
+			"message_id": "6ce9503a-bfb8-486a-ac79-e2ed225ace79",
+			"response_to": "6636fb60-2bca-4ecb-8cb4-bbaaf174e9e6"
+		}
+
+#### Heartbeat
+
+Each part of a channel must send a heartbeat at regular intervals.
+
+The default heartbeat frequency is 5 seconds.
+
+> Note that technically, the heartbeat could be sitting on the connection level
+> instead of the channel level; but again, backward compatibility requires
+> to run it per channel at this point.
+
+The heartbeat is defined as follow:
+
+ - Event's name: '\_zpc\_hb'
+ - Event's args: null
+
+When no heartbeat even is received after 2 heartbeat intervals (so, 10s by default),
+we consider that the remote is lost.
+
+> The Python implementation raises the LostRemote exception, and even
+> manages to cancel a long-running task on a LostRemote. FIXME what does that mean?
+
+#### Buffering (or congestion control) on channels
+
+Both sides have a buffer for incoming messages on a channel. A peer can
+send an advisory message to the other end of the channel, to inform it of the
+size of its local buffer. This is a hint for the remote, to tell it "send me
+more data!"
+
+ - Event's name: '\_zpc\_more'
+ - Event's args: integer representing how many entries are available in the client's buffer. 
+
+FIXME WIP
+
+## RPC Layer
+
+In the first version of ZeroRPC, this was the main (and only) layer.
+Three kinds of events can occur at this layer: request (=function call),
+response (=function return), error (=exception). 
+
+Request:
+ 
+ - Event's name: string with the name of the method to call.
+ - Event's args: tuple of arguments for the method.
+
+Note: keyword arguments are not supported, because some languages don't
+support them. If you absolutely want to call functions with keyword
+arguments, you can use a wrapper; e.g. expose a function like
+"call_with_kwargs(function_name, args, kwargs)", where args is a list,
+and kwargs a dict. It might be an interesting idea to add such a
+helper function into ZeroRPC default methods (see below for definitions
+of existing default methods).
+
+Response:
+
+ - Event's name: string "OK"
+ - Event's args: tuple containing the returned value
+ 
+> Note that if the return value is a tuple, it is itself wrapped inside a
+> tuple - again, for backward compatibility reasons.
+
+FIXME - is [] equivalent to [null]?
+
+If an error occurs (either at the transport level, or if an uncaught
+exception is raised), we use the ERR event.
+
+ - Event's name: string "ERR"
+ - Event's args: tuple of 3 strings:
+ 	- Name of the error (it should be the exception class name, or another
+	  meaningful keyword).
+	- Human representation of the error (preferably in english).
+	- If possible a pretty printed traceback of the call stack when the error occured.
+
+> A future version of the protocol will probably add a structured version of the
+> traceback, allowing machine-to-machine stack walking and better cross-language
+> exception representation.
+
+
+### Default calls
+
+When exposing some code with ZeroRPC, a number of methods/functions are
+automatically added, to provide useful debugging and development tools.
+
+ - \_zerorpc\_ping() just answers with a pong message.
+ - \_zerorpc\_inspect() returns all the available calls, with their
+   signature and documentation.
+
+FIXME we should rather standardize about the basic introspection calls.
+
+
+### Streaming
+
+At the protocol level, streaming is straightforward. When a server wants
+to stream some data, instead of sending a "OK" message, it sends a "STREAM"
+message. The client will know that it needs to keep waiting for more.
+At the end of the sream, a "STREAM_DONE" message is expected.
+
+Formal definitions follow.
+
+Messages part of a stream:
+
+ - Event's name: string "STREAM"
+ - Event's args: tuple containing the streamed value
+ 
+When the STREAM reaches its end:
+
+ - Event's name: string "STREAM\_DONE"
+ - Event's args: null
+
+> The Python implementation represents a stream by an iterator on both sides.
+
+zerorpc
+=======
+
+.. image:: https://secure.travis-ci.org/dotcloud/zerorpc-python.png
+   :target: http://travis-ci.org/dotcloud/zerorpc-python
+
+Mailing list: zerorpc@googlegroups.com (https://groups.google.com/d/forum/zerorpc)
+
+
+zerorpc is a flexible RPC implementation based on zeromq and messagepack. 
+Service APIs exposed with zerorpc are called "zeroservices".
+
+zerorpc can be used programmatically or from the command-line. It comes
+with a convenient script, "zerorpc", allowing to:
+
+* expose Python modules without modifying a single line of code,
+* call those modules remotely through the command line.
+
+
+Create a server with a one-liner
+--------------------------------
+
+Let's see zerorpc in action with a simple example. In a first terminal,
+we will expose the Python "time" module::
+
+  $ zerorpc --server --bind tcp://*:1234 time
+
+.. note::
+   The bind address uses the zeromq address format. You are not limited
+   to TCP transport: you could as well specify ipc:///tmp/time to use
+   host-local sockets, for instance. "tcp://*:1234" is a short-hand to
+   "tcp://0.0.0.0:1234" and means "listen on TCP port 1234, accepting 
+   connections on all IP addresses".
+
+
+Call the server from the command-line
+-------------------------------------
+
+Now, in another terminal, call the exposed module::
+
+  $ zerorpc --client --connect tcp://127.0.0.1:1234 strftime %Y/%m/%d
+  Connecting to "tcp://127.0.0.1:1234"
+  "2011/03/07"
+
+Since the client usecase is the most common one, "--client" is the default
+parameter, and you can remove it safely::
+
+  $ zerorpc --connect tcp://127.0.0.1:1234 strftime %Y/%m/%d
+  Connecting to "tcp://127.0.0.1:1234"
+  "2011/03/07"
+
+Moreover, since the most common usecase is to *connect* (as opposed to *bind*)
+you can also omit "--connect"::
+
+  $ zerorpc tcp://127.0.0.1:1234 strftime %Y/%m/%d
+  Connecting to "tcp://127.0.0.1:1234"
+  "2011/03/07"
+
+
+See remote service documentation
+--------------------------------
+
+You can introspect the remote service; it happens automatically if you don't
+specify the name of the function you want to call::
+
+  $ zerorpc tcp://127.0.0.1:1234
+  Connecting to "tcp://127.0.0.1:1234"
+  tzset       tzset(zone)
+  ctime       ctime(seconds) -> string
+  clock       clock() -> floating point number
+  struct_time <undocumented>
+  time        time() -> floating point number
+  strptime    strptime(string, format) -> struct_time
+  gmtime      gmtime([seconds]) -> (tm_year, tm_mon, tm_mday, tm_hour, tm_min,
+  mktime      mktime(tuple) -> floating point number
+  sleep       sleep(seconds)
+  asctime     asctime([tuple]) -> string
+  strftime    strftime(format[, tuple]) -> string
+  localtime   localtime([seconds]) -> (tm_year,tm_mon,tm_mday,tm_hour,tm_min,
+
+
+Specifying non-string arguments
+-------------------------------
+
+Now, see what happens if we try to call a function expecting a non-string
+argument::
+
+  $ zerorpc tcp://127.0.0.1:1234 sleep 3
+  Connecting to "tcp://127.0.0.1:1234"
+  Traceback (most recent call last):
+  [...]
+  TypeError: a float is required
+
+That's because all command-line arguments are handled as strings. Don't worry,
+we can specify any kind of argument using JSON encoding::
+
+  $ zerorpc --json tcp://127.0.0.1:1234 sleep 3
+  Connecting to "tcp://127.0.0.1:1234"
+  [wait for 3 seconds...]
+  null
+
+
+zeroworkers: reversing bind and connect
+---------------------------------------
+
+Sometimes, you don't want your client to connect to the server; you want
+your server to act as a kind of worker, and connect to a hub or queue which
+will dispatch requests. You can achieve this by swapping "--bind" and
+"--connect"::
+
+  $ zerorpc --bind tcp://*:1234 strftime %Y/%m/%d
+
+We now have "something" wanting to call the "strftime" function, and waiting
+for a worker to connect to it. Let's start the worker::
+
+  $ zerorpc --server tcp://127.0.0.1:1234 time
+
+The worker will connect to the listening client and ask him "what should I 
+do?"; the client will send the "strftime" function call; the worker will
+execute it and return the result. The first program will display the
+local time and exit. The worker will remain running.
+
+
+Listening on multiple addresses
+-------------------------------
+
+What if you want to run the same server on multiple addresses? Just repeat
+the "--bind" option::
+
+  $ zerorpc --server --bind tcp://*:1234 --bind ipc:///tmp/time time
+
+You can then connect to it using either "zerorpc tcp://*:1234" or
+"zerorpc ipc:///tmp/time".
+
+Wait, there is more! You can even mix "--bind" and "--connect". That means
+that your server will wait for requests on a given address, *and* connect
+as a worker on another. Likewise, you can specify "--connect" multiple times,
+so your worker will connect to multiple queues. If a queue is not running,
+it won't affect the worker (that's the magic of zeromq).
+
+.. warning:: A client should probably not connect to multiple addresses!
+
+   Almost all other scenarios will work; but if you ask a client to connect
+   to multiple addresses, and at least one of them has no server at the end,
+   the client will ultimately block. A client can, however, bind multiple
+   addresses, and will dispatch requests to available workers. If you want
+   to connect to multiple remote servers for high availability purposes,
+   you insert something like HAProxy in the middle.
+
+
+Exposing a zeroservice programmatically
+---------------------------------------
+
+Of course, the command-line is simply a convenience wrapper for the zerorpc
+python API. Below are a few examples.
+
+Here's how to expose an object of your choice as a zeroservice::
+
+    class Cooler(object):
+        """ Various convenience methods to make things cooler. """
+
+        def add_man(self, sentence):
+            """ End a sentence with ", man!" to make it sound cooler, and
+            return the result. """
+            return sentence + ", man!"
+    
+        def add_42(self, n):
+            """ Add 42 to an integer argument to make it cooler, and return the
+            result. """
+            return n + 42
+    
+        def boat(self, sentence):
+            """ Replace a sentence with "I'm on a boat!", and return that,
+            because it's cooler. """
+            return "I'm on a boat!"
+    
+    import zerorpc
+    
+    s = zerorpc.Server(Cooler())
+    s.bind("tcp://0.0.0.0:4242")
+    s.run()
+
+Let's save this code to *cooler.py* and run it::
+
+  $ python cooler.py
+
+Now, in another terminal, let's try connecting to our awesome zeroservice::
+
+  $ zerorpc -j tcp://localhost:4242 add_42 1
+  43
+  $ zerorpc tcp://localhost:4242 add_man 'I own a mint-condition Volkswagen Golf'
+  "I own a mint-condition Volkswagen Golf, man!"
+  $ zerorpc tcp://localhost:4242 boat 'I own a mint-condition Volkswagen Golf, man!'
+  "I'm on a boat!"
+
+
+Congratulations! You have just made the World a little cooler with your first
+zeroservice, man!
+
+

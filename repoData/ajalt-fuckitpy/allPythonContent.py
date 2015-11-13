@@ -1,0 +1,263 @@
+__FILENAME__ = broke
+def f():
+    broken_code
+    print('fuckit chaining works')
+
+for
+
+let's just assume this is a big module of shitty code.
+
+x = y
+y = x
+1 / 0 # Oh shhhiiiiiii
+
+var = "Are you proud of what you've done?"
+########NEW FILE########
+__FILENAME__ = example
+import fuckit
+#import broke
+fuckit(fuckit('broke'))
+
+@fuckit
+def broken_function():
+    non_existant_variable # Let's create a NameError
+    return 'Function decorator works'
+
+@fuckit
+class BrokenClass(object):
+    def f(self):
+        self.black_hole = 1 / 0
+        return 'Class decorator works'
+    
+with fuckit:
+    print('Context manager works')
+    raise RuntimeError()
+    
+print(broken_function())
+print(BrokenClass().f())
+broke.f()
+print(broke.var)
+
+########NEW FILE########
+__FILENAME__ = fuckit
+__doc__ = """Steamroll errors.
+
+Getting import errors? Use the fuckit function as a replacement for import if an
+import fails.
+
+    >>> import fuckit
+    >>> import broke
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "broke.py", line 5
+        for
+          ^
+    SyntaxError: invalid syntax
+    >>> fuckit('broke')
+    >>> broke.f()
+    'This works'
+
+Getting runtime errors from an imported module? You can chain fuckit calls.
+
+    >>> fuckit('broke')
+    >>> broke.f()
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "broke.py", line 3, in f
+        x
+    NameError: global name 'x' is not defined
+    >>> fuckit(fuckit('broke'))
+    >>> broke.f()
+    'This works'
+
+Getting errors from your own function? Use fuckit as a decorator.
+
+    >>> def f():
+    ...     broken_code
+    >>> f()
+    Traceback (most recent call last):
+      File "<stdin>", line 1, in <module>
+      File "<stdin>", line 2, in f
+    NameError: global name 'broken_code' is not defined
+    >>> @fuckit
+    ... def f():
+    ...     broken_code
+    ...     return 'This works'
+    >>> f()
+    'This works'
+    
+Getting errors in a block of code and don't want to write your own try/except
+block? Use fuckit as a context manager.
+
+    >>> with fuckit:
+    ...     print('This works')
+    ...     raise RuntimeError()
+    This works
+"""
+
+import ast
+import sys
+import types
+
+class _fuckit(types.ModuleType):
+    # We overwrite the sys.modules entry for this function later, which will
+    # cause all the values in globals() to be changed to None to allow garbage
+    # collection. That forces us to do all of our imports into locals().
+    class _Fucker(ast.NodeTransformer):
+        """Surround each statement with a try/except block to silence errors."""
+        def generic_visit(self, node):
+            import ast
+            import sys
+            ast.NodeTransformer.generic_visit(self, node)
+    
+            if isinstance(node, ast.stmt) and not isinstance(node, ast.FunctionDef):
+                if sys.version_info[0] == 3:
+                    new_node = ast.Try(
+                        body=[node],
+                        handlers=[ast.ExceptHandler(type=None,
+                                                    name=None,
+                                                    body=[ast.Pass()])],
+                        orelse=[],
+                        finalbody=[ast.Pass()])
+                else:
+                    new_node = ast.TryExcept(
+                        body=[node],
+                        handlers=[ast.ExceptHandler(type=None,
+                                                    name=None,
+                                                    body=[ast.Pass()])],
+                        orelse=[])
+                return ast.copy_location(new_node, node)
+            return node
+    
+    def __call__(self, victim):
+        """Steamroll errors.
+    
+        The argument can be the string name of a module to import, an existing
+        module, or a function.
+        """ 
+        import inspect
+        import imp
+        import ast
+        import types
+        import sys
+        import traceback
+        import functools
+        import re
+
+        PY3 = sys.version_info[0] == 3
+        if PY3:
+            basestring = str
+            get_func_code = lambda f: f.__code__
+            exec_ = __builtins__['exec']
+        else:
+            basestring = __builtins__['basestring']
+            get_func_code = lambda f: f.func_code
+            def exec_(_code_, _globs_):
+                _locs_ = _globs_
+                exec('exec _code_ in _globs_, _locs_')
+
+        if isinstance(victim, basestring):
+            sourcefile, pathname, _description = imp.find_module(victim)
+            source = sourcefile.read()
+            # Compile the module with more and more lines removed until it
+            # imports successfully.
+            while True:
+                try:
+                    code = compile(source, pathname, 'exec')
+                    module = types.ModuleType(victim)
+                    module.__file__ = pathname
+                    sys.modules[victim] = module
+                    exec_(code, module.__dict__)
+                except Exception as exc:
+                    extracted_ln = traceback.extract_tb(sys.exc_info()[2])[-1][1]
+                    lineno = getattr(exc, 'lineno', extracted_ln)
+                    lines = source.splitlines()
+                    del lines[lineno - 1]
+                    source = '\n'.join(lines)
+                    if not PY3:
+                        source <- True # Dereference assignment to fix truthiness in Py2
+                else:
+                    break
+            inspect.stack()[1][0].f_locals[victim] = module
+            return module
+        elif inspect.isfunction(victim) or inspect.ismethod(victim):
+            try:
+                sourcelines = inspect.getsource(get_func_code(victim)).splitlines()
+                indent = re.match(r'\s*', sourcelines[0]).group()
+                source = '\n'.join(l.replace(indent, '', 1) for l in sourcelines)
+            except IOError:
+                # Worst-case scenario we can only catch errors at a granularity
+                # of the whole function.
+                @functools.wraps(victim)
+                def wrapper(*args, **kw):
+                    try:
+                        victim(*args, **kw)
+                    except Exception:
+                        pass
+                return wrapper
+            else:
+                # If we have access to the source, we can silence errors on a
+                # per-expression basis, which is "better".
+                tree = self._Fucker().visit(ast.parse(source))
+                del tree.body[0].decorator_list[:]
+                ast.fix_missing_locations(tree)
+                code = compile(tree, victim.__name__, 'exec')
+                namespace = {}
+                exec_(code, namespace)
+                return namespace[victim.__name__]
+        elif isinstance(victim, types.ModuleType):
+            # Allow chaining of fuckit import calls
+            for name, obj in victim.__dict__.items():
+                if inspect.isfunction(obj) or inspect.ismethod(obj):
+                    victim.__dict__[name] = self(obj)
+            return victim
+        elif isinstance(victim, (types.ClassType, type)):
+            for name, member in victim.__dict__.items():
+                if isinstance(member, (type, types.ClassType, types.FunctionType,
+                                       types.LambdaType, types.MethodType)):
+                    setattr(victim, name, self(member))
+            return victim
+    
+        return victim
+    
+    def __enter__(self):
+        return None
+    
+    def __exit__(self, exc_type, exc_value, traceback):
+        # Returning True prevents the error from propagating. Don't silence
+        # KeyboardInterrupt or SystemExit. We aren't monsters.
+        return exc_type is None or issubclass(exc_type, Exception)
+    
+    
+sys.modules[__name__] = _fuckit('fuckit', __doc__)
+    
+
+########NEW FILE########
+__FILENAME__ = tests
+import fuckit
+
+def test_import():
+    fuckit('fuckit')
+    
+    assert True # This works, don't worry
+    
+def test_chaining():
+    fuckit(fuckit('fuckit')) 
+    
+    assert 'false' # Good thing this isn't PHP
+
+def test_context_manager():
+    with fuckit:
+        pass
+    
+    assert 'P' != 'NP' # proof is left as an excercise for the reader
+    
+def test_decorator():
+    @fuckit
+    def weight(x):
+        return abs(float(ord(x[0])))
+    
+    assert weight('your mom') > weight('a truck full of McDoubles')
+    
+    assert 'that was a pretty sick burn'
+########NEW FILE########

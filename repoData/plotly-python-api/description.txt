@@ -1,0 +1,436 @@
+#Migrating from Plotly's Python API, 0.5 to 1.0:
+
+##Backwards Compatibility
+
+* import statements and module locations have changed
+* depreciated methods
+
+### careful, modules may have shifted during flight
+
+The functionality in within `plotly.plotly` has been moved to two locations:
+
+* plotly.plotly
+* plotly.tools
+
+Read on to see how this might affect you!
+
+### changed/moved/depreciated functionality
+
+Some functionality has moved, or has been altogether deleted. Here's the
+rundown of what got effected:
+
+| Name                       | Action         |
+| ------------------------   | -------------- |
+| `plotly.embed()`           | moved          |
+| `plotly.display()`         | depreciated    |
+| `plotly.signup()`          | depreciated    |
+| `plotly.plotly()`          | depreciated    |
+| `plotly.plotly.ion()`      | depreciated    |
+| `plotly.plotly.ioff()`     | depreciated    |
+| `plotly.plotly.plot()`     | moved/changed  |
+| `plotly.plotly.iplot()`    | moved/changed  |
+| `plotly.plotly.layout()`   | depreciated    |
+| `plotly.plotly.style()`    | depreciated    |
+| `plotly.stream.init()`     | depreciated    |
+| `plotly.stream.write()`    | moved          |
+| `plotly.stream.close()`    | moved          |
+
+###setting up credentials
+
+Previously, you began your Plotly session by creating a `plotly` instance that
+held your credentials. You can now choose to `sign_in` or if you've
+`set_credentials`, you do not even need to sign in any longer.
+
+```python
+
+# old way
+import plotly
+py = plotly.plotly('username', 'api_key')  # py is a `plotly` instance
+```
+
+```python
+
+# new way
+import plotly.plotly as py  # py is now a name for the plotly.plotly module
+py.sign_in('username', 'api_key')
+```
+
+See our guidebook for more information on logging in:
+
+
+###`plot` and `iplot` call signatures:
+
+
+```python
+
+# old way to make a plot
+import plotly
+py = plotly.plotly('username', 'api_key')
+py.plot(data, layout=layout, **plot_options)
+py.iplot(data, layout=layout, **plot_options)
+```
+
+```python
+
+# new way to make a plot
+import plotly.plotly as py
+py.sign_in('username', 'api_key')
+py.plot(data_or_figure, **plot_options)
+py.iplot(data_or_figure, **plot_options)
+```
+
+As before, `data` is a list of dictionary-like objects representing
+individual traces on a graph. However, `layout` has now been included with
+`data` in a new `figure` object:
+
+```python
+
+# you now send a figure dictionary
+figure = {'data':data, 'layout':layout}
+```
+
+All objects in the JSON structure you're creating can now be represented as
+actual Python classes.
+
+See our guidebook for more information on the plot functions:
+
+###'histogramx' and 'histogramy' are now just 'histogram'
+
+This is a change in the actual JSON, but this change also effects the Python
+API.
+
+```python
+
+# old way to make a histogram along the x-axis
+option1 = dict(type='histogramx', x=[1,2,2,1,5,...,1])
+option2 = dict(type='histogramy', y=[1,2,2,1,5,...,1])
+```
+
+```python
+
+# new way to make a histogram along the x-axis
+trace = dict(type='histogram', x=[1,2,2,1,5,...,1])
+```
+
+```python
+
+# old way to make a histogram along the y-axis
+option1 = dict(type='histogramx', x=[1,2,2,1,5,...,1], bardir='h')
+option2 = dict(type='histogramy', y=[1,2,2,1,5,...,1], bardir='h')
+```
+
+```python
+
+# new way to make a histogram along the x-axis
+trace = dict(type='histogram', y=[1,2,2,1,5,...,1])
+```
+
+`'x'` data is now *always* plotted with vertical bars and `'y'` data is now
+always plotted with horizontal bars. When you specify `'x'` *and* `'y'`,
+you can use `'orientation'` to select whether `'x'` or `'y'` will be plotted
+in their corresponding orientations.
+
+
+###specifying filename now causes `fileopt='overwrite'`
+
+Previously, to overwrite a file in your plotly account,
+you needed to specify both `'filename'` *and* `'fileopt'`. Now,
+if you specify a `'filename'` keyword argument when making a call to `plot()`
+or `iplot()`, `'fileopt'` will default to `'overwrite'`,
+and any existing plot with that filename will be overwritten.
+
+Simply specify *both* to set a filename, but not overwrite if that filename
+already exists.
+
+###`plotly.embed()` has moved, and call signature has changed
+
+```python
+
+# old way
+import plotly
+plotly.embed('https://plot.ly/~PythonAPI/67/numpy-boxes/')
+```
+
+```python
+
+# new way
+import plotly.tools as tls
+tls.embed('PythonAPI', 67)
+```
+Note that the location of this functionality has moved. More importantly,
+though, you now receive figure information from Plotly by specifying a
+case-insensitive string and a file_id number.
+
+
+###`plotly.display()` is now `plotly.tools.embed()`
+
+The `plotly.display()` function is depreciated and has been replaced with
+`potly.tools.embed()`.
+
+See the entry on `embed` for more details on new call signatures.
+
+###for types `'bar'` and `'histogram'`, `'bardir'` is now `'orientation'`
+
+In general, `'orientation'` now describes how x and y data relate to plots
+and can be used more broadly than in just `'histogram'` and `'bar'`. Note,
+however, the `'bardir'` still exists in `'layout'`.
+
+###`ion` and `ioff` have been depreciated, use `auto_open=True`
+
+Previously, you could set whether or not new plots created in Plotly from the
+API caused a new browser tab to open.
+
+By default it will open a new tab, to stop this, you should now use the
+`auto_open` keyword:
+
+```python
+
+import plotly.plotly as py
+py.plot(figure, auto_open=False)
+```
+
+###setting layout parameters
+
+`layout` is now a member of a *figure* dictionary. You declare
+layout options by setting keyword-value pairs in layout.
+
+There are two ways to update layout options.
+
+First, you can just add a `layout` dictionary into a new `figure` dictionary
+along with your data:
+
+```python
+
+data = []  # put your data here
+layout = {}  # set layout parameters here
+figure = dict(data=data, layout=layout)  # assemble figure here
+```
+
+Second, if you're using the new 'graph objects' this version of the api
+defines, you can use the `update` method on a figure instance, which has been
+redefined to allow nested updating. You *basically* treat all of the new
+graph objects as if they were dictionaries and lists.
+
+```python
+
+figure = Figure()  # auto-adds layout and data keys
+figure['data'] += []  # put your data here
+figure['layout'] = {}  # (option 1) set layout parameters here
+
+# additionally, you can update in these ways
+figure['layout'].update({})  # (option 2)
+figure['layout'].update(key1=val1, key2=val2, key3=val3)  # (option 3)
+```
+
+###style() has been depreciated
+
+All style parameters need to be declared within their resepctive objects.
+That is, layout styles must be declared within the layout dictionary and data
+object styles must be declared within their respective dictionaries.
+
+###`plotly.stream` is now `plotly.plotly.Stream`, core functionality remains.
+
+Aside from the class name being capitalized, the functionlity of the
+streaming class has improved. Run help(plotly.plotly.Stream) for more
+information.
+
+###`plotly.signup()` has been depreciated
+
+Users must signup initially at the plotly website, this can no longer be done
+through the Python API.
+
+###Axis and axis-references better support indexing
+
+Previously the initial `xaxis` key needed to be named `'xaxis'`. It can now
+be named `'xaxis1'`. Similarly references to this first axis used to required
+ `'x'`, but now allow `'x1'` to refer to the same axis.
+
+
+The Plotly Python Plotting Library lets you make collaborative, interactive, publication-quality graphs. 
+
+Main features for plotting are: 
+
+- Complete control over every aspect or your graph, including colors, size, font, layout, and styling.
+- Plotly can make line charts, scatter plots, histograms, 2D histograms, box plots, heatmaps, and error bars. Plotly also supports log axes, and date axes.
+- Data and graphs are always together.
+- Easily add data to plots, or stream your data in from elsewhere--the web or your Raspberry Pi.
+- A styling GUI. It is convenient to start off by making your graph with Python code, then style it how you want in the GUI. Thus, if you want to explore a different layout, graph type, or edit something, you can do so with the GUI instead editing code. The means it’s fast and easy to find out “how would this look if it were a [graph type]”? 
+- Save custom themes from graphs, then apply themes to new data. That way, you won’t need to re-make graphs with a similar styling again and again. 
+
+That means no more emailing data and spreadsheets around, having to download graphs or take static screenshots and put them in a deck or email you can’t access anymore. You can simply send a Plotly URL to your team, or share your project with them so you can edit together.
+
+Plotly also has a deep Python Integration:
+
+- Works with IPython (see https://github.com/plotly/IPython-plotly). 
+- Interactivity with Python shell (NumPy supported) on https://plot.ly.
+
+Extensive options for sharing and collaboration:
+
+- API graphing returns a URL that can easily be shared (e.g., https://plot.ly/~bchartoff/344/), and all graphs can be downloaded, exported, embedded, and shared for collaboration. 
+- Keep graphs private, share publicly with a URL, or share with your team. 
+- Invite others to collaborate with you and edit together.
+- Plotly sharing supports comments, so others can both comment on the graph and graph right where it lives
+- Embed graphs as an iframe--here’s an example in the Washington Post (wapo.st/10i6mhs)--or download graphs for articles, and include the URL in your graph. That way, others can go online to access your interactive graph and data.
+
+The Plotly Python Plotting Library lets you make collaborative, interactive, publication-quality graphs. 
+
+Main features for plotting are: 
+
+- Complete control over every aspect or your graph, including colors, size, font, layout, and styling.
+- Plotly can make line charts, scatter plots, histograms, 2D histograms, box plots, heatmaps, and error bars. Plotly also supports log axes, and date axes.
+- Data and graphs are always together.
+- Easily add data to plots, or stream your data in from elsewhere--the web or your Raspberry Pi.
+- A styling GUI. It is convenient to start off by making your graph with Python code, then style it how you want in the GUI. Thus, if you want to explore a different layout, graph type, or edit something, you can do so with the GUI instead editing code. The means it’s fast and easy to find out “how would this look if it were a [graph type]”? 
+- Save custom themes from graphs, then apply themes to new data. That way, you won’t need to re-make graphs with a similar styling again and again. 
+
+That means no more emailing data and spreadsheets around, having to download graphs or take static screenshots and put them in a deck or email you can’t access anymore. You can simply send a Plotly URL to your team, or share your project with them so you can edit together.
+
+Plotly also has a deep Python Integration:
+
+- Works with IPython (see https://github.com/plotly/IPython-plotly). 
+- Interactivity with Python shell (NumPy supported) on https://plot.ly.
+
+Extensive options for sharing and collaboration:
+
+- API graphing returns a URL that can easily be shared (e.g., https://plot.ly/~bchartoff/344/), and all graphs can be downloaded, exported, embedded, and shared for collaboration. 
+- Keep graphs private, share publicly with a URL, or share with your team. 
+- Invite others to collaborate with you and edit together.
+- Plotly sharing supports comments, so others can both comment on the graph and graph right where it lives
+- Embed graphs as an iframe--here’s an example in the Washington Post (wapo.st/10i6mhs)--or download graphs for articles, and include the URL in your graph. That way, others can go online to access your interactive graph and data.
+
+Plotly's Python-API
+===================
+
+#### Shareable, interactive, publication-quality plots in your web browser.
+
+###Nutshell
+
+Now you can download, design, and upload Plotly figures--all from Python.
+
+###Where to go from here
+
+* [Get started with our guide book!](http://nbviewer.ipython.org/github/plotly/python-user-guide/blob/master/s0_getting-started/s0_getting-started.ipynb)
+
+* Official docs: [https://plot.ly/python](https://plot.ly/python)
+
+###Get in touch
+
+- <feedback@plot.ly>
+- [@plotlygraphs](https://twitter.com/plotlygraphs)
+
+=======
+plotly:
+=======
+--------------------------
+It's all about the graphs.
+--------------------------
+
+The Nutshell
+~~~~~~~~~~~~
+
+Use this package to make collaborative, interactive,
+publication-quality graphs from Python.
+
+Here's how you import::
+
+    import plotly.plotly as py              # for sending things to plotly
+    import plotly.tools as tls              # for mpl, config, etc.
+    from plotly.graph_objs import *         # __all__ is safely defined
+
+Here's how you sign in::
+
+    py.sign_in('PythonAPI', 'ubpiol2cve')   # get your own at https://plot.ly/
+
+Here's how you plot data or a figure::
+
+    py.plot(data_or_figure_here)
+
+Here's what you get:
+
+* an account on plotly
+* a unique url for your data/figures
+* an interactive web-application to edit your figure or make new figures
+* a platform on which to share your data/figures with the world
+
+You can also convert supported matplotlib figures::
+
+    py.plot_mpl(mplfig)
+
+Stop fighting with your figures; start designing them. Check out our
+Quickstart_ to get going.
+
+
+About
+~~~~~
+
+Plotly_ is an online collaborative data analysis and graphing tool. The
+Python API allows you to access all of Plotly's functionality from Python.
+Plotly figures are shared, tracked, and edited all online and the data is
+always accessible from the graph.
+
+That's it. Find out more, sign up, and start sharing by visiting us at
+https://plot.ly.
+
+Install via pip
+~~~~~~~~~~~~~~~
+
+Assuming you have already installed pip, you can simply enter the following
+in a terminal program::
+
+    $ pip install plotly
+
+Contributing!
+~~~~~~~~~~~~~
+
+If you want to contribute to making Plotly's Python API experience better,
+head to our `GitHub repo`_. Instructions for installing from here,
+updating the included submodules, and contributing are detailed there!
+
+Plotly, matplotlib, and mpld3
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The matplotlylib sub-package allows you to convert matplotlib figures to
+plotly figures, with a one-liner::
+
+    py.plot_mpl(fig)
+
+Checkout the `Plotly and mpld3`_ IPython notebook for more infomataion.
+
+Introduction to working with out API
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Checkout the `Plotly and Python`_ IPython notebook to get a more in depth
+exposition of our Python API.
+
+Plotly's *guide book*
+~~~~~~~~~~~~~~~~~~~~~
+
+Still here? Don't worry, we've got more documentation for you. Checkout a
+*highly* complete `set of notebooks`_ for walk-throughs on all the features
+we offer!
+
+Details
+~~~~~~~
+
+The plotly package depends on requests, which will be installed by pip for you.
+
+To use the matplotlylib subpackage, you'll also need to have matplotlib 1.3.1
+properly installed on your machine.
+
+The matpotlylib package is based on the mplexporter framework for crawling
+and exporting matplotlib images.
+
+Created by: Plotly_, `@plotlygraphs`_, `feedback@plot.ly`_
+
+License: MIT
+
+.. _Plotly: https://plot.ly
+.. _Quickstart: https://plot.ly/python
+.. _GitHub repo: https://github.com/plotly/python-api
+.. _Plotly and mpld3: http://nbviewer.ipython.org/github/plotly/python-user-guide/blob/master/s6_matplotlylib/s6_matplotlylib.ipynb
+.. _Plotly and Python: http://nbviewer.ipython.org/github/plotly/python-user-guide/blob/master/s0_getting-started/s0_getting-started.ipynb
+.. _set of notebooks: http://nbviewer.ipython.org/github/plotly/python-user-guide/blob/master/s00_homepage/s00_homepage.ipynb
+.. _plotly profile: https://plot.ly/~mpld3/
+.. _@plotlygraphs: https://twitter.com/plotlygraphs
+.. _feedback@plot.ly: feedback@plot.ly
+

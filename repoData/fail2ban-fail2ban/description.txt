@@ -1,0 +1,413 @@
+Guidelines on Fail2Ban contributions
+====================================
+
+### You found a severe security vulnerability in Fail2Ban?
+email details to fail2ban-vulnerabilities at lists dot sourceforge dot net .
+
+### You need some new features, you found bugs?
+visit [Issues](https://github.com/fail2ban/fail2ban/issues)
+and if your issue is not yet known -- file a bug report. See
+[Fail2Ban wiki](http://www.fail2ban.org/wiki/index.php/HOWTO_Seek_Help)
+on further instructions.
+
+### You would like to troubleshoot or discuss?
+join the [mailing list](https://lists.sourceforge.net/lists/listinfo/fail2ban-users)
+
+### You would like to contribute (new filters/actions/code/documentation)?
+send a [pull request](https://github.com/fail2ban/fail2ban/pulls)
+
+
+Apache Auth.
+
+This directory contains the configuration file of Apache's Web Server to
+simulate authentication files.
+
+These assumed that /var/www/html is the web root and AllowOverides is "All".
+
+The subdirectories here are copied to the /var/www/html directory.
+
+Commands executed are in testcases/files/log/apache-auth with their
+corresponding failure mechanism.
+
+
+               __      _ _ ___ _               
+              / _|__ _(_) |_  ) |__  __ _ _ _  
+             |  _/ _` | | |/ /| '_ \/ _` | ' \ 
+             |_| \__,_|_|_/___|_.__/\__,_|_||_|
+
+=============================================================
+Fail2Ban (version 0.8.2)                           2008/03/06
+=============================================================
+
+Cacti is a graphing solution using RRDTool. It is possible to
+use Cacti to display statistics about Fail2ban.
+
+Installation:
+-------------
+
+1/ Install Fail2ban version 0.8 or higher and ensure that it
+   works properly.
+2/ The user running poller.php must have read and write
+   access to the socket used by Fail2ban.
+3/ Copy fail2ban_stats.sh to scripts/. You can test it with
+   bash scripts/fail2ban_stats.sh
+4/ Import the template cacti_host_template_fail2ban.xml
+5/ TO BE CONTINUED...
+
+Contact:
+--------
+
+You need some new features, you found bugs or you just
+appreciate this program, you can contact me at:
+
+Website: http://www.fail2ban.org
+
+Cyril Jaquier: <cyril.jaquier@fail2ban.org>
+
+License:
+--------
+
+Fail2Ban is free software; you can redistribute it
+and/or modify it under the terms of the GNU General Public
+License as published by the Free Software Foundation; either
+version 2 of the License, or (at your option) any later
+version.
+
+Fail2Ban is distributed in the hope that it will be
+useful, but WITHOUT ANY WARRANTY; without even the implied
+warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR
+PURPOSE.  See the GNU General Public License for more
+details.
+
+You should have received a copy of the GNU General Public
+License along with Fail2Ban; if not, write to the Free
+Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
+Boston, MA 02110, USA
+
+Description
+-----------
+This plugin checks if the fail2ban server is running and how many IPs are currently banned.
+You can use this plugin to monitor all the jails or just a specific jail.
+
+
+How to use
+----------
+Just have to run the following command:
+    $ ./check_fail2ban --help
+ 
+If you need to use this script with NRPE you just have to do the 
+following steps:
+
+1 allow your user to run the script with the sudo rights. Just add
+  something like that in your /etc/sudoers (use visudo) :
+        nagios ALL=(ALL) NOPASSWD: /<path-to>/check_fail2ban
+
+2 then just add this kind of line in your NRPE config file :
+  command[check_fail2ban]=/usr/bin/sudo /<path-to>/check_fail2ban
+
+3 don't forget to restart your NRPE daemon
+   
+/!\ be careful to let no one able to update the check_fail2ban ;)
+------------------------------------------------------------------------------
+
+
+Notes (from f2ban.txt)
+-----
+It seems that Fail2ban is currently not working, please login and check
+
+HELP:
+
+1.) stop the Service
+/etc/init.d/fail2ban stop
+
+2.) delete the socket if available
+rm /var/run/fail2ban/fail2ban.sock
+
+3.) start the Service 
+/etc/init.d/fail2ban start
+
+4.) check if fail2ban is working
+fail2ban-client ping
+Answer should be "pong"
+
+5.) if the answer is not "pong" run away or  CRY FOR HELP ;-)
+
+
+Help
+----
+
+Usage: /<path-to>/check_fail2ban [-p] [-D "CHECK FAIL2BAN ACTIVITY"] [-v] [-c 2] [-w 1] [-s /<path-to>/socket] [-P /usr/bin/fail2ban-client]
+
+Options:
+ -h, --help
+    Print detailed help screen
+ -V, --version
+    Print version information
+ -D, --display=STRING
+    To modify the output display 
+    default is "CHECK FAIL2BAN ACTIVITY"
+ -P, --path-fail2ban_client=STRING
+    Specify the path to the tw_cli binary
+    default value is /usr/bin/fail2ban-client
+ -c, --critical=INT
+    Specify a critical threshold
+    default is 2
+ -w, --warning=INT
+    Specify a warning threshold
+    default is 1
+ -s, --socket=STRING
+    Specify a socket path
+    default is unset
+ -p, --perfdata
+    If you want to activate the perfdata output
+ -v, --verbose
+    Show details for command-line debugging (Nagios may truncate the output)
+
+
+Example
+-------
+
+# for a specific jail
+$ ./check_fail2ban --verbose -p -j ssh -w 1 -c 5 -P /usr/bin/fail2ban-client
+DEBUG : fail2ban_client_path: /usr/bin/fail2ban-client
+DEBUG : /usr/bin/fail2ban-client exists and is executable
+DEBUG : final fail2ban command: /usr/bin/fail2ban-client
+DEBUG : warning threshold : 1, critical threshold : 5
+DEBUG : it seems the connection with the fail2ban server is ok
+CHECK FAIL2BAN ACTIVITY - OK - 0 current banned IP(s) for the specific jail ssh | currentBannedIP=0
+
+# for all the current jails
+$ ./check_fail2ban --verbose -p -w 1 -c 5 -P /usr/bin/fail2ban-client
+DEBUG : fail2ban_client_path: /usr/bin/fail2ban-client
+DEBUG : /usr/bin/fail2ban-client exists and is executable
+DEBUG : final fail2ban command: /usr/bin/fail2ban-client
+DEBUG : warning threshold : 1, critical threshold : 5
+DEBUG : it seems the connection with the fail2ban server is ok
+DEBUG : jails list: apache, ssh-ddos, ssh
+DEBUG : the jail apache has currently 0 banned IPs
+DEBUG : the jail ssh-ddos has currently 0 banned IPs
+DEBUG : the jail ssh has currently 0 banned IPs
+CHECK FAIL2BAN ACTIVITY - OK - 3 detected jails with 0 current banned IP(s) | currentBannedIP=0
+
+                         __      _ _ ___ _               
+                        / _|__ _(_) |_  ) |__  __ _ _ _  
+                       |  _/ _` | | |/ /| '_ \/ _` | ' \ 
+                       |_| \__,_|_|_/___|_.__/\__,_|_||_|
+                       v0.9.0                  2014/03/14
+
+## Fail2Ban: ban hosts that cause multiple authentication errors
+
+Fail2Ban scans log files like /var/log/pwdfail and bans IP that makes too many
+password failures. It updates firewall rules to reject the IP address. These
+rules can be defined by the user. Fail2Ban can read multiple log files such as
+sshd or Apache web server ones.
+
+Fail2Ban is able to reduce the rate of incorrect authentications attempts
+however it cannot eliminate the risk that weak authentication presents.
+Configure services to use only two factor or public/private authentication
+mechanisms if you really want to protect services.
+
+This README is a quick introduction to Fail2ban. More documentation, FAQ, HOWTOs
+are available in fail2ban(1) manpage and on the website http://www.fail2ban.org
+
+Installation:
+-------------
+
+**It is possible that Fail2ban is already packaged for your distribution.  In
+this case, you should use it instead.**
+
+Required:
+- [Python2 >= 2.6 or Python >= 3.2](http://www.python.org) or [PyPy](http://pypy.org)
+
+Optional:
+- [pyinotify >= 0.8.3](https://github.com/seb-m/pyinotify)
+  - Linux >= 2.6.13
+- [gamin >= 0.0.21](http://www.gnome.org/~veillard/gamin)
+- [systemd >= 204](http://www.freedesktop.org/wiki/Software/systemd)
+
+To install, just do:
+
+    tar xvfj fail2ban-0.9.0.tar.bz2
+    cd fail2ban-0.9.0
+    python setup.py install
+
+This will install Fail2Ban into the python library directory. The executable
+scripts are placed into /usr/bin, and configuration under /etc/fail2ban.
+
+Fail2Ban should be correctly installed now. Just type:
+
+    fail2ban-client -h
+
+to see if everything is alright. You should always use fail2ban-client and
+never call fail2ban-server directly.
+
+Configuration:
+--------------
+
+You can configure Fail2Ban using the files in /etc/fail2ban. It is possible to
+configure the server using commands sent to it by fail2ban-client. The
+available commands are described in the fail2ban-client(1) manpage.  Also see
+fail2ban(1) and jail.conf(5)  manpages for further references.
+
+Code status:
+------------
+
+* [![tests status](https://secure.travis-ci.org/fail2ban/fail2ban.png?branch=master)](https://travis-ci.org/fail2ban/fail2ban) travis-ci.org (master branch)
+
+* [![Coverage Status](https://coveralls.io/repos/fail2ban/fail2ban/badge.png?branch=master)](https://coveralls.io/r/fail2ban/fail2ban)
+
+Contact:
+--------
+
+### Bugs, feature requests, discussions?
+See [CONTRIBUTING.md](https://github.com/fail2ban/fail2ban/blob/master/CONTRIBUTING.md)
+
+### You just appreciate this program:
+send kudos to the original author ([Cyril Jaquier](mailto: Cyril Jaquier <cyril.jaquier@fail2ban.org>))
+or *better* to the [mailing list](https://lists.sourceforge.net/lists/listinfo/fail2ban-users)
+since Fail2Ban is "community-driven" for years now.
+
+Thanks:
+-------
+
+See [THANKS](https://github.com/fail2ban/fail2ban/blob/master/THANKS) file.
+
+License:
+--------
+
+Fail2Ban is free software; you can redistribute it and/or modify it under the
+terms of the GNU General Public License as published by the Free Software
+Foundation; either version 2 of the License, or (at your option) any later
+version.
+
+Fail2Ban is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See the GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License along with
+Fail2Ban; if not, write to the Free Software Foundation, Inc., 51 Franklin
+Street, Fifth Floor, Boston, MA 02110, USA
+
+# vim:tw=80:ft=txt
+
+README FOR SOLARIS INSTALLATIONS
+
+By Roy Sigurd Karlsbakk <roy@karlsbakk.net>
+
+ABOUT
+
+This README is meant for those wanting to install fail2ban on Solaris 10,
+OpenSolaris, OpenIndiana etc. To some degree it may as well be useful for
+users of older Solaris versions and Nexenta, but don't rely on it.
+
+READ ME FIRST
+
+If I use the term Solaris, I am talking about any Solaris dialect, that is, the
+official Sun/Oracle ones or derivatives. If I describe an OS as
+"OpenSolaris-based", it means it's either OpenSolaris, OpenIndiana or one of the
+other, but /not/ the Nexenta family, since this only uses the OpenSolaris/
+IllumOS kernel and not the userland. If I say Solaris 10, I mean Solaris 10 and
+perhaps, if you're lucky and have some good gods on your side, it may also apply
+to Solaris 9 or even 8 and hopefully in the new Solaris 11 whenever that may be
+released. Quoted lines of code, settings etc. are indented with two spaces.
+This does _not_ mean you should use that indentation, especially in config files
+where they can be harmful. Optional settings are prefixed with OPT: while
+required settings are prefixed with REQ:. If no prefix is found, regard it as a
+required setting.
+
+INSTALLATION ON SOLARIS
+
+The installation is straight forward on Solaris as well as on linux/bsd/etc.
+./setup.py install installs the general packages in /usr/bin on OpenSolaris-
+based distros or (at least on this box) under /usr/sfw/bin on Solaris 10. In
+the files/ directory you will find the file solaris-fail2ban.xml containing the
+Solaris service. To install this, run the following command as root (or with
+sudo):
+
+  svccfg import files/solaris-fail2ban.xml
+
+This should normally without giving an error. If you get an error, deal with it,
+and please post any relevant info (or fixes?) to the fail2ban mailing list.
+Next install the service handler - copy the script in and allow it to be executed:
+
+  cp files/solaris-svc-fail2ban /lib/svc/method/svc-fail2ban
+  chmod +x /lib/svc/method/svc-fail2ban
+
+CONFIGURE SYSLOG
+
+For some reason, a default Solaris installation does not log ssh login attempts,
+and since fail2ban works by monitoring logs, enabling this logging is rather
+important for it to work. To enable this, edit /etc/syslog.conf and add a line
+at the end:
+
+  auth.info					/var/adm/auth.log
+
+Save the file and exit, and run
+
+  touch /var/adm/auth.log
+
+The Solaris system logger will _not_ create a non-existing file. Now, restart
+the system logger.
+
+  svcadm restart system-log
+
+Try to ssh into localhost with ssh asdf@localhost and enter an invalid password.
+Make sure this is logged in the above file. When done, you may configure
+fail2ban.
+
+FAIL2BAN CONFIGURATION
+
+OPT: Create /etc/fail2ban/fail2ban.local containing:
+
+# Fail2Ban configuration file for logging fail2ban on Solaris
+#
+[Definition]
+
+logtarget = /var/adm/fail2ban.log
+
+
+REQ: Create /etc/fail2ban/jail.local containing:
+
+[ssh-tcpwrapper]
+
+enabled     = true
+filter      = sshd
+action      = hostsdeny[daemon_list=sshd]
+              sendmail-whois[name=SSH, dest=you@example.com]
+ignoreregex = for myuser from
+logpath     = /var/adm/auth.log
+
+Set the sendmail dest address to something useful or drop the line to stop it spamming you.
+Set 'myuser' to your username to avoid banning yourself or remove the line.
+
+START (OR RESTART) FAIL2BAN
+
+Enable the fail2ban service with
+
+  svcadm enable fail2ban
+
+When done, check that all services are running well
+
+  svcs -xv
+
+GOTCHAS AND FIXMES
+
+* It seems the installation may be starting fail2ban automatically. If this is
+  done, fail2ban will not start, but no errors will be returned from svcs
+  (above). Check if it's running with 'ps -ef | grep fail2ban' and manually kill
+  the PID if it is. Re-enable fail2ban and try again
+
+    svcadm disable fail2ban
+    svcadm enable fail2ban
+
+* If svcs -xv says that fail2ban failed to start or svcs says it's in maintenance mode
+  check /var/svc/log/network-fail2ban:default.log for clues.
+  Check permissions on /var/adm, /var/adm/auth.log /var/adm/fail2ban.log and /var/run/fail2ban
+  You may need to:
+
+  sudo mkdir /var/run/fail2ban
+
+* Fail2ban adds lines like these to /etc/hosts.deny:
+
+    sshd: 1.2.3.4
+

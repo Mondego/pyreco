@@ -1,0 +1,459 @@
+__FILENAME__ = soupselect
+"""
+soupselect.py
+
+CSS selector support for BeautifulSoup.
+
+soup = BeautifulSoup('<html>...')
+select(soup, 'div')
+- returns a list of div elements
+
+select(soup, 'div#main ul a')
+- returns a list of links inside a ul inside div#main
+
+"""
+
+import re
+
+tag_re = re.compile('^[a-z0-9]+$')
+
+attribselect_re = re.compile(
+    r'^(?P<tag>\w+)?\[(?P<attribute>[\w-]+)(?P<operator>[=~\|\^\$\*]?)' + 
+    r'=?"?(?P<value>[^\]"]*)"?\]$'
+)
+
+# /^(\w+)\[([\w-]+)([=~\|\^\$\*]?)=?"?([^\]"]*)"?\]$/
+#   \---/  \---/\-------------/    \-------/
+#     |      |         |               |
+#     |      |         |           The value
+#     |      |    ~,|,^,$,* or =
+#     |   Attribute 
+#    Tag
+
+def attribute_checker(operator, attribute, value=''):
+    """
+    Takes an operator, attribute and optional value; returns a function that
+    will return True for elements that match that combination.
+    """
+    return {
+        '=': lambda el: el.get(attribute) == value,
+        # attribute includes value as one of a set of space separated tokens
+        '~': lambda el: value in el.get(attribute, '').split(),
+        # attribute starts with value
+        '^': lambda el: el.get(attribute, '').startswith(value),
+        # attribute ends with value
+        '$': lambda el: el.get(attribute, '').endswith(value),
+        # attribute contains value
+        '*': lambda el: value in el.get(attribute, ''),
+        # attribute is either exactly value or starts with value-
+        '|': lambda el: el.get(attribute, '') == value \
+            or el.get(attribute, '').startswith('%s-' % value),
+    }.get(operator, lambda el: el.has_key(attribute))
+
+
+def select(soup, selector):
+    """
+    soup should be a BeautifulSoup instance; selector is a CSS selector 
+    specifying the elements you want to retrieve.
+    """
+    tokens = selector.split()
+    current_context = [soup]
+    for index, token in enumerate(tokens):
+        if tokens[index - 1] == '>':
+            # already found direct descendants in last step
+            continue
+
+        m = attribselect_re.match(token)
+        if m:
+            # Attribute selector
+            tag, attribute, operator, value = m.groups()
+            if not tag:
+                tag = True
+            checker = attribute_checker(operator, attribute, value)
+            found = []
+            for context in current_context:
+                found.extend([el for el in context.findAll(tag) if checker(el)])
+            current_context = found
+            continue
+
+        if '#' in token:
+            # ID selector
+            tag, id = token.split('#', 1)
+            if not tag:
+                tag = True
+            el = current_context[0].find(tag, {'id': id})
+            if not el:
+                return [] # No match
+            current_context = [el]
+            continue
+
+        if '.' in token:
+            # Class selector
+            tag, klass = token.split('.', 1)
+            if not tag:
+                tag = True
+            classes = set(klass.split('.'))
+            found = []
+            for context in current_context:
+                found.extend(
+                    context.findAll(tag,
+                        {'class': lambda attr:
+                             attr and classes.issubset(attr.split())}
+                    )
+                )
+            current_context = found
+            continue
+
+        if token == '*':
+            # Star selector
+            found = []
+            for context in current_context:
+                found.extend(context.findAll(True))
+            current_context = found
+            continue
+
+        if token == '>':
+            # Child selector
+            tag = tokens[index + 1]
+            if not tag:
+                tag = True
+
+            found = []
+            for context in current_context:
+                found.extend(context.findAll(tag, recursive=False))
+            current_context = found
+            continue
+
+        # Here we should just have a regular tag
+        if not tag_re.match(token):
+            return []
+        found = []
+        for context in current_context:
+            found.extend(context.findAll(token))
+        current_context = found
+    return current_context
+
+def monkeypatch(BeautifulSoupClass=None):
+    """
+    If you don't explicitly state the class to patch, defaults to the most 
+    common import location for BeautifulSoup.
+    """
+    if not BeautifulSoupClass:
+        from BeautifulSoup import BeautifulSoup as BeautifulSoupClass
+    BeautifulSoupClass.findSelect = select
+
+def unmonkeypatch(BeautifulSoupClass=None):
+    if not BeautifulSoupClass:
+        from BeautifulSoup import BeautifulSoup as BeautifulSoupClass
+    delattr(BeautifulSoupClass, 'findSelect')
+
+########NEW FILE########
+__FILENAME__ = soupselect_tests
+import unittest
+from BeautifulSoup import BeautifulSoup
+
+from soupselect import select, monkeypatch, unmonkeypatch
+
+class BaseTest(unittest.TestCase):
+    
+    def setUp(self):
+        self.soup = BeautifulSoup(HTML)
+    
+    def assertSelects(self, selector, expected_ids):
+        el_ids = [el['id'] for el in select(self.soup, selector)]
+        el_ids.sort()
+        expected_ids.sort()
+        self.assertEqual(expected_ids, el_ids,
+            "Selector %s, expected [%s], got [%s]" % (
+                selector, ', '.join(expected_ids), ', '.join(el_ids)
+            )
+        )
+    
+    assertSelect = assertSelects
+    
+    def assertSelectMultiple(self, *tests):
+        for selector, expected_ids in tests:
+            self.assertSelect(selector, expected_ids)
+
+class TestBasicSelectors(BaseTest):
+    
+    def test_one_tag_one(self):
+        els = select(self.soup, 'title')
+        self.assertEqual(len(els), 1)
+        self.assertEqual(els[0].name, 'title')
+        self.assertEqual(els[0].contents, [u'The title'])
+
+    def test_one_tag_many(self):
+        els = select(self.soup, 'div')
+        self.assertEqual(len(els), 3)
+        for div in els:
+            self.assertEqual(div.name, 'div')
+
+    def test_tag_in_tag_one(self):
+        els = select(self.soup, 'div div')
+        self.assertSelects('div div', ['inner'])
+
+    def test_tag_in_tag_many(self):
+        for selector in ('html div', 'html body div', 'body div'):
+            self.assertSelects(selector, ['main', 'inner', 'footer'])
+
+    def test_tag_no_match(self):
+        self.assertEqual(len(select(self.soup, 'del')), 0)
+
+    def test_invalid_tag(self):
+        self.assertEqual(len(select(self.soup, 'tag%t')), 0)
+
+    def test_header_tags(self):
+        self.assertSelectMultiple(
+            ('h1', ['header1']),
+            ('h2', ['header2', 'header3']),
+        )
+
+    def test_class_one(self):
+        for selector in ('.onep', 'p.onep', 'html p.onep'):
+            els = select(self.soup, selector)
+            self.assertEqual(len(els), 1)
+            self.assertEqual(els[0].name, 'p')
+            self.assertEqual(els[0]['class'], 'onep')
+
+    def test_class_mismatched_tag(self):
+        els = select(self.soup, 'div.onep')
+        self.assertEqual(len(els), 0)
+
+    def test_one_id(self):
+        for selector in ('div#inner', '#inner', 'div div#inner'):
+            self.assertSelects(selector, ['inner'])
+
+    def test_bad_id(self):
+        els = select(self.soup, '#doesnotexist')
+        self.assertEqual(len(els), 0)
+
+    def test_items_in_id(self):
+        els = select(self.soup, 'div#inner p')
+        self.assertEqual(len(els), 3)
+        for el in els:
+            self.assertEqual(el.name, 'p')
+        self.assertEqual(els[1]['class'], 'onep')
+        self.assert_(not els[0].has_key('class'))
+
+    def test_a_bunch_of_emptys(self):
+        for selector in ('div#main del', 'div#main div.oops', 'div div#main'):
+            self.assertEqual(len(select(self.soup, selector)), 0)
+
+    def test_multi_class_support(self):
+        for selector in ('.class1', 'p.class1', '.class2', 'p.class2',
+            '.class3', 'p.class3', 'html p.class2', 'div#inner .class2'):
+            self.assertSelects(selector, ['pmulti'])
+
+    def test_multi_class_selection(self):
+        for selector in ('.class1.class3', '.class3.class2',
+                         '.class1.class2.class3'):
+            self.assertSelects(selector, ['pmulti'])
+
+    def test_child_selector(self):
+        self.assertSelects('.s1 > a', ['s1a1', 's1a2'])
+        self.assertSelects('.s1 > a span', ['s1a2s1'])
+
+
+class TestAttributeSelectors(BaseTest):
+
+    def test_attribute_equals(self):
+        self.assertSelectMultiple(
+            ('p[class="onep"]', ['p1']),
+            ('p[id="p1"]', ['p1']),
+            ('[class="onep"]', ['p1']),
+            ('[id="p1"]', ['p1']),
+            ('link[rel="stylesheet"]', ['l1']),
+            ('link[type="text/css"]', ['l1']),
+            ('link[href="blah.css"]', ['l1']),
+            ('link[href="no-blah.css"]', []),
+            ('[rel="stylesheet"]', ['l1']),
+            ('[type="text/css"]', ['l1']),
+            ('[href="blah.css"]', ['l1']),
+            ('[href="no-blah.css"]', []),
+            ('p[href="no-blah.css"]', []),
+            ('[href="no-blah.css"]', []),        
+        )
+    
+    def test_attribute_tilde(self):
+        self.assertSelectMultiple(
+            ('p[class~="class1"]', ['pmulti']),
+            ('p[class~="class2"]', ['pmulti']),
+            ('p[class~="class3"]', ['pmulti']),
+            ('[class~="class1"]', ['pmulti']),
+            ('[class~="class2"]', ['pmulti']),
+            ('[class~="class3"]', ['pmulti']),
+            ('a[rel~="friend"]', ['bob']),
+            ('a[rel~="met"]', ['bob']),
+            ('[rel~="friend"]', ['bob']),
+            ('[rel~="met"]', ['bob']),
+        )
+
+    def test_attribute_startswith(self):
+        self.assertSelectMultiple(
+            ('[rel^="style"]', ['l1']),
+            ('link[rel^="style"]', ['l1']),
+            ('notlink[rel^="notstyle"]', []),
+            ('[rel^="notstyle"]', []),
+            ('link[rel^="notstyle"]', []),
+            ('link[href^="bla"]', ['l1']),
+            ('a[href^="http://"]', ['bob', 'me']),
+            ('[href^="http://"]', ['bob', 'me']),
+            ('[id^="p"]', ['pmulti', 'p1']),
+            ('[id^="m"]', ['me', 'main']),
+            ('div[id^="m"]', ['main']),
+            ('a[id^="m"]', ['me']),
+        )
+    
+    def test_attribute_endswith(self):
+        self.assertSelectMultiple(
+            ('[href$=".css"]', ['l1']),
+            ('link[href$=".css"]', ['l1']),
+            ('link[id$="1"]', ['l1']),
+            ('[id$="1"]', ['l1', 'p1', 'header1', 's1a1', 's2a1', 's1a2s1']),
+            ('div[id$="1"]', []),
+            ('[id$="noending"]', []),
+        )
+    
+    def test_attribute_contains(self):
+        self.assertSelectMultiple(
+            # From test_attribute_startswith
+            ('[rel*="style"]', ['l1']),
+            ('link[rel*="style"]', ['l1']),
+            ('notlink[rel*="notstyle"]', []),
+            ('[rel*="notstyle"]', []),
+            ('link[rel*="notstyle"]', []),
+            ('link[href*="bla"]', ['l1']),
+            ('a[href*="http://"]', ['bob', 'me']),
+            ('[href*="http://"]', ['bob', 'me']),
+            ('[id*="p"]', ['pmulti', 'p1']),
+            ('div[id*="m"]', ['main']),
+            ('a[id*="m"]', ['me']),
+            # From test_attribute_endswith
+            ('[href*=".css"]', ['l1']),
+            ('link[href*=".css"]', ['l1']),
+            ('link[id*="1"]', ['l1']),
+            ('[id*="1"]', ['l1', 'p1', 'header1', 's1a1', 's1a2', 's2a1', 's1a2s1']),
+            ('div[id*="1"]', []),
+            ('[id*="noending"]', []),
+            # New for this test
+            ('[href*="."]', ['bob', 'me', 'l1']),
+            ('a[href*="."]', ['bob', 'me']),
+            ('link[href*="."]', ['l1']),
+            ('div[id*="n"]', ['main', 'inner']),
+            ('div[id*="nn"]', ['inner']),
+        )
+    
+    def test_attribute_exact_or_hypen(self):
+        self.assertSelectMultiple(
+            ('p[lang|="en"]', ['lang-en', 'lang-en-gb', 'lang-en-us']),
+            ('[lang|="en"]', ['lang-en', 'lang-en-gb', 'lang-en-us']),
+            ('p[lang|="fr"]', ['lang-fr']),
+            ('p[lang|="gb"]', []),
+        )
+
+    def test_attribute_exists(self):
+        self.assertSelectMultiple(
+            ('[rel]', ['l1', 'bob', 'me']),
+            ('link[rel]', ['l1']),
+            ('a[rel]', ['bob', 'me']),
+            ('[lang]', ['lang-en', 'lang-en-gb', 'lang-en-us', 'lang-fr']),
+            ('p[class]', ['p1', 'pmulti']),
+            ('[blah]', []),
+            ('p[blah]', []),
+        )
+
+class TestMonkeyPatch(BaseTest):
+    
+    def assertSelectMultipleExplicit(self, soup, *tests):
+        for selector, expected_ids in tests:
+            el_ids = [el['id'] for el in soup.findSelect(selector)]
+            el_ids.sort()
+            expected_ids.sort()
+            self.assertEqual(expected_ids, el_ids,
+                "Selector %s, expected [%s], got [%s]" % (
+                    selector, ', '.join(expected_ids), ', '.join(el_ids)
+                )
+            )
+    
+    def test_monkeypatch_explicit(self):
+        soup = BeautifulSoup(HTML)
+        self.assertRaises(TypeError, soup.findSelect, '*')
+        
+        monkeypatch(BeautifulSoup)
+        
+        self.assert_(soup.findSelect('*'))
+        self.assertSelectMultipleExplicit(soup,
+            ('link', ['l1']),
+            ('div#main', ['main']),
+            ('div div', ['inner']),
+        )
+        
+        unmonkeypatch(BeautifulSoup)
+        
+        self.assertRaises(TypeError, soup.findSelect, '*')
+
+    def test_monkeypatch_implicit(self):
+        soup = BeautifulSoup(HTML)
+        self.assertRaises(TypeError, soup.findSelect, '*')
+
+        monkeypatch()
+
+        self.assert_(soup.findSelect('*'))
+        self.assertSelectMultipleExplicit(soup,
+            ('link', ['l1']),
+            ('div#main', ['main']),
+            ('div div', ['inner']),
+        )
+        
+        unmonkeypatch()
+        
+        self.assertRaises(TypeError, soup.findSelect, '*')
+
+
+HTML = """
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <title>The title</title>
+  <link rel="stylesheet" href="blah.css" type="text/css" id="l1">
+</head>
+<body>
+
+<div id="main">
+    <div id="inner">
+        <h1 id="header1">An H1</h1>
+        <p>Some text</p>
+        <p class="onep" id="p1">Some more text</p>
+        <h2 id="header2">An H2</h2>
+        <p class="class1 class2 class3" id="pmulti">Another</p>
+        <a href="http://bob.example.org/" rel="friend met" id="bob">Bob</a>
+        <h2 id="header3">Another H2</h2>
+        <a id="me" href="http://simonwillison.net/" rel="me">me</a>
+        <span class="s1">
+            <a href="#" id="s1a1">span1a1</a>
+            <a href="#" id="s1a2">span1a2 <span id="s1a2s1">test</span></a>
+            <span class="span2">
+                <a href="#" id="s2a1">span2a1</a>
+            </span>
+            <span class="span3"></span>
+        </span>
+    </div>
+    <p lang="en" id="lang-en">English</p>
+    <p lang="en-gb" id="lang-en-gb">English UK</p>
+    <p lang="en-us" id="lang-en-us">English US</p>
+    <p lang="fr" id="lang-fr">French</p>
+</div>
+
+<div id="footer">
+</div>
+
+</body>
+</html>
+"""
+
+if __name__ == '__main__':
+    unittest.main()
+
+########NEW FILE########

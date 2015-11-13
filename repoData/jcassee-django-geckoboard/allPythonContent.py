@@ -1,0 +1,1167 @@
+__FILENAME__ = decorators
+"""
+Geckoboard decorators.
+"""
+
+import base64
+from types import ListType, TupleType
+from xml.dom.minidom import Document
+
+try:
+    from Crypto.Cipher import AES
+    from Crypto import Random
+    from hashlib import md5
+    encryption_enabled = True
+except ImportError:
+    encryption_enabled = False
+
+try:
+    from functools import wraps
+except ImportError:
+    from django.utils.functional import wraps  # Python 2.4 fallback
+
+from django.conf import settings
+from django.http import HttpResponse, HttpResponseForbidden
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.datastructures import SortedDict
+from django.utils.decorators import available_attrs
+from django.utils import simplejson
+
+
+TEXT_NONE = 0
+TEXT_INFO = 2
+TEXT_WARN = 1
+
+
+class WidgetDecorator(object):
+    """
+    Geckoboard widget decorator.
+
+    The decorated view must return a data structure suitable for
+    serialization to XML or JSON for Geckoboard.  See the Geckoboard
+    API docs or the source of extending classes for details.
+
+    If the ``GECKOBOARD_API_KEY`` setting is used, the request must
+    contain the correct API key, or a 403 Forbidden response is
+    returned.
+
+    If the ``encrypted` argument is set to True, then the data will be 
+    encrypted using ``GECKOBOARD_PASSWORD`` (JSON only).
+    """
+    def __new__(cls, *args, **kwargs):
+        obj = object.__new__(cls)
+        obj._encrypted = None
+        if 'encrypted' in kwargs:
+            if not encryption_enabled:
+                raise GeckoboardException(
+                    'Use of encryption requires the pycrypto package. ' + \
+                    'This package can be installed manually or by enabling ' + \
+                    'the encryption feature during installation.'
+                )
+            obj._encrypted = kwargs.pop('encrypted')        
+        obj._format = None
+        if 'format' in kwargs:
+            obj._format = kwargs.pop('format')
+        obj.data = kwargs
+        try:
+            return obj(args[0])
+        except IndexError:
+            return obj
+
+    def __call__(self, view_func):
+        def _wrapped_view(request, *args, **kwargs):
+            if not _is_api_key_correct(request):
+                return HttpResponseForbidden("Geckoboard API key incorrect")
+            view_result = view_func(request, *args, **kwargs)
+            data = self._convert_view_result(view_result)
+            try:
+                self.data.update(data)
+            except ValueError:
+                self.data = data
+            content, content_type = _render(request, self.data, self._encrypted, self._format)
+            return HttpResponse(content, content_type=content_type)
+        wrapper = wraps(view_func, assigned=available_attrs(view_func))
+        return csrf_exempt(wrapper(_wrapped_view))
+
+    def _convert_view_result(self, data):
+        # Extending classes do view result mangling here.
+        return data
+
+widget = WidgetDecorator
+
+
+class NumberWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Number widget decorator.
+
+    The decorated view must return a tuple `(current, [previous])`, where
+    `current` is the current value and `previous` is the previous value
+    of the measured quantity..
+    """
+
+    def _convert_view_result(self, result):
+        if not isinstance(result, (tuple, list)):
+            result = [result]
+        result = list(result)
+        for k, v in enumerate(result):
+            result[k] = v if isinstance(v, dict) else {'value': v}
+        return {'item': result}
+
+number_widget = NumberWidgetDecorator
+
+
+class RAGWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Red-Amber-Green (RAG) widget decorator.
+
+    The decorated view must return a tuple with three tuples `(value,
+    [text])`.  The `value` parameters are the numbers shown in red,
+    amber and green (in that order).  The `text` parameters are optional
+    and will be displayed next to the respective values in the
+    dashboard.
+    """
+
+    def _convert_view_result(self, result):
+        items = []
+        for elem in result:
+            if not isinstance(elem, (tuple, list)):
+                elem = [elem]
+            item = SortedDict()
+            if elem[0] is None:
+                item['value'] = ''
+            else:
+                item['value'] = elem[0]
+            if len(elem) > 1:
+                item['text'] = elem[1]
+            items.append(item)
+        return {'item': items}
+
+rag_widget = RAGWidgetDecorator
+
+
+class TextWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Text widget decorator.
+
+    The decorated view must return a list of tuples `(message, [type])`.
+    The `message` parameters are strings that will be shown in the
+    widget.  The `type` parameters are optional and tell Geckoboard how
+    to annotate the messages.  Use ``TEXT_INFO`` for informational
+    messages, ``TEXT_WARN`` for for warnings and ``TEXT_NONE`` for plain
+    text (the default).
+    """
+
+    def _convert_view_result(self, result):
+        items = []
+        if not isinstance(result, (tuple, list)):
+            result = [result]
+        for elem in result:
+            if not isinstance(elem, (tuple, list)):
+                elem = [elem]
+            item = SortedDict()
+            item['text'] = elem[0]
+            if len(elem) > 1 and elem[1] is not None:
+                item['type'] = elem[1]
+            else:
+                item['type'] = TEXT_NONE
+            items.append(item)
+        return {'item': items}
+
+text_widget = TextWidgetDecorator
+
+
+class PieChartWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Pie chart decorator.
+
+    The decorated view must return a list of tuples `(value, label,
+    color)`.  The color parameter is a string 'RRGGBB[TT]' representing
+    red, green, blue and optionally transparency.
+    """
+
+    def _convert_view_result(self, result):
+        items = []
+        for elem in result:
+            if not isinstance(elem, (tuple, list)):
+                elem = [elem]
+            item = SortedDict()
+            item['value'] = elem[0]
+            if len(elem) > 1:
+                item['label'] = elem[1]
+            if len(elem) > 2:
+                item['colour'] = elem[2]
+            items.append(item)
+        return {'item': items}
+
+pie_chart = PieChartWidgetDecorator
+
+
+class LineChartWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Line chart decorator.
+
+    The decorated view must return a tuple `(values, x_axis, y_axis,
+    [color])`.  The `values` parameter is a list of data points.  The
+    `x-axis` parameter is a label string or a list of strings, that will
+    be placed on the X-axis.  The `y-axis` parameter works similarly for
+    the Y-axis.  If there are more than one axis label, they are placed
+    evenly along the axis.  The optional `color` parameter is a string
+    ``'RRGGBB[TT]'`` representing red, green, blue and optionally
+    transparency.
+    """
+
+    def _convert_view_result(self, result):
+        data = SortedDict()
+        data['item'] = list(result[0])
+        data['settings'] = SortedDict()
+
+        if len(result) > 1:
+            x_axis = result[1]
+            if x_axis is None:
+                x_axis = ''
+            if not isinstance(x_axis, (tuple, list)):
+                x_axis = [x_axis]
+            data['settings']['axisx'] = x_axis
+
+        if len(result) > 2:
+            y_axis = result[2]
+            if y_axis is None:
+                y_axis = ''
+            if not isinstance(y_axis, (tuple, list)):
+                y_axis = [y_axis]
+            data['settings']['axisy'] = y_axis
+
+        if len(result) > 3:
+            data['settings']['colour'] = result[3]
+
+        return data
+
+line_chart = LineChartWidgetDecorator
+
+
+class GeckOMeterWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Geck-O-Meter decorator.
+
+    The decorated view must return a tuple `(value, min, max)`.  The
+    `value` parameter represents the current value.  The `min` and `max`
+    parameters represent the minimum and maximum value respectively.
+    They are either a value, or a tuple `(value, text)`.  If used, the
+    `text` parameter will be displayed next to the minimum or maximum
+    value.
+    """
+
+    def _convert_view_result(self, result):
+        value, min, max = result
+        data = SortedDict()
+        data['item'] = value
+        data['max'] = SortedDict()
+        data['min'] = SortedDict()
+
+        if not isinstance(max, (tuple, list)):
+            max = [max]
+        data['max']['value'] = max[0]
+        if len(max) > 1:
+            data['max']['text'] = max[1]
+
+        if not isinstance(min, (tuple, list)):
+            min = [min]
+        data['min']['value'] = min[0]
+        if len(min) > 1:
+            data['min']['text'] = min[1]
+
+        return data
+
+geck_o_meter = GeckOMeterWidgetDecorator
+
+
+class FunnelWidgetDecorator(WidgetDecorator):
+    """
+    Geckoboard Funnel decorator.
+
+    The decorated view must return a dictionary with at least an `items`
+    entry: `{'items': [(100, '100 %'), (50, '50 %')]}`.
+
+    Optional keys are:
+
+        type:       'standard' (default) or 'reverse'. Determines the
+                    order of the colours.
+        percentage: 'show' (default) or 'hide'. Determines whether or
+                    not the percentage value is shown.
+        sort:       `False` (default) or `True`. Sort the entries by
+                    value or not.
+    """
+
+    def _convert_view_result(self, result):
+        data = SortedDict()
+        items = result.get('items', [])
+
+        # sort the items in order if so desired
+        if result.get('sort'):
+            items.sort(reverse=True)
+
+        data["item"] = [dict(zip(("value","label"), item)) for item in items]
+        data["type"] = result.get('type', 'standard')
+        data["percentage"] = result.get('percentage','show')
+        return data
+
+funnel = FunnelWidgetDecorator
+
+
+class BulletWidgetDecorator(WidgetDecorator):
+    """
+    See http://support.geckoboard.com/entries/274940-custom-chart-widget-type-definitions
+    for more information.
+
+    The decorated method must return a dictionary containing these keys:
+
+    Required keys:
+    label:          Main label, eg. "Revenue 2011 YTD".
+    axis_points:    Points on the axis, eg. [0, 200, 400, 600, 800, 1000].
+    current:        Current value range, eg. 500 or [100, 500]. A singleton
+                    500 is internally converted to [0, 500].
+    comparative:    Comparative value, eg. 600.
+
+    Optional keys:
+    orientation:    One of 'horizontal' or 'vertical'. Defaults to horizontal.
+    sublabel:       Appears below main label.
+    red:            Red start and end, eg. [0,100]. Defaults are calculated
+                    from axis_points.
+    amber:          Amber start and end, eg. [0,100]. Defaults are calculated
+                    from axis_points.
+    green:          Green start and end, eg. [0,100]. Defaults are calculated
+                    from axis_points.
+    projected:      Projected value range, eg. 900 or [100, 900]. A singleton
+                    900 is internally converted to [0, 900].
+
+    auto_scale:     If true then values will be scaled down if they
+                    do not fit into Geckoboard's UI, eg. a value of 1100
+                    is represented as 1.1. If scaling takes place the sublabel
+                    is suffixed with that information. Default is true.
+    """
+
+    def _convert_view_result(self, result):
+        # Check required keys. We do not do type checking since this level of
+        # competence is assumed.
+        for key in ('label', 'axis_points', 'current', 'comparative'):
+            if not result.has_key(key):
+                raise RuntimeError, "Key %s is required" % key
+
+        # Handle singleton current and projected
+        current = result['current']
+        projected = result.get('projected', None)
+        if not isinstance(current, (ListType, TupleType)):
+            current = [0, current]
+        if (projected is not None) and not isinstance(projected, (ListType,
+                TupleType)):
+            projected = [0, projected]
+
+        # If red, amber and green are not *all* supplied calculate defaults
+        axis_points = result['axis_points']
+        red = result.get('red', None)
+        amber = result.get('amber', None)
+        green = result.get('green', None)
+        if (red is None) or (amber is None) or (green is None):
+            if axis_points:
+                max_point = max(axis_points)
+                min_point = min(axis_points)
+                third = (max_point - min_point) / 3
+                red = (min_point, min_point + third - 1)
+                amber = (min_point + third, max_point - third - 1)
+                green = (max_point - third, max_point)
+            else:
+                red = amber = green = (0, 0)
+
+        # Scan axis points for largest value and scale to avoid overflow in
+        # Geckoboard's UI.
+        auto_scale = result.get('auto_scale', True)
+        if auto_scale and axis_points:
+            scale_label_map = {1000000000: 'billions', 1000000: 'millions',
+                    1000: 'thousands'}
+            scale = 1
+            value = max(axis_points)
+            for n in (1000000000, 1000000, 1000):
+                if value >= n:
+                    scale = n
+                    break
+
+            # Little fixedpoint helper.
+            # todo: use a fixedpoint library
+            def scaler(value, scale):
+                return float('%.2f' % (value*1.0 / scale))
+
+            # Apply scale to all values
+            if scale > 1:
+                axis_points = [scaler(v, scale) for v in axis_points]
+                current = (scaler(current[0], scale), scaler(current[1], scale))
+                if projected is not None:
+                    projected = (scaler(projected[0], scale),
+                            scaler(projected[1], scale))
+                red = (scaler(red[0], scale), scaler(red[1], scale))
+                amber = (scaler(amber[0], scale), scaler(amber[1], scale))
+                green = (scaler(green[0], scale), scaler(green[1], scale))
+                result['comparative'] = scaler(result['comparative'], scale)
+
+                # Suffix sublabel
+                sublabel = result.get('sublabel', '')
+                if sublabel:
+                    result['sublabel'] = '%s (%s)' % \
+                            (sublabel, scale_label_map[scale])
+                else:
+                    result['sublabel'] = scale_label_map[scale].capitalize()
+
+        # Assemble structure
+        data = dict(
+            orientation=result.get('orientation', 'horizontal'),
+            item=dict(
+                label=result['label'],
+                axis=dict(point=axis_points),
+                range=dict(
+                    red=dict(start=red[0], end=red[1]),
+                    amber=dict(start=amber[0], end=amber[1]),
+                    green=dict(start=green[0], end=green[1])
+                ),
+                measure=dict(current=dict(start=current[0], end=current[1])),
+                comparative=dict(point=result['comparative'])
+            )
+        )
+
+        # Add optional items
+        if result.has_key('sublabel'):
+            data['item']['sublabel'] = result['sublabel']
+        if projected is not None:
+            data['item']['measure']['projected'] = dict(start=projected[0],
+                    end=projected[1])
+
+        return data
+
+bullet = BulletWidgetDecorator
+
+
+def _is_api_key_correct(request):
+    """Return whether the Geckoboard API key on the request is correct."""
+    api_key = getattr(settings, 'GECKOBOARD_API_KEY', None)
+    if api_key is None:
+        return True
+    auth = request.META.get('HTTP_AUTHORIZATION', '').split()
+    if len(auth) == 2:
+        if auth[0].lower() == 'basic':
+            request_key = base64.b64decode(auth[1]).split(':')[0]
+            return request_key == api_key
+    return False
+
+def _derive_key_and_iv(password, salt, key_length, iv_length):
+    d = d_i = ''
+    while len(d) < key_length + iv_length:
+        d_i = md5(d_i + password + salt).digest()
+        d += d_i
+    return d[:key_length], d[key_length:key_length+iv_length]
+
+def _encrypt(data):
+    """Equivalent to OpenSSL using 256 bit AES in CBC mode"""
+    BS = AES.block_size
+    pad = lambda s: s + (BS - len(s) % BS) * chr(BS - len(s) % BS) 
+    password = settings.GECKOBOARD_PASSWORD
+    salt = Random.new().read(BS - len('Salted__'))
+    key, iv = _derive_key_and_iv(password, salt, 32, BS)
+    cipher = AES.new(key, AES.MODE_CBC, iv)
+    encrypted = 'Salted__' + salt + cipher.encrypt(pad(data))
+    return base64.b64encode(encrypted)
+
+def _render(request, data, encrypted, format=None):
+    """
+    Render the data to Geckoboard. If the `format` parameter is passed
+    to the widget it defines the output format. Otherwise the output
+    format is based on the `format` request parameter.
+
+    A `format` paramater of ``json`` or ``2`` renders JSON output, any
+    other value renders XML.
+    """
+    if not format:
+        format = request.POST.get('format', '')
+    if not format:
+        format = request.GET.get('format', '')
+    if format == 'json' or format == '2':
+        return _render_json(data, encrypted)
+    else:
+        return _render_xml(data, encrypted)
+
+def _render_json(data, encrypted=False):
+    data_json = simplejson.dumps(data)
+    if encrypted:
+        data_json = _encrypt(data_json)
+    return data_json, 'application/json'
+
+def _render_xml(data, encrypted=False):
+    if encrypted:
+        raise ValueError("encryption requested for XML output but unsupported")
+    doc = Document()
+    root = doc.createElement('root')
+    doc.appendChild(root)
+    _build_xml(doc, root, data)
+    return doc.toxml(), 'application/xml'
+
+def _build_xml(doc, parent, data):
+    if isinstance(data, (tuple, list)):
+        _build_list_xml(doc, parent, data)
+    elif isinstance(data, dict):
+        _build_dict_xml(doc, parent, data)
+    else:
+        _build_str_xml(doc, parent, data)
+
+def _build_str_xml(doc, parent, data):
+    parent.appendChild(doc.createTextNode(unicode(data)))
+
+def _build_list_xml(doc, parent, data):
+    for item in data:
+        _build_xml(doc, parent, item)
+
+def _build_dict_xml(doc, parent, data):
+    for tag, item in data.items():
+        if isinstance(item, (list, tuple)):
+            for subitem in item:
+                elem = doc.createElement(tag)
+                _build_xml(doc, elem, subitem)
+                parent.appendChild(elem)
+        else:
+            elem = doc.createElement(tag)
+            _build_xml(doc, elem, item)
+            parent.appendChild(elem)
+
+
+class GeckoboardException(Exception):
+    """
+    Represents an error with the Geckoboard decorators.
+    """
+
+########NEW FILE########
+__FILENAME__ = models
+# This file is necessary to make Django recognize it as an application.
+
+########NEW FILE########
+__FILENAME__ = settings
+"""
+django-geckoboard testing settings.
+"""
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': ':memory:',
+    }
+}
+
+INSTALLED_APPS = [
+    'django_geckoboard',
+]
+GECKOBOARD_PASSWORD = 'pass123'
+########NEW FILE########
+__FILENAME__ = test_decorators
+"""
+Tests for the Geckoboard decorators.
+"""
+
+import simplejson
+from django.http import HttpRequest, HttpResponseForbidden
+from django.utils.datastructures import SortedDict
+
+from django_geckoboard.decorators import widget, number_widget, rag_widget, \
+        text_widget, pie_chart, line_chart, geck_o_meter, TEXT_NONE, \
+        TEXT_INFO, TEXT_WARN, funnel, bullet
+from django_geckoboard.tests.utils import TestCase
+import base64
+
+
+class WidgetDecoratorTestCase(TestCase):
+    """
+    Tests for the ``widget`` decorator.
+    """
+
+    def setUp(self):
+        super(WidgetDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.xml_request = HttpRequest()
+        self.xml_request.POST['format'] = '1'
+        self.json_request = HttpRequest()
+        self.json_request.POST['format'] = '2'
+
+    def test_api_key(self):
+        self.settings_manager.set(GECKOBOARD_API_KEY='abc')
+        req = HttpRequest()
+        req.META['HTTP_AUTHORIZATION'] = "basic %s" % base64.b64encode('abc')
+        resp = widget(lambda r: "test")(req)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+
+    def test_missing_api_key(self):
+        self.settings_manager.set(GECKOBOARD_API_KEY='abc')
+        req = HttpRequest()
+        resp = widget(lambda r: "test")(req)
+        self.assertTrue(isinstance(resp, HttpResponseForbidden), resp)
+        self.assertEqual('Geckoboard API key incorrect', resp.content)
+
+    def test_wrong_api_key(self):
+        self.settings_manager.set(GECKOBOARD_API_KEY='abc')
+        req = HttpRequest()
+        req.META['HTTP_AUTHORIZATION'] = "basic %s" % base64.b64encode('def')
+        resp = widget(lambda r: "test")(req)
+        self.assertTrue(isinstance(resp, HttpResponseForbidden), resp)
+        self.assertEqual('Geckoboard API key incorrect', resp.content)
+
+    def test_xml_get(self):
+        req = HttpRequest()
+        resp = widget(format="xml")(lambda r: "test")(req)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/xml'))
+
+    def test_xml_parameter_get(self):
+        req = HttpRequest()
+        req.GET['format'] = '1'
+        resp = widget(lambda r: "test")(req)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/xml'))
+
+    def test_json_get(self):
+        req = HttpRequest()
+        resp = widget(format="json")(lambda r: "test")(req)
+        self.assertEqual('"test"', resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/json'))
+
+    def test_json_parameter_get(self):
+        req = HttpRequest()
+        req.GET['format'] = '2'
+        resp = widget(lambda r: "test")(req)
+        self.assertEqual('"test"', resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/json'))
+
+    def test_wrong_format(self):
+        req = HttpRequest()
+        resp = widget(format="csv")(lambda r: "test")(req)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/xml'))
+
+    def test_encrypted_xml_get(self):
+        req = HttpRequest()
+        req.GET['format'] = '1'
+        self.assertRaises(ValueError, widget(encrypted=True)(lambda r: "test"), req)
+
+    def test_encrypted_json_get(self):
+        req = HttpRequest()
+        req.GET['format'] = '2'
+        resp = widget(encrypted=True)(lambda r: "test")(req)
+        self.assertNotEqual('"test"', resp.content)
+        self.assertEqual(44, len(resp.content))
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/json'))
+
+    def test_xml_post(self):
+        req = HttpRequest()
+        req.POST['format'] = '1'
+        resp = widget(lambda r: "test")(req)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/xml'))
+
+    def test_json_post(self):
+        req = HttpRequest()
+        req.POST['format'] = '2'
+        resp = widget(lambda r: "test")(req)
+        self.assertEqual('"test"', resp.content)
+        self.assertEqual(resp._headers['content-type'], ('Content-Type', 'application/json'))
+
+    def test_scalar_xml(self):
+        resp = widget(lambda r: "test")(self.xml_request)
+        self.assertEqual('<?xml version="1.0" ?><root>test</root>',
+                resp.content)
+
+    def test_scalar_json(self):
+        resp = widget(lambda r: "test")(self.json_request)
+        self.assertEqual('"test"', resp.content)
+
+    def test_dict_xml(self):
+        resp = widget(lambda r: SortedDict([('a', 1),
+                ('b', 2)]))(self.xml_request)
+        self.assertEqual('<?xml version="1.0" ?><root><a>1</a><b>2</b></root>',
+                resp.content)
+
+    def test_dict_json(self):
+        resp = widget(lambda r: SortedDict([('a', 1),
+                ('b', 2)]))(self.json_request)
+        self.assertEqual('{"a": 1, "b": 2}', resp.content)
+
+    def test_list_xml(self):
+        resp = widget(lambda r: {'list': [1, 2, 3]})(self.xml_request)
+        self.assertEqual('<?xml version="1.0" ?><root><list>1</list>'
+                '<list>2</list><list>3</list></root>', resp.content)
+
+    def test_list_json(self):
+        resp = widget(lambda r: {'list': [1, 2, 3]})(self.json_request)
+        self.assertEqual('{"list": [1, 2, 3]}', resp.content)
+
+    def test_dict_list_xml(self):
+        resp = widget(lambda r: {'item': [{'value': 1, 'text': "test1"},
+                {'value': 2, 'text': "test2"}]})(self.xml_request)
+        self.assertEqual('<?xml version="1.0" ?><root>'
+                '<item><text>test1</text><value>1</value></item>'
+                '<item><text>test2</text><value>2</value></item></root>',
+                resp.content)
+
+    def test_dict_list_json(self):
+        resp = widget(lambda r: {'item': [SortedDict([('value', 1),
+                ('text', "test1")]), SortedDict([('value', 2), ('text',
+                        "test2")])]})(self.json_request)
+        self.assertEqual('{"item": [{"value": 1, "text": "test1"}, '
+                '{"value": 2, "text": "test2"}]}', resp.content)
+
+
+class NumberDecoratorTestCase(TestCase):
+    """
+    Tests for the ``number`` decorator.
+    """
+
+    def setUp(self):
+        super(NumberDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_scalar(self):
+        widget = number_widget(lambda r: 10)
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"value": 10}]}', resp.content)
+
+    def test_singe_value(self):
+        widget = number_widget(lambda r: [10])
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"value": 10}]}', resp.content)
+
+    def test_single_value_and_parameter(self):
+        widget = number_widget(absolute='true')(lambda r: [10])
+        resp = widget(self.request)
+        json = '{"item": [{"value": 10}], "absolute": "true"}'
+        self.assertEqual(json, resp.content)
+
+    def test_single_value_and_parameter_with_format(self):
+        # reset POST
+        del self.request.POST['format']
+        widget = number_widget(absolute='true', format="json")(lambda r: [10])
+        resp = widget(self.request)
+        json = '{"item": [{"value": 10}], "absolute": "true"}'
+        self.assertEqual(json, resp.content)
+
+    def test_single_value_as_dictionary(self):
+        widget = number_widget(lambda r: [{'value': 10}])
+        resp = widget(self.request)
+        json = '{"item": [{"value": 10}]}'
+        self.assertEqual(json, resp.content)
+
+    def test_single_value_as_dictionary_with_prefix(self):
+        widget = number_widget(lambda r: [{'value': 10, 'prefix': '$'}])
+        resp = widget(self.request)
+        json = '{"item": [{"prefix": "$", "value": 10}]}'
+        self.assertEqual(json, resp.content)
+
+    def test_two_values(self):
+        widget = number_widget(lambda r: [10, 9])
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"value": 10}, {"value": 9}]}',
+                resp.content)
+
+    def test_two_values_and_parameter(self):
+        widget = number_widget(absolute='true')(lambda r: [10, 9])
+        resp = widget(self.request)
+        json = '{"item": [{"value": 10}, {"value": 9}], "absolute": "true"}'
+        self.assertEqual(json, resp.content)
+
+    def test_two_values_as_dictionary(self):
+        widget = number_widget(lambda r: [{'value': 10}, {'value': 9}])
+        resp = widget(self.request)
+        json = '{"item": [{"value": 10}, {"value": 9}]}'
+        self.assertEqual(json, resp.content)
+
+    def test_two_values_as_dictionary_with_prefix(self):
+        widget = number_widget(lambda r: [{'value': 10, 'prefix': '$'}, {'value': 9}])
+        resp = widget(self.request)
+        json = '{"item": [{"prefix": "$", "value": 10}, {"value": 9}]}'
+        self.assertEqual(json, resp.content)
+
+
+class RAGDecoratorTestCase(TestCase):
+    """
+    Tests for the ``rag`` decorator.
+    """
+
+    def setUp(self):
+        super(RAGDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_scalars(self):
+        widget = rag_widget(lambda r: (10, 5, 1))
+        resp = widget(self.request)
+        self.assertEqual(
+                '{"item": [{"value": 10}, {"value": 5}, {"value": 1}]}',
+                resp.content)
+
+    def test_tuples(self):
+        widget = rag_widget(lambda r: ((10, "ten"), (5, "five"),
+                (1, "one")))
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"value": 10, "text": "ten"}, '
+                '{"value": 5, "text": "five"}, {"value": 1, "text": "one"}]}',
+                resp.content)
+
+
+class TextDecoratorTestCase(TestCase):
+    """
+    Tests for the ``text`` decorator.
+    """
+
+    def setUp(self):
+        super(TextDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_string(self):
+        widget = text_widget(lambda r: "test message")
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"text": "test message", "type": 0}]}',
+                resp.content)
+
+    def test_list(self):
+        widget = text_widget(lambda r: ["test1", "test2"])
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"text": "test1", "type": 0}, '
+                '{"text": "test2", "type": 0}]}', resp.content)
+
+    def test_list_tuples(self):
+        widget = text_widget(lambda r: [("test1", TEXT_NONE),
+                ("test2", TEXT_INFO), ("test3", TEXT_WARN)])
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"text": "test1", "type": 0}, '
+                '{"text": "test2", "type": 2}, '
+                '{"text": "test3", "type": 1}]}', resp.content)
+
+
+class PieChartDecoratorTestCase(TestCase):
+    """
+    Tests for the ``pie_chart`` decorator.
+    """
+
+    def setUp(self):
+        super(PieChartDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_scalars(self):
+        widget = pie_chart(lambda r: [1, 2, 3])
+        resp = widget(self.request)
+        self.assertEqual(
+                '{"item": [{"value": 1}, {"value": 2}, {"value": 3}]}',
+                resp.content)
+
+    def test_tuples(self):
+        widget = pie_chart(lambda r: [(1, ), (2, ), (3, )])
+        resp = widget(self.request)
+        self.assertEqual(
+                '{"item": [{"value": 1}, {"value": 2}, {"value": 3}]}',
+                resp.content)
+
+    def test_2tuples(self):
+        widget = pie_chart(lambda r: [(1, "one"), (2, "two"),
+                (3, "three")])
+        resp = widget(self.request)
+        self.assertEqual('{"item": [{"value": 1, "label": "one"}, '
+                '{"value": 2, "label": "two"}, '
+                '{"value": 3, "label": "three"}]}', resp.content)
+
+    def test_3tuples(self):
+        widget = pie_chart(lambda r: [(1, "one", "00112233"),
+                (2, "two", "44556677"), (3, "three", "8899aabb")])
+        resp = widget(self.request)
+        self.assertEqual('{"item": ['
+                '{"value": 1, "label": "one", "colour": "00112233"}, '
+                '{"value": 2, "label": "two", "colour": "44556677"}, '
+                '{"value": 3, "label": "three", "colour": "8899aabb"}]}',
+                resp.content)
+
+
+class LineChartDecoratorTestCase(TestCase):
+    """
+    Tests for the ``line_chart`` decorator.
+    """
+
+    def setUp(self):
+        super(LineChartDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_values(self):
+        widget = line_chart(lambda r: ([1, 2, 3],))
+        resp = widget(self.request)
+        self.assertEqual('{"item": [1, 2, 3], "settings": {}}', resp.content)
+
+    def test_x_axis(self):
+        widget = line_chart(lambda r: ([1, 2, 3],
+                ["first", "last"]))
+        resp = widget(self.request)
+        self.assertEqual('{"item": [1, 2, 3], '
+                '"settings": {"axisx": ["first", "last"]}}', resp.content)
+
+    def test_axes(self):
+        widget = line_chart(lambda r: ([1, 2, 3],
+                ["first", "last"], ["low", "high"]))
+        resp = widget(self.request)
+        self.assertEqual('{"item": [1, 2, 3], "settings": '
+                '{"axisx": ["first", "last"], "axisy": ["low", "high"]}}',
+                resp.content)
+
+    def test_color(self):
+        widget = line_chart(lambda r: ([1, 2, 3],
+                ["first", "last"], ["low", "high"], "00112233"))
+        resp = widget(self.request)
+        self.assertEqual('{"item": [1, 2, 3], "settings": '
+                '{"axisx": ["first", "last"], "axisy": ["low", "high"], '
+                '"colour": "00112233"}}', resp.content)
+
+
+class GeckOMeterDecoratorTestCase(TestCase):
+    """
+    Tests for the ``line_chart`` decorator.
+    """
+
+    def setUp(self):
+        super(GeckOMeterDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+
+    def test_scalars(self):
+        widget = geck_o_meter(lambda r: (2, 1, 3))
+        resp = widget(self.request)
+        self.assertEqual('{"item": 2, "max": {"value": 3}, '
+                '"min": {"value": 1}}', resp.content)
+
+    def test_tuples(self):
+        widget = geck_o_meter(lambda r: (2, (1, "min"), (3, "max")))
+        resp = widget(self.request)
+        self.assertEqual('{"item": 2, "max": {"value": 3, "text": "max"}, '
+                '"min": {"value": 1, "text": "min"}}', resp.content)
+
+
+class FunnelDecoratorTestCase(TestCase):
+    """
+    Tests for the ``funnel`` decorator
+    """
+
+    def setUp(self):
+        super(FunnelDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+        self.funnel_data = {
+            "items":[
+                (50, 'step 2'),
+                (100, 'step 1'),
+            ],
+            "type": "reverse",
+            "percentage": "hide"
+        }
+        self.funnel_json = {
+            "items":[
+                {"value": 50, "label": "step 2"},
+                {"value": 100, "label": "step 1"},
+            ],
+            "type": "reverse",
+            "percentage": "hide"
+        }
+
+    def test_funnel(self):
+        widget = funnel(lambda r: self.funnel_data)
+        resp = widget(self.request)
+        json = simplejson.loads(resp.content)
+        data = {
+            'type': 'reverse',
+            'percentage': 'hide',
+            'item': [
+                {'value': 50, 'label': 'step 2'},
+                {'value': 100, 'label': 'step 1'},
+            ],
+        }
+        self.assertEqual(json, data)
+
+    def test_funnel_sorting(self):
+        sortable_data = self.funnel_data
+        sortable_data.update({
+            'sort': True
+        })
+        widget = funnel(lambda r: sortable_data)
+        resp = widget(self.request)
+        json = simplejson.loads(resp.content)
+        data = {
+            'type': 'reverse',
+            'percentage': 'hide',
+            'item': [
+                {'value': 100, 'label': 'step 1'},
+                {'value': 50, 'label': 'step 2'},
+            ],
+        }
+        self.assertEqual(json, data)
+
+
+class BulletDecoratorTestCase(TestCase):
+    """
+    Tests for the ``bullet`` decorator
+    """
+
+    def setUp(self):
+        super(BulletDecoratorTestCase, self).setUp()
+        self.settings_manager.delete('GECKOBOARD_API_KEY')
+        self.request = HttpRequest()
+        self.request.POST['format'] = '2'
+        self.bullet_data_minimal = {
+            'label':'Some label',
+            'axis_points':[0, 200, 400, 600, 800, 1000],
+            'current':500,
+            'comparative':600,
+            'auto_scale':False,
+        }
+
+    def test_bullet_minimal(self):
+        """Minimal set of parameters. Some values are computed by the decorator."""
+        widget = bullet(lambda r: self.bullet_data_minimal)
+        resp = widget(self.request)
+        # Parse
+        data = simplejson.loads(resp.content)
+        # Alias for readability
+        item = data['item']
+        # Tests
+        self.assertEqual(data['orientation'], 'horizontal')
+        self.assertEqual(item['label'], "Some label")
+        self.assertEqual(item['axis']['point'], [0, 200, 400, 600, 800, 1000])
+        self.assertEqual(item['measure']['current']['start'], 0)
+        self.assertEqual(item['measure']['current']['end'], 500)
+        self.assertEqual(item['comparative']['point'], 600)
+        self.assertEqual(item['range']['red']['start'], 0)
+        self.assertEqual(item['range']['red']['end'], 332)
+        self.assertEqual(item['range']['amber']['start'], 333)
+        self.assertEqual(item['range']['amber']['end'], 666)
+        self.assertEqual(item['range']['green']['start'], 667)
+        self.assertEqual(item['range']['green']['end'], 1000)
+
+    def test_auto_scale(self):
+        bullet_data = self.bullet_data_minimal.copy()
+        bullet_data['auto_scale'] = True
+        widget = bullet(lambda r: bullet_data)
+
+        resp = widget(self.request)
+        # Parse
+        data = simplejson.loads(resp.content)
+        # Alias for readability
+        item = data['item']
+        # Tests
+        self.assertEqual(data['orientation'], 'horizontal')
+        self.assertEqual(item['label'], "Some label")
+        self.assertEqual(item['axis']['point'], [0, 0.2, 0.4, 0.6, 0.8, 1.0])
+        self.assertEqual(item['measure']['current']['start'], 0)
+        self.assertEqual(item['measure']['current']['end'], 0.5)
+        self.assertEqual(item['comparative']['point'], 0.6)
+        self.assertEqual(item['range']['red']['start'], 0)
+        self.assertEqual(item['range']['red']['end'], .33)
+        self.assertEqual(item['range']['amber']['start'], .33)
+        self.assertEqual(item['range']['amber']['end'], .67)
+        self.assertEqual(item['range']['green']['start'], .67)
+        self.assertEqual(item['range']['green']['end'], 1.0)
+
+########NEW FILE########
+__FILENAME__ = utils
+"""
+Testing utilities.
+"""
+
+from django.conf import settings
+from django.core.management import call_command
+from django.db.models import loading
+from django.test.utils import get_runner, setup_test_environment
+from django.test.testcases import TestCase as DjangoTestCase
+
+
+def run_tests(labels=()):
+    """
+    Use the Django test runner to run the tests.
+    """
+    setup_test_environment()
+    TestRunner = get_runner(settings)
+    test_runner = TestRunner(verbosity=1, interactive=True)
+    return test_runner.run_tests(None)
+
+
+class TestCase(DjangoTestCase):
+    """
+    Base test case for the django-analytical tests.
+
+    Includes the settings manager.
+    """
+
+    def setUp(self):
+        self.settings_manager = TestSettingsManager()
+
+    def tearDown(self):
+        self.settings_manager.revert()
+
+
+class TestSettingsManager(object):
+    """
+    From: http://www.djangosnippets.org/snippets/1011/
+
+    A class which can modify some Django settings temporarily for a
+    test and then revert them to their original values later.
+
+    Automatically handles resyncing the DB if INSTALLED_APPS is
+    modified.
+    """
+
+    NO_SETTING = ('!', None)
+
+    def __init__(self):
+        self._original_settings = {}
+
+    def set(self, **kwargs):
+        for k, v in kwargs.iteritems():
+            self._original_settings.setdefault(k, getattr(settings, k,
+                    self.NO_SETTING))
+            setattr(settings, k, v)
+        if 'INSTALLED_APPS' in kwargs:
+            self.syncdb()
+
+    def delete(self, *args):
+        for k in args:
+            try:
+                self._original_settings.setdefault(k, getattr(settings, k,
+                        self.NO_SETTING))
+                delattr(settings, k)
+            except AttributeError:
+                pass  # setting did not exist
+
+    def syncdb(self):
+        loading.cache.loaded = False
+        call_command('syncdb', verbosity=0, interactive=False)
+
+    def revert(self):
+        for k,v in self._original_settings.iteritems():
+            if v == self.NO_SETTING:
+                if hasattr(settings, k):
+                    delattr(settings, k)
+            else:
+                setattr(settings, k, v)
+        if 'INSTALLED_APPS' in self._original_settings:
+            self.syncdb()
+        self._original_settings = {}
+
+########NEW FILE########

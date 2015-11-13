@@ -1,0 +1,616 @@
+# HamlPy
+
+HamlPy (pronounced "haml pie") is a tool for Django developers who want to use a Haml like syntax for their templates.
+HamlPy is not a template engine in itself but simply a compiler which will convert HamlPy files into templates that Django can understand.
+
+
+But wait, what is Haml?  Haml is an incredible template engine written in Ruby used a lot in the Rails community.  You can read more about it [here](http://www.haml-lang.com "Haml Home").
+
+## Installing
+
+### Stable release
+
+The latest stable version of HamlPy can be installed using [setuptools](http://pypi.python.org/pypi/setuptools/) `easy_install hamlpy` or  [pip](http://pypi.python.org/pypi/pip/) (`pip install hamlpy`)
+
+### Development
+
+The latest development version can be installed directly from GitHub:
+
+    pip install https://github.com/jessemiller/HamlPy/tarball/master
+
+## Syntax
+
+Almost all of the XHTML syntax of Haml is preserved.  
+
+	#profile
+		.left.column
+			#date 2010/02/18
+			#address Toronto, ON
+		.right.column
+			#bio Jesse Miller
+			
+turns into..
+
+	<div id='profile'>
+		<div class='left column'>
+			<div id='date'>2010/02/18</div>
+			<div id='address'>Toronto, ON</div>
+		</div>
+		<div class='right column'>
+			<div id='bio'>Jesse Miller</div>
+		</div>
+	</div>
+	
+
+The main difference is instead of interpreting Ruby, or even Python we instead can create Django Tags and Variables
+
+	%ul#athletes
+		- for athlete in athlete_list
+			%li.athlete{'id': 'athlete_{{ athlete.pk }}'}= athlete.name
+
+turns into..
+
+	<ul id='athletes'>
+		{% for athlete in athlete_list %}
+			<li class='athlete' id='athlete_{{ athlete.pk }}'>{{ athlete.name }}</li>
+		{% endfor %}
+	</ul>
+
+## Usage
+
+### Option 1: Template loader
+
+The template loader was originally written by [Chris Hartjes](https://github.com/chartjes) under the name 'djaml'. This project has now been merged into the HamlPy codebase.
+
+Add the HamlPy template loaders to the Django template loaders:
+
+    TEMPLATE_LOADERS = (
+	    'hamlpy.template.loaders.HamlPyFilesystemLoader',
+	    'hamlpy.template.loaders.HamlPyAppDirectoriesLoader',   
+        ...
+    )
+
+If you don't put the HamlPy template loader first, then the standard Django template loaders will try to process
+it first. Make sure your templates have a `.haml` or `.hamlpy` extension, and put them wherever you've told Django
+to expect to find templates (TEMPLATE_DIRS).
+
+#### Template caching
+
+For caching, just add `django.template.loaders.cached.Loader` to your TEMPLATE_LOADERS:
+
+	TEMPLATE_LOADERS = (
+	    ('django.template.loaders.cached.Loader', (
+		    'hamlpy.template.loaders.HamlPyFilesystemLoader',
+		    'hamlpy.template.loaders.HamlPyAppDirectoriesLoader',
+		    ...
+	    )),   
+	)
+
+#### Settings
+
+Following values in Django settings affect haml processing:
+
+  * `HAMLPY_ATTR_WRAPPER` -- The character that should wrap element attributes. This defaults to ' (an apostrophe).
+
+### Option 2: Watcher 
+
+HamlPy can also be used as a stand-alone program. There is a script which will watch for changed hamlpy extensions and regenerate the html as they are edited:
+
+
+        usage: hamlpy-watcher [-h] [-v] [-i EXT [EXT ...]] [-ext EXT] [-r S]
+                            [--tag TAG] [--attr-wrapper {",'}]
+                            input_dir [output_dir]
+
+        positional arguments:
+        input_dir             Folder to watch
+        output_dir            Destination folder
+
+        optional arguments:
+        -h, --help            show this help message and exit
+        -v, --verbose         Display verbose output
+        -i EXT [EXT ...], --input-extension EXT [EXT ...]
+                                The file extensions to look for
+        -ext EXT, --extension EXT
+                                The output file extension. Default is .html
+        -r S, --refresh S     Refresh interval for files. Default is 3 seconds
+        --tag TAG             Add self closing tag. eg. --tag macro:endmacro
+        --attr-wrapper {",'}  The character that should wrap element attributes.
+                                This defaults to ' (an apostrophe).
+        --jinja               Makes the necessary changes to be used with Jinja2
+
+Or to simply convert a file and output the result to your console:
+
+	hamlpy inputFile.haml
+	
+Or you can have it dump to a file:
+
+	hamlpy inputFile.haml outputFile.html
+
+Optionally, `--attr-wrapper` can be specified:
+
+    hamlpy inputFile.haml --attr-wrapper='"'
+
+Using the `--jinja` compatibility option adds macro and call tags, and changes the `empty` node in the `for` tag to `else`.
+
+For HamlPy developers, the `-d` switch can be used with `hamlpy` to debug the internal tree structure.
+	
+### Create message files for translation
+
+There is a very simple solution.
+
+	django-admin.py makemessages --settings=<project.settings> -a
+	
+Where:
+
+  * project.settings -- Django configuration file where  module "hamlpy" is configured properly.
+	
+## Reference
+
+Check out the [reference.md](http://github.com/jessemiller/HamlPy/blob/master/reference.md "HamlPy Reference") file for a complete reference and more examples.
+
+## Status
+
+HamlPy currently:
+
+- has no configuration file.  which it should for a few reasons, like turning off what is autoescaped for example
+- does not support some of the filters yet
+
+## Contributing
+
+Very happy to have contributions to this project. Please write tests for any new features and always ensure the current tests pass. You can run the tests from the **hamlpy/test** folder using nosetests by typing
+
+    nosetests *.py
+
+# HamlPy Reference
+
+# Table of Contents
+
+- [Plain Text](#plain-text)
+- [Doctype](#doctype)
+- [HTML Elements](#html-elements)
+	- [Element Name: %](#element-name-)
+	- [Attributes: {}](#attributes-)
+		- [Attributes without values (Boolean attributes)](#attributes-without-values-boolean-attributes)
+		- ['class' and 'id' attributes](#class-and-id-attributes)
+	- [Class and ID: . and #](#class-and-id--and-)
+		- [Implicit div elements](#implicit-div-elements)
+	- [Self-Closing Tags: /](#self-closing-tags-)
+- [Comments](#comments)
+	- [HTML Comments /](#html-comments-)
+	- [Conditional Comments /[]](#conditional-comments-)
+	- [HamlPy Comments: -#](#hamlpy-comments--)
+- [Django Specific Elements](#django-specific-elements)
+	- [Django Variables: =](#django-variables-)
+	- [Inline Django Variables: ={...}](#inline-django-variables-)
+	- [Django Tags: -](#django-tags--)
+		- [Tags within attributes:](#tags-within-attributes)
+	- [Whitespace removal](#whitespace-removal)
+- [Filters](#filters)
+	- [:plain](#plain)
+	- [:javascript](#javascript)
+	- [:coffeescript or :coffee](#coffeescript-or-coffee)
+	- [:cdata](#cdata)
+	- [:css](#css)
+	- [:stylus](#stylus)
+	- [:markdown](#markdown)
+	- [:highlight](#highlight)
+	- [:python](#python)
+
+## Plain Text
+
+Any line that is not interpreted as something else will be taken as plain text and outputted unmodified.  For example:
+
+	%gee
+		%whiz
+			Wow this is cool!
+			
+is compiled to:
+
+	<gee>
+		<whiz>
+			Wow this is cool!
+		</whiz>
+	</gee>
+
+## Doctype
+
+You can specify a specific doctype after the !!! The following doctypes are supported:
+
+* `!!!`: XHTML 1.0 Transitional
+* `!!! Strict`: XHTML 1.0 Strict
+* `!!! Frameset`: XHTML 1.0 Frameset
+* `!!! 5`: XHTML 5
+* `!!! 1.1`: XHTML 1.1
+* `!!! XML`: XML prolog
+
+## HTML Elements
+
+### Element Name: %
+
+The percent character placed at the beginning of the line will then be followed by the name of the element, then optionally modifiers (see below), a space, and text to be rendered inside the element.  It creates an element in the form of <element></element>.  For example:
+
+	%one
+		%two
+			%three Hey there
+			
+is compiled to:
+
+	<one>
+		<two>
+			<three>Hey there</three>
+		</two>
+	</one>
+
+Any string is a valid element name and an opening and closing tag will automatically be generated.
+
+### Attributes: {}
+
+Brackets represent a Python dictionary that is used for specifying the attributes of an element.  The dictionary is placed after the tag is defined.  For example:
+
+	%html{'xmlns':'http://www.w3.org/1999/xhtml', 'xml:lang':'en', 'lang':'en'}
+	
+is compiled to:
+
+	<html xmlns='http://www.w3.org/1999/xhtml' xml:lang='en' lang='en'></html>
+
+Long attribute dictionaries can be separated into multiple lines:
+
+    %script{'type': 'text/javascript', 'charset': 'utf-8', 
+            'href': '/long/url/to/javascript/resource.js'}
+
+#### Attributes without values (Boolean attributes)
+
+Attributes without values can be specified using Python's ```None``` keyword (without quotes). For example:
+
+	%input{'type':'checkbox', value:'Test', checked: None}
+
+is compiled to:
+
+	<input type="checkbox" value="Test" checked />
+
+
+#### 'class' and 'id' attributes
+
+The 'class' and 'id' attributes can also be specified as a Python tuple whose elements will be joined together.  A 'class' tuple will be joined with " " and an 'id' tuple is joined with "_".  For example:
+
+	%div{'id': ('article', '3'), 'class': ('newest', 'urgent')} Content
+	
+is compiled to:
+
+	<div id='article_3' class='newest urgent'>Content</div>
+	
+### Class and ID: . and # 
+
+The period and pound sign are borrowed from CSS.  They are used as shortcuts to specify the class and id attributes of an element, respectively.  Multiple class names can be specified by chaining class names together with periods.  They are placed immediately after a tag and before an attribute dictionary.  For example:
+
+	%div#things
+		%span#rice Chicken Fried
+		%p.beans{'food':'true'} The magical fruit
+		%h1#id.class.otherclass La La La
+	
+is compiled to:
+
+	<div id='things'>
+		<span id='rice'>Chiken Fried</span>
+		<p class='beans' food='true'>The magical fruit</p>
+		<h1 id='id' class='class otherclass'>La La La</h1>
+	</div>
+	
+And,
+
+	%div#content
+		%div.articles
+			%div.article.title Doogie Howser Comes Out
+			%div.article.date 2006-11-05
+			%div.article.entry
+				Neil Patrick Harris would like to dispel any rumors that he is straight
+				
+is compiled to:
+
+	<div id='content'>
+		<div class='articles'>
+			<div class='article title'>Doogie Howser Comes Out</div>
+			<div class='article date'>2006-11-05</div>
+			<div class='article entry'>
+				Neil Patrick Harris would like to dispel any rumors that he is straight
+			</div>
+		</div>
+	</div>
+
+These shortcuts can be combined with the attribute dictionary and they will be combined as if they were all put inside a tuple.  For example:
+
+	%div#Article.article.entry{'id':'1', 'class':'visible'} Booyaka
+	
+is equivalent to:
+	
+	%div{'id':('Article','1'), 'class':('article','entry','visible')} Booyaka
+	
+and would compile to:
+
+	<div id='Article_1' class='article entry visible'>Booyaka</div>
+	
+You can also use more pythonic array structures in the dictionary, like so:
+
+    %div{'id':['Article','1'], 'class':['article','entry','visible']} Booyaka
+	
+#### Implicit div elements
+
+Because divs are used so often, they are the default element.  If you only define a class and/or id using `.` or `#` then the %div will be implied.  For example:
+
+	#collection
+		.item
+			.description What a cool item!
+			
+will compile to:
+
+	<div id='collection'>
+		<div class='item'>
+			<div class='description'>What a cool item!</div>
+		</div>
+	</div>
+	
+### Self-Closing Tags: /
+
+The forward slash character, when placed at the end of a tag definition, causes the tag to be self-closed.  For example:
+
+	%br/
+	%meta{'http-equiv':'Content-Type', 'content':'text/html'}/
+	
+will compile to:
+
+	<br />
+	<meta http-quiv='Content-Type' content='text/html' />
+	
+Some tags are automatically closed, as long as they have no content.  `meta, img, link, script, br` and `hr` tags are automatically closed.  For example:
+
+	%br
+	%meta{'http-equiv':'Content-Type', 'content':'text/html'}
+	
+will compile to:
+
+	<br />
+	<meta http-quiv='Content-Type' content='text/html' />
+	
+## Comments
+
+There are two types of comments supported:  those that show up in the HTML and those that don't.
+
+### HTML Comments /
+
+The forward slash character, when placed at the beginning of a line, wraps all the text after it in an HTML comment.  For example:
+
+	%peanutbutterjelly
+		/ This is the peanutbutterjelly element
+		I like sandwiches!
+		
+is compiled to:
+
+	<peanutbutterjelly>
+		<!-- This is the peanutbutterjelly element -->
+		I like sandwiches!
+	</peanutbutterjelly>
+	
+The forward slash can also wrap indented sections of code.  For example:
+
+	/
+		%p This doesn't render
+		%div
+			%h1 Because it's commented out!
+			
+is compiled to:
+
+	<!--
+		<p>This doesn't render</p>
+		<div>
+			<h1>Because it's commented out!</h1>
+		</div>
+	-->
+	
+### Conditional Comments /[]
+
+You can use [Internet Explorer conditional comments](http://www.quirksmode.org/css/condcom.html) by enclosing the condition in square brackets after the /. For example:
+
+    /[if IE]
+        %h1 Get a better browser
+    
+is compiled to:
+
+    <!--[if IE]>
+        <h1>Get a better browser</h1>
+    <![endif]-->
+	
+### HamlPy Comments: -# 
+
+The hyphen followed immediately by the pound sign signifies a silent comment.  Any text following this isn't rendered during compilation at all.  For example:
+
+	%p foo
+	-# Some comment
+	%p bar
+	
+is compiled to:
+
+	<p>foo</p>
+	<p>bar</p>
+	
+## Django Specific Elements
+
+The key difference in HamlPy from Haml is the support for Django elements.  The syntax for ruby evaluation is borrowed from Haml and instead outputs Django tags and variables.
+
+### Django Variables: =
+
+A line starting with an equal sign followed by a space and then content is evaluated as a Django variable.  For example:
+
+	.article
+		.preview
+			= story.teaser
+			
+is compiled to:
+
+	<div class='article'>
+		<div class='preview'>
+			{{ story.teaser }}
+		</div>
+	</div>
+	
+A Django variable can also be used as content for any HTML element by placing an equals sign as the last character before the space and content.  For example:
+
+	%h2
+		%a{'href':'stories/1'}= story.teaser
+		
+is compiled to:
+
+	<h2>
+		<a href='stories/1'>{{ story.teaser }}</a>
+	</h2>
+
+### Inline Django Variables: ={...}
+	
+You can also use inline variables by surrounding the variable name with curly braces. For example:
+
+	Hello ={name}, how are you today?
+
+is compiled to
+
+	Hello {{ name }}, how are you today?
+
+Inline variables can also be used in an element's attribute values. For example:
+
+	%a{'title':'Hello ={name}, how are you?'} Hello
+
+is compiled to:
+
+	<a title='Hello {{ name }}, how are you?'>Hello</a>
+
+Inline variables can be escaped by placing a `\` before them. For example:
+
+	Hello \={name}
+
+is compiled to
+
+	Hello ={name}
+
+The Ruby style (`#{...}` rather than `={...}`) is also supported and the two can be used interchangeably.
+
+
+
+
+### Django Tags: -
+
+The hypen character at the start of the line followed by a space and a Django tag will be inserted as a Django tag.  For example:
+
+	- block content
+		%h1= section.title
+	
+		- for dog in dog_list
+			%h2
+				= dog.name
+	
+is compiled to:
+
+	{% block content %}
+		<h1>{{ section.title }}</h1>
+		
+		{% for dog in dog_list %}
+			<h2>
+				{{ dog.name }}
+			</h2>
+		{% endfor %}
+	{% endblock %}
+	
+	
+Notice that block, for, if and else, as well as ifequal, ifnotequal, ifchanged and 'with' are all automatically closed.  Using endfor, endif, endifequal, endifnotequal, endifchanged or endblock will throw an exception.
+
+#### Tags within attributes:
+
+This is not yet supported: `%div{'attr':"- firstof var1 var2 var3"}` will not insert the `{% ... %}`.
+
+The workaround is to insert actual django template tag code into the haml. For example:
+
+    %a{'href': "{% url socialauth_begin 'github' %}"} Login with Github
+
+is compiled to:
+
+    <a href="{% url socialauth_begin 'github' %}">Login with Github</a>
+
+
+### Whitespace removal
+
+Sometimes we want to remove whitespace inside or around an element, usually to fix the spacing problem with inline-block elements (see "The Enormous Drawback" section of [this article](http://robertnyman.com/2010/02/24/css-display-inline-block-why-it-rocks-and-why-it-sucks/) for more details).
+
+To remove leading and trailing spaces **inside** a node ("inner whitespace removal"), use the `<` character after an element. For example, this:
+
+	%div
+		%pre<
+			= Foo
+
+is compiled to:
+
+	<div>
+	  <pre>{{ Foo }}</pre>
+	</div>
+
+To remove leading and trailing spaces **around** a node ("outer whitespace removal"), use the `>` character after an element. For example, this:
+
+	%li Item one
+	%li> Item two
+	%li Item three
+
+is compiled to:
+
+	<li>Item one</li><li>Item two</li><li>Item three</li>
+
+## Filters
+
+### :plain
+
+Does not parse the filtered text. This is useful for large blocks of text without HTML tags, when you don’t want lines starting with . or - to be parsed.
+
+### :javascript
+
+Surrounds the filtered text with &lt;script type="text/javascript"&gt; and CDATA tags. Useful for including inline Javascript.
+
+### :coffeescript or :coffee
+
+Surrounds the filtered text with &lt;script type="text/coffeescript"&gt; and CDATA tags. Useful for including inline Coffeescript.
+
+### :cdata
+
+Surrounds the filtered text with CDATA tags.
+
+### :css
+
+Surrounds the filtered text with &lt;style type="text/css"&gt; and CDATA tags. Useful for including inline CSS.
+
+### :stylus
+
+Surrounds the filtered text with &lt;style type="text/stylus"&gt; and CDATA tags. Useful for including inline Stylus.
+
+### :markdown
+
+Converts the filter text from Markdown to HTML, using the Python [Markdown library](http://freewisdom.org/projects/python-markdown/).
+
+### :highlight
+
+This will output the filtered text with syntax highlighting using [Pygments](http://pygments.org).
+
+For syntax highlighting to work correctly, you will also need to generate or include a Pygments CSS file. See
+the section ["Generating styles"](http://pygments.org/docs/cmdline/#generating-styles) in the Pygments
+documentation for more information.
+
+### :python
+
+Execute the filtered text as python and output the result in the file. For example:
+
+	:python
+		for i in range(0, 5): 
+			print "<p>item %s</p>" % i
+
+is compiled to:
+
+	<p>item 0</p>
+	<p>item 1</p>
+	<p>item 2</p>
+	<p>item 3</p>
+	<p>item 4</p>
+
+

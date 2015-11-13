@@ -1,0 +1,297 @@
+Place your assets like PNG files in this directory and they will be packaged with your module.
+
+If you create a file named ti.worker.js in this directory, it will be 
+compiled and used as your module.  This allows you to run pure Javascript
+modules that are pre-compiled.
+
+
+# iosworkermodule Module
+
+## Description
+
+TODO: Enter your module description here
+
+## Accessing the iosworkermodule Module
+
+To access this module from JavaScript, you would do the following:
+
+	var iosworkermodule = require("ti.worker");
+
+The iosworkermodule variable is a reference to the Module object.	
+
+## Reference
+
+TODO: If your module has an API, you should document
+the reference here.
+
+### ___PROJECTNAMEASIDENTIFIER__.function
+
+TODO: This is an example of a module function.
+
+### ___PROJECTNAMEASIDENTIFIER__.property
+
+TODO: This is an example of a module property.
+
+## Usage
+
+TODO: Enter your usage example here
+
+## Author
+
+TODO: Enter your author name, email and other contact
+details you want to share here. 
+
+## License
+
+TODO: Enter your license/legal information here.
+
+These files are not yet supported as of 1.4.0 but will be in a near future release.
+
+You can place platform-specific files here in sub-folders named "android" and/or "iphone", just as you can with normal Titanium Mobile SDK projects.  Any folders and files you place here will be merged with the platform-specific files in a Titanium Mobile project that uses this module.
+
+When a Titanium Mobile project that uses this module is built, the files from this platform/ folder will be treated the same as files (if any) from the Titanium Mobile project's platform/ folder.
+
+Appcelerator Titanium iPhone Module Project
+===========================================
+
+This is a skeleton Titanium Mobile iPhone module project.  Modules can be 
+used to extend the functionality of Titanium by providing additional native
+code that is compiled into your application at build time and can expose certain
+APIs into JavaScript. 
+
+MODULE NAMING
+--------------
+
+Choose a unique module id for your module.  This ID usually follows a namespace
+convention using DNS notation.  For example, com.appcelerator.module.test.  This
+ID can only be used once by all public modules in Titanium.
+
+
+COMPONENTS
+-----------
+
+Components that are exposed by your module must follow a special naming convention.
+A component (widget, proxy, etc) must be named with the pattern:
+
+	Ti<ModuleName><ComponentName>Proxy
+
+For example, if you component was called Foo, your proxy would be named:
+
+	TiMyfirstFooProxy
+	
+For view proxies or widgets, you must create both a view proxy and a view implementation. 
+If you widget was named proxy, you would create the following files:
+
+	TiMyfirstFooProxy.h
+	TiMyfirstFooProxy.m
+	TiMyfirstFoo.h
+	TiMyfirstFoo.m
+	
+The view implementation is named the same except it does contain the suffix `Proxy`.  
+
+View implementations extend the Titanium base class `TiUIView`.  View Proxies extend the
+Titanium base class `TiUIViewProxy` or `TiUIWidgetProxy`.  
+
+For proxies that are simply native objects that can be returned to JavaScript, you can 
+simply extend `TiProxy` and no view implementation is required.
+
+
+GET STARTED
+------------
+
+1. Edit manifest with the appropriate details about your module.
+2. Edit LICENSE to add your license details.
+3. Place any assets (such as PNG files) that are required in the assets folder.
+4. Edit the titanium.xcconfig and make sure you're building for the right Titanium version.
+5. Code and build.
+
+BUILD TIME COMPILER CONFIG
+--------------------------
+
+You can edit the file `module.xcconfig` to include any build time settings that should be
+set during application compilation that your module requires.  This file will automatically get `#include` in the main application project.  
+
+For more information about this file, please see the Apple documentation at:
+
+<http://developer.apple.com/mac/library/documentation/DeveloperTools/Conceptual/XcodeBuildSystem/400-Build_Configurations/build_configs.html>
+
+
+DOCUMENTATION FOR YOUR MODULE
+-----------------------------
+
+You should provide at least minimal documentation for your module in `documentation` folder using the Markdown syntax.
+
+For more information on the Markdown syntax, refer to this documentation at:
+
+<http://daringfireball.net/projects/markdown/>
+
+
+TEST HARNESS EXAMPLE FOR YOUR MODULE
+------------------------------------
+
+The `example` directory contains a skeleton application test harness that can be 
+used for testing and providing an example of usage to the users of your module.
+
+
+INSTALL YOUR MODULE
+--------------------
+
+1. Run `build.py` which creates your distribution
+2. cd to `/Library/Application Support/Titanium`
+3. copy this zip file into the folder of your Titanium SDK
+
+REGISTER YOUR MODULE
+---------------------
+
+Register your module with your application by editing `tiapp.xml` and adding your module.
+Example:
+
+<modules>
+	<module version="0.1">ti.worker</module>
+</modules>
+
+When you run your project, the compiler will know automatically compile in your module
+dependencies and copy appropriate image assets into the application.
+
+USING YOUR MODULE IN CODE
+-------------------------
+
+To use your module in code, you will need to require it. 
+
+For example,
+
+	var my_module = require('ti.worker');
+	my_module.foo();
+
+WRITING PURE JS NATIVE MODULES
+------------------------------
+
+You can write a pure JavaScript "natively compiled" module.  This is nice if you
+want to distribute a JS module pre-compiled.
+
+To create a module, create a file named ti.worker.js under the assets folder.
+This file must be in the Common JS format.  For example:
+
+	exports.echo = function(s)
+	{
+		return s;
+	};
+	
+Any functions and properties that are exported will be made available as part of your
+module.  All other code inside your JS will be private to your module.
+
+For pure JS module, you don't need to modify any of the Objective-C module code. You
+can leave it as-is and build.
+
+TESTING YOUR MODULE
+-------------------
+
+Run the `titanium.py` script to test your module or test from within XCode.
+To test with the script, execute:
+
+	titanium run --dir=YOURMODULEDIR
+	
+
+This will execute the app.js in the example folder as a Titanium application.
+
+
+DISTRIBUTING YOUR MODULE
+-------------------------
+
+Currently, you will need to manually distribution your module distribution zip file directly. However, in the near future, we will make module distribution and sharing built-in to Titanium Developer and in the Titanium Marketplace!
+
+
+Cheers!
+
+# Titanium Worker Thread Module [![Build Status](https://travis-ci.org/appcelerator-modules/ti.worker.png)](https://travis-ci.org/appcelerator-modules/ti.worker)
+
+This is a Titanium module that provides a [Web Worker](http://www.whatwg.org/specs/web-apps/current-work) like interface to applications built with Titanium.
+
+This module is designed to be used when applications need to process multi-threaded application logic in the background from the main application thread.  These
+threads are typically expensive, long-lived tasks which can be executed independent of the application processing or the main UI thread.
+
+It is important to note that even though you can use this library to create worker threads, any processing or rendering that must be done by the UI will always continue
+to be single-threaded by the host OS and executed on the main "UI thread", regardless of how many parallel threads are used in the background.
+
+Example
+-------
+
+The following is a trivial echo background service.  In your `app.js`, use the following:
+
+	var worker = require('ti.worker');
+	
+	// create a worker thread instance
+	var task = worker.createWorker('echo.js');
+	
+	// subscribe to any worker thread instance messages
+	task.addEventListener('message',function(event){
+		
+		// data that is sent will be in the data property
+		alert(event.data);
+		
+		// stop terminating this thread instance
+		task.terminate();
+	});
+	
+	// send data to the worker thread which will be posted on the threads event queue
+	// you can send any data here
+	task.postMessage({
+		msg:'Hello'
+	});
+
+Now, in a separate file named `echo.js`, use the following:
+
+	// subscribe to events send with postMessage
+	worker.addEventListener('message',function(event){
+		
+		// send data back to any subscribers
+		// pull data from the event from the data property
+		worker.postMessage(event.data.msg);
+	});
+
+Note: the `worker` global variable is always defined inside the worker thread execution context.
+
+API
+---
+
+- *postMessage* - send a message to or from the worker thread.  Send any data as the first argument.
+- *terminate* - terminate the worker thread and stop as soon as possible processing.
+- *nextTick* - this method is only available inside the worker instance and provides an ability to process the function passed on the next available thread event loop cycle.
+
+Events
+------
+
+- *message* - receive an event. The `data` property of the `event` will contain as-is any data specified as the first argument.
+- *terminated* - the worker thread was terminated.
+
+Properties
+----------
+
+The `worker` instance has only one property:
+
+- *url* - the url of the worker thread JS file passed in during creation.
+
+
+Warning
+-------
+
+[Concurrent programming](http://en.wikipedia.org/wiki/Concurrent_computing) is dangerous and error prone.  We've designed this library to make it easier to build 
+multi-threaded applications in Titanium.  However, you should use at your own risk and make sure you do plenty of testing on different devices. You should also understand
+the concepts of concurrent programming before using this module.
+
+
+Change Log
+----------
+
+*1.0* - June 4, 2012
+
+> This is the initial commit and it works only on iOS currently.
+	
+
+
+License
+-------
+Copyright (c) 2012 by Appcelerator, Inc. All Rights Reserved.
+This code is licensed under the terms of the Apache Public License, version 2.
+
+

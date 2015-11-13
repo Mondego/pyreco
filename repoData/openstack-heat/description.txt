@@ -1,0 +1,401 @@
+Docker plugin for OpenStack Heat
+================================
+
+This plugin enable using Docker containers as resources in a Heat template.
+
+
+### 1. Install the Docker plugin in Heat
+
+NOTE: Heat scans several directories to find plugins. The list of directories
+is specified in the configuration file "heat.conf" with the "plugin_dirs"
+directive.
+
+Running the following commands will install the Docker plugin in an existing
+Heat setup.
+
+```
+pip install -r requirements.txt
+ln -sf $(cd heat/contrib/docker-plugin/plugin; pwd) /usr/lib/heat/docker
+echo "plugin_dirs=$(cd heat/contrib/docker-plugin/plugin; pwd)" > /etc/heat/heat.conf
+```
+
+NOTE: If you already have plugins enabled, you should not run the last command
+and instead edit the config file "/etc/heat/heat.conf" manually.
+
+
+### 2. Restart heat
+
+Only the process "heat-engine" needs to be restarted to load the new installed
+plugin.
+
+ExtraRoute plugin for OpenStack Heat
+====================================
+
+This plugin enables using ExtraRoute as a resource in a Heat template.
+
+This resource allows assigning extra routes to Neutron routers via Heat
+templates.
+
+NOTE: Implementing ExtraRoute in the main heat tree is under discussion in the
+heat community.
+
+This plugin has been implemented in contrib to provide access to the
+functionality while the discussion takes place, as some users have an immediate
+requirement for it.
+It may be moved to the main heat tree in due-course, depending on the outcome
+of the community discussion.
+
+### 1. Install the ExtraRoute plugin in Heat
+
+NOTE: Heat scans several directories to find plugins. The list of directories
+is specified in the configuration file "heat.conf" with the "plugin_dirs"
+directive.
+
+### 2. Restart heat
+
+Only the process "heat-engine" needs to be restarted to load the newly
+installed plugin.
+
+### 3. Example of ExtraRoute
+
+"router_extraroute": {
+  "Type": "OS::Neutron::ExtraRoute",
+  "Properties": {
+    "router_id": { "Ref" : "router" },
+    "destination": "172.16.0.0/24",
+    "nexthop": "192.168.0.254"
+  }
+}
+
+# Heat Keystone V2
+
+This plugin is a Keystone V2 compatible client.  It can be used to
+replace the default client for clouds running older versions of
+Keystone.
+
+Some forward compatibility decisions had to be made:
+
+* Stack domain users are created as users on the stack owner's tenant
+  rather than the stack's domain
+* Trusts are not supported
+
+
+# Installation
+
+1. In `heat.conf`, add the path to the `heat_keystoneclient_v2` root
+   directory to `plugin_dirs`.
+   e.g.: `plugin_dirs=path/to/heat/contrib/heat_keystoneclient_v2`
+
+2. Set the `keystone_backend` option to
+   `heat.engine.plugins.heat_keystoneclient_v2.client.KeystoneClientV2`
+
+
+# How it works
+
+By setting the `keystone_backend` option, the KeystoneBackend class in
+`heat/common/heat_keystoneclient.py` will instantiate the plugin
+KeystoneClientV2 class and use that instead of the default client in
+`heat/common/heat_keystoneclient.py`.
+
+Marconi plugin for OpenStack Heat
+================================
+
+This plugin enable using Marconi queuing service as a resource in a Heat template.
+
+
+### 1. Install the Marconi plugin in Heat
+
+NOTE: Heat scans several directories to find plugins. The list of directories
+is specified in the configuration file "heat.conf" with the "plugin_dirs"
+directive.
+
+To install the Marconi plugin, one needs to first make sure the
+python-marconiclient package is installed - pip install -r requirements.txt, and
+copy the plugin folder, e.g. marconi to wherever plugin_dirs points to.
+
+
+### 2. Restart heat
+
+Only the process "heat-engine" needs to be restarted to load the newly installed
+plugin.
+
+Nova Flavor plugin for OpenStack Heat
+=====================================
+
+This plugin enables using Nova Flavors as resources in a Heat template.
+
+Note that the current implementation of the Nova Flavor resource does not
+allow specifying the name and flavorid properties for the resource.
+This is done to avoid potential naming collision upon flavor creation as
+all flavor have a global scope.
+
+### 1. Install the Nova Flavor plugin in Heat
+
+NOTE: Heat scans several directories to find plugins. The list of directories
+is specified in the configuration file "heat.conf" with the "plugin_dirs"
+directive.
+
+### 2. Restart heat
+
+Only the process "heat-engine" needs to be restarted to load the new installed
+plugin.
+
+### Template Format
+
+Here's an example nova flavor resource:
+```yaml
+heat_template_version: 2013-05-23
+description:  Heat Flavor creation example
+resources:
+  test_flavor:
+    type: OS::Nova::Flavor
+    properties:
+      ram: 1024
+      vcpus: 1
+      disk: 20
+      swap: 2
+```
+
+### Issues with the Nova Flavor plugin
+
+By default only the admin tenant can manage flavors because of the default
+policy in Nova: ```"compute_extension:flavormanage": "rule:admin_api"```
+
+To let the possibility to all tenants to create flavors, the rule must be
+replaced with the following: ```"compute_extension:flavormanage": ""```
+
+The following error occurs if the policy has not been correctly set:
+ ERROR: Policy doesn't allow compute_extension:flavormanage to be performed.
+
+Currently all nova flavors have a global scope, which leads to several issues:
+1. Per-stack flavor creation will pollute the global flavor list.
+2. If two stacks create a flavor with the same name collision will occur,
+which will lead to the following error:
+
+ ERROR (Conflict): Flavor with name dupflavor already exists.
+
+
+# Heat resources for working with the Rackspace Cloud
+The resources and configuration in this module are for using Heat with the Rackspace Cloud. These resources either
+allow using Rackspace services that don't have equivalent services in OpenStack or account for differences between
+a generic OpenStack deployment and Rackspace Cloud.
+## Resources
+The following resources are provided for compatibility:
+
+* `Rackspace::Cloud::Server`:
+>Provide compatibility with `OS::Nova::Server` and allow for working `user_data` and `Metadata`. This is deprecated and should be replaced with `OS::Nova::Server` once service compatibility is implemented by Rackspace.  
+
+* `Rackspace::Cloud::LoadBalancer`:
+>Use the Rackspace Cloud Loadbalancer service; not compatible with `OS::Neutron::LoadBalancer`.  
+
+* `Rackspace::Cloud::DatabaseInstance`:
+>Use the Rackspace implementation of Trove. This is deprecated and should eventually be replaced with `OS::Trove::Instance` or similar.  
+
+## Usage
+### Templates
+### Configuration
+
+=========
+HEAT wadl
+=========
+
+The original heat wadl (heat-api-1.0.wadl) and the samples have now been deleted from this repository.
+
+The wadl has been renamed and migrated to the following repo location along with the samples:
+https://github.com/openstack/api-site/blob/master/api-ref/src/wadls/orchestration-api/src/v1/orchestration-api.wadl
+
+
+================================
+Building the user and admin docs
+================================
+
+This documentation should eventually end up in the OpenStack documentation
+repositories `api-site` and `openstack-manuals`.
+
+Dependencies
+============
+
+on Ubuntu:
+
+  sudo apt-get install maven
+
+on Fedora Core:
+
+  sudo yum install maven
+
+Use `mvn`
+=========
+
+Build the REST API reference manual:
+
+  cd api-ref
+  mvn clean generate-sources
+
+Build the Heat admin guide:
+
+  cd heat-admin
+  mvn clean generate-sources
+
+
+===========================
+Building the developer docs
+===========================
+
+For user and admin docs, go to the directory `doc/docbkx`.
+
+Dependencies
+============
+
+You'll need to install python *Sphinx* package and *oslosphinx*
+package:
+
+::
+
+   sudo pip install sphinx oslosphinx
+
+If you are using the virtualenv you'll need to install them in the
+virtualenv.
+
+Get Help
+========
+
+Just type make to get help:
+
+::
+
+   make
+
+It will list available build targets.
+
+Build Doc
+=========
+
+To build the man pages:
+
+::
+
+   make man
+
+To build the developer documentation as HTML:
+
+::
+
+   make html
+
+Type *make* for more formats.
+
+Test Doc
+========
+
+If you modify doc files, you can type:
+
+::
+
+   make doctest
+
+to check whether the format has problem.
+
+This is a database migration repository.
+
+More information at
+http://code.google.com/p/sqlalchemy-migrate/
+
+openstack-common
+----------------
+
+A number of modules from openstack-common are imported into this project.
+
+These modules are "incubating" in openstack-common and are kept in sync
+with the help of openstack-common's update.py script. See:
+
+  https://wiki.openstack.org/wiki/Oslo#Syncing_Code_from_Incubator
+
+The copy of the code should never be directly modified here. Please
+always update openstack-common first and then run the script to copy
+the changes across.
+
+These templates are required by test_template_format and test_provider_template
+in situations where we don't want to use a minimal template snippet. Ideally we
+want to test the maximum possible syntax to prove the format conversion works.
+
+In general, tests should not depend on these templates, inline minimal
+template snippets are preferred.
+
+====
+HEAT
+====
+
+Heat is a service to orchestrate multiple composite cloud applications using
+templates, through both an OpenStack-native ReST API and a
+CloudFormation-compatible Query API.
+
+Why heat? It makes the clouds rise and keeps them there.
+
+Getting Started
+---------------
+
+If you'd like to run from the master branch, you can clone the git repo:
+
+    git clone git@github.com:openstack/heat.git
+
+
+* Wiki: http://wiki.openstack.org/Heat
+* Developer docs: http://docs.openstack.org/developer/heat
+
+
+Python client
+-------------
+https://github.com/openstack/python-heatclient
+
+References
+----------
+* http://docs.amazonwebservices.com/AWSCloudFormation/latest/APIReference/API_CreateStack.html
+* http://docs.amazonwebservices.com/AWSCloudFormation/latest/UserGuide/create-stack.html
+* http://docs.amazonwebservices.com/AWSCloudFormation/latest/UserGuide/aws-template-resource-type-ref.html
+* http://www.oasis-open.org/committees/tc_home.php?wg_abbrev=tosca
+
+We have integration with
+------------------------
+* https://github.com/openstack/python-novaclient (instance)
+* https://github.com/openstack/python-keystoneclient (auth)
+* https://github.com/openstack/python-swiftclient (s3)
+* https://github.com/openstack/python-neutronclient (networking)
+
+Files in this directory are general developer tools or examples of how
+to do certain activities.
+
+If you're running on F16, make sure you first enable the preview yum repository
+http://fedoraproject.org/wiki/Getting_started_with_OpenStack_on_Fedora_17#Preview_Repository_for_Fedora_16
+
+-----
+Tools
+-----
+
++ experimental_ssh_eventlet.py
+     - Example of using ssh inside python with eventlets.
+
++ openstack - WARNING COULD DESTROY DATA
+    - Installs, Uninstalls, starts, and stops openstack from the RPM repository
+      on F16 or F17.  This provides a consistent way for developers to deploy
+      openstack in a consistent painless way.
+
+      THIS IS NOT INTENDED FOR END USERS AS IT COULD PERMANENTLY DESTROY DATA
+      AND DOES NOT PROPERLY SECURE THE INSTALLATION.
+
+      note: This tool does not create a network.  Creating a network depends
+            on the specific environment, but an example network creation:
+
+sudo nova-manage network create demonet 10.0.0.0/24 1 256 --bridge=demonetbr0
+
++ heat-keystone-setup
+    - This tool configures keystone for use with the heat service  the first
+       time openstack is installed.
+
++ heat-db-drop
+    - This script drops the heat database from mysql in the case of developer
+      data corruption or erasing heat.
+
++ glance-jeos-add-from-github.sh
+    - Register all JEOS images from github prebuilt repositories.
+      This takes about 1 hour on a typical wireless connection.
+

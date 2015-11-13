@@ -1,0 +1,425 @@
+I'm glad to announce new release of [Brewery](https://github.com/Stiivi/brewery) – stream based data auditing and
+analysis framework for Python.
+
+There are quite a few updates, to mention the notable ones:
+
+* new ``brewery`` [runner](http://packages.python.org/brewery/tools.html#brewery) with commands `run` and `graph`
+* new nodes: *pretty printer* node (for your terminal pleasure), *generator
+  function* node
+* many CSV updates and fixes
+
+Added several simple [how-to
+examples](https://github.com/Stiivi/brewery/tree/master/examples), such as:
+aggregation of remote CSV, basic audit of a CSV, how to use a generator
+function.
+
+Note that there are couple changes that break compatibility, however they can
+be updated very easily. I apologize for the inconvenience, but until 1.0 the
+changes might happen more frequently. On the other hand, I will try to make
+them as painless as possible. Feedback and questions are welcome. I'll help you.
+
+Full listing of news, changes and fixes is below.
+
+Version 0.8
+===========
+
+News
+----
+
+* Changed license to MIT
+* Created new brewery runner commands: 'run' and 'graph':
+    * 'brewery run stream.json' will execute the stream
+    * 'brewery graph stream.json' will generate graphviz data
+* Nodes: Added pretty printer node - textual output as a formatted table
+* Nodes: Added source node for a generator function
+* Nodes: added analytical type to derive field node
+* Preliminary implementation of data probes (just concept, API not decided yet
+  for 100%)
+* CSV: added empty_as_null option to read empty strings as Null values
+* Nodes can be configured with node.configure(dictionary, protected). If 
+  'protected' is True, then protected attributes (specified in node info) can 
+  not be set with this method.
+
+* added node identifier to the node reference doc
+* added create_logger
+
+* added experimental retype feature (works for CSV only at the moment)
+* Mongo Backend - better handling of record iteration
+
+Changes
+-------
+
+* CSV: resource is now explicitly named argument in CSV*Node
+* CSV: convert fields according to field storage type (instead of all-strings)
+* Removed fields getter/setter (now implementation is totally up to stream
+  subclass)
+* AggregateNode: rename ``aggregates`` to ``measures``, added ``measures`` as
+  public node attribute
+* moved errors to brewery.common
+* removed ``field_name()``, now str(field) should be used
+* use named blogger 'brewery' instead of the global one
+* better debug-log labels for nodes (node type identifier + python object ID)
+
+**WARNING:** Compatibility break:
+
+* depreciate ``__node_info__`` and use plain ``node_info`` instead
+* ``Stream.update()`` now takes nodes and connections as two separate arguments
+
+Fixes
+-----
+
+* added SQLSourceNode, added option to keep ifelds instead of dropping them in 
+  FieldMap and FieldMapNode (patch by laurentvasseur @ bitbucket)
+* better traceback handling on node failure (now actually the traceback is
+  displayed)
+* return list of field names as string representation of FieldList
+* CSV: fixed output of zero numeric value in CSV (was empty string)
+
+Links
+=====
+
+* github  **sources**: https://github.com/Stiivi/brewery
+* **Documentation**: http://packages.python.org/brewery/
+* **Mailing List**: http://groups.google.com/group/databrewery/
+* Submit **issues** here: https://github.com/Stiivi/brewery/issues
+* IRC channel: [#databrewery](irc://irc.freenode.net/#databrewery) on irc.freenode.net
+
+If you have any questions, comments, requests, do not hesitate to ask.
+
+Introduction to Streaming in Brewery
+====================================
+How to build and run a data analysis stream? Why streams? I am going to talk about
+how to use brewery from command line and from Python scripts.
+
+[Brewery](https://github.com/Stiivi/brewery) is a Python framework and a way of analysing and auditing data. Basic
+principle is flow of structured data through processing and analysing nodes.
+This architecture allows more transparent, understandable and maintainable
+data streaming process.
+
+You might want to use brewery when you:
+
+* want to learn more about data
+* encounter unknown datasets and/or you do not know what you have in your
+  datasets
+* do not know exactly how to process your data and you want to play-around
+  without getting lost
+* want to create alternative analysis paths and compare them
+* measure data quality and feed data quality results into the data processing
+  process
+
+There are many approaches and ways how to the data analysis. Brewery brings a certain workflow to the analyst:
+
+1. examine data
+2. prototype a stream (can use data sampling, not to overheat the machine)
+3. see results and refine stream, create alternatives (at the same time)
+4. repeat 3. until satisfied
+
+Brewery makes the steps 2. and 3. easy - quick prototyping, alternative
+branching, comparison. Tries to keep the analysts workflow clean and understandable.
+
+Building and Running a Stream
+=============================
+
+There are two ways to create a stream: programmatic in Python and command-line
+without Python knowledge requirement. Both ways have two alternatives: quick
+and simple, but with limited feature set. And the other is full-featured but
+is more verbose.
+
+The two programmatic alternatives to create a stream are: *basic construction*
+and *"HOM"* or *forking construction*. The two command line ways to run a
+stream: *run* and *pipe*. We are now going to look closer at them.
+
+![](http://media.tumblr.com/tumblr_m2f46vi6Po1qgmvbu.png)
+
+Note regarding Zen of Python: this does not go against "There should be one –
+and preferably only one – obvious way to do it." There is only one way: the
+raw construction. The others are higher level ways or ways in different
+environments.
+
+In our examples below we are going to demonstrate simple linear (no branching)
+stream that reads a CSV file, performs very basic audit and "pretty prints"
+out the result. The stream looks like this:
+
+![](http://media.tumblr.com/tumblr_m2f49jBpOK1qgmvbu.png)
+
+Command line
+------------
+
+Brewery comes with a command line utility `brewery` which can run streams
+without needing to write a single line of python code. Again there are two
+ways of stream description: json-based and plain linear pipe.
+
+The simple usage is with `brewery pipe` command:
+
+    brewery pipe csv_source resource=data.csv audit pretty_printer
+
+The `pipe` command expects list of nodes and `attribute=value` pairs for node
+configuration. If there is no source pipe specified, CSV on standard input is
+used. If there is no target pipe, CSV on standard output is assumed:
+
+    cat data.csv | brewery pipe audit
+    
+The actual stream with implicit nodes is:
+
+![](http://media.tumblr.com/tumblr_m2f47oLuwZ1qgmvbu.png)
+
+The `json` way is more verbose but is full-featured: you can create complex
+processing streams with many branches. `stream.json`:
+
+<pre class="prettyprint">
+    {
+        "nodes": { 
+            "source": { "type":"csv_source", "resource": "data.csv" },
+            "audit":  { "type":"audit" },
+            "target": { "type":"pretty_printer" }
+        },
+        "connections": [
+            ["source", "audit"],
+            ["audit", "target"]
+        ]
+    }
+</pre>
+
+And run:
+
+    $ brewery run stream.json
+
+To list all available nodes do:
+
+    $ brewery nodes
+
+To get more information about a node, run `brewery nodes <node_name>`:
+
+    $ brewery nodes string_strip
+
+Note that data streaming from command line is more limited than the python
+way. You might not get access to nodes and node features that require python
+language, such as python storage type nodes or functions.
+
+Higher order messaging
+----------------------
+
+Preferred programming way of creating streams is through *higher order
+messaging* (HOM), which is, in this case, just fancy name for pretending doing
+something while in fact we are preparing the stream.
+
+This way of creating a stream is more readable and maintainable. It is easier
+to insert nodes in the stream and create forks while not losing picture of the
+stream. Might be not suitable for very complex streams though. Here is an
+example:
+
+<pre class="prettyprint">
+    b = brewery.create_builder()
+    b.csv_source("data.csv")
+    b.audit()
+    b.pretty_printer()
+</pre>
+  
+When this piece of code is executed, nothing actually happens to the data
+stream. The stream is just being prepared and you can run it anytime:
+
+<pre class="prettyprint">
+    b.stream.run()
+</pre>
+
+What actually happens? The builder `b` is somehow empty object that accepts
+almost anything and then tries to find a node that corresponds to the method
+called. Node is instantiated, added to the stream and connected to the
+previous node.
+
+You can also create branched stream:
+
+<pre class="prettyprint">
+    b = brewery.create_builder()
+    b.csv_source("data.csv")
+    b.audit()
+
+    f = b.fork()
+    f.csv_target("audit.csv")
+
+    b.pretty_printer()
+</pre>
+
+Basic Construction
+------------------
+
+This is the lowest level way of creating the stream and allows full
+customisation and control of the stream. In the *basic construction* method
+the programmer prepares all node instance objects and connects them
+explicitly, node-by-node. Might be a too verbose, however it is to be used by
+applications that are constructing streams either using an user interface or
+from some stream descriptions. All other methods are using this one.
+
+<pre class="prettyprint">
+    from brewery import Stream
+    from brewery.nodes import CSVSourceNode, AuditNode, PrettyPrinterNode
+
+    stream = Stream()
+
+    # Create pre-configured node instances
+    src = CSVSourceNode("data.csv")
+    stream.add(src)
+
+    audit = AuditNode()
+    stream.add(audit)
+
+    printer = PrettyPrinterNode()
+    stream.add(printer)
+
+    # Connect nodes: source -> target
+    stream.connect(src, audit)
+    stream.connect(audit, printer)
+
+    stream.run()
+</pre>
+
+It is possible to pass nodes as dictionary and connections as list of tuples
+*(source, target)*:
+
+<pre class="prettyprint">
+    stream = Stream(nodes, connections)
+</pre>
+
+Future plans
+============
+
+What would be lovely to have in brewery?
+
+**Probing and data quality indicators** – tools for simple data probing and
+easy way of creating data quality indicators. Will allow something like
+"test-driven-development" but for data. This is the next step.
+
+**Stream optimisation** – merge multiple nodes into single processing unit
+before running the stream. Might be done in near future.
+
+**Backend-based nodes and related data transfer between backend nodes** – For
+example, two SQL nodes might pass data through a database table instead of
+built-in data pipe or two numpy/scipy-based nodes might use numpy/scipy
+structure to pass data to avoid unnecessary streaming. Not very soon, but
+foreseeable future.
+
+**Stream compilation** – compile a stream to an optimised script. Not too
+soon, but like to have that one.
+
+Last, but not least: Currently there is little performance cost because of the
+nature of brewery implementation. This penalty will be explained in another
+blog post, however to make long story short, it has to do with threads, Python
+GIL and non-optimalized stream graph. There is no future prediction for this
+one, as it might be included step-by-step. Also some Python 3 features look
+promising, such as `yield from` in Python 3.3 ([PEP 308](http://www.python.org/dev/peps/pep-0380/)).
+
+Links
+-----
+
+* [Brewery at github](https://github.com/Stiivi/brewery)
+* [Documentation](http://packages.python.org/brewery/) and [Node Reference](http://packages.python.org/brewery/node_reference.html)
+* [Examples at github](https://github.com/Stiivi/brewery/tree/master/examples)
+* [Google Group](https://groups.google.com/forum/?fromgroups#!forum/databrewery)
+Blog
+====
+
+This directory contains markdown texts of blog posts published on the
+databrewery page.
+
+Brewery Examples
+================
+
+Basic
+-----
+
+* `aggregate_remote_csv.py` - aggregate measures from a remote CSV
+* `audit_unknown_csv.py` - perform very basic data audit (fields, nulls) of a
+  remote CSV file
+
+Intermediate
+------------
+
+* `generator_function.py` - use a custom function as a source data generator
+* `merge_multiple_files` - sequentialy merge multiple CSV files and unite all
+  fields
+Brewery
+=======
+
+Understandable data streaming, auditing and mining framework for Python.
+
+**NOTE: This project has been replaced by Bubbles (see below). Brewery is not
+maintained any more**
+
+Bubbles can be found at:
+
+Project page: http://bubbles.databrewery.org
+Github: https://github.com/stiivi/bubbles
+
+
+About
+-----
+
+Brewery was a python framework for:
+
+* data streams - streaming structured data from various sources into various targets. Example of 
+  existing streams: CSV, XLS, Google Spreadsheet, relational SQL database, MongoDB, directory with YAML
+  files, HTML, ...
+* data quality monitoring
+* data mining (in the future)
+
+Focus was on understandability and transparency of the process.
+
+Installation
+------------
+
+To install original brewery framework type:
+
+    pip install brewery
+
+
+To install original brewery from sources, you can get it from Github: 
+https://github.com/Stiivi/brewery
+
+More details about installation and requirements can be found at: 
+    http://packages.python.org/brewery/install.html
+
+
+Documentation
+-------------
+
+Documentation can be found at: http://packages.python.org/brewery
+
+
+Sources
+-------
+
+Main project source repository is being hosted at Github: https://github.com/Stiivi/brewery
+
+    git clone git://github.com/Stiivi/brewery.git
+
+Support
+-------
+
+If you have questions, problems or suggestions, you can send a message to the 
+Google group or write to the author.
+
+* Report issues here: https://github.com/Stiivi/brewery/issues
+* Google group: http://groups.google.com/group/databrewery
+
+
+Author
+------
+
+Stefan Urbanek <stefan.urbanek@gmail.com>
+
+License
+-------
+
+Brewery is licensed under MIT license with following addition:
+
+    If your version of the Software supports interaction with it remotely 
+    through a computer network, the above copyright notice and this permission 
+    notice shall be accessible to all users.
+
+Simply said, that if you use it as part of software as a service (SaaS) you 
+have to provide the copyright notice in an about, legal info, credits or some 
+similar kind of page or info box.
+
+For full license see the LICENSE file.
+
+

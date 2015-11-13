@@ -1,0 +1,72 @@
+ELEKTROONILISE HÄÄLETAMISE TULEMUS
+
+Elektroonilise hääletamise tulemus esitatakse kahes jaos ning kesksüsteemi
+poolt digitaalselt allkirjastatuna:
+
+-- haaletamistulemus: Hääletamistulemus ringkonniti
+-- haaletamistulemus.sig: Eelmise faili digitaalallkiri
+-- haaletamistulemusjaosk: Hääletamistulemus jaoskonniti
+-- haaletamistulemusjaosk.sig: Eelmise faili digitaalallkiri
+
+Allkirjade kontrollimiseks on vaja Vabariigi Valimiskomisjoni sertifikaati,
+mis asub failis vvk.der.
+
+Allkirjade kontroll toimub utiliidiga openssl (www.openssl.org).
+
+
+
+TEGEVUSED
+
+
+0. Sertifikaadi vaatamine
+
+ openssl x509 -in vvk.der -inform DER -text
+
+Ekraanil kuvatakse info sertifikaadi kohta.
+
+
+
+1. Sertifikaadist avaliku võtme eraldamine
+
+ openssl x509 -in vvk.der -inform DER -noout -pubkey > vvk.pub
+
+Failis vvk.pub on nüüd avalik võti.
+
+
+
+2. Allkirjastatud tulemuste kontrollimine
+
+ openssl dgst -sha1 -verify vvk.pub -signature haaletamistulemus.sig haaletamistulemus
+
+ openssl dgst -sha1 -verify vvk.pub -signature haaletamistulemusjaosk.sig haaletamistulemusjaosk
+
+
+Kui allkiri verifitseerub on utiliidi töö tulemus:
+Verified OK
+
+Kui allkiri ei verifitseeru on utiliidi töö tulemus:
+Verification Failure
+
+NB! Allkirja mitteverifitseerumist võib põhjustada ka see kui tulemustefaili
+mõne tekstiredaktoriga avate. Verifitseerige alati pakist võetud faili, mitte
+tekstiredaktoriga uuritut.
+
+
+The intention behind this repository is to make source code of the server side
+components of Estonian internet-voting system available for public review.
+
+The repository is not used for active development, but will be kept up to date,
+so the code that can be found here is the code that is used for election. As
+the voting system used for legally binding elections must strictly follow the
+legislation, the actual development of Estonian i-voting system is supervised
+by National Electoral Committee (NEC) and Internet Voting Committee
+(www.vvk.ee). The current partner for NEC is Cybernetica AS (www.cyber.ee).
+
+Additional information on the source code can be found on the NEC website:
+http://www.vvk.ee/valijale/e-haaletamine/
+
+Those, who are not familiar with Estonian language may refer to the following
+website, which contains subset of the information in English:
+http://www.vvk.ee/voting-methods-in-estonia/
+
+

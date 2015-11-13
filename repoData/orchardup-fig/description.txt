@@ -1,0 +1,890 @@
+Change log
+==========
+
+0.4.1 (2014-05-08)
+------------------
+
+ - Add support for Docker 0.11.0. (Thanks @marksteve!)
+ - Make project name configurable. (Thanks @jefmathiot!)
+ - Return correct exit code from `fig run`.
+
+0.4.0 (2014-04-29)
+------------------
+
+ - Support Docker 0.9 and 0.10
+ - Display progress bars correctly when pulling images (no more ski slopes)
+ - `fig up` now stops all services when any container exits
+ - Added support for the `privileged` config option in fig.yml (thanks @kvz!)
+ - Shortened and aligned log prefixes in `fig up` output
+ - Only containers started with `fig run` link back to their own service
+ - Handle UTF-8 correctly when streaming `fig build/run/up` output (thanks @mauvm and @shanejonas!)
+ - Error message improvements
+
+0.3.2 (2014-03-05)
+------------------
+
+ - Added an `--rm` option to `fig run`. (Thanks @marksteve!)
+ - Added an `expose` option to `fig.yml`.
+
+0.3.1 (2014-03-04)
+------------------
+
+ - Added contribution instructions. (Thanks @kvz!)
+ - Fixed `fig rm` throwing an error.
+ - Fixed a bug in `fig ps` on Docker 0.8.1 when there is a container with no command.
+
+0.3.0 (2014-03-03)
+------------------
+
+ - We now ship binaries for OS X and Linux. No more having to install with Pip!
+ - Add `-f` flag to specify alternate `fig.yml` files
+ - Add support for custom link names
+ - Fix a bug where recreating would sometimes hang
+ - Update docker-py to support Docker 0.8.0.
+ - Various documentation improvements
+ - Various error message improvements
+
+Thanks @marksteve, @Gazler and @teozkr!
+
+0.2.2 (2014-02-17)
+------------------
+
+ - Resolve dependencies using Cormen/Tarjan topological sort
+ - Fix `fig up` not printing log output
+ - Stop containers in reverse order to starting
+ - Fix scale command not binding ports
+
+Thanks to @barnybug and @dustinlacewell for their work on this release.
+
+0.2.1 (2014-02-04)
+------------------
+
+ - General improvements to error reporting (#77, #79)
+
+0.2.0 (2014-01-31)
+------------------
+
+ - Link services to themselves so run commands can access the running service. (#67)
+ - Much better documentation.
+ - Make service dependency resolution more reliable. (#48)
+ - Load Fig configurations with a `.yaml` extension. (#58)
+
+Big thanks to @cameronmaske, @mrchrisadams and @damianmoore for their help with this release.
+
+0.1.4 (2014-01-27)
+------------------
+
+ - Add a link alias without the project name. This makes the environment variables a little shorter: `REDIS_1_PORT_6379_TCP_ADDR`. (#54)
+
+0.1.3 (2014-01-23)
+------------------
+
+ - Fix ports sometimes being configured incorrectly. (#46)
+ - Fix log output sometimes not displaying. (#47)
+
+0.1.2 (2014-01-22)
+------------------
+
+ - Add `-T` option to `fig run` to disable pseudo-TTY. (#34)
+ - Fix `fig up` requiring the ubuntu image to be pulled to recreate containers. (#33) Thanks @cameronmaske!
+ - Improve reliability, fix arrow keys and fix a race condition in `fig run`. (#34, #39, #40)
+
+0.1.1 (2014-01-17)
+------------------
+
+ - Fix bug where ports were not exposed correctly (#29). Thanks @dustinlacewell!
+
+0.1.0 (2014-01-16)
+------------------
+
+ - Containers are recreated on each `fig up`, ensuring config is up-to-date with `fig.yml` (#2)
+ - Add `fig scale` command (#9)
+ - Use `DOCKER_HOST` environment variable to find Docker daemon, for consistency with the official Docker client (was previously `DOCKER_URL`) (#19)
+ - Truncate long commands in `fig ps` (#18)
+ - Fill out CLI help banners for commands (#15, #16)
+ - Show a friendlier error when `fig.yml` is missing (#4)
+ - Fix bug with `fig build` logging (#3)
+ - Fix bug where builds would time out if a step took a long time without generating output (#6)
+ - Fix bug where streaming container output over the Unix socket raised an error (#7)
+
+Big thanks to @tomstuart, @EnTeQuAk, @schickling, @aronasorman and @GeoffreyPlitt.
+
+0.0.2 (2014-01-02)
+------------------
+
+ - Improve documentation
+ - Try to connect to Docker on `tcp://localdocker:4243` and a UNIX socket in addition to `localhost`.
+ - Improve `fig up` behaviour
+ - Add confirmation prompt to `fig rm`
+ - Add `fig build` command
+
+0.0.1 (2013-12-20)
+------------------
+
+Initial release.
+
+
+
+# Contributing to Fig
+
+## Development environment
+
+If you're looking contribute to [Fig](http://orchardup.github.io/fig/)
+but you're new to the project or maybe even to Python, here are the steps
+that should get you started.
+
+1. Fork [https://github.com/orchardup/fig](https://github.com/orchardup/fig) to your username. kvz in this example.
+1. Clone your forked repository locally `git clone git@github.com:kvz/fig.git`.
+1. Enter the local directory `cd fig`.
+1. Set up a development environment `python setup.py develop`. That will install the dependencies and set up a symlink from your `fig` executable to the checkout of the repo. So from any of your fig projects, `fig` now refers to your development project. Time to start hacking : )
+1. Works for you? Run the test suite via `./scripts/test` to verify it won't break other usecases.
+1. All good? Commit and push to GitHub, and submit a pull request.
+
+## Running the test suite
+
+    $ script/test
+
+## Building binaries
+
+Linux:
+
+    $ script/build-linux
+
+OS X:
+
+    $ script/build-osx
+
+Note that this only works on Mountain Lion, not Mavericks, due to a [bug in PyInstaller](http://www.pyinstaller.org/ticket/807).
+
+## Sign your work
+
+The sign-off is a simple line at the end of the explanation for the
+patch, which certifies that you wrote it or otherwise have the right to
+pass it on as an open-source patch.  The rules are pretty simple: if you
+can certify the below (from [developercertificate.org](http://developercertificate.org/)):
+
+    Developer's Certificate of Origin 1.1
+
+    By making a contribution to this project, I certify that:
+
+    (a) The contribution was created in whole or in part by me and I
+        have the right to submit it under the open source license
+        indicated in the file; or
+
+    (b) The contribution is based upon previous work that, to the best
+        of my knowledge, is covered under an appropriate open source
+        license and I have the right under that license to submit that
+        work with modifications, whether created in whole or in part
+        by me, under the same open source license (unless I am
+        permitted to submit under a different license), as indicated
+        in the file; or
+
+    (c) The contribution was provided directly to me by some other
+        person who certified (a), (b) or (c) and I have not modified
+        it.
+
+    (d) I understand and agree that this project and the contribution
+        are public and that a record of the contribution (including all
+        personal information I submit with it, including my sign-off) is
+        maintained indefinitely and may be redistributed consistent with
+        this project or the open source license(s) involved.
+
+then you just add a line saying
+
+    Signed-off-by: Random J Developer <random@developer.example.org>
+
+using your real name (sorry, no pseudonyms or anonymous contributions.)
+
+The easiest way to do this is to use the `--signoff` flag when committing. E.g.:
+
+
+    $ git commit --signoff
+
+
+---
+layout: default
+title: Fig CLI reference
+---
+
+CLI reference
+=============
+
+Most commands are run against one or more services. If the service is omitted, it will apply to all services.
+
+Run `fig [COMMAND] --help` for full usage.
+
+## build
+
+Build or rebuild services.
+
+Services are built once and then tagged as `project_service`, e.g. `figtest_db`. If you change a service's `Dockerfile` or the contents of its build directory, you can run `fig build` to rebuild it.
+
+## help
+
+Get help on a command.
+
+## kill
+
+Force stop service containers.
+
+## logs
+
+View output from services.
+
+## ps
+
+List containers.
+
+## rm
+
+Remove stopped service containers.
+
+
+## run
+
+Run a one-off command on a service.
+
+For example:
+
+    $ fig run web python manage.py shell
+
+Note that this will not start any services that the command's service links to. So if, for example, your one-off command talks to your database, you will need to run `fig up -d db` first.
+
+One-off commands are started in new containers with the same config as a normal container for that service, so volumes, links, etc will all be created as expected. The only thing different to a normal container is the command will be overridden with the one specified and no ports will be created in case they collide.
+
+Links are also created between one-off commands and the other containers for that service so you can do stuff like this:
+
+    $ fig run db /bin/sh -c "psql -h \$DB_1_PORT_5432_TCP_ADDR -U docker"
+
+## scale
+
+Set number of containers to run for a service.
+
+Numbers are specified in the form `service=num` as arguments.
+For example:
+
+    $ fig scale web=2 worker=3
+
+## start
+
+Start existing containers for a service.
+
+## stop
+
+Stop running containers without removing them. They can be started again with `fig start`.
+
+## up
+
+Build, (re)create, start and attach to containers for a service.
+
+By default, `fig up` will aggregate the output of each container, and when it exits, all containers will be stopped. If you run `fig up -d`, it'll start the containers in the background and leave them running.
+
+If there are existing containers for a service, `fig up` will stop and recreate them (preserving mounted volumes with [volumes-from]), so that changes in `fig.yml` are picked up.
+
+[volumes-from]: http://docs.docker.io/en/latest/use/working_with_volumes/
+
+---
+layout: default
+title: Getting started with Fig and Django
+---
+
+Getting started with Fig and Django
+===================================
+
+Let's use Fig to set up and run a Django/PostgreSQL app. Before starting, you'll need to have [Fig installed](install.html).
+
+Let's set up the three files that'll get us started. First, our app is going to be running inside a Docker container which contains all of its dependencies. We can define what goes inside that Docker container using a file called `Dockerfile`. It'll contain this to start with:
+
+    FROM orchardup/python:2.7
+    ENV PYTHONUNBUFFERED 1
+    RUN apt-get update -qq && apt-get install -y python-psycopg2
+    RUN mkdir /code
+    WORKDIR /code
+    ADD requirements.txt /code/
+    RUN pip install -r requirements.txt
+    ADD . /code/
+
+That'll install our application inside an image with Python installed alongside all of our Python dependencies. For more information on how to write Dockerfiles, see the [Dockerfile tutorial](https://www.docker.io/learn/dockerfile/) and the [Dockerfile reference](http://docs.docker.io/en/latest/reference/builder/).
+
+Second, we define our Python dependencies in a file called `requirements.txt`:
+
+    Django
+
+Simple enough. Finally, this is all tied together with a file called `fig.yml`. It describes the services that our app comprises of (a web server and database), what Docker images they use, how they link together, what volumes will be mounted inside the containers and what ports they expose.
+
+    db:
+      image: orchardup/postgresql
+    web:
+      build: .
+      command: python manage.py runserver 0.0.0.0:8000
+      volumes:
+        - .:/code
+      ports:
+        - "8000:8000"
+      links:
+        - db
+
+See the [`fig.yml` reference](http://orchardup.github.io/fig/yml.html) for more information on how it works.
+
+We can now start a Django project using `fig run`:
+
+    $ fig run web django-admin.py startproject figexample .
+
+First, Fig will build an image for the `web` service using the `Dockerfile`. It will then run `django-admin.py startproject figexample .` inside a container using that image.
+
+This will generate a Django app inside the current directory:
+
+    $ ls
+    Dockerfile       fig.yml          figexample       manage.py        requirements.txt
+
+First thing we need to do is set up the database connection. Replace the `DATABASES = ...` definition in `figexample/settings.py` to read:
+
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql_psycopg2',
+            'NAME': 'docker',
+            'USER': 'docker',
+            'PASSWORD': 'docker',
+            'HOST': os.environ.get('DB_1_PORT_5432_TCP_ADDR'),
+            'PORT': os.environ.get('DB_1_PORT_5432_TCP_PORT'),
+        }
+    }
+
+These settings are determined by the [orchardup/postgresql](https://github.com/orchardup/docker-postgresql) Docker image we are using.
+
+Then, run `fig up`:
+
+    Recreating myapp_db_1...
+    Recreating myapp_web_1...
+    Attaching to myapp_db_1, myapp_web_1
+    myapp_db_1 |
+    myapp_db_1 | PostgreSQL stand-alone backend 9.1.11
+    myapp_db_1 | 2014-01-27 12:17:03 UTC LOG:  database system is ready to accept connections
+    myapp_db_1 | 2014-01-27 12:17:03 UTC LOG:  autovacuum launcher started
+    myapp_web_1 | Validating models...
+    myapp_web_1 |
+    myapp_web_1 | 0 errors found
+    myapp_web_1 | January 27, 2014 - 12:12:40
+    myapp_web_1 | Django version 1.6.1, using settings 'figexample.settings'
+    myapp_web_1 | Starting development server at http://0.0.0.0:8000/
+    myapp_web_1 | Quit the server with CONTROL-C.
+
+And your Django app should be running at [localhost:8000](http://localhost:8000) (or [localdocker:8000](http://localdocker:8000) if you're using docker-osx).
+
+You can also run management commands with Docker. To set up your database, for example, run `fig up` and in another terminal run:
+
+    $ fig run web python manage.py syncdb
+
+
+---
+layout: default
+title: Fig environment variables reference
+---
+
+Environment variables reference
+===============================
+
+Fig uses [Docker links] to expose services' containers to one another. Each linked container injects a set of environment variables, each of which begins with the uppercase name of the container.
+
+To see what environment variables are available to a service, run `fig run SERVICE env`.
+
+<b><i>name</i>\_PORT</b><br>
+Full URL, e.g. `DB_1_PORT=tcp://172.17.0.5:5432`
+
+<b><i>name</i>\_PORT\_<i>num</i>\_<i>protocol</i></b><br>
+Full URL, e.g. `DB_1_PORT_5432_TCP=tcp://172.17.0.5:5432`
+
+<b><i>name</i>\_PORT\_<i>num</i>\_<i>protocol</i>\_ADDR</b><br>
+Container's IP address, e.g. `DB_1_PORT_5432_TCP_ADDR=172.17.0.5`
+
+<b><i>name</i>\_PORT\_<i>num</i>\_<i>protocol</i>\_PORT</b><br>
+Exposed port number, e.g. `DB_1_PORT_5432_TCP_PORT=5432`
+
+<b><i>name</i>\_PORT\_<i>num</i>\_<i>protocol</i>\_PROTO</b><br>
+Protocol (tcp or udp), e.g. `DB_1_PORT_5432_TCP_PROTO=tcp`
+
+<b><i>name</i>\_NAME</b><br>
+Fully qualified container name, e.g. `DB_1_NAME=/myapp_web_1/myapp_db_1`
+
+[Docker links]: http://docs.docker.io/en/latest/use/port_redirection/#linking-a-container
+
+---
+layout: default
+title: Fig | Fast, isolated development environments using Docker
+---
+
+<strong class="strapline">Fast, isolated development environments using Docker.</strong>
+
+Define your app's environment with Docker so it can be reproduced anywhere:
+
+    FROM orchardup/python:2.7
+    ADD . /code
+    WORKDIR /code
+    RUN pip install -r requirements.txt
+
+Define the services that make up your app so they can be run together in an isolated environment:
+
+```yaml
+web:
+  build: .
+  command: python app.py
+  links:
+   - db
+  ports:
+   - "8000:8000"
+db:
+  image: orchardup/postgresql
+```
+
+(No more installing Postgres on your laptop!)
+
+Then type `fig up`, and Fig will start and run your entire app:
+
+![example fig run](https://orchardup.com/static/images/fig-example-large.gif)
+
+There are commands to:
+
+ - start, stop and rebuild services
+ - view the status of running services
+ - tail running services' log output
+ - run a one-off command on a service
+
+
+Quick start
+-----------
+
+Let's get a basic Python web app running on Fig. It assumes a little knowledge of Python, but the concepts should be clear if you're not familiar with it.
+
+First, [install Docker and Fig](install.html).
+
+You'll want to make a directory for the project:
+
+    $ mkdir figtest
+    $ cd figtest
+
+Inside this directory, create `app.py`, a simple web app that uses the Flask framework and increments a value in Redis:
+
+```python
+from flask import Flask
+from redis import Redis
+import os
+app = Flask(__name__)
+redis = Redis(
+    host=os.environ.get('REDIS_1_PORT_6379_TCP_ADDR'),
+    port=int(os.environ.get('REDIS_1_PORT_6379_TCP_PORT'))
+)
+
+@app.route('/')
+def hello():
+    redis.incr('hits')
+    return 'Hello World! I have been seen %s times.' % redis.get('hits')
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", debug=True)
+```
+
+We define our Python dependencies in a file called `requirements.txt`:
+
+    flask
+    redis
+
+Next, we want to create a Docker image containing all of our app's dependencies. We specify how to build one using a file called `Dockerfile`:
+
+    FROM orchardup/python:2.7
+    ADD . /code
+    WORKDIR /code
+    RUN pip install -r requirements.txt
+
+This tells Docker to install Python, our code and our Python dependencies inside a Docker image. For more information on how to write Dockerfiles, see the [Dockerfile tutorial](https://www.docker.io/learn/dockerfile/) and the [Dockerfile reference](http://docs.docker.io/en/latest/reference/builder/).
+
+We then define a set of services using `fig.yml`:
+
+    web:
+      build: .
+      command: python app.py
+      ports:
+       - "5000:5000"
+      volumes:
+       - .:/code
+      links:
+       - redis
+    redis:
+      image: orchardup/redis
+
+This defines two services:
+
+ - `web`, which is built from `Dockerfile` in the current directory. It also says to run the command `python app.py` inside the image, forward the exposed port 5000 on the container to port 5000 on the host machine, connect up the Redis service, and mount the current directory inside the container so we can work on code without having to rebuild the image.
+ - `redis`, which uses the public image [orchardup/redis](https://index.docker.io/u/orchardup/redis/). 
+
+Now if we run `fig up`, it'll pull a Redis image, build an image for our own code, and start everything up:
+
+    $ fig up
+    Pulling image orchardup/redis...
+    Building web...
+    Starting figtest_redis_1...
+    Starting figtest_web_1...
+    figtest_redis_1 | [8] 02 Jan 18:43:35.576 # Server started, Redis version 2.8.3
+    figtest_web_1 |  * Running on http://0.0.0.0:5000/
+
+Open up [http://localhost:5000](http://localhost:5000) in your browser (or [http://localdocker:5000](http://localdocker:5000) if you're using [docker-osx](https://github.com/noplay/docker-osx)) and you should see it running!
+
+If you want to run your services in the background, you can pass the `-d` flag to `fig up` and use `fig ps` to see what is currently running:
+
+    $ fig up -d
+    Starting figtest_redis_1...
+    Starting figtest_web_1...
+    $ fig ps
+            Name                 Command            State       Ports
+    -------------------------------------------------------------------
+    figtest_redis_1   /usr/local/bin/run         Up
+    figtest_web_1     /bin/sh -c python app.py   Up      5000->5000/tcp
+
+`fig run` allows you to run one-off commands for your services. For example, to see what environment variables are available to the `web` service:
+
+    $ fig run web env
+
+
+See `fig --help` other commands that are available.
+
+If you started Fig with `fig up -d`, you'll probably want to stop your services once you've finished with them:
+
+    $ fig stop
+
+That's more-or-less how Fig works. See the reference section below for full details on the commands, configuration file and environment variables. If you have any thoughts or suggestions, [open an issue on GitHub](https://github.com/orchardup/fig) or [email us](mailto:hello@orchardup.com).
+
+---
+layout: default
+title: Installing Fig
+---
+
+Installing Fig
+==============
+
+First, install Docker version 0.11.1. If you're on OS X, you can use [docker-osx](https://github.com/noplay/docker-osx):
+
+    $ curl https://raw.githubusercontent.com/noplay/docker-osx/0.11.1/docker-osx > /usr/local/bin/docker-osx
+    $ chmod +x /usr/local/bin/docker-osx
+    $ docker-osx shell
+
+Docker has guides for [Ubuntu](http://docs.docker.io/en/latest/installation/ubuntulinux/) and [other platforms](http://docs.docker.io/en/latest/installation/) in their documentation.
+
+Next, install Fig. On OS X:
+
+    $ curl -L https://github.com/orchardup/fig/releases/download/0.4.1/darwin > /usr/local/bin/fig
+    $ chmod +x /usr/local/bin/fig
+
+On 64-bit Linux:
+
+    $ curl -L https://github.com/orchardup/fig/releases/download/0.4.1/linux > /usr/local/bin/fig
+    $ chmod +x /usr/local/bin/fig
+
+Fig is also available as a Python package if you're on another platform (or if you prefer that sort of thing):
+
+    $ sudo pip install -U fig
+
+That should be all you need! Run `fig --version` to see if it worked.
+
+---
+layout: default
+title: Getting started with Fig and Rails
+---
+
+Getting started with Fig and Rails
+==================================
+
+We're going to use Fig to set up and run a Rails/PostgreSQL app. Before starting, you'll need to have [Fig installed](install.html).
+
+Let's set up the three files that'll get us started. First, our app is going to be running inside a Docker container which contains all of its dependencies. We can define what goes inside that Docker container using a file called `Dockerfile`. It'll contain this to start with:
+
+    FROM binaryphile/ruby:2.0.0-p247
+    RUN apt-get update -qq && apt-get install -y build-essential libpq-dev
+    RUN mkdir /myapp
+    WORKDIR /myapp
+    ADD Gemfile /myapp/Gemfile
+    RUN bundle install
+    ADD . /myapp
+
+That'll put our application code inside an image with Ruby, Bundler and all our dependencies. For more information on how to write Dockerfiles, see the [Dockerfile tutorial](https://www.docker.io/learn/dockerfile/) and the [Dockerfile reference](http://docs.docker.io/en/latest/reference/builder/).
+
+Next, we have a bootstrap `Gemfile` which just loads Rails. It'll be overwritten in a moment by `rails new`.
+
+    source 'https://rubygems.org'
+    gem 'rails', '4.0.2'
+
+Finally, `fig.yml` is where the magic happens. It describes what services our app comprises (a database and a web app), how to get each one's Docker image (the database just runs on a pre-made PostgreSQL image, and the web app is built from the current directory), and the configuration we need to link them together and expose the web app's port.
+
+    db:
+      image: orchardup/postgresql
+      ports:
+        - "5432"
+    web:
+      build: .
+      command: bundle exec rackup -p 3000
+      volumes:
+        - .:/myapp
+      ports:
+        - "3000:3000"
+      links:
+        - db
+
+With those files in place, we can now generate the Rails skeleton app using `fig run`:
+
+    $ fig run web rails new . --force --database=postgresql --skip-bundle
+
+First, Fig will build the image for the `web` service using the `Dockerfile`. Then it'll run `rails new` inside a new container, using that image. Once it's done, you should have a fresh app generated:
+
+    $ ls
+    Dockerfile   app          fig.yml      tmp
+    Gemfile      bin          lib          vendor
+    Gemfile.lock config       log
+    README.rdoc  config.ru    public
+    Rakefile     db           test
+
+Uncomment the line in your new `Gemfile` which loads `therubyracer`, so we've got a Javascript runtime:
+
+    gem 'therubyracer', platforms: :ruby
+
+Now that we've got a new `Gemfile`, we need to build the image again. (This, and changes to the Dockerfile itself, should be the only times you'll need to rebuild).
+
+    $ fig build
+
+The app is now bootable, but we're not quite there yet. By default, Rails expects a database to be running on `localhost` - we need to point it at the `db` container instead. We also need to change the username and password to align with the defaults set by `orchardup/postgresql`.
+
+Open up your newly-generated `database.yml`. Replace its contents with the following:
+
+    development: &default
+      adapter: postgresql
+      encoding: unicode
+      database: myapp_development
+      pool: 5
+      username: docker
+      password: docker
+      host: <%= ENV.fetch('DB_1_PORT_5432_TCP_ADDR', 'localhost') %>
+      port: <%= ENV.fetch('DB_1_PORT_5432_TCP_PORT', '5432') %>
+
+    test:
+      <<: *default
+      database: myapp_test
+
+We can now boot the app.
+
+    $ fig up
+
+If all's well, you should see some PostgreSQL output, and then—after a few seconds—the familiar refrain:
+
+    myapp_web_1 | [2014-01-17 17:16:29] INFO  WEBrick 1.3.1
+    myapp_web_1 | [2014-01-17 17:16:29] INFO  ruby 2.0.0 (2013-11-22) [x86_64-linux-gnu]
+    myapp_web_1 | [2014-01-17 17:16:29] INFO  WEBrick::HTTPServer#start: pid=1 port=3000
+
+Finally, we just need to create the database. In another terminal, run:
+
+    $ fig run web rake db:create
+
+And we're rolling—see for yourself at [localhost:3000](http://localhost:3000) (or [localdocker:3000](http://localdocker:3000) if you're using docker-osx).
+
+![Screenshot of Rails' stock index.html](https://orchardup.com/static/images/fig-rails-screenshot.png)
+
+---
+layout: default
+title: Getting started with Fig and Wordpress
+---
+
+Getting started with Fig and Wordpress
+======================================
+
+Fig makes it nice and easy to run Wordpress in an isolated environment. [Install Fig](install.html), then download Wordpress into the current directory:
+
+    $ curl http://wordpress.org/wordpress-3.8.1.tar.gz | tar -xvzf -
+
+This will create a directory called `wordpress`, which you can rename to the name of your project if you wish. Inside that directory, we create `Dockerfile`, a file that defines what environment your app is going to run in:
+
+```
+FROM orchardup/php5
+ADD . /code
+```
+
+This instructs Docker on how to build an image that contains PHP and Wordpress. For more information on how to write Dockerfiles, see the [Dockerfile tutorial](https://www.docker.io/learn/dockerfile/) and the [Dockerfile reference](http://docs.docker.io/en/latest/reference/builder/).
+
+Next up, `fig.yml` starts our web service and a separate MySQL instance:
+
+```
+web:
+  build: .
+  command: php -S 0.0.0.0:8000 -t /code
+  ports:
+    - "8000:8000"
+  links:
+    - db
+  volumes:
+    - .:/code
+db:
+  image: orchardup/mysql
+  environment:
+    MYSQL_DATABASE: wordpress
+```
+
+Two supporting files are needed to get this working - first up, `wp-config.php` is the standard Wordpress config file with a single change to make it read the MySQL host and port from the environment variables passed in by Fig:
+
+```
+<?php
+define('DB_NAME', 'wordpress');
+define('DB_USER', 'root');
+define('DB_PASSWORD', '');
+define('DB_HOST', getenv("DB_1_PORT_3306_TCP_ADDR") . ":" . getenv("DB_1_PORT_3306_TCP_PORT"));
+define('DB_CHARSET', 'utf8');
+define('DB_COLLATE', '');
+
+define('AUTH_KEY',         'put your unique phrase here');
+define('SECURE_AUTH_KEY',  'put your unique phrase here');
+define('LOGGED_IN_KEY',    'put your unique phrase here');
+define('NONCE_KEY',        'put your unique phrase here');
+define('AUTH_SALT',        'put your unique phrase here');
+define('SECURE_AUTH_SALT', 'put your unique phrase here');
+define('LOGGED_IN_SALT',   'put your unique phrase here');
+define('NONCE_SALT',       'put your unique phrase here');
+
+$table_prefix  = 'wp_';
+define('WPLANG', '');
+define('WP_DEBUG', false);
+
+if ( !defined('ABSPATH') )
+    define('ABSPATH', dirname(__FILE__) . '/');
+
+require_once(ABSPATH . 'wp-settings.php');
+```
+
+Finally, `router.php` tells PHP's built-in web server how to run Wordpress:
+
+```
+<?php
+
+$root = $_SERVER['DOCUMENT_ROOT'];
+chdir($root);
+$path = '/'.ltrim(parse_url($_SERVER['REQUEST_URI'])['path'],'/');
+set_include_path(get_include_path().':'.__DIR__);
+if(file_exists($root.$path))
+{
+    if(is_dir($root.$path) && substr($path,strlen($path) - 1, 1) !== '/')
+        $path = rtrim($path,'/').'/index.php';
+    if(strpos($path,'.php') === false) return false;
+    else {
+        chdir(dirname($root.$path));
+        require_once $root.$path;
+    }
+}else include_once 'index.php';
+```
+
+With those four files in place, run `fig up` inside your Wordpress directory and it'll pull and build the images we need, and then start the web and database containers. You'll then be able to visit Wordpress and set it up by visiting [localhost:8000](http://localhost:8000) - or [localdocker:8000](http://localdocker:8000) if you're using docker-osx.
+
+---
+layout: default
+title: fig.yml reference
+---
+
+fig.yml reference
+=================
+
+Each service defined in `fig.yml` must specify exactly one of `image` or `build`. Other keys are optional, and are analogous to their `docker run` command-line counterparts.
+
+As with `docker run`, options specified in the Dockerfile (e.g. `CMD`, `EXPOSE`, `VOLUME`, `ENV`) are respected by default - you don't need to specify them again in `fig.yml`.
+
+```yaml
+-- Tag or partial image ID. Can be local or remote - Fig will attempt to pull
+-- if it doesn't exist locally.
+image: ubuntu
+image: orchardup/postgresql
+image: a4bc65fd
+
+-- Path to a directory containing a Dockerfile. Fig will build and tag it with
+-- a generated name, and use that image thereafter.
+build: /path/to/build/dir
+
+-- Override the default command.
+command: bundle exec thin -p 3000
+
+-- Link to containers in another service. Optionally specify an alternate name
+-- for the link, which will determine how environment variables are prefixed,
+-- e.g. "db" -> DB_1_PORT, "db:database" -> DATABASE_1_PORT
+links:
+ - db
+ - db:database
+ - redis
+
+-- Expose ports. Either specify both ports (HOST:CONTAINER), or just the
+-- container port (a random host port will be chosen).
+-- Note: When mapping ports in the HOST:CONTAINER format, you may experience
+-- erroneous results when using a container port lower than 60, because YAML
+-- will parse numbers in the format "xx:yy" as sexagesimal (base 60). For
+-- this reason, we recommend always explicitly specifying your port mappings
+-- as strings.
+ports:
+ - "3000"
+ - "8000:8000"
+ - "49100:22"
+
+-- Expose ports without publishing them to the host machine - they'll only be
+-- accessible to linked services. Only the internal port can be specified.
+expose:
+ - "3000"
+ - "8000"
+
+-- Map volumes from the host machine (HOST:CONTAINER).
+volumes:
+ - cache/:/tmp/cache
+
+-- Add environment variables.
+environment:
+  RACK_ENV: development
+```
+
+
+Fig
+===
+
+[![Build Status](https://travis-ci.org/orchardup/fig.svg?branch=master)](https://travis-ci.org/orchardup/fig)
+[![PyPI version](https://badge.fury.io/py/fig.png)](http://badge.fury.io/py/fig)
+
+Fast, isolated development environments using Docker.
+
+Define your app's environment with Docker so it can be reproduced anywhere:
+
+    FROM orchardup/python:2.7
+    ADD . /code
+    WORKDIR /code
+    RUN pip install -r requirements.txt
+    CMD python app.py
+
+Define the services that make up your app so they can be run together in an isolated environment:
+
+```yaml
+web:
+  build: .
+  links:
+   - db
+  ports:
+   - "8000:8000"
+   - "49100:22"
+db:
+  image: orchardup/postgresql
+```
+
+(No more installing Postgres on your laptop!)
+
+Then type `fig up`, and Fig will start and run your entire app:
+
+![example fig run](https://orchardup.com/static/images/fig-example-large.gif)
+
+There are commands to:
+
+ - start, stop and rebuild services
+ - view the status of running services
+ - tail running services' log output
+ - run a one-off command on a service
+
+Fig is a project from [Orchard](https://orchardup.com), a Docker hosting service. [Follow us on Twitter](https://twitter.com/orchardup) to keep up to date with Fig and other Docker news.
+
+Installation and documentation
+------------------------------
+
+Full documentation is available on [Fig's website](http://orchardup.github.io/fig/).
+

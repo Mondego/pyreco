@@ -1,0 +1,91 @@
+# Installing Kartograph on Windows
+
+## Installing PostgreSQL and PostGIS
+
+Install PostgreSQL using the [one-click installer](http://www.enterprisedb.com/products-services-training/pgdownload) (e.g. ``postgresql-9.1.4-1-windows.exe``). During install you will be asked for a master password, which you need to keep for later. 
+
+* At the end of the install you will be asked to install the Stack Builder. Say yes, and install *Spatial Extensions/PostGIS 2.0 for PostgreSQL 9.1 v 2.0.0*.
+* Instead of using the Stack Builder you can also install PostGIS seperately using the [one-click installer](http://postgis.refractions.net/download/windows/). Make sure you pick the right build for your PostgreSQL version (e.g. ``postgis-pg91-setup-2.0.1-1.exe``).
+
+Installing PostGIS will also install the required GDAL framework. In case you absolutely don't want to install PostGIS and PostgreSQL you need to install [GDAL](http://pypi.python.org/pypi/GDAL/1.9.1#windows) on your own.
+
+## Install shapely
+
+
+
+# Kartograph and OpenStreetMap
+
+### Setup PostgreSQL and PostGIS
+
+    brew install postgresql
+    brew install postgis
+    brew install osm2pgsql
+
+### Initialize a data directory for your and run PostgreSQL
+
+    pg_ctl init -D ./pgdata
+    export PGDATA=./pgdata
+    pg_ctl start
+
+### Initialize a new PostGIS-enabled database
+
+    createdb osm
+    psql -d osm -f /usr/local/Cellar/postgis/1.5.3/share/postgis/postgis.sql
+    psql -d osm -f /usr/local/Cellar/postgis/1.5.3/share/postgis/spatial_ref_sys.sql
+
+### Download OpenStreetMap dump
+
+For instance, you can downlaod the OSM dump provided by Cloudmade. The output is unpacked on thy fly.
+
+    wget -O - http://downloads.cloudmade.com/europe/western_europe/germany/germany.osm.bz2 | bzcat > germany.osm
+
+### Import OSM dump into PostGIS using osm2pgsql
+
+Make sure you have enough time and memory for this operation. On my Macbook it took more than 4 hours to read the dump of Germany.
+
+    osm2pgsql -l -C 2000 -d osm germany.osm
+
+### Set up and run a virtual environment for Kartograph
+
+    pip install virtualenv
+    virtualenv ENV
+    source ENV/bin/activate
+
+### Install Kartograph
+
+    cd kartograph-dpa
+    python setup.py develop
+
+Please follow [installation instructions on the Kartograph website](http://kartograph.org/docs/kartograph.py/#installing-kartograph-py).
+# Kartograph.py
+
+Kartograph is a Python library that generates SVG maps from ESRI shapefiles. Please have a look at the [API docs](https://github.com/kartograph/kartograph.py/wiki/API) for more details.
+
+### Author
+
+Kartograph was created by [Gregor Aisch](http://github.com/gka/) and is supported by [dpa-newslab](http://www.dpa-newslab.com/), [Piwik Web Analytics](http://piwik.org) and the [Open Knowledge Foundation](http://okfn.org). 
+
+### License
+
+Kartograph.py is licensed under [AGPL](http://www.gnu.org/licenses/agpl-3.0.txt)
+
+### Current status
+
+Kartograph.py is still beta, which means that there are some bugs left to fix.
+
+However, feel free to test it while it is been developed. To do so I recommend to use [virtualenv](http://www.virtualenv.org/en/latest/index.html) and [virtualenv-wrapper](http://www.doughellmann.com/projects/virtualenvwrapper/).
+
+```sh
+> mkdir kartograph-py
+> git clone git@github.com:kartograph/kartograph.py.git kartograph-py
+
+# create and activate a new virtual environment
+> mkvirtualenv kartograph
+
+# install and use Kartograph
+(kartograph)> cd kartograph-py
+(kartograph)> python setup.py install
+```
+
+See install documentation
+

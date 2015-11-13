@@ -1,0 +1,72 @@
+#+TITLE:RTE: Bret Victor's interfaces, the UNIX way
+# #+begin_abstract
+The gap between the time the user edits a text file and the time he sees the effects of his modification creates a cognitive charge that hinders creativity.
+In his presentation at CUSEC 2012, Bret Victor calls for new interfaces where the effects of a modification of the source file is immediatly visible to the user.
+This software implements this idea, in a generic, UNIX-y way. By defining a couple Makefile rules, anybody can edit \LaTeX files in a WYSIWYG kind of way or immediately see tests passing (or breaking) as soon as the last character of a function is inputted.
+# #+end_abstract
+* See it in action
+  A screencast is available : http://www.youtube.com/watch?v=ZS7jBvCrR9s
+* Source video
+Bert Victor's Inventing on principle demos :
+http://www.youtube.com/watch?v=PUv66718DII
+
+* Installation and usage
+** Dependencies
+   Python interface for FUSE (one that works, that is ;) :
+   https://github.com/terencehonles/fusepy
+
+   For LaTeX editing: xpdf
+
+   For HTML editing: uzbl
+** Usage
+   See the screencast for a specific example.
+   
+   Create a Makefile with these 4 rules :
+   - =RTEcompile= : This rule will be called after each modification of the text file
+   - =RTEview= : This rule will be called after each successful call to =RTEcompile=
+   - =RTEstartView= and =RTEstopView= : Called when starting and quitting RTE.
+
+    
+   Example of such rules can be found in the testLatex and testPython directories.
+
+   Now call RTE (create /tmp/mnt if need be):
+   : $FOO/RTEFS.py /tmp/mnt
+
+   And fire your text editor of choice
+   : emacs --funcall launch-RTE foo.bar
+   : vim foo.bar #don't forget to launch the UpdateFile function
+*** Emacs
+    Copy the content of [[RTE.el]] into your .emacs
+*** Vim
+    The code of the UpdateFile function is in RTE.vim
+* Technical principle
+** Editor's job
+    - If dir $RTE/input/ is writable
+      - Write the content of the buffer, under the corresponding file name
+    - Wait for buffer to change
+** RTEAgent's job
+*** Setup
+    - Create a ramdisk
+    - copy contents of $CWD to ramdisk
+    - Make Makefile rule RTEstartView
+      
+    
+    FIXME: A complete chroot in the ramdisk, with all the files accessed during compilation would be better. Before implementing that, however, I should check wether it actually speed things up.
+
+    FIXME: For python programs, maybe make use of [[http://pgbovine.net/incpy.html][this interpreter]], not to have to compute everything again each time.
+*** Loop
+    - Wait for input in $RTE/input/
+    - on fclose(), disallow writing in $RTE/input/
+    - Copy newly gained input on the ramdisk (overwriting whatever's in there)
+    - Make Makefile rule RTEcompile in a new thread
+    - if the rule execute with no error
+      - Make Makefile rule RTEview
+    - Allow writing in $RTE/input/
+** Test
+Run :
+ : pushd testLatex; python ../testRTEAgent.py; popd
+
+
+
+
+

@@ -1,0 +1,425 @@
+ LocalWiki is a web application that includes collaborative editing and
+ mapping and is designed for collecting and sharing information in local,
+ geographic communities. Depends on python, apache2, postgis, and jetty.
+
+These are the administrative docs for localwiki. An online version of the latest version of these docs can be found at http://readthedocs.org/docs/localwiki/en/latest/
+
+html/  contains html versions of the docs.
+
+
+Want to help with documentation?
+================================
+
+source/ contains .rst files that turn into html. If you want to contribute to the docs, just edit the .rst files in this directory.  You'll want to make sure you have Sphinx (pip install Sphinx) installed, and then simply run:
+
+   $ make html
+
+to generate the HTML docs.
+
+For more information on the Sphix documentation system, see http://sphinx.pocoo.org/.
+
+
+Translating the documentation (i18n)
+====================================
+
+*Important*. You will need to install Sphinx >= v1.1 for this to work.
+
+
+Making a new translation
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Create a new directory with your language identifier inside of source/translated/.  For example, for `es` (Spanish) we do:
+
+   $ mkdir -p source/translated/es/LC_MESSAGES
+
+While inside of source/, run `make gettext lang=<language identifer>`.  For example, for `es` (Spanish) we do:
+
+   $ make gettext lang=es
+
+This will create a set of .po files inside of inside of our souce/translated/es/LC_MESSAGES.
+
+Editing a translation
+~~~~~~~~~~~~~~~~~~~~~
+
+Now edit the .po files, adding your translations.  After you've edited the .po files you'll want to compile them into .mo files:
+
+   $ make msgfmt lang=es
+
+To make the html docs, simply run `make html` with the lang argument:
+
+   $ make html lang=es
+
+When you're done, commit the associated source/translated/<language identifer>/ directory and send an associated pull request or patch.
+
+A ckeditor django app we've created.  Does nice things like checks for allowed XHTML
+elements and optionally renders buttons based on pre-defined allowed elements.
+
+This editor whitelists allowed elements/attributes to combat XSS attacks.
+The included test suite can test against a known list of XSS attacks.
+
+===========================
+There's nothing LocalWiki-specific in this ckeditor at the moment.  When that
+does happen we'll try and spin off a separate ckeditor app and have our own
+'editor' app that uses the spinned-off ckeditor app.
+
+About
+-----
+
+Flot is a Javascript plotting library for jQuery. Read more at the
+website:
+
+  http://code.google.com/p/flot/
+
+Take a look at the examples linked from above, they should give a good
+impression of what Flot can do and the source code of the examples is
+probably the fastest way to learn how to use Flot.
+  
+
+Installation
+------------
+
+Just include the Javascript file after you've included jQuery.
+
+Generally, all browsers that support the HTML5 canvas tag are
+supported.
+
+For support for Internet Explorer < 9, you can use Excanvas, a canvas
+emulator; this is used in the examples bundled with Flot. You just
+include the excanvas script like this:
+
+  <!--[if lte IE 8]><script language="javascript" type="text/javascript" src="excanvas.min.js"></script><![endif]-->
+
+If it's not working on your development IE 6.0, check that it has
+support for VML which Excanvas is relying on. It appears that some
+stripped down versions used for test environments on virtual machines
+lack the VML support.
+
+You can also try using Flashcanvas (see
+http://code.google.com/p/flashcanvas/), which uses Flash to do the
+emulation. Although Flash can be a bit slower to load than VML, if
+you've got a lot of points, the Flash version can be much faster
+overall. Flot contains some wrapper code for activating Excanvas which
+Flashcanvas is compatible with.
+
+You need at least jQuery 1.2.6, but try at least 1.3.2 for interactive
+charts because of performance improvements in event handling.
+
+
+Basic usage
+-----------
+
+Create a placeholder div to put the graph in:
+
+   <div id="placeholder"></div>
+
+You need to set the width and height of this div, otherwise the plot
+library doesn't know how to scale the graph. You can do it inline like
+this:
+
+   <div id="placeholder" style="width:600px;height:300px"></div>
+
+You can also do it with an external stylesheet. Make sure that the
+placeholder isn't within something with a display:none CSS property -
+in that case, Flot has trouble measuring label dimensions which
+results in garbled looks and might have trouble measuring the
+placeholder dimensions which is fatal (it'll throw an exception).
+
+Then when the div is ready in the DOM, which is usually on document
+ready, run the plot function:
+
+  $.plot($("#placeholder"), data, options);
+
+Here, data is an array of data series and options is an object with
+settings if you want to customize the plot. Take a look at the
+examples for some ideas of what to put in or look at the reference
+in the file "API.txt". Here's a quick example that'll draw a line from
+(0, 0) to (1, 1):
+
+  $.plot($("#placeholder"), [ [[0, 0], [1, 1]] ], { yaxis: { max: 1 } });
+
+The plot function immediately draws the chart and then returns a plot
+object with a couple of methods.
+
+
+What's with the name?
+---------------------
+
+First: it's pronounced with a short o, like "plot". Not like "flawed".
+
+So "Flot" rhymes with "plot".
+
+And if you look up "flot" in a Danish-to-English dictionary, some up
+the words that come up are "good-looking", "attractive", "stylish",
+"smart", "impressive", "extravagant". One of the main goals with Flot
+is pretty looks.
+
+This contains a localwiki project environment.  Installation-specific data
+and configuration goes here -- e.g. user uploads, site-specific settings
+files, site-specific themes.
+
+This is the site-specific data directory *template*.  We copy the 'localwiki'
+directory to sys.prefix during a new installation, and all user/site-specific
+data (uploads, site-specific settings) lives there.
+
+=========
+localwiki
+=========
+
+LocalWiki is a web application that includes collaborative editing and
+mapping and is designed for collecting and sharing information in local,
+geographic communities. Depends on python, apache2, postgis, and jetty.
+
+See `localwiki.org <http://localwiki.org>`_ for much more information.
+
+Installation
+=============
+
+We recommend that non-developers install via the Ubuntu package.
+Details here:
+
+   http://localwiki.org/install
+
+You can install localwiki via pip, but you'll need to follow the usual
+installation steps and make sure you have the system-level prerequisites.
+See our INSTALL file:
+
+   https://github.com/localwiki/localwiki/blob/master/INSTALL
+
+You'll just subsitute 'pip install localwiki' for 'python setup.py install'.
+Everything else remains the same.
+
+For now, a theme is simply a directory containing:
+
+    A directory with Django templates ('templates')
+    A directory with static assets ('assets') 
+
+Themes live in this directory, themes/.
+
+After changing themes around you'll want to make sure to set your SITE_THEME setting and run:
+
+python manage.py collectstatic
+
+Otherwise the files won't be served unless you're using the development server.
+
+== Referring to static assets ==
+
+Your theme templates can refer to static assets like this!--
+
+<img src="{{STATIC_URL}}theme/img/mybutton.png"/>
+
+That will pull up the file that lives at themes/yourtheme/img/mybutton.png.
+
+== Over-riding built-in templates ==
+
+To over-ride pages/base.html, you simply define themes/themename/templates/pages/base.html. 
+
+Some CSS and images for this theme were adapted from the ReadTheDocs
+project (http://readthedocs.org), which is MIT licensed:
+
+    Copyright (c) 2010 Charles Leifer, Eric Holscher, Bobby Grace
+    
+    Permission is hereby granted, free of charge, to any person
+    obtaining a copy of this software and associated documentation
+    files (the "Software"), to deal in the Software without
+    restriction, including without limitation the rights to use,
+    copy, modify, merge, publish, distribute, sublicense, and/or sell
+    copies of the Software, and to permit persons to whom the
+    Software is furnished to do so, subject to the following
+    conditions:
+    
+    The above copyright notice and this permission notice shall be
+    included in all copies or substantial portions of the Software.
+    
+    THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+    OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+    NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+    HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+    WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+    FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+    OTHER DEALINGS IN THE SOFTWARE.
+
+Some Icons (map marker, trash can icons) Copyright © Yusuke Kamiyamane. All
+rights reserved. Licensed under a Creative Commons Attribution 3.0 license.
+
+pages/img/external_link.png from Trac Project (http://trac.edgewall.org/),
+which is MIT licensed:
+
+    Copyright (C) 2003-2011 Edgewall Software
+    All rights reserved.
+    
+    Redistribution and use in source and binary forms, with or without
+    modification, are permitted provided that the following conditions
+    are met:
+    
+     1. Redistributions of source code must retain the above copyright
+        notice, this list of conditions and the following disclaimer.
+     2. Redistributions in binary form must reproduce the above copyright
+        notice, this list of conditions and the following disclaimer in
+        the documentation and/or other materials provided with the
+        distribution.
+     3. The name of the author may not be used to endorse or promote
+        products derived from this software without specific prior
+        written permission.
+    
+    THIS SOFTWARE IS PROVIDED BY THE AUTHOR ``AS IS'' AND ANY EXPRESS
+    OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+    WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+    ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY
+    DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
+    DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE
+    GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+    INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+    IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+    OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN
+    IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+A totally optional daisydiff add-on.
+
+If you don't have the daisydiff java server running then this won't work.
+
+ * Note that these tests wont pass with the sqlite3 backend and Django <= 1.2.3.  This is due to the following bug in the django db code: http://code.djangoproject.com/ticket/14453
+
+=========
+LocalWiki
+=========
+
+LocalWiki is tool for collaborating in local, geographic communities.
+
+We're *really* just getting started here.
+
+General install instructions here:
+
+  http://localwiki.org/install/
+
+Development
+===========
+
+.. image:: https://travis-ci.org/localwiki/localwiki.png?branch=master
+    :target: https://travis-ci.org/localwiki/localwiki
+
+.. image:: https://coveralls.io/repos/localwiki/localwiki/badge.png?branch=master
+    :target: https://coveralls.io/r/localwiki/localwiki
+
+:Code:          https://github.com/localwiki/localwiki
+:Issues:        https://github.com/localwiki/localwiki/issues
+:Dev Docs:      https://dev.localwiki.org
+:Mailing list:  http://lists.localwiki.org/mailman/listinfo/localwiki-dev
+:IRC:           irc://irc.freenode.net/localwiki
+:License:       GPLv2; see COPYING file
+
+Legal Stuff
+===========
+Copyright (c) 2010-2012 by Philip Neustrom <philip@localwiki.org>
+
+Copyright (c) 2010-2012 by Mike Ivanov <mike@localwiki.org>
+
+All rights reserved, see COPYING for details.
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+
+This is a version of the daisydiff HTML diffing library that's we've modified
+in a few ways.  Some noteworthy changes:
+
+  * Diffing is rendered in the classic wiki side-by-side manner.
+  * Diffing can be provided as a service rather than simply via a
+    command-line app.  This dramatically improves performance.
+  * Three-way merging is supported.  This is essential for resolving
+    wiki edit conflicts.
+
+Modifications will be pushed upstream where possible.  We will likely continue
+improving this version of daisydiff and figure out what we want to do[1] at a
+later, better point.
+
+------
+1. It doesn't look like DaisyDiff has been actively maintained in some while.
+We may end up carrying the torch on this one.  We may end up rewriting this in
+python at some point, too.
+
+                              Daisy Diff 1.1
+
+        This is Daisy Diff, the open source HTML diffing library!
+
+               Website - http://code.google.com/p/daisydiff/
+
+    +---------------------------------------------------------------+
+    |                         STAND-ALONE                           |
+    +---------------------------------------------------------------+
+
+Java:
+=====
+java -jar daisydiff.jar [oldHTML] [newHTML] [optional arguments]
+
+
+Optional Arguments:
+===================
+--file=[filename] - Write output to the specified file.
+--type=[html/tag] - Use the html (default) diff algorithm or the tag diff.
+--css=[cssfile1;cssfile2;cssfile3] - Add external CSS files.
+--output=[html/xml] - Write html (default) or xml output.
+--q  - Generate less console output.
+
+Example:
+========
+java -jar daisydiff.jar http://web.archive.org/web/20070107145418/http://news.bbc.co.uk/ http://web.archive.org/web/20070107182640/http://news.bbc.co.uk/ --css=http://web.archive.org/web/20070107145418/http://news.bbc.co.uk/nol/shared/css/news_r5.css
+
+java -jar daisydiff.jar http://cocoondev.org/wiki/291-cd/version/15/part/SimpleDocumentContent/data http://cocoondev.org/wiki/291-cd/version/17/part/SimpleDocumentContent/data --css=http://cocoondev.org/resources/skins/daisysite/css/daisy.css --output=xml --file=daisysite.htm
+
+Requirements:
+=============
+Java 1.5 or 6
+
+    +---------------------------------------------------------------+
+    |                           EMBEDDED                            |
+    +---------------------------------------------------------------+
+
+Java:
+=====
+org.outerj.daisy.diff.DaisyDiff{
+
+/**
+ * Diffs two html files, outputting the result to the specified consumer.
+ */
+public static void diffHTML(InputSource oldSource, InputSource newSource, ContentHandler consumer, String prefix, Locale locale) throws SAXException, IOException;
+
+/**
+ * Diffs two html files word for word as source, outputting the result to
+ * the specified consumer.
+ */            
+public static void diffTag(String oldText, String newText, ContentHandler consumer) throws Exception;
+
+}
+
+Requirements:
+=============
+Java 1.5 or 6
+To run Daisy Diff embedded in your application, you don't need the entire Jar file. A much smaller Jar file without Xerces and NekoHtml will suffice.
+
+
+    +---------------------------------------------------------------+
+    |                              PHP                              |
+    +---------------------------------------------------------------+
+
+The DaisyDiff algorithm has been integrated in MediaWiki. The version with DaisyDiff support isn't released yet.
+More info on: http://www.mediawiki.org/wiki/Visual_Diff
+
+The PHP code is released under the GPLv2. It can also be used as an embedded HTML differ in a PHP application.
+
+    +---------------------------------------------------------------+
+    |                       Acknowledgements                        |
+    +---------------------------------------------------------------+
+
+Guy Van den Broeck <guy@guyvdb.eu>
+Daniel Dickison

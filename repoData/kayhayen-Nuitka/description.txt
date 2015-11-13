@@ -1,0 +1,1131 @@
+
+The source used to build Nuitka has modifications compared to normal releases:
+
+- The benchmark programs are not included. They are not really useful and can
+  be used from other sources in a better way.
+
+- The inline copy of Scons is removed. It is not needed as the dependency on
+  scons leads to an installed scons in the system. The original package uses
+  the installed scons in preference, so the inline copy would (at best) only
+  be dead code.
+
+Nuitka User Manual
+~~~~~~~~~~~~~~~~~~
+
+.. image:: images/Nuitka-Logo-Symbol.png
+
+.. contents::
+
+.. raw:: pdf
+
+   PageBreak oneColumn
+   SetPageCounter 1
+
+Overview
+========
+
+Nuitka is the Python compiler. It is a good replacement for the Python
+interpreter and compiles **every** construct that CPython 2.6, 2.7, 3.2 and 3.3
+offer. It translates the Python into a C++ program that then uses "libpython" to
+execute in the same way as CPython does, in a very compatible way.
+
+This document is the recommended first read if you are interested in using
+Nuitka, understand its use cases, check what you can expect, license,
+requirements, credits, etc.
+
+Usage
+=====
+
+Requirements
+------------
+
+- C++ Compiler: You need a compiler with support for C++03
+
+  Currently this means, you need to use either of these compilers:
+
+  * GNU g++ compiler of at least version 4.4
+
+  * The clang compiler on MacOS X or FreeBSD, based on LLVM version 3.2
+
+  * The MinGW compiler on Windows
+
+  * Visual Studion 2008 or higher on Windows
+
+- Python: Version 2.6, 2.7 or 3.2, 3.3 (support for upcoming 3.4 exists
+  partially)
+
+  You need the standard Python implementation, called CPython, to execute
+  Nuitka, because it is closely tied to using it.
+
+  .. note::
+
+     The created binaries can be made executable independent of the Python
+     installation, with ``--standalone`` option.
+
+- Operating System: Linux, FreeBSD, NetBSD, MacOS X, and Windows (32/64 bits),
+
+  Others may work as well. The portability is expected to be generally good, but
+  the Scons usage may have to be adapted.
+
+- Architectures: x86, x86_64 (amd64), and arm.
+
+  Other architectures may also work, these are just the only ones
+  tested. Feedback is welcome.
+
+Command Line
+------------
+
+No environment variable changes are needed, you can call the ``nuitka`` and
+``nuitka-run`` scripts directly without any changes to the environment. You may
+want to add the ``bin`` directory to your ``PATH`` for your convenience, but
+that step is optional.
+
+Nuitka has a ``--help`` option to output what it can do:
+
+.. code-block:: bash
+
+    nuitka --help
+
+The ``nuitka-run`` command is the same as ``nuitka``, but with different
+default. It tries to compile and directly execute a Python script:
+
+.. code-block:: bash
+
+    nuitka-run --help
+
+These option that is different is ``--execute``, and passing on arguments after
+the first non-option to the created binary, so it is somewhat more similar to
+what plain ``python`` will do.
+
+License
+-------
+
+Nuitka is licensed under the Apache License, Version 2.0; you may not use
+it except in compliance with the License.
+
+You may obtain a copy of the License at
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software distributed
+under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+CONDITIONS OF ANY KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations under the License.
+
+Use Cases
+=========
+
+Use Case 1 - Program compilation with all modules embedded
+----------------------------------------------------------
+
+If you want to compile a whole program recursively, and not only the single file
+that is the main program, do it like this:
+
+.. code-block:: bash
+
+    nuitka --recurse-all program.py
+
+.. note::
+
+   The is more fine grained control than ``--recurse-all`` available. Consider
+   the output of ``nuitka --help``.
+
+In case you have a plugin directory, i.e. one which is not found by recursing
+after normal import statements (recommended way), you can always require that a
+given directory shall also be included in the executable:
+
+.. code-block:: bash
+
+    nuitka --recurse-all --recurse-directory=plugin_dir program.py
+
+.. note::
+
+   If you don't do any dynamic imports, simply setting your ``PYTHONPATH`` at
+   compilation time will be sufficient for all your needs normally.
+
+   Use ``--recurse-directory`` only if you make ``__import__()`` calls that
+   Nuitka cannot predict, because they e.g. depend on command line
+   parameters. Nuitka also warns about these, and point to the option.
+
+.. note::
+
+   The resulting binary still depends on CPython and used C extension modules
+   being installed.
+
+   If you want to be able to copy it to another machine, use ``--standalone``
+   and copy the created ``program.dist`` directory and execute the
+   ``program.exe`` put inside.
+
+Use Case 2 - Extension Module compilation
+-----------------------------------------
+
+If you want to compile a single extension module, all you have to do is this:
+
+.. code-block:: bash
+
+    nuitka --module some_module.py
+
+The resulting file "some_module.so" can then be used instead of
+"some_module.py". It's left as an exercise to the reader, what happens if both
+are present.
+
+.. note::
+
+   The option ``--recurse-all`` and other variants work as well.
+
+Use Case 3 - Package compilation
+--------------------------------
+
+If you need to compile a whole package and embedded all modules, that is also
+feasible, use Nuitka like this:
+
+.. code-block:: bash
+
+    nuitka --module some_package --recurse-directory=some_package
+
+.. note::
+
+   The recursion into the package directory needs to be provided manually,
+   otherwise the package is empty. Data files located inside the package will
+   not be embedded yet.
+
+
+Where to go next
+================
+
+Remember, this project is not completed yet. Although the CPython test suite
+works near perfect, there is still more work needed, to make it do more
+optimization. Try it out.
+
+Subscribe to its mailing lists
+------------------------------
+
+Please visit the `mailing list page
+<http://www.nuitka.net/pages/mailinglist.html>`__ in order to subscribe the
+relatively low volume mailing list. All Nuitka issues can be discussed there.
+
+Report issues or bugs
+---------------------
+
+Should you encounter any issues, bugs, or ideas, please visit the `Nuitka bug
+tracker <http://bugs.nuitka.net>`__ and report them.
+
+Contact me via email with your questions
+----------------------------------------
+
+You are welcome to `contact me via email <mailto:Kay.Hayen@gmail.com>`__ with
+your questions.
+
+Word of Warning
+---------------
+
+Consider using this software with caution. Your feedback and patches to Nuitka
+are very welcome.
+
+Especially report it please, if you find that anything doesn't work, because the
+project is now at the stage that this should not happen.
+
+
+Join Nuitka
+===========
+
+You are more than welcome to join Nuitka development and help to complete the
+project in all minor and major ways.
+
+The development of Nuitka occurs in git. We currently have these 2 branches:
+
+- `master
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/master>`__:
+
+  This branch contains the stable release to which only hotfixes for bugs will
+  be done. It is supposed to work at all times and is supported.
+
+- `develop
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/develop>`__:
+
+  This branch contains the ongoing development. It may at times contain little
+  regressions, but also new features. On this branch the integration work is
+  done, whereas new features might be developed on feature branches.
+
+- `factory
+  <http://nuitka.net/gitweb/?p=Nuitka.git;a=shortlog;h=refs/heads/factory>`__:
+
+  This branch contains potentially unfinished and incomplete work. It is very
+  frequently subject ``git rebase`` and the public staging ground, where my work
+  for develop branch lives first. It is intended for testing only and
+  recommended to base any of your own development on.
+
+.. note::
+
+   I accept patch files, git formatted patch queues (use ``git format-patch
+   origin`` command), or if you prefer git pull on the social code platforms.
+
+   I will do the integration work. If you base your work on "master" or
+   "develop" at any given time, I will do any re-basing required and keep your
+   authorship intact.
+
+.. note::
+
+   The `Developer Manual <http://nuitka.net/doc/developer-manual.html>`__
+   explains the coding rules, branching model used, with feature branches and
+   hotfix releases, the Nuitka design and much more. Consider reading it to
+   become a contributor. This document is intended for Nuitka users.
+
+Donations
+=========
+
+Should you feel that you cannot help Nuitka directly, but still want to support,
+please consider `making a donation <http://nuitka.net/pages/donations.html>`__
+and help this way.
+
+Unsupported functionality
+=========================
+
+The ``co_code`` attribute of code objects
+-----------------------------------------
+
+The code objects are empty for for native compiled functions. There is no
+bytecode with Nuitka's compiled function objects, so there is no way to provide
+it.
+
+
+Optimization
+============
+
+Constant Folding
+----------------
+
+The most important form of optimization is the constant folding. This is when an
+operation can be predicted. Currently Nuitka does these for some built-ins (but
+not all yet), and it does it for binary/unary operations and comparisons.
+
+Constants currently recognized:
+
+.. code-block:: python
+
+    5 + 6     # operations
+    5 < 6     # comparisons
+    range(3)  # built-ins
+
+Literals are the one obvious source of constants, but also most likely other
+optimization steps like constant propagation or function inlining will be. So
+this one should not be underestimated and a very important step of successful
+optimizations. Every option to produce a constant may impact the generated code
+quality a lot.
+
+Status: The folding of constants is considered implemented, but it might be
+incomplete. Please report it as a bug when you find an operation in Nuitka that
+has only constants are input and is not folded.
+
+Constant Propagation
+--------------------
+
+At the core of optimizations there is an attempt to determine values of
+variables at run time and predictions of assignments. It determines if their
+inputs are constants or of similar values. An expression, e.g. a module variable
+access, an expensive operation, may be constant across the module of the
+function scope and then there needs to be none, or no repeated module variable
+look-up.
+
+Consider e.g. the module attribute ``__name__`` which likely is only ever read,
+so its value could be predicted to a constant string known at compile time. This
+can then be used as input to the constant folding.
+
+.. code-block:: python
+
+   if __name__ == "__main__":
+      # Your test code might be here
+      use_something_not_use_by_program()
+
+From modules attributes, only ``__name__`` is currently actually optimized. Also
+possible would be at least ``__doc__``.
+
+Also built-in exception name references are optimized if they are uses as module
+level read only variables:
+
+.. code-block:: python
+
+   try:
+      something()
+   except ValueError: # The ValueError is a slow global name lookup normally.
+      pass
+
+Builtin Call Prediction
+-----------------------
+
+For builtin calls like ``type``, ``len``, or ``range`` it is often possible to
+predict the result at compile time, esp. for constant inputs the resulting value
+often can be precomputed by Nuitka. It can simply determine the result or the
+raised exception and replace the builtin call with it allowing for more constant
+folding or code path folding.
+
+.. code-block:: python
+
+   type( "string" ) # predictable result, builtin type str.
+   len( [ 1, 2 ] )  # predictable result
+   range( 3, 9, 2 ) # predictable result
+   range( 3, 9, 0 ) # predictable exception, range hates that 0.
+
+The builtin call prediction is considered implemented. We can simply during
+compile time emulate the call and use its result or raised exception. But we may
+not cover all the built-ins there are yet.
+
+Sometimes the result of a built-in should not be predicted when the result is
+big. A ``range()`` call e.g. may give too big values to include the result in
+the binary. Then it is not done.
+
+.. code-block:: python
+
+   range( 100000 ) # We do not want this one to be expanded
+
+Status: This is considered mostly implemented. Please file bugs for built-ins
+that are predictable but are not computed by Nuitka at compile time.
+
+Conditional Statement Prediction
+--------------------------------
+
+For conditional statements, some branches may not ever be taken, because of the
+conditions being possible to predict. In these cases, the branch not taken and
+the condition check is removed.
+
+This can typically predict code like this:
+
+.. code-block:: python
+
+   if __name__ == "__main__":
+      # Your test code might be here
+      use_something_not_use_by_program()
+
+or
+
+.. code-block:: python
+
+   if False:
+      # Your deactivated code might be here
+
+
+It will also benefit from constant propagations, or enable them because once
+some branches have been removed, other things may become more predictable, so
+this can trigger other optimization to become possible.
+
+Every branch removed makes optimization more likely. With some code branches
+removed, access patterns may be more friendly. Imagine e.g. that a function is
+only called in a removed branch. It may be possible to remove it entirely, and
+that may have other consequences too.
+
+Status: This is considered implemented, but for the maximum benefit, more
+constants needs to be determined at compile time.
+
+Exception Propagation
+---------------------
+
+For exceptions that are determined at compile time, there is an expression that
+will simply do raise the exception. These can be propagated, collecting
+potentially "side effects", i.e. parts of expressions that must still be
+executed.
+
+Consider the following code:
+
+.. code-block:: python
+
+   print side_effect_having() + (1 / 0)
+   print something_else()
+
+The ``(1 / 0)`` can be predicted to raise a ``ZeroDivisionError`` exception,
+which will be propagated through the ``+`` operation. That part is just Constant
+Propagation as normal.
+
+The call to ``side_effect_having`` will have to be retained though, but the
+print statement, can be turned into an explicit raise. The statement sequence
+can then be aborted and as such the ``something_else`` call needs no code
+generation or consideration anymore.
+
+To that end, Nuitka works with a special node that raises an exception and has
+so called "side_effects" children, yet can be used in generated code as an
+expression.
+
+Status: The propagation of exceptions is implemented on a very basic level. It
+works, but exceptions will not propagate through all different expression and
+statement types. As work progresses or examples arise, the coverage will be
+extended.
+
+Exception Scope Reduction
+-------------------------
+
+Consider the following code:
+
+.. code-block:: python
+
+    try:
+        b = 8
+        print range(3, b, 0)
+        print "Will not be executed"
+    except ValueError, e:
+        print e
+
+The try block is bigger than it needs to be. The statement ``b = 8`` cannot
+cause a ``ValueError`` to be raised. As such it can be moved to outside the try
+without any risk.
+
+.. code-block:: python
+
+    b = 8
+    try:
+        print range(3, b, 0)
+        print "Will not be executed"
+    except ValueError, e:
+        print e
+
+Status: Not yet done yet. The infrastructure is in place, but until exception
+block inlining works perfectly, there is not much of a point.
+
+Exception Block Inlining
+------------------------
+
+With the exception propagation it is then possible to transform this code:
+
+.. code-block:: python
+
+    try:
+        b = 8
+        print range(3, b, 0)
+        print "Will not be executed"
+    except ValueError, e:
+        print e
+
+.. code-block:: python
+
+    try:
+        raise ValueError, "range() step argument must not be zero"
+    except ValueError, e:
+        print e
+
+Which then can be reduced by avoiding the raise and catch of the exception,
+making it:
+
+.. code-block:: python
+
+   e = ValueError( "range() step argument must not be zero" )
+   print e
+
+Status: This is not implemented yet.
+
+Empty Branch Removal
+--------------------
+
+For loops and conditional statements that contain only code without effect, it
+should be possible to remove the whole construct:
+
+.. code-block:: python
+
+   for i in range(1000):
+       pass
+
+The loop could be removed, at maximum it should be considered an assignment of
+variable ``i`` to ``999`` and no more.
+
+Another example:
+
+.. code-block:: python
+
+   if side_effect_free:
+      pass
+
+The condition should be removed in this case, as its evaluation is not
+needed. It may be difficult to predict that ``side_effect_free`` has no side
+effects, but many times this might be possible.
+
+Status: This is not implemented yet.
+
+Unpacking Prediction
+--------------------
+
+When the length of the right hand side of an assignment to a sequence can be
+predicted, the unpacking can be replaced with multiple assignments.
+
+.. code-block:: python
+
+   a, b, c = 1, side_effect_free(), 3
+
+.. code-block:: python
+
+   a = 1
+   b = side_effect_free()
+   c = 3
+
+This is of course only really safe if the left hand side cannot raise an
+exception while building the assignment targets.
+
+We do this now, but only for constants, because we currently have no ability to
+predict if an expression can raise an exception or not.
+
+Status: Not really implemented, and should use ``mayHaveSideEffect()`` to be
+actually good at things.
+
+Builtin Type Inference
+----------------------
+
+When a construct like ``in xrange()`` or ``in range()`` is used, it is possible
+to know what the iteration does and represent that, so that iterator users can
+use that instead.
+
+I consider that:
+
+.. code-block:: python
+
+    for i in xrange(1000):
+        something(i)
+
+could translate ``xrange(1000)`` into an object of a special class that does the
+integer looping more efficiently. In case ``i`` is only assigned from there,
+this could be a nice case for a dedicated class.
+
+Status: Future work, not even started.
+
+Quicker Function Calls
+----------------------
+
+Functions are structured so that their parameter parsing and ``tp_call``
+interface is separate from the actual function code. This way the call can be
+optimized away. One problem is that the evaluation order can differ.
+
+.. code-block:: python
+
+   def f(a, b, c):
+       return a, b, c
+
+   f( c = get1(), b = get2(), a = get3() )
+
+This will evaluate first get1(), then get2() and then get3() and then make the
+call.
+
+In C++ whatever way the signature is written, its order is fixed.
+
+Therefore it will be necessary to have a staging of the parameters before making
+the actual call, to avoid an re-ordering of the calls to get1(), get2() and
+get3().
+
+To solve this, we may have to create wrapper functions that allow different
+order of parameters to C++.
+
+Status: Not even started.
+
+Lowering of iterated Container Types
+------------------------------------
+
+In some cases, accesses to ``list`` constants can become ``tuple`` constants
+instead.
+
+Consider that:
+
+.. code-block:: python
+
+   for x in [ 1, 2, 7 ]:
+       something( x )
+
+Can be optimized into this:
+
+.. code-block:: python
+
+   for x in ( 1, 2, 7 ):
+        something( x )
+
+This allows for simpler code to be generated, and less checks needed, because
+e.g. the ``tuple`` is clearly immutable, whereas the ``list`` needs a check to
+assert that.
+
+Something similar is possible for ``set`` and in theory also for ``dict``. For
+the later it will be non-trivial though to maintain the order of execution
+without temporary values introduced. The same thing is done for pure constants
+of these types, they change to ``tuple`` values when iterated.
+
+Status: Implemented, needs other optimization to become generally useful, will
+help others to become possible.
+
+Credits
+=======
+
+Contributors to Nuitka
+----------------------
+
+Thanks go to these individuals for their much valued contributions to
+Nuitka. Contributors have the license to use Nuitka for their own code even if
+Closed Source.
+
+The order is sorted by time.
+
+- Li Xuan Ji: Contributed patches for general portability issue and enhancements
+  to the environment variable settings.
+
+- Nicolas Dumazet: Found and fixed reference counting issues, ``import``
+  packages work, improved some of the English and generally made good code
+  contributions all over the place, solved code generation TODOs, did tree
+  building cleanups, core stuff.
+
+- Khalid Abu Bakr: Submitted patches for his work to support MinGW and Windows,
+  debugged the issues, and helped me to get cross compile with MinGW from Linux
+  to Windows. This was quite a difficult stuff.
+
+- Liu Zhenhai: Submitted patches for Windows support, making the inline Scons
+  copy actually work on Windows as well. Also reported import related bugs, and
+  generally helped me make the Windows port more usable through his testing and
+  information.
+
+- Christopher Tott: Submitted patches for Windows, and general as well as
+  structural cleanups.
+
+- Pete Hunt: Submitted patches for MacOS X support.
+
+- "ownssh": Submitted patches for built-ins module guarding, and made massive
+  efforts to make high quality bug reports. Also the initial "standalone" mode
+  implementation was created by him.
+
+- Juan Carlos Paco: Submitted cleanup patches, creator of the `Nuitka GUI
+  <https://github.com/juancarlospaco/nuitka-gui>`__, creator of the `Ninja IDE
+  plugin <https://github.com/juancarlospaco/nuitka-ninja>`__ for Nuitka.
+
+- "dr. Equivalent": Submitted the Nuitka Logo.
+
+- Johan Holmberg: Submitted patch for Python3 support on MacOS X.
+
+- Umbra: Submitted patches to make the Windows port more usable, adding user
+  provided application icons, as well as MSVC support for large constants and
+  console applications.
+
+Projects used by Nuitka
+-----------------------
+
+* The `CPython project <http://www.python.org>`__
+
+  Thanks for giving us CPython, which is the base of Nuitka. We are nothing
+  without it.
+
+* The `GCC project <http://gcc.gnu.org>`__
+
+  Thanks for not only the best compiler suite, but also thanks for supporting
+  C++11 which helped to get Nuitka off the ground. Your compiler was the first
+  usable for Nuitka and with little effort.
+
+* The `Scons project <http://www.scons.org>`__
+
+  Thanks for tackling the difficult points and providing a Python environment to
+  make the build results. This is such a perfect fit to Nuitka and a dependency
+  that will likely remain.
+
+* The `valgrind project <http://valgrind.org>`__
+
+  Luckily we can use Valgrind to determine if something is an actual improvement
+  without the noise. And it's also helpful to determine what's actually
+  happening when comparing.
+
+* The `NeuroDebian project <http://neuro.debian.net>`__
+
+  Thanks for hosting the build infrastructure that the Debian and sponsor
+  Yaroslav Halchenko uses to provide packages for all Ubuntu versions.
+
+* The `openSUSE Buildservice <http://openbuildservice.org>`__
+
+  Thanks for hosting this excellent service that allows us to provide RPMs for a
+  large variety of platforms and make them available immediately nearly at
+  release time.
+
+* The `MinGW project <http://www.mingw.org>`__
+
+  Thanks for porting the gcc to Windows. This allowed portability of Nuitka with
+  relatively little effort. Unfortunately this is currently limited to compiling
+  CPython with 32 bits, and 64 bits requires MSVC compiler.
+
+* The `Buildbot project <http://buildbot.net>`__
+
+  Thanks for creating an easy to deploy and use continous integration framework
+  that also runs on Windows and written and configured in Python. This allows to
+  run the Nuitka tests long before release time.
+
+Updates for this Manual
+=======================
+
+This document is written in REST. That is an ASCII format which is readable as
+ASCII, but used to generate PDF or HTML documents.
+
+You will find the current source under:
+http://nuitka.net/gitweb/?p=Nuitka.git;a=blob_plain;f=README.rst
+
+And the current PDF under:
+http://nuitka.net/doc/README.pdf
+
+________________________________________________________________________
+
+PYBENCH - A Python Benchmark Suite
+________________________________________________________________________
+
+     Extendable suite of of low-level benchmarks for measuring
+          the performance of the Python implementation 
+                 (interpreter, compiler or VM).
+
+pybench is a collection of tests that provides a standardized way to
+measure the performance of Python implementations. It takes a very
+close look at different aspects of Python programs and let's you
+decide which factors are more important to you than others, rather
+than wrapping everything up in one number, like the other performance
+tests do (e.g. pystone which is included in the Python Standard
+Library).
+
+pybench has been used in the past by several Python developers to
+track down performance bottlenecks or to demonstrate the impact of
+optimizations and new features in Python.
+
+The command line interface for pybench is the file pybench.py. Run
+this script with option '--help' to get a listing of the possible
+options. Without options, pybench will simply execute the benchmark
+and then print out a report to stdout.
+
+
+Micro-Manual
+------------
+
+Run 'pybench.py -h' to see the help screen.  Run 'pybench.py' to run
+the benchmark suite using default settings and 'pybench.py -f <file>'
+to have it store the results in a file too.
+
+It is usually a good idea to run pybench.py multiple times to see
+whether the environment, timers and benchmark run-times are suitable
+for doing benchmark tests. 
+
+You can use the comparison feature of pybench.py ('pybench.py -c
+<file>') to check how well the system behaves in comparison to a
+reference run. 
+
+If the differences are well below 10% for each test, then you have a
+system that is good for doing benchmark testings.  Of you get random
+differences of more than 10% or significant differences between the
+values for minimum and average time, then you likely have some
+background processes running which cause the readings to become
+inconsistent. Examples include: web-browsers, email clients, RSS
+readers, music players, backup programs, etc.
+
+If you are only interested in a few tests of the whole suite, you can
+use the filtering option, e.g. 'pybench.py -t string' will only
+run/show the tests that have 'string' in their name.
+
+This is the current output of pybench.py --help:
+
+"""
+------------------------------------------------------------------------
+PYBENCH - a benchmark test suite for Python interpreters/compilers.
+------------------------------------------------------------------------
+
+Synopsis:
+ pybench.py [option] files...
+
+Options and default settings:
+  -n arg           number of rounds (10)
+  -f arg           save benchmark to file arg ()
+  -c arg           compare benchmark with the one in file arg ()
+  -s arg           show benchmark in file arg, then exit ()
+  -w arg           set warp factor to arg (10)
+  -t arg           run only tests with names matching arg ()
+  -C arg           set the number of calibration runs to arg (20)
+  -d               hide noise in comparisons (0)
+  -v               verbose output (not recommended) (0)
+  --with-gc        enable garbage collection (0)
+  --with-syscheck  use default sys check interval (0)
+  --timer arg      use given timer (time.time)
+  -h               show this help text
+  --help           show this help text
+  --debug          enable debugging
+  --copyright      show copyright
+  --examples       show examples of usage
+
+Version:
+ 2.0
+
+The normal operation is to run the suite and display the
+results. Use -f to save them for later reuse or comparisons.
+
+Available timers:
+
+   time.time
+   time.clock
+   systimes.processtime
+
+Examples:
+
+python2.1 pybench.py -f p21.pybench
+python2.5 pybench.py -f p25.pybench
+python pybench.py -s p25.pybench -c p21.pybench
+"""
+
+License
+-------
+
+See LICENSE file.
+
+
+Sample output
+-------------
+
+"""
+-------------------------------------------------------------------------------
+PYBENCH 2.0
+-------------------------------------------------------------------------------
+* using Python 2.4.2
+* disabled garbage collection
+* system check interval set to maximum: 2147483647
+* using timer: time.time
+
+Calibrating tests. Please wait...
+
+Running 10 round(s) of the suite at warp factor 10:
+
+* Round 1 done in 6.388 seconds.
+* Round 2 done in 6.485 seconds.
+* Round 3 done in 6.786 seconds.
+...
+* Round 10 done in 6.546 seconds.
+
+-------------------------------------------------------------------------------
+Benchmark: 2006-06-12 12:09:25
+-------------------------------------------------------------------------------
+
+    Rounds: 10
+    Warp:   10
+    Timer:  time.time
+
+    Machine Details:
+       Platform ID:  Linux-2.6.8-24.19-default-x86_64-with-SuSE-9.2-x86-64
+       Processor:    x86_64
+
+    Python:
+       Executable:   /usr/local/bin/python
+       Version:      2.4.2
+       Compiler:     GCC 3.3.4 (pre 3.3.5 20040809)
+       Bits:         64bit
+       Build:        Oct  1 2005 15:24:35 (#1)
+       Unicode:      UCS2
+
+
+Test                             minimum  average  operation  overhead
+-------------------------------------------------------------------------------
+          BuiltinFunctionCalls:    126ms    145ms    0.28us    0.274ms
+           BuiltinMethodLookup:    124ms    130ms    0.12us    0.316ms
+                 CompareFloats:    109ms    110ms    0.09us    0.361ms
+         CompareFloatsIntegers:    100ms    104ms    0.12us    0.271ms
+               CompareIntegers:    137ms    138ms    0.08us    0.542ms
+        CompareInternedStrings:    124ms    127ms    0.08us    1.367ms
+                  CompareLongs:    100ms    104ms    0.10us    0.316ms
+                CompareStrings:    111ms    115ms    0.12us    0.929ms
+                CompareUnicode:    108ms    128ms    0.17us    0.693ms
+                 ConcatStrings:    142ms    155ms    0.31us    0.562ms
+                 ConcatUnicode:    119ms    127ms    0.42us    0.384ms
+               CreateInstances:    123ms    128ms    1.14us    0.367ms
+            CreateNewInstances:    121ms    126ms    1.49us    0.335ms
+       CreateStringsWithConcat:    130ms    135ms    0.14us    0.916ms
+       CreateUnicodeWithConcat:    130ms    135ms    0.34us    0.361ms
+                  DictCreation:    108ms    109ms    0.27us    0.361ms
+             DictWithFloatKeys:    149ms    153ms    0.17us    0.678ms
+           DictWithIntegerKeys:    124ms    126ms    0.11us    0.915ms
+            DictWithStringKeys:    114ms    117ms    0.10us    0.905ms
+                      ForLoops:    110ms    111ms    4.46us    0.063ms
+                    IfThenElse:    118ms    119ms    0.09us    0.685ms
+                   ListSlicing:    116ms    120ms    8.59us    0.103ms
+                NestedForLoops:    125ms    137ms    0.09us    0.019ms
+          NormalClassAttribute:    124ms    136ms    0.11us    0.457ms
+       NormalInstanceAttribute:    110ms    117ms    0.10us    0.454ms
+           PythonFunctionCalls:    107ms    113ms    0.34us    0.271ms
+             PythonMethodCalls:    140ms    149ms    0.66us    0.141ms
+                     Recursion:    156ms    166ms    3.32us    0.452ms
+                  SecondImport:    112ms    118ms    1.18us    0.180ms
+           SecondPackageImport:    118ms    127ms    1.27us    0.180ms
+         SecondSubmoduleImport:    140ms    151ms    1.51us    0.180ms
+       SimpleComplexArithmetic:    128ms    139ms    0.16us    0.361ms
+        SimpleDictManipulation:    134ms    136ms    0.11us    0.452ms
+         SimpleFloatArithmetic:    110ms    113ms    0.09us    0.571ms
+      SimpleIntFloatArithmetic:    106ms    111ms    0.08us    0.548ms
+       SimpleIntegerArithmetic:    106ms    109ms    0.08us    0.544ms
+        SimpleListManipulation:    103ms    113ms    0.10us    0.587ms
+          SimpleLongArithmetic:    112ms    118ms    0.18us    0.271ms
+                    SmallLists:    105ms    116ms    0.17us    0.366ms
+                   SmallTuples:    108ms    128ms    0.24us    0.406ms
+         SpecialClassAttribute:    119ms    136ms    0.11us    0.453ms
+      SpecialInstanceAttribute:    143ms    155ms    0.13us    0.454ms
+                StringMappings:    115ms    121ms    0.48us    0.405ms
+              StringPredicates:    120ms    129ms    0.18us    2.064ms
+                 StringSlicing:    111ms    127ms    0.23us    0.781ms
+                     TryExcept:    125ms    126ms    0.06us    0.681ms
+                TryRaiseExcept:    133ms    137ms    2.14us    0.361ms
+                  TupleSlicing:    117ms    120ms    0.46us    0.066ms
+               UnicodeMappings:    156ms    160ms    4.44us    0.429ms
+             UnicodePredicates:    117ms    121ms    0.22us    2.487ms
+             UnicodeProperties:    115ms    153ms    0.38us    2.070ms
+                UnicodeSlicing:    126ms    129ms    0.26us    0.689ms
+-------------------------------------------------------------------------------
+Totals:                           6283ms   6673ms
+"""
+________________________________________________________________________
+
+Writing New Tests
+________________________________________________________________________
+
+pybench tests are simple modules defining one or more pybench.Test
+subclasses.
+
+Writing a test essentially boils down to providing two methods:
+.test() which runs .rounds number of .operations test operations each
+and .calibrate() which does the same except that it doesn't actually
+execute the operations.
+
+
+Here's an example:
+------------------
+
+from pybench import Test
+
+class IntegerCounting(Test):
+
+    # Version number of the test as float (x.yy); this is important
+    # for comparisons of benchmark runs - tests with unequal version
+    # number will not get compared.
+    version = 1.0
+    
+    # The number of abstract operations done in each round of the
+    # test. An operation is the basic unit of what you want to
+    # measure. The benchmark will output the amount of run-time per
+    # operation. Note that in order to raise the measured timings
+    # significantly above noise level, it is often required to repeat
+    # sets of operations more than once per test round. The measured
+    # overhead per test round should be less than 1 second.
+    operations = 20
+
+    # Number of rounds to execute per test run. This should be
+    # adjusted to a figure that results in a test run-time of between
+    # 1-2 seconds (at warp 1).
+    rounds = 100000
+
+    def test(self):
+
+	""" Run the test.
+
+	    The test needs to run self.rounds executing
+	    self.operations number of operations each.
+
+        """
+        # Init the test
+        a = 1
+
+        # Run test rounds
+	#
+        # NOTE: Use xrange() for all test loops unless you want to face
+	# a 20MB process !
+	#
+        for i in xrange(self.rounds):
+
+            # Repeat the operations per round to raise the run-time
+            # per operation significantly above the noise level of the
+            # for-loop overhead. 
+
+	    # Execute 20 operations (a += 1):
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+            a += 1
+
+    def calibrate(self):
+
+	""" Calibrate the test.
+
+	    This method should execute everything that is needed to
+	    setup and run the test - except for the actual operations
+	    that you intend to measure. pybench uses this method to
+            measure the test implementation overhead.
+
+        """
+        # Init the test
+        a = 1
+
+        # Run test rounds (without actually doing any operation)
+        for i in xrange(self.rounds):
+
+	    # Skip the actual execution of the operations, since we
+	    # only want to measure the test's administration overhead.
+            pass
+
+Registering a new test module
+-----------------------------
+
+To register a test module with pybench, the classes need to be
+imported into the pybench.Setup module. pybench will then scan all the
+symbols defined in that module for subclasses of pybench.Test and
+automatically add them to the benchmark suite.
+
+
+Breaking Comparability
+----------------------
+
+If a change is made to any individual test that means it is no
+longer strictly comparable with previous runs, the '.version' class
+variable should be updated. Therefafter, comparisons with previous
+versions of the test will list as "n/a" to reflect the change.
+
+
+Version History
+---------------
+
+  2.0: rewrote parts of pybench which resulted in more repeatable
+       timings:
+        - made timer a parameter
+        - changed the platform default timer to use high-resolution
+          timers rather than process timers (which have a much lower
+          resolution)
+        - added option to select timer
+        - added process time timer (using systimes.py)
+        - changed to use min() as timing estimator (average
+          is still taken as well to provide an idea of the difference)
+        - garbage collection is turned off per default
+        - sys check interval is set to the highest possible value
+        - calibration is now a separate step and done using
+          a different strategy that allows measuring the test
+          overhead more accurately
+        - modified the tests to each give a run-time of between
+          100-200ms using warp 10
+        - changed default warp factor to 10 (from 20)
+        - compared results with timeit.py and confirmed measurements
+        - bumped all test versions to 2.0
+        - updated platform.py to the latest version
+        - changed the output format a bit to make it look
+          nicer
+        - refactored the APIs somewhat
+  1.3+: Steve Holden added the NewInstances test and the filtering 
+       option during the NeedForSpeed sprint; this also triggered a long 
+       discussion on how to improve benchmark timing and finally
+       resulted in the release of 2.0
+  1.3: initial checkin into the Python SVN repository
+
+
+Have fun,
+--
+Marc-Andre Lemburg
+mal@lemburg.com
+
+These are tests written to analyse the performance of certain code.
+
+
+This directory contains a large amount of tests. Please be sure to checkout the
+description in the Developer Manual. You will find it normally as file
+"../Developer_Manual.rst" and within it, there is a section "Running the Tests", with
+sub-sections that describe each directory here and how to use it.
+

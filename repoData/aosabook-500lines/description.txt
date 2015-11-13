@@ -1,0 +1,1881 @@
+# Blockcode - a simple visual programming toolkit
+
+Block Code is an attempt to create a block-based programming tool in under 500 lines of code, including HTML, CSS, Javascript. The code itself is intended to be a live-coding environment for turtle graphics.
+
+Block-based languages have a long history, with some of the prominent ones being Lego Mindstorms, Alice3D, StarLogo, and especially Scratch. There are several tools for block-based programming on the web as well, such as Blockly, AppInventor, Tynker, and [many more](http://en.wikipedia.org/wiki/Visual_programming_language).
+
+This particular code is loosely based on the open-source project [Waterbear](http://waterbearlang.com/), which is not a language but a tool for wrapping existing languages with a block-based syntax. Advantages of such a wrapper include: Eliminating syntax errors, visual display of available components, easier to read/debug (sometimes), blocks are more localizable than programming languages, blocks can be used by pre-literate or pre-typing children.
+
+## Stepping through the code
+
+I've tried to follow some conventions and best practices throughout this project. Each JavaScript file is wrapped in a function to avoid leaking variables into the global environment. If it needs to expose variables to other files it will define a single global per file, based on the filename, with the exposed functions in it. This will be near the end of the file, followed by any event handlers set by that file, so you can always glance a the end of a file to see what events it handles.
+
+### blocks.js
+
+#### `createBlock(name, value, contents)`
+
+This can be used to create blocks for the menu, or for restoring blocks saved in files or localStorage.
+
+####`blockContents(block)`
+
+Simply retrieve the child blocks of a container block. Always returns a list if called on a container block, always returns null on a simple block
+
+#### `blockValue(block)`
+
+Return the numerical value of the input on a block, if the block has an input field of type number, or string for other input type, null if there is no input element for the block.
+
+#### `blockScript(block)`
+
+Returns the script of a block as a structure suitable for stringifying with JSON. Used for saving blocks in a form they can easily be restored from.
+
+#### `runBlocks(blocks)`
+
+Handler to run an array of blocks by sending each block the "run" event.
+
+### drag.js
+
+Defines a bunch of variables at the top of the file. When we're dragging, we'll need to reference these from different stages of the dragging callback dance
+
+#### `findPosition(evt)`
+
+Find which block we should insert the dragged block before.
+
+#### `drop(evt)`
+
+The `findPosition` function is called on drop vs. drag because of bug in Firefox drag event (no clientX, etc). This should also improve drag performance, but doesn't give opportunity to provide user feedback during drag.
+
+If dragging from script to menu, delete dragTarget.
+
+If dragging from script to script, move dragTarget.
+
+If dragging from menu to script, copy dragTarget.
+
+If dragging from menu to menu, do nothing.
+
+#### `dragEnd(evt)`
+
+Based on the repetitive nature of this code, it looks like a good place for a helper function.
+
+### menu.js
+
+#### `menu`, `script`
+
+We use these a lot, keep references around.
+
+#### `scriptRegistry`
+
+This is where we will store the scripts of blocks in the menu. We use a very simple name -> script mapping, so it does not support either multiple menu blocks with the same name, or renaming blocks.
+
+#### `scriptDirty`
+
+Keep track of whether the script has been modified since the last time it was run, so we don't keep trying to run it constantly.
+
+#### `runSoon()`
+
+Flag the system that we should run the assembled script during the next frame handler
+
+#### `menuItem(name, fn, value, contents)`
+
+A menu block is just a normal block that is associated with a function, and it lives in the menu column.
+
+#### `run()`
+
+Run all the script blocks, let the specific language handle any tasks it needs before and after the script is run.
+
+#### `runEach(evt)`
+
+As each block is run, set a class on it, then find and execute its associated function. If we slow things down, you should be able to watch the code execute as each block highlights to show when it is running.
+
+#### `repeat(block)`
+
+One of the default menu blocks reused in each language.
+
+### file.js
+
+#### `saveLocal()`
+
+Handler to save the current script in localStorage on page refresh.
+
+#### `scriptToJson()`
+
+Self-explanatory, a utility for converting scripts to JSON format.
+
+#### `jsonToScript(json)`
+
+The inverse of `scriptToJson()`.
+
+#### `restoreLocal()`
+
+Handler to restore the current script on page refresh.
+
+#### `clearScript()`
+
+Handler to clear the current script.
+
+#### `saveFile()`
+
+Handler to save to a local file
+
+#### `readFile(file)`
+
+Handler to load from a local file.
+
+#### `loadFile()`
+
+Part of the handshake involved in asych file loading.
+
+### turtle.js
+
+This is the implmentation of the turtle block language. It exposes no globals of its own., but it does define local variables for managing the canvas itself and save some handier references to frequently-used parts of Math.
+
+#### `reset()`
+
+Resets all the state variables (we could embed these in an object if we wanted to support more than one turtle).
+
+#### `deg2rad(deg)`
+
+Utility so we can work with degrees in the UI, but draw in radians.
+
+#### `drawTurtle()`
+
+Draw the turtle itself. Default turtle is a triangle, but you could override this to get a more "turtle-looking" turtle.
+
+### util.js
+
+This code may not belong in the count of 500 lines since it is all support and polyfills for things that should be native to the browser.
+
+#### `elem(name, attrs, children)`
+
+Shorthand function to create elements easily, while also setting their attributes and adding child elements
+
+#### `matches(elem, selector)`
+
+Remove namespace for matches. This is a lot of code just to get functionality that is already built-in.
+
+#### `closest(elem, selector)`
+
+Emulate one of the handiest methods in all of jQuery that isn't already built in to the browser yet
+
+#### `requestAnimationFrame(fn)`
+
+Another polyfill for built-in functionality, just to get rid of namespaces in older browsers, or to emulate it for browsers that don't have requestAnimationFrame yet.
+
+#### `trigger(name, target)`
+
+Shorthand for sending a custom event to an element.
+
+### index.html
+
+Including the turtle.js file is the only thing specific to the turtle language, the rest can be re-used for other block languages.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+require "catechism/it_block"
+
+class Catechism::DescribeBlock < Struct.new(:description, :block)
+  def before(&block)
+    before_blocks << block if block_given?
+  end
+
+  def after(&block)
+    after_blocks << block if block_given?
+  end
+
+  def call
+    instance_eval(&block)
+  end
+
+  def it(description, &block)
+    it_block = Catechism::ItBlock.new(description, self)
+    before_blocks.each { |before_block| it_block.instance_eval(&before_block) }
+    it_block.instance_eval(&block) if block_given?
+    after_blocks.each { |after_block| it_block.instance_eval(&after_block) }
+  end
+
+  def before_blocks
+    @before_blocks ||= []
+  end
+
+  def after_blocks
+    @after_blocks ||= []
+  end
+end
+
+Catechism
+=========
+
+Catechism is a very small test framework for Ruby.
+
+
+Prerequisites
+-------------
+
+* Ruby 2.0.0
+* A Unix environment
+
+
+Installation
+------------
+
+Add this line to your application's Gemfile:
+
+    gem 'catechism'
+
+And then execute:
+
+    $ bundle
+
+Or install it yourself as:
+
+    $ gem install catechism
+
+
+Usage
+-----
+
+Create a `trials` directory in the root of your project.
+
+Create files in any path underneath it ending in `_trial.rb`.  Examples can be found in `trials/lib/catechism`.
+
+Then, run your test suite:
+
+    $ catechism
+
+
+Contributing
+------------
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
+
+require 'catechism'
+
+describe 'who describes the describes' do
+  it 'runs before blocks' do
+    describe_block = Catechism::DescribeBlock.new('here is a describe')
+    describe_block.before { raise 'hell' }
+    expect { describe_block.it('is a good day to die') }.to_raise_error(RuntimeError)
+  end
+
+  it 'runs after blocks' do
+    describe_block = Catechism::DescribeBlock.new('here is a describe')
+    describe_block.after { raise 'kids' }
+    expect { describe_block.it('is the future') }.to_raise_error(RuntimeError)
+  end
+end
+Author: Dustin J. Mitchell
+Project: Cluster (a working title!)
+Requirements: Python
+
+This directory holds a simple implementation of a replicated state machine
+that can also feed clients information on cluster membership.
+
+* statemachine.py -- illustrates the state machine client API
+* network.py -- handles network communication
+* deterministic_network.py -- similar, but deterministic
+* client.py -- a simple client
+* member_single.py -- a non-clustered member server, talking to the client
+* member_replicated.py -- a replicated state machine with consensus and a fixed membership
+  This is based on "Paxos Made Moderately Complex" (van Renesse, 2011)
+
+Author: Guido van Rossum
+Project: Web crawler
+Requirements: Python 3.4, or 3.3 + asyncio
+
+This is a web crawler. You give it a URL and it will crawl that
+website by following href links in the HTML pages.
+
+It doesn't do anything with the crawled pages, and the algorithm for
+finding links is intentionally naive -- those parts are easily
+modified, and not of particular interest (just use your favorite HTML
+parser instead of a regular expression).
+
+The point of the example is to show off how to write a reasonably
+complex HTTP client using the asyncio module.  This module, originally
+nicknamed Tulip, is new in the Python 3.4 standard library, based on
+PEP 3156.  The module is also available from PyPI for Python 3.3, but
+it doesn't work on older Python versions, since it uses the new 'yield
+from' syntax that was introduced in Python 3.3.  (But don't despair; a
+backport named Trollius exists on PyPI that substitutes 'yield'.)
+
+In order to be fast and efficient, the program opens multiple parallel
+connections to the server and reuses connections for multiple
+requests.  In order to handle most websites, it supports redirects,
+SSL (really TLS, but the Python support is in a module named 'ssl'),
+and the "chunked" transfer encoding.
+
+On my MacBook Air (2GHz Intel Core i7), with a fast network
+connection, it can visit all HTML pages of xkcd.com (over 1300 at the
+time of writing, and growing at a rate of three per week) in 7
+seconds.  It can also scan all public pages on dropbox.com (about 2500
+URLs) in under 50 seconds.  (The latter needs redirects, SSL and
+chunked.)
+
+Example command line (the -q reduces log output):
+
+    python3.4 crawl.py -q xkcd.com
+
+Use --help to see all options.
+
+You can also use Python 3.3, after installing the asyncio package
+from PyPI.  It should work on Windows too.
+
+DBDB
+====
+
+Dog Bed Database (it's like a couch, but not as nice).
+
+
+Intro to problem
+----------------
+
+Most projects require a data store of some kind.
+You really shouldn't write your own;
+there are many edge-cases that will bite you in the end.
+However,
+it's incredibly useful to understand
+how they work.
+This will inform your use of it
+from a performance
+as well as crash recovery
+and durability perspectives.
+
+
+Simplifications
+---------------
+
+DBDB tries to show the basic patterns used
+to create a key/value store
+with atomic, durable updates.
+Consistency is not covered
+(there are no constraints on the data stored)
+and isolation is not guaranteed
+(since dirty reads will not cause an abort on commit).
+
+Stale data is not reclaimed in this implementation,
+so repeated updates to the same key
+will eventually consume all disk space.
+Postgres calls this reclamation "vacuuming",
+and CouchDB calls it "compaction".
+
+
+Intro to toolchain
+------------------
+
+The example is written in Python 2.
+(THOUGH I WOULD LIKE IT TO WORK IN 2 AND 3 BOTH BEFORE THIS IS PUBLISHED).
+
+It is highly recommended to use the ``virtualenv`` tool
+when installing dependencies:
+
+```bash
+500lines/data-store$ virtualenv env
+...
+500lines/data-store$ source env/bin/activate
+500lines/data-store$ pip install -r requirements.txt
+...
+```
+
+Tests can be run using ``nosetests``:
+
+```bash
+500lines/data-store$ nosetests
+.....................
+----------------------------------------------------------------------
+Ran 21 tests in 0.102s
+
+OK
+
+```
+
+
+Explore code
+------------
+
+DBDB separates the concerns of "put this on disk somewhere"
+(how data are laid out in a file)
+from the logical structure of the data
+(a binary tree in this example)
+from the contents of the key/value store
+(the association of key "a" to value "foo").
+
+
+### Organizational units
+
+* ``tool.py`` defines
+    a CLI tool
+    for exploring a database
+    from a terminal window.
+
+* ``interface.py`` defines
+    a class (``DBDB``)
+    which exposes an API
+    like a Python dictionary
+    using the concrete ``BinaryTree`` implementation
+    for using DBDB inside a Python program.
+
+* ``tree.py`` defines
+    an abstract interface to a data store.
+
+    - ``Tree`` is not tree-specific,
+        and defers to a concrete sub-class to implement updates.
+        It manages storage locking and dereferencing internal nodes.
+
+    - ``ValueRef`` is a Python object that refers to
+        a binary blob stored in the database.
+
+* ``binary_tree.py`` defines
+    a concrete binary tree algorithm
+    underneath the tree interface
+    using the storage abstraction.
+
+    - ``BinaryTree`` provides a concrete implementation
+        of a binary tree, with methods for
+        getting, inserting, and deleting key/value pairs.
+
+    - ``BinaryNode`` implements a node in the binary tree.
+
+    - ``BinaryNodeRef`` knows how to serialize and deserialize
+        a ``BinaryNode``.
+
+* ``storage.py`` defines ``Storage`` class
+    providing persistent, append-only record storage.
+    Well, append-only except for an atomic "commit" operation
+    used to atomically point to a new "root" record.
+    A record is a variable-length string of bytes.
+
+These modules grew from attempting
+to give each class a single responsibility.
+In other words,
+each class should have only one reason to change.
+
+
+### Points of extensibility
+
+The algorithm used to update the data store
+can be completely changed out
+by replacing the string ``BinaryTree`` in ``interface.py``.
+In particular,
+data stores of this nature tend to use B-trees
+not binary trees
+to improve the nodes-per-byte ratio
+of the tree.
+
+By default, values are stored by ``ValueRef``
+which expects bytes as values
+(to be passed directly to ``Storage``).
+The binary tree nodes themselves
+are just a sublcass of ``ValueRef``.
+Storing richer data
+(via ``json``, ``msgpack``, ``pickle``, or your own invention)
+is just a matter of writing your own
+and setting it as the ``value_ref_class``.
+
+
+### Tradeoffs (time/space, performance/readability)
+
+The binary tree is much easier to write
+and hopefully easier to read
+than other tree structures would have been.
+Structures like B-tree, B+ tree, B\*-tree
+[and others](http://en.wikipedia.org/wiki/Tree_%28data_structure%29)
+provide superior performance,
+particularly for on-disk structures like this.
+While a balanced binary tree
+(and this one isn't)
+needs to do $O(log_2(n))$ random node reads to find a value,
+a B+tree needs many fewer, e.g. $O(log_32(n))$
+because each node splits 32 ways instead of just 2.
+This makes a huge different in practise,
+since looking through 4 billion entries would go from
+$log_2(2^32) = 32$ to $log_32(2^32) \approx 6.4$ lookups.
+
+
+### Patterns or principles that can be used elsewhere
+
+Test interfaces, not implementation.
+
+
+Conclusion
+----------
+
+* Futher extensions to make
+
+    - Full and proper multi-client, non-clobbering support.
+        Concurrent dirty readers already "just work",
+        but concurrent writers,
+        and readers-who-then-write
+        could cause problems.
+        Beyond making the implementation "safe",
+        it's important to provide a useful
+        and hard-to-use-incorrectly
+        interface to users.
+
+    - Database compaction.
+        Compacting should be as simple as
+        doing an infix-of-median traversal of the tree
+        writing things out as you go.
+        It's probably best if the tree nodes all go together,
+        since they're what have to be traversed
+        to find any piece of data.
+        Packing as many intermediate nodes as possible
+        into a disk sector
+        should improve read performance
+        at least right after compaction.
+
+    - If compaction is enabled,
+        it's probably not useful to truncate uncommitted writes
+        on crash recovery.
+
+   
+* Similar real-world projects to explore:
+
+    - CouchDB
+
+DogBed DataBase (DBDB)
+======================
+
+A key/value store that you'd use like BDB or SQLite. It's built like a couch,
+but not as nice.
+
+Append-only tree-based data-store. An update to a leaf updates the ancestor
+nodes. Common nodes are shared. Updates are flushed leaf-to-root to disk (so
+that disk addresses can be written to the parent nodes, and commit is an atomic
+update to a superblock, which just points at the new root node.
+
+A real implementation would probably use a B-tree (or B+-tree or B*-tree), but that's not an
+interesting detail for us. Replacing the provided naive binary tree with a
+B+/B* tree is left as an exercise for the reader.
+
+Concurrent (dirty) readers are supported. Serialized fully transactional
+updates are supported.
+
+
+Installing
+----------
+
+::
+
+    pip install -e requirements.txt
+
+
+Testing
+-------
+
+::
+
+    nosetests -v
+
+    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_leaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryNode.test_to_string_nonleaf ... ok
+    dbdb.tests.test_binary_tree.TestBinaryTree.test_del_full_node_key ... ok
+    ... (etc)
+
+
+Extension points
+----------------
+
+Good software can be extended easily in the ways that it needs extending (i.e.
+coupling is low along the common lines of change). This example uses pickle and
+dictionaries to persist tree nodes to disk, but we could very easily use
+``msgpack`` and tuples to reduce the size of data on disk (which reduces IO
+sizes which improves performance).
+
+The binary tree nodes and algorithms are distinct from the persistence and
+commit logic, so it should be easy to implement something different, like a
+B-Tree.
+
+
+.. todo:: File locking to serialize writes. Currently using portalocker, but
+    the implementation is buggy because BinaryTree doesn't refresh its idea of
+    the root node after the lock is acquired. That means that a stale reader
+    can accidentally upgrade to a write lock and clobber other updates.  Now
+    I'm not sure if it's worth adding multi-writer safety for 500lines.
+
+.. todo:: Compaction. Requires atomic replace (not trivially available on
+    Windows) along with write serialization (but only if we care about that,
+    see above).
+
+.. todo:: Truncation on crash recovery. Is it worth adding an assumption that
+    the root is the end of the file? Not sure.
+
+.. todo:: Consider msgpack to avoid having to do the length-delimiting
+    ourselves. Except that that means the storage manager has to learn about
+    our serialization methods, which doesn't save the complexity I'm trying to
+    avoid. Using a namedtuple also doesn't save anything over a dict from the
+    pickling perspective. Interesting. msgpack IS a much smaller format,
+    though, and saves disk space.
+
+.. todo:: Stress and crash tests.
+
+Instances can be found at http://mistic.heig-vd.ch/taillard/problemes.dir/ordonnancement.dir/ordonnancement.html
+
+For this work, we completely disregard the first 3 lines of every instance
+ and use only the operation times as input. The format is not ideal for python
+ input, but it is a standard in the research community.
+
+Author: Christian Muise and Christina Burt
+Project: Flow Shop Scheduler
+Requirements: Python
+
+
+ -{ Flow Shop Scheduling }-
+
+The flow shop scheduling problem is a well-studied optimization
+problem in which we must determine the procesing time for various
+tasks on a set of machines. In particular, every flow shop problem
+consists of n machines and m jobs. Each job is made up of exactly
+n tasks, and we can assume that the ith task of a job must use
+machine i and requires a predetermined amount of processing time.
+Further, the order of the tasks for any given job should follow
+the order of the machines available (i.e., the first task uses
+machine 1, and so on) -- for a given job, task i must be completed
+prior to the start of task i+1. The final restriction is that no
+two tasks can be processed on a machine at a given time.
+
+The objective in flow shop scheduling is to minimize the total time
+it takes to process all of the tasks from every job to completion.
+This objective is typically referred to as the 'makespan'. The
+general problem has many applications, but is most related to
+optimizing production facilities for the construction of various
+commercial products.
+
+Because the order of tasks within a job is predetermined, a solution
+to the flowshop scheduling problem can be represented as a permutation
+of the jobs. The order of jobs processed on a machine will be the same
+for every machine, and given a permutation, a task for machine i in job
+j is scheduled to be the latest of the following two possibilities:
+
+1) The completion of the task for machine i in job j-1 (i.e., the most
+   recent task on the same machine), or
+
+2) The completion of the task for machine i-1 in job j (i.e., the most
+   recent task on the same job)
+
+Due to the simple form of the problem, any permutation of jobs is
+a valid solution to the problem, and the optimal solution will
+correspond to some permutation. We thus search for improved solutions
+by changing the permutation of jobs and measuring the corresponding
+makespan.
+
+
+ -{ Implementation }-
+
+This directory holds a basic implementation of a flow shop scheduler
+that parses a flow shop problem from a standard benchmark set, solves
+it heuristically, and then displays the resulting schedule. A key
+feature of the solver is a dynamic selection of the various search
+strategies available that attempts to give preference to those
+strategies that have worked well in the past.
+
+
+ -{ Extra Resources }-
+
+A wonderful website to visually see how flow shop scheduling works:
+* http://posh-wolf.herokuapp.com/
+
+More information on the flow shop schedulling (and related) problems
+can be found on wikipedia:
+* http://en.wikipedia.org/wiki/Flow_shop_scheduling
+
+# FDB
+
+FDB (TODO - find a better name) is an in-memory, no-sql functional database, written in Clojure.
+
+It is a modest attempt to provide part of the functionality that the Datomic database provides (the main omitted functionality is the durability part).
+
+The core idea is to add the notion of time to the data, and provide on top of the standard CRUD operations, a set of time related operations.
+
+The database itself is a collection of datums. A datum is built of an entity (think of a row in a table)that has its attributes (a column) and the value of that entity's attribute at a given time.
+Any update does not overwrite the prvious value, but addes another datum to the database.
+
+The database supports both DB "modifying" (modifying as in creating a new DB value) transactions and what-if actions.
+
+
+# Graph layout engine
+
+A graph layout engine.
+Author: Julia Evans
+
+TODO: Everything.
+
+Author: Cate Huston
+Project: Image Filter App
+Requirements:
+- Java 1.6 or above
+- core.jar from Processing 2.1.1
+- mockito 1.9.5
+
+Run ImageFilterApp as a Java application.
+Licenses
+========
+
+Written Material
+----------------
+
+All written material in this project is made available under the
+Creative Commons Attribution license. You are free:
+
+* to **Share**---to copy, distribute and transmit the work
+* to **Remix**---to adapt the work
+
+Under the following conditions:
+
+* **Attribution**---You must attribute the work using
+  "Copyright (c) [chapter author's name]"
+  (but not in any way that suggests that we endorse you or your use of the work).
+  Where practical, you must also include a hyperlink to http://aosabook.org.
+
+With the understanding that:
+
+* **Waiver**---Any of the above conditions can be waived if you get permission from the copyright holder.
+* **Other Rights**---In no way are any of the following rights affected by the license:
+    * Your fair dealing or fair use rights;
+    * The author's moral rights;
+    * Rights other persons may have either in the work itself or in
+      how the work is used, such as publicity or privacy rights.
+* **Notice**---For any reuse or distribution, you must make clear to others the license terms of this work.
+  The best way to do this is with a link to
+  [http://creativecommons.org/licenses/by/3.0/](http://creativecommons.org/licenses/by/3.0/).
+
+For the full legal text of this license, please see
+[http://creativecommons.org/licenses/by/3.0/legalcode](http://creativecommons.org/licenses/by/3.0/legalcode).
+
+Software
+--------
+
+The example programs and other software included in this repository are made available under the
+[OSI](http://opensource.org)-approved
+[MIT license](http://opensource.org/licenses/mit-license.html).
+
+Permission is hereby granted, free of charge, to any person obtaining
+a copy of this software and associated documentation files (the
+"Software"), to deal in the Software without restriction, including
+without limitation the rights to use, copy, modify, merge, publish,
+distribute, sublicense, and/or sell copies of the Software, and to
+permit persons to whom the Software is furnished to do so, subject to
+the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+
+Modeller
+=========
+
+This project is a very small and limited 3d modeller.
+
+
+Prerequisites
+-------------
+
+* Python 2.7
+* A Unix environment
+* A virtualenv with:
+    * pip install -I pyopengl
+    * pip install -I numpy
+    * pip install -I PIL
+    * pip install -I PyDispatcher
+    * pip install -I https://pypi.python.org/packages/source/O/OpenGLContext/OpenGLContext-2.2.0a3.tar.gz#md5=b5bdedbdae5215e7acff3b087c8220d3
+    * pip install -I https://pypi.python.org/packages/source/P/PyVRML97/PyVRML97-2.3.0a3.tar.gz#md5=56cd4dd382cfb5a4ca5fdb88ae8f1733
+    
+
+Running
+------------
+
+viewer.py is the driver file. 
+
+    $ python viewer.py
+
+Usage
+-----
+
+Left click selects and drags objects on screen.
+
+Middle click moves the scene.
+
+Right click rotates the screen.
+
+'C' places a cube at the mouse cursor
+
+'S' places a sphere at the mouse cursor
+
+
+Code Structure
+-------------
+
+Viewer is the main driver class. It dispatches actions to the scene and kicks off rendering.
+
+Interaction handles user input. It maintains the state for the current mouse position, the trackball, and the pressed buttons.
+
+Scene represents the conceptual scene. It contains a list of nodes, which in this case are all primitives but could theoretically be more complex.
+
+Node contains the implementation of the node class, as well as the sphere and cube primitives. A node knows is transformation and has an AABB to be used for collisions.
+
+AABB is a representation of an Axis Aligned Bounding Box. It's currently only used for selection, but it could also be used to calculate collision between nodes.
+
+Transformation builds up the matrices for some common transformations. It's rather uninteresting.
+
+Primitive builds up OpenGL call lists for the primitives used. It's over 100 lines of uninteresting setup code. 
+
+
+Author: Carl Friedrich Bolz
+Project: Object Models
+Requirements: Python 2.7 or 3.3
+
+This directory holds a simple imperative object-oriented object model
+implementation, which is built up in stages. It is code as it could appear in
+an interpreter for the language (except in Python and not in, say, C, to make
+it more approachable). It is not meant to mirror any real language's model
+directly, but some of the stages take up a lot of inspiration from Smalltalk
+and Python.
+
+The subdirectory hold increasingly complex versions. The chapter will explain
+how the stages have to be changed to achieve various features and properties.
+The goal is not to fully explain the entire model of a single language, but to
+understand the design space of object-oriented imperative language design
+better.
+
+The stages are:
+
+1 - a simple message-based model
+2 - changing from message-based to attribute-based by introducing bound methods
+3 - allowing more powerful customization: __get__, __getattr__, __setattr__
+4 - introducing maps to store instances more efficiently
+
+A note about size: just counting the lines of all the code gives a too large
+result. However, there is a lot of shared code between the stages (particularly
+in the tests) which would not have to be shown in the actual chapter.
+There is a script countlines.py that shows an approximation of the correct
+lines by counting the lines of the diffs.
+
+There's another script diff.py that shows the diffs between the stages.
+
+# Overview
+
+By far, the most important class in this project is `Shape`, in
+`shape.py`.
+
+
+## `shape.py`
+
+`Shape` is the main class of `tiny_gfx`. The class itself contains a
+very basic constructor, and the main code for the scanline rasterizer
+itself, in `Shape.draw`.
+
+Concrete subclasses of `Shape` need to implement two methods:
+`contains` and `signed_distance_bound`. Both methods take a point in
+the plane. `contains` should return true if the shape contains the
+point (no surprise there). `signed_distance_bound` is the main method
+used by `tiny_gfx` to *accelerate* the rendering. The idea is that
+`signed_distance_bound` should return a real value that describes a
+*distance certificate*. If this value (call it `r`) is negative, then the shape is
+promising that not only is the point is not in the shape, but no
+points inside a ball of radius `-r` around the point is in the shape as
+well. If the value is positive, then the shape is
+promising that not only is the point in the shape, but a ball of
+radius `r` is entirely contained in the shape as well. If the shape
+cannot guarantee anything either way, it should return zero. In other
+words, `signed_distance_bound` is used by `Shape.draw` to skip large
+numbers of checks against `contains`, both inside and outside the
+shape. It's ok if `signed_distance_bound` is conservative. In fact,
+always returning zero would be correct behavior. It would just be
+much slower.
+
+Finally, concrete subclasses of `Shape` must have a `self.bound` field
+that stores an `AABox` object that represents an axis-aligned bounding
+box of the object. The bounding box does not need to be exact, but it
+must be *conservative*: `self.contains(p)` must imply
+`self.bounds.contains(p)`.  The smaller the area of this box, the more
+efficient rasterization will be.
+
+`Shape.draw` works by traversing candidate image pixels inside the
+shape bounding box in row order. Anti-aliasing is performed by
+jittered sampling (see Figure 5.16
+[here](http://www.cs.utah.edu/~shirley/papers/thesis/ch5b.pdf)). Note
+that if `Shape.draw` knows that the pixel is entirely inside the image
+(because `r` from above is greater than the length of a pixel
+diagonal), then no anti-aliasing tests are needed. This allows the
+default setting for super-sampling to be to take 36 samples inside a
+pixel with no large loss in performance. By the same token, if `r` is
+a negative number, then `Shape.draw` skips those pixels with no
+further checks. Anti-aliasing is performed by counting the number of
+points that pass the `contains` call, and updating the image pixel.
+
+
+
+## `geometry.py`
+
+This file contains geometry classes generally needed for the
+rasterizer.
+
+* `Vector`, a 2D vector with your basic operator overloading and
+  methods. In this code we use this class to store both points and
+  vectors. There are reasons why this is a bad idea, but for sake of
+  simplicity and brevity, we do it.
+
+* `AABox`, a 2D axis-aligned bounding box
+
+* `HalfPlane`, a class that models one-half of the 2D plane by a
+  linear equation
+  
+* `Transform`, a class for 2D affine transformations of `Vector`s
+
+* utility functions to build transforms (which should perhaps be
+  `classmethod`s of Transform, except that using them leads to long,
+  unreadable lines for things that should have short names)
+  
+
+## `color.py`
+
+* `Color`: Self-contained RGBA class in plain old dumb RGBA.
+
+## `csg.py`
+
+This file contains classes used for Boolean operations with
+shapes. (CSG stands for Constructive Solid Geometry, the three-letter
+acronym used in graphics for the idea). The base class is `CSG`,
+and there's a class for each supported Boolean operation: `Union`,
+`Intersection` and `Subtraction`.
+
+If the `signed_distance_bound` and `contains` ideas above makes sense,
+then the code for the three classes should be self-explanatory.
+
+
+## `ellipse.py`
+
+`Ellipse` is the most complicated `Shape` available, and is presented
+as an example of the generality of the approach used here. The
+internal representation for an ellipse is the implicit equation form,
+which defines the ellipse as the set of points for which a certain
+function is less than 0. In this case, the function is a quadratic
+polynomial in x and y.
+
+`Ellipse.contains` simply evaluates the implicit equation.
+
+The code for `Ellipse.signed_distance_bound` is actually relatively
+clever and non-trivial. This flavor of geometric insights is prevalent
+in graphics, so I wanted to give an actual example of it in the
+code. However, it takes a diagram to show why it works, so I don't
+really expect you to understand it without comments.
+
+I have to draw a diagram to explain how it
+works, so if you run into trouble on that one, send me a message and
+I'll move it to the top of my priority queue.
+
+There's more description of the code for `Ellipse` under `rasterizer/ellipse.md`.
+
+## `image.py`
+
+`PPMImage`: Simple, self-contained class that stores a two-dimensional array of
+`Color` pixels, and writes them as a
+[PPM file](http://netpbm.sourceforge.net/doc/ppm.html).
+
+
+## `poly.py`
+
+`ConvexPoly` represents a convex polygon by a set of
+half-planes. `Shape.contains` simply tests all half-planes
+corresponding to each edge of the polygon, and
+`Shape.signed_distance_bound` takes the most conservative value across
+all of the shape half-planes. This actually gives values of 0 for
+points on the "infinite line" spanned by polygon edges, but that's
+fine because the result needs only be conservative.
+
+
+## `scene.py`
+
+`Scene` stores a hierarchical scene graph, where each node is either a
+`Shape` or a `Scene` itself. In addition, each `Scene` object carries
+an affine transform that's applied to every element under it. By
+having different scenes holding the same object lists with different
+transformations, it becomes easy to express scenes with repeated
+elements.
+
+
+# The ellipse class
+
+The ellipse class is the most complicated shape of the system. I
+include it to show how complex shapes can be incorporated in the
+tiny_gfx. This section will require more mathematical background than
+the other sections, but not more than calculus.
+
+We use an *implicit equation* for the ellipse. This is a function of
+the input coordinates x and y, which will return a positive value if
+the point lies outside the shape. Any ellipse can be represented by
+the following polynomial in x and y:
+
+v(x, y) = a x^2 + b y^2 + c x y + d x + e y + f
+
+The boundary of the ellipse is exactly the set of points where v(x,y)
+= 0. When we evaluate a point x,y and get a value greater than zero,
+we consider that point to be outside the ellipse. Most of the ellipse
+class will involve manipulating this implicit equation.
+
+
+## Finding the center of the ellipse
+
+We will need the center of the ellipse to compute the signed distance
+bound below. By a happy accident, the gradient of the implicit ellipse
+function is an affine transformation of the input vector, and the
+center of the ellipse is the only point in the function where the
+gradient is zero. To find the input vector whose gradient is zero,
+then, we invert the transformation and multiply by Vector(0, 0).
+
+In a real system, you wouldn't solve a system Ax=b by explicitly
+finding the inverse: it is slower than necessary and numerically
+unstable. We use the inverse here for convenience (we already need the
+inverse of a transformation in order to transform the ellipse, see
+below) and to fit in the 500 line budget.
+
+
+## Finding the bounding box of the ellipse
+
+Our shape class needs a bounding box. The partial derivative measures
+the rate of change of the function with respect a variable.  When the
+implicit equation of the ellipse is zero, *and* the rate of change of
+the implicit function with respect to x is zero, then ellipse boundary
+is vertical. So we solve the system of equations df/dx(x, y) = 0, v(x,
+y) = 0, and the two solutions are going to be touching the top and
+bottom of the bounding box exactly. Solving the system of equations
+df/dy(x, y) = 0, v(x, y) = 0 gives the left and right points.
+
+
+## Transforming an ellipse
+
+Say we're given an affine transformation T(x, y) = M . (x, y) = (x',
+y') that we need to apply to the ellipse to get a new ellipse. The
+straightforward way is to transform query points every time we want to
+test them against the new ellipse. That is, if we translated an
+ellipse by (10,0), then we need to transform the query points by the
+*inverse* of T. To see this, think of the translated ellipse
+above. Its new center is at (10,0), which means that query points at
+(10,0) need to be transformed to (0,0) on the old coordinate
+system. This approach works, but it only gives us the `contains`
+primitive. Worse yet, affine transformations do not preserve distances
+to shapes, so we cannot hope to make a query to
+`signed_distance_bound` and then invert that result somehow. Instead,
+we will use the inverse transformation to compute entirely new
+coefficients. We write (x, y) = M^-1(x', y'), which gives us an
+expression of the new coordinates in terms of the old ones, and then
+recreate the quadratic polynomial. This is tedious but
+straightforward algebra that goes sort of like this:
+
+x = m00 x' + m01 y' + m02
+y = m10 x' + m11 y' + m12
+(where m00, m01, etc. are the coefficients of the inverse matrix)
+
+f(x, y) = ax^2 + by^2 + cxy + dx + ey + f
+f(x, y) = a(m00 x' + m01 y' + m02)^2 + b(m10 x' + m11 y' + m12)^2
+        + ...
+
+Then you collect all terms that are quadratic in x' and call then a',
+all the terms quadratic in y' and call them b', etc. You end up with
+
+f'(x', y') = a'x'^2 + b'y^2 + c'x'y' + d'x' + e'y' + f'
+
+In the code, the variables a', b', c', etc. are denoted respectively
+as aa, bb, cc, etc.
+
+## Bounding the distance to an ellipse
+
+The idea is that the distance from a point to an ellipse is not
+exactly trivial to compute, and requires numerical optimization. We
+don't want to waste lines of code on a numerical optimizer and an
+ugly(ier?) function. Instead, we can get a good bound quickly by:
+
+* computing the intersection between the point `p` and the ellipse
+center (call this intersection `i`)
+* finding a line that goes through `i` in the direction of the normal
+ of the ellipse (call this line `n`)
+* project the `p` onto the `i` (call it `s`)
+* return the distance between `i` and `s`
+
+Referring to the [diagram](../doc/ellipse_1.svg), `p` is outside the ellipse,
+`t` is the line tangent to `i`, and `e` is the closest point in the
+ellipse to `p`. Notice that the distance between `s` and `i` is equal
+to the distance between `p` and `s'`, since they form parallel
+lines. Now take the line from `p` to `e`. Notice that it intersects
+the line from `i` to `s'`, at a point we will call `e'`. Now notice
+that `e'`, `s'` and `p` form a right triangle, of which the line from
+`p` to `e'` is the hypotenuse (and it's *shorter* than the original
+line from `p` to `i`). This shortened line, in turn, is yet shorter than the leg
+`p` to `s'`. But length of this leg is precisely the distance from `s`
+to `i`, and so we know that it's a lower bound to the distance from
+`e` to `p`, and we are done.
+
+If `p` is inside the ellipse, then the problem is simpler. We first
+look for a convex polygon that inscribes the ellipse and contains
+`p`. This is simple: we simply shoot rays in the horizontal and
+vertical directions from `p` and collect the intersection points of
+those rays and the ellipse. Because ellipses are convex, a polygon
+that connects those intersections will be entirely inside the
+ellipse. Then, we simply return the signed distance bound for
+that polygon.
+
+# `tiny_gfx`: A tiny rasterizer
+
+A *rasterizer* is a piece of software that converts arbitrary shapes
+into *raster images*, which is just a funny name for rectangular grids
+of pixels. A rasterizer, in some way or another, is at the heart of
+pretty much every modern display technology today, from computer
+displays to e-ink displays to printers both 2D and 3D (the graphics in
+laser shows are the most notable exception).
+
+In this chapter, I will teach you a little about how rasterizers work,
+by describing `tiny_gfx`, a simple rasterizer in pure Python. Along
+the way we will pick up some techniques that show up repeatedly in
+computer graphics code. Having a bit of mathematical background on
+linear algebra will help, but I hope the presentation will be
+self-contained.
+
+`tiny_gfx` is not practical in many ways. Besides being slow (see
+below), the main shortcoming in `tiny_gfx` is that shapes are all of a
+single solid color. Still, for 500 lines of code, `tiny_gfx` has a
+relatively large set of features:
+
+- alpha blending for semi-transparent colors
+- polygonal shapes (possibly concave, but not self-intersecting)
+  (TODO: right now only convex polygons are supported)
+- circles and ellipses
+- transformations of shapes
+- boolean operations on shapes (union, intersection, subtraction)
+- antialiasing
+- empty space skipping and fast rasterization of runs for general
+  shapes
+
+Maybe most interestingly, shapes in `tiny_gfx` are extensible. New
+shapes are easily added, and they compose well with the other parts of
+the code.
+
+A description of the current version of the code is in `doc/README.md`.
+
+## A performance caveat
+
+Rasterizers are so central to display technology that their
+performance can make or break a piece of software, and these days the
+fastest rasterizers are all based in hardware. Your videogame graphics
+card (and even the cheapest smartphones these days) is rasterizing
+polygons in highly parallel processors; 192 cores is a typical
+number. It should be no surprise, then, that the rasterizer we will
+see here is slow: if CPU-intensive tasks in Python run around 50 times
+slower than heavily-optimized, low-level code, and if a graphics
+driver has around 200 cores at its disposal, a slowdown of 10,000
+times should not be surprising. In reality, `tiny_gfx` is closer to
+1,000,000 times slower than the special-purpose graphics rasterizer
+from the laptop in which I'm developing it.
+
+*500 Lines or Less*
+===================
+
+This is the source for the book *500 Lines or Less*, the fourth in the
+[Architecture of Open Source Applications](http://aosabook.org) series.  As
+with other books in the series, all written material will be covered by the
+Creative Commons - Attribution license, and all code by the MIT License: please
+see the [license description](LICENSE.md) for details.  In addition, all
+royalties from paid-for versions will all go to Amnesty International.
+
+Mission
+-------
+
+Every architect studies family homes, apartments, schools, and other common
+types of buildings during her training.  Equally, every programmer ought to
+know how a compiler turns text into instructions, how a spreadsheet updates
+cells, and how a browser decides what to put where when it renders a page.
+This book's goal is to give readers that broad-ranging overview, and while
+doing so, to help them understand how software designers think.
+
+Contributions should not focus on the details of one algorithm or on the
+features of a particular language.  Instead, they should discuss the decisions
+and tradeoffs software architects make when crafting an application:
+
+*   Why divide the application into these particular modules with these
+    particular interfaces?
+*   Why use inheritance here and composition there?
+*   Why multi-thread this but not that?
+*   When should the application allow for or rely on plugins, and how should
+    they be configured and loaded?
+
+Contribution Guidelines
+-----------------------
+
+Writing for a book like this should be fun, so we're trying to keep process to
+minimum. Here is our basic set of procedural guidelines:
+
+1. When you start coding, try to submit one pull request early (e.g. somewhere
+   between 50-100 lines), so that we can catch any early problems that we never
+   thought about.
+
+2. After that first commit, feel free to submit pull requests as often or as
+   infrequently as you like.
+
+3. When you are done your "first draft" of your code, do let us know in the
+   commit message, or by emailing us directly (emails below). We'll assign a
+   reviewer or two to your work at that time.
+
+Contributors
+------------
+
+<table>
+  <tr>
+    <th>Name</th>
+    <th>Affiliation</th>
+    <th>Project</th>
+    <th>Online</th>
+    <th>GitHub</th>
+    <th>Email (if you choose)</th>
+  </tr>
+  <tr>
+    <td>Mike DiBernardo</td>
+    <td>freelance</td>
+    <td>editorial</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/mdibernardo">@mdibernardo</a></li>
+            <li><a href="http://mikedebo.ca">mikedebo.ca</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/MichaelDiBernardo">MichaelDiBernardo</a></td>
+    <td>mikedebo@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Dustin Mitchell</td>
+    <td>Mozilla</td>
+    <td>cluster</td>
+    <td>&nbsp;</td>
+    <td><a href="https://github.com/djmitche">djmitche</a></td>
+    <td>dustin@mozila.com</td>
+  </tr>
+  <tr>
+    <td>Audrey Tang</td>
+    <td>g0v.tw, Socialtext, Apple</td>
+    <td>spreadsheet</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/audreyt">@audreyt</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/audreyt">audreyt</a></td>
+    <td>audreyt@audreyt.org</td>
+  </tr>
+  <tr>
+    <td>Greg Wilson</td>
+    <td>Mozilla</td>
+    <td>web-server</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/gvwilson">@gvwilson</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/gvwilson">gvwilson</a></td>
+    <td>gvwilson@third-bit.com</td>
+  </tr>
+  <tr>
+    <td>Kresten Krab Thorup</td>
+    <td>Trifork</td>
+    <td>torrent client</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/drkrab">@drkrab</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/krestenkrab">krestenkrab</a></td>
+    <td>krab@trifork.com</td>
+  </tr>
+  <tr>
+    <td>Taavi Burns</td>
+    <td>Points.com</td>
+    <td>data-store</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/jaaaarel">@jaaaarel</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/taavi">taavi</a></td>
+    <td>taavi.burns@points.com</td>
+  </tr>
+  <tr>
+    <td>Guido van Rossum</td>
+    <td>Dropbox</td>
+    <td>crawler</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/gvanrossum">@gvanrossum</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/gvanrossum">gvanrossum</a></td>
+    <td>guido@python.org</td>
+  </tr>
+  <tr>
+    <td>Erick Dransch</td>
+    <td>Upverter</td>
+    <td>Modeller</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/ErickDransch">@ErickDransch</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/EkkiD">EkkiD</a></td>
+    <td>erick.dransch@upverter.com</td>
+  </tr>
+  <tr>
+    <td>Sarah Mei</td>
+    <td>Ministry of Velocity</td>
+    <td>testing framework</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/sarahmei">@sarahmei</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/sarahmei">sarahmei</a></td>
+    <td>&nbsp;</td>
+  </tr>
+  <tr>
+    <td>Leah Hanson</td>
+    <td>Google</td>
+    <td>static analysis</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/astrieanna">@astrieanna</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/astrieanna">astrieanna</a></td>
+    <td>leah.a.hanson@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Christian Muise</td>
+    <td>University of Melbourne</td>
+    <td>flow-shop</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/cjmuise">@cjmuise</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/haz">haz</a></td>
+    <td>christian.muise@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Carlos Scheidegger</td>
+    <td>AT&amp;T Research</td>
+    <td>rasterizer</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/cjmuise">@cscheid</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/cscheid">cscheid</a></td>
+    <td>carlos.scheidegger@gmail.com</td>
+  </tr>
+  <tr>
+    <td>Marina Samuel</td>
+    <td>Mozilla</td>
+    <td>ocr</td>
+    <td>
+        <ul>
+            <li><a href="http://marinasamuel.com">www.marinasamuel.com</a></li>
+            <li><a href="https://twitter.com/emtwos">@emtwos</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/emtwo">emtwo</a></td>
+    <td>msamuel@mozilla.com</td>
+  </tr>
+  <tr>
+    <td>Cate Huston</td>
+    <td>Google</td>
+    <td>Image Filter app</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/catehstn">@catehstn</a></li>
+        </ul>
+    </td>
+    <td>catehstn</td>
+    <td><a href="https://github.com/catehstn">catehstn</a></td>
+    <td>catehuston@gmail.com</td>
+  </tr>
+<tr>
+    <td>Yoav Rubin</td>
+    <td>Microsoft</td>
+    <td>In-memory functional database</td>
+    <td>
+        <ul>
+            <li><a href="https://twitter.com/yoavrubin">@yoavrubin</a></li>
+        </ul>
+    </td>
+    <td><a href="https://github.com/yoavrubin">yoavrubin</a></td>
+    <td></td>
+    
+  </tr>
+</table>
+
+# Spreadsheet
+
+    Author: Audrey Tang
+    Project: Web Spreadsheet in 100 Lines
+    Languages: JavaScript, HTML, CSS
+    Dependencies: AngularJS, Web Workers, Traceur Compiler
+
+## Online Demo
+
+<http://audreyt.github.io/500lines/spreadsheet/>
+
+## Local Demo
+
+Simply open `index.html` with Firefox, Safari or IE10+, and enter some content.
+
+Values starting with `=` are parsed as formula written in JavaScript, for example `=A1*C1`.
+
+If you'd like to use Chrome, type `make run` or `node extra/static-here.js` and connect to [localhost:8888](http://127.0.0.1:8888/) to view the demo.
+
+## Building the Code
+
+Source code (`main.js` and `worker.js`) are written in ECMAScript 6 (aka _ES.next_, aka _Harmony_), specifically the subset marked with [TC39 Consensus](https://developer.mozilla.org/en-US/docs/Web/JavaScript/ECMAScript_6_support_in_Mozilla) as of February 2014.
+
+For backward compatibility with existing browsers, we use [Traceur](https://github.com/google/traceur-compiler) to compile source files into the `dist/` directory.
+
+To build from source, first install [NodeJS](http://www.nodejs.org/) 0.10 or later, and run these commands (only tested on Linux/OSX at the moment):
+
+    sudo npm install -g traceur
+    make dist
+
+TypeCheck.jl
+============
+[![Build Status](https://travis-ci.org/astrieanna/TypeCheck.jl.png?branch=master)](https://travis-ci.org/astrieanna/TypeCheck.jl)
+
+Type-based static analysis for the Julia programming language.
+
+There are three main checks you can run: `checkreturntypes`, `checklooptypes`, and `checkmethodcalls`.
+Running a check on a function checks each method; running a check on a module checks each function (by checking each method of each function).
+
+To use any of these functions, you'll need to `Pkg.add("TypeCheck")` once to install the package on your computer and then import it using `using TypeCheck`. You'll need to re-import every time you restart the REPL.
+
+### `checkreturntypes`: do the return types of your functions depend on the types, not the values of your arguments?
+
+It is considered good style in Julia to have the return type of functions depend only on their argument types, not on the argument values.
+This function tries to check that you did so.
+
+You can run this on a generic function or on a module:
+* `checkreturntypes(istext)`
+* `checkreturntypes(Base)`
+
+It is only effective at catching functions with annotated argument types.
+
+It will catch things like:
+~~~
+julia> foo1(x::Int) = isprime(x) ? x: false
+foo1 (generic function with 1 method)
+
+julia> checkreturntypes(foo1)
+foo1(Int64)::Union(Bool,Int64)
+~~~
+
+However, it will not catch:
+~~~
+julia> foo2(x) = isprime(x) ? x : false
+foo2 (generic function with 1 method)
+
+julia> checkreturntypes(foo2)
+
+~~~
+
+Additionally, it does a check to see if the return type of the function depends on a function call in the return statement.
+This prevents the analysis from complaining about every function that calls a "bad" function.
+However, it's possible that this silences too many alerts.
+
+### `checklooptypes`: do the variables in your loops have stable types?
+
+A common performance problem is having unstable (numeric) variable types in an important loop.
+Having stable types within loops allows Julia's JIT compiler to output code as fast as a static compiler;
+having unstable types means resorting to slower, dynamic code.
+
+You can run this on a generic function or on a module:
+* `checklooptypes(sort)`
+* `checklooptypes(Base)`
+
+It will complain about:
+~~~
+julia> function barr1()
+         x=4
+         for i in 1:10
+           x *= 2.5
+         end
+         x
+       end
+barr1 (generic function with 1 method)
+
+julia> checklooptypes(barr1)
+barr1()::Union(Float64,Int64)
+	x::Union(Float64,Int64)
+~~~
+
+It will correctly not complain about:
+~~~
+julia> function barr2()
+         x = 4
+         x = 2.5
+         for i=1:10
+           x *= 2.5
+         end
+       end
+barr2 (generic function with 1 method)
+
+julia> checklooptypes(barr2)
+
+~~~
+and
+~~~
+julia> function barr3()
+         x::Int = 4
+         for i=1:10
+           x *= 2.5
+         end       
+       end       
+barr3 (generic function with 1 method)
+
+julia> checklooptypes(barr3)
+
+~~~
+(`barr3()` will throw an error rather than actually making `x` a `Float64`.)
+
+
+It is possible that it misses loose types in some cases, but I am not currently aware of them. Please let me know if you find one.
+
+### `checkmethodcalls`: could your functions have run-time NoMethodErrors?
+
+`NoMethodError`s are probably the most common error in Julia. This is an attempt to find them statically.
+
+You can run this on a generic function or on a module:
+* `checkmethodcalls(sort)`
+* `checkmethodcalls(Base)`
+
+This functionality is still clearly imperfect. I'm working on refining it to be more useful.
+
+### More Helper Functions
+This package also defined `code_typed(f::Function)` to get the Expr for each method of a function
+and `whos(f::Function)` to get a listing of the names and types of all the variables in the function.
+
+`whos`'s output is modeled on the output of the existing methods in Base:
+~~~
+julia> function xyz(x::Int,y)
+         p = pi
+         z = x + y * pi
+       end
+xyz (generic function with 1 method)
+
+julia> whos(xyz)
+(Int64,Any)::Any
+	#s38	Any
+	p	MathConst{:π}
+	x	Int64
+	y	Any
+	z	Any
+~~~
+
+####`methodswithdescendants(t::DataType;onlyleaves::Bool=false,lim::Int=10)`
+
+This method goes through the descendents of a given type and finds what methods are implemented for them. It returns a list of (Symbol,Float64) tuples, where the Symbol is the name of a function and the Float64 is the percentage of subtypes whose `methodswith` shows a result for that function.
+
+Here's an example of calling it:
+~~~julia
+julia> using TypeCheck
+
+julia> methodswithdescendants(Real)
+10-element Array{(Symbol,Float64),1}:
+ (:<,0.9166666666666666)      
+ (:convert,0.9166666666666666)
+ (:<=,0.9166666666666666)     
+ (:+,0.75)                    
+ (:-,0.7083333333333334)      
+ (:*,0.6666666666666666)      
+ (:~,0.5833333333333334)      
+ (:|,0.5833333333333334)      
+ (:&,0.5833333333333334)      
+ (:$,0.5833333333333334)      
+
+julia> methodswithdescendants(Real;onlyleaves=true)
+10-element Array{(Symbol,Float64),1}:
+ (:<,1.0)                   
+ (:convert,1.0)             
+ (:<=,1.0)                  
+ (:~,0.7647058823529411)    
+ (:bswap,0.7647058823529411)
+ (:|,0.7647058823529411)    
+ (:&,0.7647058823529411)    
+ (:$,0.7647058823529411)    
+ (:>>,0.7058823529411765)   
+ (:>>>,0.7058823529411765)  
+
+julia> methodswithdescendants(Real;onlyleaves=true,lim=20)
+20-element Array{(Symbol,Float64),1}:
+ (:<,1.0)                            
+ (:convert,1.0)                      
+ (:<=,1.0)                           
+ (:~,0.7647058823529411)             
+ (:bswap,0.7647058823529411)         
+ (:|,0.7647058823529411)             
+ (:&,0.7647058823529411)             
+ (:$,0.7647058823529411)             
+ (:>>,0.7058823529411765)            
+ (:>>>,0.7058823529411765)           
+ (:<<,0.7058823529411765)            
+ (:*,0.6470588235294118)             
+ (:count_ones,0.6470588235294118)    
+ (:-,0.6470588235294118)             
+ (:+,0.6470588235294118)             
+ (:trailing_zeros,0.6470588235294118)
+ (:leading_zeros,0.5882352941176471) 
+ (:signbit,0.5882352941176471)       
+ (:^,0.4117647058823529)             
+ (:rem,0.4117647058823529)
+~~~
+
+
+
+### Other Ways to Run Checks
+If you want to run these only on a single method, you can get the `Expr` for the method from `code_typed` and then pass that into the check you would like to run.
+
+
+Author: Ned Batchelder
+Project: Template engine
+Requirements: Python
+
+This directory contains a simple templating engine, such as you might use to
+generate HTML in a web application.
+
+To run the tests::
+
+    $ python -m unittest discover
+
+# A Torrent Client
+
+## How The Torrent Protocol Works
+
+To share a file using the torrent system, first someone has to construct a `.torrent` file that describes the content of the file being shared.  It uses a kind of binary JSON format called bencode.  The contents of the `.torrent` file describes the file name, size, block size, and a list of SHA1-hash values for each block of data in the file.  The block size is decided by whoever creates the torrent file, but it should be bigger than 32k, and also so large that there are no more than ~4000 block all in all.  Since each SHA1-hash is 20 bytes, this leaves the resulting torrent file comfortably below 100k, which is the recommended maximum.  The SHA1-hash of the torrent file itself (the hash of hashes) is called the *Info Hash*, and is used to identify the file being shared as a whole.
+ 
+A set of running torrent clients which all have a copy of the same torrent file is called a *swarm*.  Each agent in the swarm is called a *peer*.  Some peers will have all the blocks (called *seeders*), and some will just have a subset (called *leechers*).  The shared goal of the swarm is to help all the peers to get a complete copy of the original file.
+
+> Now, you might say "why not just download the file from the original seeder?"  
+
+> The issue is that if a million people want to download a 400GB disk image, then your DSL line might get swamped quite quickly.  So, the idea is to share it with just a few peers, assuming they will also also share it with a few other peers, and quickly this leaves everyone better off.  Not only does this leave the original seeder off a huge bill from her ISV, it also means that the downloaders may be able to ultimately download most of the file from a closer peer, yielding better download speed.
+ 
+> For instance, if you are making Linux distributions, all your downloaders can cooperate to download quicker, all the while saving on the bill you need to pay your ISV.
+ 
+To share the file with anyone however, you need to know who is part of the swarm, and for this you need a *tracker*.  A tracker a web server that all the peers will contact to register, and ask who else is part of the swarm for a given torrent file as identified by the info hash.  The tracker doesn't even need to know the contents of the `.torrent` file, but just keeps a list of *peer-id* (a 20-byte random number) and *host:port* for all the peers interested in a given info hash.  The URL of the tracker is also included in the `.torrent` file.
+
+>There are other ways to form swarms than using a HTTP-based tracker, one of which is known as DHT (for Distributed Hash Table).  Except for this paragraph, we'll only cover HTTP based trackers.  
+>DHT work by forming a global network of all torrent peers in the world, and using them much like we use DNS.  In the DHT network, all nodes participate as routers for the peers it knows, and as trackers for info hashes that "close to" the node's own peer id (for some definition of "close to"). 
+
+Ideally, all the peers in a swarm can accept connections on the public internet, so that other peers can contact them.  The peers that can accept connections are at an advantage because they can get more peers, but the system will work fine if just some peers are accessible on the internet.   Once connected, the peer to peer relationship is completely symmetrical, as is the protocol they speak to each other.
+
+To reduce complexity and code size, this torrent client does not accept connections from the internet.  Also, since you're likely to be running the examples from behind a firewall, it may not always work.
+
+## A Few Notes on Reading Erlang
+
+I'll assume that you don't know Erlang, and so here are a few hints to how to read the code that will come ahead.  If you're new to Erlang, please take some time to understand these rules, and you'll be much happier going forward:
+
+- Expressions that are evaluated in sequence are separated by commas.  Semi-colons are used in between the individual cases of a `case` statement, of which erlang has several kinds.  Function definitions (and other top-level declarations) are terminated with a period.  This is consistenly employed, but somewhat unorthodox.  Take your time to locate the semi-colon and the period in this code defining a speed function:
+
+````erlang
+speed(Time, Distance) ->
+  case Time of
+    0 -> io:format("very fast!\n"), 
+         infinity;
+    _ -> Distance / Time
+  end.
+````
+- Unsurprisingly, code is organized in modules, and in order to call a function in another module you write `module:function(...)`.  When calling local function, you don't need to prefix the function call with the module name.  The "return value" of a function is simply the value of the last expression of its evaluation; there is no `return Foo` statement.
+- A constant string is called an *atom* in Erlang, and usually looks like an all-lowercase identifier `like_this`.  Atoms are used as you would normally use enums in other languages: they are globally unique, and so they're fast to compare for equality.  Regardless of it's resemblance with identifiers in most languages it is not an identifier, it's just a constant string!  You can enclose it in single quotes if you want `'like_this'`, but that is only useful for atoms containing non-lowercase letters.  In the above code, `infinity` is an atom. In fact, in Erlang the boolean values `true` and `false` are also just atoms.   
+- Variables are identifiers that start with a capital letter, `LikeThis`.  That's quite unlike languages like Java and Ruby, where uppercase identifiers signal constant-ness.
+- All assignments are final; so a variable cannot change.  As such, they are not really variables, but that's a discussion I won't take here.  Becaus of this single-assignment rule, you will often see the same variable name with 1, 2, or 3 attached, such as `State1` or `State2` to signify different "versions" of the same value. 
+- Tuples `{1,2,3}` are widely used for simple structures.  It's a common idiom to return a 2-tuple with an `ok` atom in the first position, such as `{ok, Value}` for success, and `{error, Reason}` for failure.
+- All assignments use desctructuring (pattern matching), so the assignment below succeeds iff the `foo` function returns a 2-tuple, in which the first element is the atom `ok`.  The variable `Value` is assigned whatever was in the second position of the returned tuple.
+
+````erlang
+{ok, Value} = foo(1,2,3)
+````
+
+- The special identifier `_` (underbar) always matches, and discards the value.  
+- If you assign a value to a "variable" that has already been assigned, then it will only suceed if the new value is equal to the old one.  
+
+Enough, let's dive in!
+
+## The Main Logic of the Code
+
+The code is organized in a number of modules, of which two has special interest to understand how it operates: `torrent_client` and `torrent_peer`.  Both of these modules have a `main_loop` function that runs an infinite loop. We will have 
+
+- one process (thread) for each `.torrent` file being shared executing the `torrent_client:main_loop` function, and 
+- one process executing the `torrent_peer:main_loop` function for each remote peer we're connected to with a tcp socket.
+
+In Erlang, a function can execute in an infinite loop by calling itself without causing the stack to run full, if the self-recursive call appears as the *last* expression of the function, in so-called *tail position*.  This is because a self-call at that place can discard all the local variables (the activation record) since those would not be available anyway, and just do the call using a `goto` operation on the underlying virtual machine.
+
+
+### Client Process
+
+The "client" knows which parts we have, and which parts we want (two disjoint sets of block numbers, of which the union is the full set of block numbers).  Every time a peer completes a part download it sends a `{downloaded, PartNo}` message to the client process, which updates the have/want sets and broadcasts `{finished, PartNo}` to all the peer processes.   Erlang's `receive` construct is a blocking operation that waits for a message matching one of the enclosed clauses. Thus, the gist of the client's main loop is this:
+
+````erlang
+main_loop(State=#state{ peers=Peers, have=Have, missing = Missing }) ->
+    receive
+        {downloaded, PieceNo} ->
+            State2=State#state{ 
+                   missing = ordsets:del_element(PieceNo, Missing),
+                   have    = ordsets:add_element(PieceNo, Have) },
+            case State2#state.missing == [] of
+                true  ->
+                    [ erlang:exit(PeerPID, shutdown) || PeerPID <- Peers ],
+                    io:format("download done!~n"),
+                    ok;
+                false ->
+                    [ PeerPID ! {finished, PieceNo} || PeerPID <- Peers ],
+                    main_loop(State2)
+            end;
+    ...
+````
+
+### Peer Process
+
+For each connected peer, there is a process that sits in an infinite loop waiting for incoming messages.  The peer waits for
+
+- Data from the socket.  Incoming data arrives as a `{tcp, Socket, Packet}` where `Packet` is the actual data received.   
+- The 10-second interval timer triggering,
+- Notifications from the manager that some other peer has successfully finished downloading some piece
+
+The main loop is depicted here:
+
+````erlang
+main_loop(State=#state{ sock=Sock, upload_allowance=Allowance, want=Want, have=Have }) ->
+  receive
+    {tcp, Sock, Packet} ->
+       Message = torrent_protocol:decode_packet(Packet, Info),
+       inet:setopts(Sock, [{active,once}]),
+       handle_incoming(Message, State);
+
+    {timeout, _, ten_sec_timer} ->
+      Timer = erlang:start_timer(10000, self(), ten_sec_timer),
+      {ok, State2} = send(keep_alive, State),
+      do_work(State2#state{ 
+            upload_allowance=?UPLOAD_BYTES_PER_10SECOND), 
+            timer=Timer });
+
+    {finished, PieceNo} ->
+      case ordsets:is_element(PieceNo, Want) of
+        true  -> 
+            % cancel any outstanding requests
+            {ok, State2} = cancel(PieceNo, State);
+        false -> 
+            % inform peer that we can now provide PieceNo
+            {ok, State2} = send({have, PieceNo}, State)
+      end,
+      do_work(State2#state{ 
+                have=ordsets:add_element(PieceNo, Have),
+                want=ordsets:del_element(PieceNo, Want) });
+      ...
+````
+
+Author: Kresten Krab Thorup
+Project: Torrent Client
+Requirements: Erlang
+
+This directory holds a simple torrent client in Erlang. The client only works
+for single-file torrents that use a http tracker.
+
+In building this, the major challenge is to keep the project under 500
+lines, since we're building it almost from first principles.  Right
+now it is ~542 lines (excluding blank or comments lines).
+
+The easiest way to get Erlang, is to download it from www.erlang-solutions.org.
+Don't use the Erlang distributed with Ubuntu.
+
+compile:
+  ./rebar get-deps
+  ./rebar compile
+
+run:
+  erl -pa ebin -pa deps/*/ebin
+  1> torrent_client:download("../path/to.torrent")
+
+
+*   Use BaseHTTPServer to handle socket connections and parse HTTP requests.
+*   Respond to GET requests with a static 'page'.
+*   To test:
+    *   Run `python server.py`.
+    *   Point browser at `http://localhost:8080/`
+
+*   Respond to GET requests with information about the request.
+*   To test:
+    *   Run `python server.py`.
+    *   Point browser at `http://localhost:8080/something/or/other`
+
+This version responds to HTTP requests with static HTML files or
+directory listings.
+
+*   Run with `python server.py .` (or some other base directory name).
+*   Point browser at `http://localhost:8080/some/path`.
+
+This version:
+
+*   adds HTTP error codes for missing items;
+*   does path normalization to prevent users fetching files that aren't
+    below the specified root directory; and
+*   has some logging built in.
+
+If nothing corresponds to the requested path, a 404 (File Not Found)
+error is returned.  If the thing corresponding to the path can't be
+read, a 403 (No Permissions) error is returned.  If something else
+goes wrong, a 500 (Internal) error is returned.
+
+This version adds MIME type handling.
+
+This version runs simple CGI scripts without parameters.
+
+*   Run the server with `python server.py -v -r`
+*   Connect to `http://localhost:8080/testcgi.py`
+
+Time to start digging down to the socket and parsing layers.  This
+"version" shows how socket connections are handled and how HTTP
+requests are parsed.
+
+To run:
+
+*   `python echo-server.py 8080` in one window, `python echo-client.py 127.0.0.1 8080 hello` in another.
+*   `python telnet-server.py 8080` in one window, `python telnet-client.py 8080 < test.txt` in another.
+
+Author: Greg Wilson
+Project: Web Server
+Requirements: Python
+
+This directory holds a simple web server in Python, which I am
+building up in stages.  Each sub-directory holds a more complex
+version; the final chapter will discuss the changes between these
+versions in order to explain features, and show how adding them
+requires earlier decisions to be revisited or elaborated.
+
+*   00-hello-web: respond with fixed content.
+*   01-echo-request-info: show HTTP request headers.
+*   02-serve-static: serve static files and directories.
+*   03-errcode-pathnorm: error handling, path normalization, and logging.
+*   04-mimetypes: MIME types.
+*   05-simple-cgi: basic CGI scripts.
+*   06-sockets: replace Python HTTP library with our own socket/parsing code.
+

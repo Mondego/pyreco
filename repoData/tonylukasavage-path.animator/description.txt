@@ -1,0 +1,120 @@
+Place your assets like PNG files in this directory and they will be packaged with your module.
+
+If you create a file named path.animator.js in this directory, it will be 
+compiled and used as your module.  This allows you to run pure Javascript
+modules that are pre-compiled.
+
+
+# pathanimator Module
+
+## Description
+
+TODO: Enter your module description here
+
+## Accessing the pathanimator Module
+
+To access this module from JavaScript, you would do the following:
+
+	var pathanimator = require("path.animator");
+
+The pathanimator variable is a reference to the Module object.	
+
+## Reference
+
+TODO: If your module has an API, you should document
+the reference here.
+
+### ___PROJECTNAMEASIDENTIFIER__.function
+
+TODO: This is an example of a module function.
+
+### ___PROJECTNAMEASIDENTIFIER__.property
+
+TODO: This is an example of a module property.
+
+## Usage
+
+TODO: Enter your usage example here
+
+## Author
+
+TODO: Enter your author name, email and other contact
+details you want to share here. 
+
+## License
+
+TODO: Enter your license/legal information here.
+
+These files are not yet supported as of 1.4.0 but will be in a near future release.
+
+You can place platform-specific files here in sub-folders named "android" and/or "iphone", just as you can with normal Titanium Mobile SDK projects.  Any folders and files you place here will be merged with the platform-specific files in a Titanium Mobile project that uses this module.
+
+When a Titanium Mobile project that uses this module is built, the files from this platform/ folder will be treated the same as files (if any) from the Titanium Mobile project's platform/ folder.
+
+# path.animator by [@tonylukasavage](https://twitter.com/#!/tonylukasavage)
+
+A simple Appcelerator Titanium iOS module for adding CABasicAnimation rotations to standard Titanium Views.
+
+## Why?
+
+iOS transforms are specified as matrices. These matrices are the result of trigonometric calculations, which results in a limitation in the range of values you can specify for rotation values. For example, on iOS, the transforms can't make distinction between a rotation of 180 degrees or 0 degrees. The matrix values are the same. 
+
+Android does not have this limitation. This is not a result of how Titanium implements these features, it is a limitation of iOS. A quick google search will show that native developers have issues with this as well.
+
+In order to work around iOS's limitations, this module uses the more powerful CABasicAnimation class to perform more advanced animations. The only one we will be leveraging in this module, as this module is specific to the [pathmenu.js](https://github.com/tonylukasavage/pathmenu.js) project, is the ability to support rotations greater than 180 degrees, just like Android can already do.
+
+## How?
+
+Check out the [exmaple/app.js](https://github.com/tonylukasavage/path.animator/blob/master/example/app.js) for usage. In case you are too lazy to look...
+
+```javascript
+var window = Ti.UI.createWindow({
+    backgroundColor:'white'
+});
+
+var my_module = require('path.animator');
+var foo = my_module.createView({
+  	backgroundColor: '#f00',
+  	width: 100,
+  	height: 100
+});
+
+var image = Ti.UI.createImageView({
+	image: 'http://appcodingeasy.com/cms.design/images/appcelerator.png',
+  	width: 100,
+  	height: 100
+});
+foo.add(image);
+
+
+foo.addEventListener('click', function() {
+	foo.rotate({
+		angle: 720,
+		duration: 3000,
+		delay: 1000,
+		timingFunction: Ti.UI.iOS.ANIMATION_CURVE_EASE_OUT
+	});
+});
+ 
+window.add(foo);
+window.open();
+```
+
+Be sure to add the module entry in tiapp.xml in your own project:
+
+```xml
+<modules>
+    <module platform="iphone" version="1.0">path.animator</module>
+</modules>
+```
+
+## Problems?
+
+Leave an issue in the [Issues section](https://github.com/tonylukasavage/path.animator/issues) of this project. Be as specific as possible. Please include the following information:
+
+* Titanium SDK version
+* Target platform (better be iOS!)
+* Any relevant code
+* A test case
+
+**HINT:** If you provide a repeatable test case, your issue goes right to the top of my todo list.

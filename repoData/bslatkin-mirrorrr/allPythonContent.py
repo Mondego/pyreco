@@ -1,0 +1,524 @@
+__FILENAME__ = mirror
+#!/usr/bin/env python
+# Copyright 2008-2014 Brett Slatkin
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+__author__ = "Brett Slatkin (bslatkin@gmail.com)"
+
+import datetime
+import hashlib
+import logging
+import pickle
+import re
+import time
+import urllib
+import wsgiref.handlers
+
+from google.appengine.api import memcache
+from google.appengine.api import urlfetch
+from google.appengine.ext import db
+import webapp2
+from google.appengine.ext.webapp import template
+from google.appengine.runtime import apiproxy_errors
+
+import transform_content
+
+###############################################################################
+
+DEBUG = False
+EXPIRATION_DELTA_SECONDS = 3600
+
+# DEBUG = True
+# EXPIRATION_DELTA_SECONDS = 10
+
+HTTP_PREFIX = "http://"
+
+IGNORE_HEADERS = frozenset([
+  "set-cookie",
+  "expires",
+  "cache-control",
+
+  # Ignore hop-by-hop headers
+  "connection",
+  "keep-alive",
+  "proxy-authenticate",
+  "proxy-authorization",
+  "te",
+  "trailers",
+  "transfer-encoding",
+  "upgrade",
+])
+
+TRANSFORMED_CONTENT_TYPES = frozenset([
+  "text/html",
+  "text/css",
+])
+
+MAX_CONTENT_SIZE = 10 ** 6
+
+###############################################################################
+
+def get_url_key_name(url):
+  url_hash = hashlib.sha256()
+  url_hash.update(url)
+  return "hash_" + url_hash.hexdigest()
+
+###############################################################################
+
+class MirroredContent(object):
+  def __init__(self, original_address, translated_address,
+               status, headers, data, base_url):
+    self.original_address = original_address
+    self.translated_address = translated_address
+    self.status = status
+    self.headers = headers
+    self.data = data
+    self.base_url = base_url
+
+  @staticmethod
+  def get_by_key_name(key_name):
+    return memcache.get(key_name)
+
+  @staticmethod
+  def fetch_and_store(key_name, base_url, translated_address, mirrored_url):
+    """Fetch and cache a page.
+
+    Args:
+      key_name: Hash to use to store the cached page.
+      base_url: The hostname of the page that's being mirrored.
+      translated_address: The URL of the mirrored page on this site.
+      mirrored_url: The URL of the original page. Hostname should match
+        the base_url.
+
+    Returns:
+      A new MirroredContent object, if the page was successfully retrieved.
+      None if any errors occurred or the content could not be retrieved.
+    """
+    logging.debug("Fetching '%s'", mirrored_url)
+    try:
+      response = urlfetch.fetch(mirrored_url)
+    except (urlfetch.Error, apiproxy_errors.Error):
+      logging.exception("Could not fetch URL")
+      return None
+
+    adjusted_headers = {}
+    for key, value in response.headers.iteritems():
+      adjusted_key = key.lower()
+      if adjusted_key not in IGNORE_HEADERS:
+        adjusted_headers[adjusted_key] = value
+
+    content = response.content
+    page_content_type = adjusted_headers.get("content-type", "")
+    for content_type in TRANSFORMED_CONTENT_TYPES:
+      # startswith() because there could be a 'charset=UTF-8' in the header.
+      if page_content_type.startswith(content_type):
+        content = transform_content.TransformContent(base_url, mirrored_url,
+                                                     content)
+        break
+
+    # If the transformed content is over 1MB, truncate it (yikes!)
+    if len(content) > MAX_CONTENT_SIZE:
+      logging.warning("Content is over 1MB; truncating")
+      content = content[:MAX_CONTENT_SIZE]
+
+    new_content = MirroredContent(
+      base_url=base_url,
+      original_address=mirrored_url,
+      translated_address=translated_address,
+      status=response.status_code,
+      headers=adjusted_headers,
+      data=content)
+    if not memcache.add(key_name, new_content, time=EXPIRATION_DELTA_SECONDS):
+      logging.error('memcache.add failed: key_name = "%s", '
+                    'original_url = "%s"', key_name, mirrored_url)
+
+    return new_content
+
+###############################################################################
+
+class WarmupHandler(webapp2.RequestHandler):
+  def get(self):
+    pass
+
+
+class BaseHandler(webapp2.RequestHandler):
+  def get_relative_url(self):
+    slash = self.request.url.find("/", len(self.request.scheme + "://"))
+    if slash == -1:
+      return "/"
+    return self.request.url[slash:]
+
+  def is_recursive_request(self):
+    if "AppEngine-Google" in self.request.headers.get("User-Agent", ""):
+      logging.warning("Ignoring recursive request by user-agent=%r; ignoring")
+      self.error(404)
+      return True
+    return False
+
+
+class HomeHandler(BaseHandler):
+  def get(self):
+    if self.is_recursive_request():
+      return
+
+    # Handle the input form to redirect the user to a relative url
+    form_url = self.request.get("url")
+    if form_url:
+      # Accept URLs that still have a leading 'http://'
+      inputted_url = urllib.unquote(form_url)
+      if inputted_url.startswith(HTTP_PREFIX):
+        inputted_url = inputted_url[len(HTTP_PREFIX):]
+      return self.redirect("/" + inputted_url)
+
+    # Do this dictionary construction here, to decouple presentation from
+    # how we store data.
+    secure_url = None
+    if self.request.scheme == "http":
+      secure_url = "https://%s%s" % (self.request.host, self.request.path_qs)
+    context = {
+      "secure_url": secure_url,
+    }
+    self.response.out.write(template.render("main.html", context))
+
+
+class MirrorHandler(BaseHandler):
+  def get(self, base_url):
+    if self.is_recursive_request():
+      return
+
+    assert base_url
+
+    # Log the user-agent and referrer, to see who is linking to us.
+    logging.debug('User-Agent = "%s", Referrer = "%s"',
+                  self.request.user_agent,
+                  self.request.referer)
+    logging.debug('Base_url = "%s", url = "%s"', base_url, self.request.url)
+
+    translated_address = self.get_relative_url()[1:]  # remove leading /
+    mirrored_url = HTTP_PREFIX + translated_address
+
+    # Use sha256 hash instead of mirrored url for the key name, since key
+    # names can only be 500 bytes in length; URLs may be up to 2KB.
+    key_name = get_url_key_name(mirrored_url)
+    logging.info("Handling request for '%s' = '%s'", mirrored_url, key_name)
+
+    content = MirroredContent.get_by_key_name(key_name)
+    cache_miss = False
+    if content is None:
+      logging.debug("Cache miss")
+      cache_miss = True
+      content = MirroredContent.fetch_and_store(key_name, base_url,
+                                                translated_address,
+                                                mirrored_url)
+    if content is None:
+      return self.error(404)
+
+    for key, value in content.headers.iteritems():
+      self.response.headers[key] = value
+    if not DEBUG:
+      self.response.headers["cache-control"] = \
+        "max-age=%d" % EXPIRATION_DELTA_SECONDS
+
+    self.response.out.write(content.data)
+
+###############################################################################
+
+app = webapp2.WSGIApplication([
+  (r"/", HomeHandler),
+  (r"/main", HomeHandler),
+  (r"/([^/]+).*", MirrorHandler),
+  (r"/warmup", WarmupHandler),
+], debug=DEBUG)
+
+########NEW FILE########
+__FILENAME__ = transform_content
+#!/usr/bin/env python
+# Copyright 2008-2014 Brett Slatkin
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+__author__ = "Brett Slatkin (bslatkin@gmail.com)"
+
+import os
+import re
+import urlparse
+
+################################################################################
+
+# URLs that have absolute addresses
+ABSOLUTE_URL_REGEX = r"(http(s?):)?//(?P<url>[^\"'> \t\)]+)"
+
+# URLs that are relative to the base of the current hostname.
+BASE_RELATIVE_URL_REGEX = r"/(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]*)"
+
+# URLs that have '../' or './' to start off their paths.
+TRAVERSAL_URL_REGEX = r"(?P<relative>\.(\.)?)/(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]*)"
+
+# URLs that are in the same directory as the requested URL.
+SAME_DIR_URL_REGEX = r"(?!(/)|(http(s?)://)|(url\())(?P<url>[^\"'> \t\)]+)"
+
+# URL matches the root directory.
+ROOT_DIR_URL_REGEX = r"(?!//(?!>))/(?P<url>)(?=[ \t\n]*[\"'\)>/])"
+
+# Start of a tag using 'src' or 'href'
+TAG_START = r"(?i)\b(?P<tag>src|href|action|url|background)(?P<equals>[\t ]*=[\t ]*)(?P<quote>[\"']?)"
+
+# Start of a CSS import
+CSS_IMPORT_START = r"(?i)@import(?P<spacing>[\t ]+)(?P<quote>[\"']?)"
+
+# CSS url() call
+CSS_URL_START = r"(?i)\burl\((?P<quote>[\"']?)"
+
+
+REPLACEMENT_REGEXES = [
+  (TAG_START + SAME_DIR_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>%(accessed_dir)s\g<url>"),
+
+  (TAG_START + TRAVERSAL_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
+
+  (TAG_START + BASE_RELATIVE_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>/%(base)s/\g<url>"),
+
+  (TAG_START + ROOT_DIR_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>/%(base)s/"),
+
+  # Need this because HTML tags could end with '/>', which confuses the
+  # tag-matching regex above, since that's the end-of-match signal.
+  (TAG_START + ABSOLUTE_URL_REGEX,
+     "\g<tag>\g<equals>\g<quote>/\g<url>"),
+
+  (CSS_IMPORT_START + SAME_DIR_URL_REGEX,
+     "@import\g<spacing>\g<quote>%(accessed_dir)s\g<url>"),
+
+  (CSS_IMPORT_START + TRAVERSAL_URL_REGEX,
+     "@import\g<spacing>\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
+
+  (CSS_IMPORT_START + BASE_RELATIVE_URL_REGEX,
+     "@import\g<spacing>\g<quote>/%(base)s/\g<url>"),
+
+  (CSS_IMPORT_START + ABSOLUTE_URL_REGEX,
+     "@import\g<spacing>\g<quote>/\g<url>"),
+
+  (CSS_URL_START + SAME_DIR_URL_REGEX,
+     "url(\g<quote>%(accessed_dir)s\g<url>"),
+
+  (CSS_URL_START + TRAVERSAL_URL_REGEX,
+      "url(\g<quote>%(accessed_dir)s/\g<relative>/\g<url>"),
+
+  (CSS_URL_START + BASE_RELATIVE_URL_REGEX,
+      "url(\g<quote>/%(base)s/\g<url>"),
+
+  (CSS_URL_START + ABSOLUTE_URL_REGEX,
+      "url(\g<quote>/\g<url>"),
+]
+
+################################################################################
+
+def TransformContent(base_url, accessed_url, content):
+  url_obj = urlparse.urlparse(accessed_url)
+  accessed_dir = os.path.dirname(url_obj.path)
+  if not accessed_dir.endswith("/"):
+    accessed_dir += "/"
+
+  for pattern, replacement in REPLACEMENT_REGEXES:
+    fixed_replacement = replacement % {
+      "base": base_url,
+      "accessed_dir": accessed_dir,
+    }
+    content = re.sub(pattern, fixed_replacement, content)
+  return content
+
+########NEW FILE########
+__FILENAME__ = transform_content_test
+#!/usr/bin/env python
+# Copyright 2008 Brett Slatkin
+# 
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+# 
+#     http://www.apache.org/licenses/LICENSE-2.0
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+__author__ = "Brett Slatkin (bslatkin@gmail.com)"
+
+import logging
+import unittest
+
+import transform_content
+
+################################################################################
+
+class TransformTest(unittest.TestCase):
+  
+  def _RunTransformTest(self, base_url, accessed_url, original, expected):
+    tag_tests = [
+      '<img src="%s"/>',
+      "<img src='%s'/>",
+      "<img src=%s/>",
+      "<img src=\"%s'/>",
+      "<img src='%s\"/>",
+      "<img src  \t=  '%s'/>",
+      "<img src  \t=  \t '%s'/>",
+      "<img src = '%s'/>",
+      '<a href="%s">',
+      "<a href='%s'>",
+      "<a href=%s>",
+      "<a href=\"%s'>",
+      "<a href='%s\">",
+      "<a href \t = \t'%s'>",
+      "<a href \t  = '%s'>",
+      "<a href =  \t'%s'>",
+      "<td background=%s>",
+      "<td background='%s'>",
+      '<td background="%s">',
+      '<form action="%s">',
+      "<form action='%s'>",
+      "<form action=%s>",
+      "<form action=\"%s'>",
+      "<form action='%s\">",
+      "<form action \t = \t'%s'>",
+      "<form action \t  = '%s'>",
+      "<form action =  \t'%s'>",      
+      "@import '%s';",
+      "@import '%s'\nnext line here",
+      "@import \t '%s';",
+      "@import %s;",
+      "@import %s",
+      '@import "%s";',
+      '@import "%s"\nnext line here',
+      "@import url(%s)",
+      "@import url('%s')",
+      '@import url("%s")',
+      "background: transparent url(%s) repeat-x left;",
+      'background: transparent url("%s") repeat-x left;',
+      "background: transparent url('%s') repeat-x left;",
+      '<meta http-equiv="Refresh" content="0; URL=%s">',
+    ]
+    for tag in tag_tests:
+      test = tag % original
+      correct = tag % expected
+      result = transform_content.TransformContent(base_url, accessed_url, test)
+      logging.info("Test with\n"
+                   "Accessed: %s\n"
+                   "Input   : %s\n"
+                   "Received: %s\n"
+                   "Expected: %s",
+                   accessed_url, test, result, correct)
+      if result != correct:
+        logging.info("FAIL")
+      self.assertEquals(correct, result)
+
+  def testBaseTransform(self):
+    self._RunTransformTest(
+      "slashdot.org",
+      "http://slashdot.org",
+      "//images.slashdot.org/iestyles.css?T_2_5_0_204",
+      "/images.slashdot.org/iestyles.css?T_2_5_0_204")
+
+  def testAbsolute(self):
+    self._RunTransformTest(
+      "slashdot.org",
+      "http://slashdot.org",
+      "http://slashdot.org/slashdot_files/all-minified.js",
+      "/slashdot.org/slashdot_files/all-minified.js")
+  
+  def testRelative(self):
+    self._RunTransformTest(
+      "slashdot.org",
+      "http://slashdot.org",
+      "images/foo.html",
+      "/slashdot.org/images/foo.html")
+  
+  def testUpDirectory(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      "http://a248.e.akamai.net/foobar/is/the/path.html",
+      "../layout/mh_phone-home.png",
+      "/a248.e.akamai.net/foobar/is/the/../layout/mh_phone-home.png")
+
+  def testSameDirectoryRelative(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      "http://a248.e.akamai.net/foobar/is/the/path.html",
+      "./layout/mh_phone-home.png",
+      "/a248.e.akamai.net/foobar/is/the/./layout/mh_phone-home.png")
+
+  def testSameDirectory(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      "http://a248.e.akamai.net/foobar/is/the/path.html",
+      "mh_phone-home.png",
+      "/a248.e.akamai.net/foobar/is/the/mh_phone-home.png")
+
+  def testSameDirectoryNoParent(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      "http://a248.e.akamai.net/path.html",
+      "mh_phone-home.png",
+      "/a248.e.akamai.net/mh_phone-home.png")
+
+  def testSameDirectoryWithParent(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      ("http://a248.e.akamai.net/7/248/2041/1447/store.apple.com"
+       "/rs1/css/aos-screen.css"),
+      "aos-layout.css",
+      ("/a248.e.akamai.net/7/248/2041/1447/store.apple.com"
+       "/rs1/css/aos-layout.css"))
+
+  def testRootDirectory(self):
+    self._RunTransformTest(
+      "a248.e.akamai.net",
+      "http://a248.e.akamai.net/foobar/is/the/path.html",
+      "/",
+      "/a248.e.akamai.net/")
+  
+  def testSecureContent(self):
+    self._RunTransformTest(
+      "slashdot.org",
+      "https://slashdot.org",
+      "https://images.slashdot.org/iestyles.css?T_2_5_0_204",
+      "/images.slashdot.org/iestyles.css?T_2_5_0_204")
+
+  def testPartiallySecureContent(self):
+    self._RunTransformTest(
+      "slashdot.org",
+      "http://slashdot.org",
+      "https://images.slashdot.org/iestyles.css?T_2_5_0_204",
+      "/images.slashdot.org/iestyles.css?T_2_5_0_204")
+
+################################################################################
+
+if __name__ == "__main__":
+  logging.getLogger().setLevel(logging.DEBUG)
+  unittest.main()
+
+########NEW FILE########

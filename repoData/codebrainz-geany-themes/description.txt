@@ -1,0 +1,416 @@
+Adding a Theme to Geany-Themes Project
+======================================
+
+This document is meant to describe the steps needed to successfully
+add a theme to the Geany-Themes project. This is the stuff I have to
+do when someone contributes just a .conf file in order to integrate
+it into the repository/project.
+
+If you want to perform these steps yourself and contribute the complete
+work as a pull request on Github as some have done before, that makes
+my life a little easier (and gets your scheme in quicker), but even
+just the bare (tested) .conf files are a fine contribution.
+
+Style Guide
+-----------
+
+While there's no strict style guide for how the .conf file is formatted,
+here's some notes about preferred style:
+
+* It's easiest to start by using an existing colour scheme that is
+similar to the one you want to create/port.
+* Use HTML-style colours starting with a pound symbol (`#`), in
+lower-case hex notation, compressing to 3 digits if possible. Examples:
+  - #ff0
+  - #e4b211
+* Use `[named_colors]` (see Geany Manual) where appropriate, if you want.
+* Most import is just to make it styled like most other schemes.
+
+Adding the .conf file to the tree
+---------------------------------
+
+The name of the file should be similar to the name of the scheme,
+unique amongst all other schemes, be lower-case, have words separated
+by dashes (`-`) and end with the `.conf` extension.
+
+Some examples:
+
+    bespin.conf
+    inkpot.conf
+    solarized-dark.conf
+    solarized-light.conf
+    dark-fruit-salad.conf
+
+The file goes into the `colorschemes` directory.
+
+Testing the .conf file
+----------------------
+
+The most basic test needed is to run Geany from the command line
+with the `-v` option and then load your color scheme. If Geany's
+color scheme parser encounters any problems it will spit out some
+debugging info onto the console. You should fix these warnings. You
+can also access the same info by running Geany normally from a
+shortcut/launcher and looking at Help->Debug Messages.
+
+You should check out what the scheme looks like in a few different
+language styles. For example, C++, Python, and XML. Using one
+statically typed, one dynamically typed, and one tag/structured markup
+language and you can find some weird differences that you might not
+have noticed by just checking one or two very similar languages.
+
+Some other important, not-obvious things to check:
+
+* View->Show Whitespace
+* View->Show Markers Margin
+* View->Show Line Numbers
+* View->Show Indentation Guides
+
+Ensuring License and Credits
+----------------------------
+
+The top of the .conf file should contain any copyright and license
+info that pertains to the scheme in a comment. If you ported from
+another editor's colour scheme, try and keep the same license and
+credit the original authors. If you create the scheme yourself or are
+otherwise able to choose a license, it is recommended to use GPL v2
+as a default.
+
+You should add yourself and anyone else who have contributed or
+originally authored the scheme to the `AUTHORS` file. There's a note
+at the top of that file which explains how to use it. If you don't
+wish to maintain the scheme (fix bugs, tweak colours, etc) then add
+me (Matthew Brush) as the current maintainer like many of the plugins
+have.
+
+Please use your real name and a human-readable version of an email
+address where you can be reached.
+
+Adding a Screenshot
+-------------------
+
+This is the stupidest part since it's fully manual. I'll just
+describe the way I do it, but it may be easier for others to do it
+differently.
+
+The screenshots are in PNG format. The file should be named the same as
+the `.conf` file (obviously except for the `.png` extensions instead of
+`.conf`). The filename should be all lower-case.
+
+The font used in the screenshots is Andale Mono (don't ask why, it just is).
+The font size is 10pt. If you can't get Andale Mono font (I think it might
+be a non-free MS core font), use an existing font that looks similar.
+
+The contents of the file in the screenshot are a "Hello World"
+program in the C programming language, and are exactly this:
+
+```c
+#include <stdlib.h>
+#include <stdio.h>
+
+#define MESSAGE "Hello World"
+
+/* Prints a message to standard output */
+void print_message(const char *msg) {
+	printf("%s\n", msg);
+}
+
+int main(int argc, char *argv[]) {
+	print_message(MESSAGE);
+	return 0;
+}
+
+```
+
+You should turn off `View->Show Whitespace` and
+`View->Show Indentation Guides`. The tab mode should be set to 4
+character width real/hard tabs. Turn on markers and line number margin
+under View menu. Place the caret on the 3rd line (which is an empty line)
+and click on line four's marker margin to add a mark on that line. Just
+look at existing screenshots and make it look the same/similar.
+
+I just use the screenshooter tool that comes with my distro (Xubuntu)
+but many tools could be used to grab a screenshot. I look at existing
+screenshots and try to select the same region of the screen to capture
+so that it looks roughly the same size/area as the existing screenshots.
+It's really not scientific at this point, the key is to just make them
+all look the same except for the color scheme.
+
+If you're on MS Windows, you could get the Geany instance all ready
+and then press the Print Screen key to copy the screen contents into
+the clipboard and then go into a drawing program like MS Paint or GIMP
+or whatever program you like and crop out the similar region as the
+existing screenshots.
+
+I would really like to somehow automate this whole step, suggestions
+and ideas are most welcome.
+
+Updating Meta-Data
+------------------
+
+There are some meta-data files in the repository that (are not yet)
+used by some plugin to list/update geany schemes. It's simple to update
+these files by running `make indices` command in the root directory
+of the tree.
+
+If you don't have GNU make (ex. on Windows), don't worry about doing
+this step, it's entirely trivial for me to do it.
+
+Making a Pull Request
+---------------------
+
+The pull request to add the scheme should ideally be a single commit with
+all of the required changes made.
+
+Here's a pretty good example of a commit to the repo:
+
+https://github.com/codebrainz/geany-themes/commit/d81d7b5142034f89e9e19eac58bd43ed54121888
+
+This is the actual commit I made while writing this guide:
+
+https://github.com/codebrainz/geany-themes/commit/f9043abdd7247b742176df5d0d867656f24f9f88
+
+I find it easiest to clone the geany-themes repo, checkout a new branch
+(ex. `git checkout -b my-new-theme`) and then keep adding changes to
+that until it's all ready. From there you can use `git rebase --interactive` to
+squash the commits into a single commit and add your nice descriptive
+commit message for the whole lot. With your branch having a single commit
+difference from Geany-Themes master branch, create a pull request on
+Github to get me to add it into the master branch.
+
+These are just recommendations, however you provide the scheme, I'll try
+and get it integrated into the repo. Just don't expect fast response time
+unless you've done most of the work for me :)
+
+Geany Themes Index File README
+==============================
+
+The `index.json` file is auto-generated using the `make index` command.
+The `index` rule of the Makefile runs the `scripts/mkindex.py` script
+which reads the colour schemes' info, generates screenshot and download
+URLs, base64 encoded 64x64 thumbnails and stores it all into a JSON
+formatted text file.
+
+File Format
+-----------
+
+The JSON file consists of a top-level dictionary where the keys are
+the theme "identifiers" (ie. name used in filenames and code). The
+identifiers are not necessarily useful to humans.
+
+### Theme Info Fields
+
+#### author
+
+The author field contains a name and usually an email address, although
+the value may be an empty string as well (ie. unknown author). This
+string is meant to be human-readable.
+
+#### colorscheme
+
+This is the download URL of the color scheme `.conf` file. If the file
+this URL points to is downloaded into the user's colour scheme directory,
+the colour scheme will be available in Geany for user once it's restarted.
+This field will never be empty.
+
+#### compat
+
+This field contains a list of Geany version number strings. Each version
+number represents a release (or next) version of Geany that should
+support the scheme. If this field is empty, missing or contains an
+empty list, the scheme should be assumed to work with all versions of
+Geany.
+
+#### description
+
+A short description of the theme or an empty string. The string is meant
+to be displayed to human beings.
+
+#### scheme_hash
+
+An MD5 hash of the colour scheme `.conf` file from the last time it was
+changed. This value can be used to check if a local scheme needs updating
+and/or to verify the integrity of the file that could be downloaded using
+the `colorscheme` URL field. This field will never be empty.
+
+#### screen_hash
+
+An MD5 hash of the colour scheme preview/screenshot image the last time
+it was changed. This value can be used to check if a cached screenshot
+needs to be updated locally and/or to verify the integrity of a the
+downloaded screenshot. This field may be empty if a screenshot does
+not exist.
+
+#### name
+
+A human-readable name of the colour scheme meant to be display for example
+in a GUI label/widget. This field will never be empty.
+
+#### screenshot
+
+This is the download URL for a preview image of the colour scheme. The
+image will always be in PNG format and the resolution, although not
+guaranteed, will be large enough to give an idea of what the colour
+scheme looks like. This may be an empty string if the color scheme
+doesn't have a screenshot or it may be a generic "screenshot missing"
+image.
+
+#### thumbnail
+
+This is a thumbnail image, 64 pixels wide and 64 pixels high, in PNG
+format, base64 encoded (for storing in text file). This is a small icon
+of the preview screenshot suitable for displaying for example in a GUI
+list of schemes. This maybe be an empty string if the colour scheme
+doesn't have a screenshot or it maybe be a generic "screenshit missing"
+icon that is 64 pixels wide and tall.
+
+#### version
+
+This field contains a whole number that is incremented each time the
+theme is changed. You can compare this against installed color scheme
+versions to see if an update is available.
+
+Making a Geany-Themes Release
+=============================
+
+This guide is meant for distribution/OS packagers to give some hints
+and ideas for making Geany-Themes available to end-users.
+
+Short and Sweet
+---------------
+
+The Geany-Themes files are just `.conf` files that get put into a
+directory where Geany is looking for them. Assuming prefix `$PREFIX`,
+which is where Geany is itself installed, the files should be installed
+to `$PREFIX/share/geany/colorschemes`. Inside the repository, the
+colorschemes are inside the `colorschemes` directory.
+
+For example, a common installation location in Linux would be:
+
+    /usr/share/geany/colorschemes
+
+Or if you're packaging for Windows, the directory will likely be something
+like this (I didn't boot Windows to verify):
+
+    C:\Program Files\Geany\shared\geany\colorschemes
+
+You'll probably also want/need to add some other files as described
+below, but since the attributions/copyrights/credits are inside each
+their own `.conf` file, you could safely just ship the `.conf` files.
+
+A Note About Licensing
+----------------------
+
+Many of the colour schemes have different license. The canonical
+reference to the licenses used is found at the beginning of each
+`.conf` file in the `colorschemes` directory. All of the licenses are
+free-software friendly but it is up to you to determine if the licenses
+are compatible with your distribution method/rules. Feel free to drop
+any colour schemes that do not suit your packaging/licensing needs by
+just excluding that particular scheme. The default/recommended license
+is GPL v2.
+
+The Makefile
+------------
+
+I created a GNU Make file that has most of the stuff needed to create
+a package. You can run it like this:
+
+    $ make dist
+
+You can use this created archive as the template for your package. It
+contains all of the files you should distribute and none of the meta
+stuff you don't need. See the Makefile itself for more ideas.
+
+Since you know more than me about your distribution's requirements,
+I'll not go into any more detail than this.
+
+Geany Themes README
+===================
+
+Introduction
+------------
+
+Geany-themes is a collection of color schemes for the
+[Geany IDE/editor][geany], either written originally by the Geany community
+or ported from color schemes for other editors. These schemes are compatible
+with Geany 1.22 and greater. Check out the [screenshots][scrn] to get an
+idea for what each color scheme looks like.
+
+If you're using an older version of Geany, see these links:
+
+* 0.19 or earlier is not supported
+* 0.20 [geany-themes-0.20.zip][020zip] or [geany-themes-0.20.tar.bz2][020tar]
+* 0.21 [geany-themes-0.21.1.zip][021zip] or [geany-themes-0.21.1.tar.bz2][021tar]
+
+**Note:** There are no plans to further update Geany Themes releases before
+the one for Geany 1.22. If you send me an udpated and tested
+`geany-themes-0.2x.x.zip` or `geany-themes-0.2x.x.tar.bz2` file (or both),
+I will check them out and add them as updated download links here in the
+[README.md][readme] and in the [Github downloads][ghdl].
+
+Unix-like Installation
+----------------------
+
+Extract the tarball and copy all of the files in the `colorschemes` directory
+to your `~/.config/geany/colorschemes/` directory. Create that directory if it
+doesn't already exist.
+
+Windows Installation
+--------------------
+
+Extract the tarball and copy all of the files in the `colorschemes` directory
+to your `C:\Users\YourUserName\AppData\Roaming\geany\colorschemes` directory.
+Create this directory if it doesn't already exist.
+
+**Note:** The Windows directory paths above are for Windows 7, they might be
+different for other Windows versions (see the Geany manual).
+
+**Note:** Both of the above instructions will want to over-write your existing
+colorschemes which you might have customized. Be sure to backup any files in
+those directories that you do not want over-written.
+
+Docs
+----
+
+If you want to add a theme, read the [ADDING-A-THEME.md][add-theme] file. If you
+are a package maintainer, consult the [MAKING-A-RELEASE.md][make-release] file. For
+all other cases, consult the official Geany documentation.
+
+Known Bugs
+----------
+
+## Backwards-compatiblity
+
+These color schemes are not compatible with older version of Geany, including
+its old filetypes files, which you may have customized and are found in
+your per-user configuration folder. All bets are off if you mix and match
+old filetypes/color schemes and the color schemes here. The best way to
+handle it is to simple move your old filetypes out of the way, copy the ones
+you want to customize from Geany's system data folder and hand-copy over the
+non-`[styling]` groups from the old filetypes file into the new one.
+
+## Ubuntu Unity
+
+There is a conflict in Geany's code when you are using Unity's DBUS menu (that
+global menu at the top of the screen). The fix for this is available in the
+1.22 release of Geany. To work around the problem in older versions, you can
+ensure that the environment variable `UBUNTU_MENUPROXY` is set to `0` before
+running Geany. This will disable Unity from stealing Geany's main menu and
+will leave it within Geany's main window. You should be able to edit your
+launchers for Geany to run like this `UBUNTU_MENUPROXY=0 geany`. You can even
+make a Bash alias if you wish.
+
+Geany Themes was created and is maintained by Matthew Brush <matt@geany.org>.
+
+[geany]: http://www.geany.org
+[readme]: https://github.com/codebrainz/geany-themes/blob/master/README.md
+[ghdl]: https://github.com/codebrainz/geany-themes/downloads
+[scrn]: https://github.com/codebrainz/geany-themes/tree/master/screenshots
+[020zip]: https://github.com/downloads/codebrainz/geany-themes/geany-themes-0.20.zip
+[020tar]: https://github.com/downloads/codebrainz/geany-themes/geany-themes-0.20.tar.bz2
+[021zip]: https://github.com/downloads/codebrainz/geany-themes/geany-themes-0.21.1.zip
+[021tar]: https://github.com/downloads/codebrainz/geany-themes/geany-themes-0.21.1.tar.bz2
+[add-theme]: https://github.com/geany/geany-themes/blob/master/ADDING-A-THEME.md
+[make-release]: https://github.com/geany/geany-themes/blob/master/MAKING-A-RELEASE.md
+

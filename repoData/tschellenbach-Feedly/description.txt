@@ -1,0 +1,2594 @@
+Cassandra Benchmarks
+====================
+
+pip install ccm
+pip install pyYaml
+
+# create 2 localhost aliases (on OSX)
+# linux doesnt need this step
+sudo ifconfig lo0 alias 127.0.0.2 up
+sudo ifconfig lo0 alias 127.0.0.3 up
+
+ccm create test -v 2.0.5
+ccm populate -n 3
+ccm start
+Feedly
+------
+
+|Build Status|
+
+**Note**
+
+The Feedly open source project is in no way related to feedly.com. To
+avoid confusion we are considering renaming the 1.0 release of the
+project.
+
+What can you build?
+-------------------
+
+Feedly allows you to build newsfeed and notification systems using
+Cassandra and/or Redis. Examples of what you can build are the Facebook
+newsfeed, your Twitter stream or your Pinterest following page. We've
+built Feedly for `Fashiolista <http://www.fashiolista.com/>`__ where it
+powers the `flat feed <http://www.fashiolista.com/feed/?feed_type=F>`__,
+`aggregated feed <http://www.fashiolista.com/feed/?feed_type=A>`__ and
+the `notification
+system <http://www.fashiolista.com/my_style/notification/>`__. (Feeds
+are also commonly called: Activity Streams, activity feeds, news
+streams.)
+
+To quickly make you acquainted with Feedly, we've created a Pinterest
+like example application, you can find it
+`here <https://github.com/tbarbugli/feedly_pin/>`__
+
+**Authors**
+
+-  Thierry Schellenbach
+-  Tommaso Barbugli
+-  Guyon Morée
+
+**Resources**
+
+-  `Documentation <https://feedly.readthedocs.org/>`__
+-  `Bug Tracker <http://github.com/tschellenbach/Feedly/issues>`__
+-  `Code <http://github.com/tschellenbach/Feedly>`__
+-  `Mailing List <https://groups.google.com/group/feedly-python>`__
+-  `IRC <irc://irc.freenode.net/feedly-python>`__ (irc.freenode.net,
+   #feedly-python)
+-  `Travis CI <http://travis-ci.org/tschellenbach/Feedly/>`__
+
+**Tutorials**
+
+-  `Pinterest style feed example
+   app <http://www.mellowmorning.com/2013/10/18/scalable-pinterest-tutorial-feedly-redis/>`__
+
+Using Feedly
+------------
+
+This quick example will show you how to publish a Pin to all your
+followers. So lets create an activity for the item you just pinned.
+
+.. code:: python
+
+    def create_activity(pin):
+        from feedly.activity import Activity
+        activity = Activity(
+            pin.user_id,
+            PinVerb,
+            pin.id,
+            pin.influencer_id,
+            time=make_naive(pin.created_at, pytz.utc),
+            extra_context=dict(item_id=pin.item_id)
+        )
+        return activity
+
+Next up we want to start publishing this activity on several feeds.
+First of we want to insert it into your personal feed, and secondly into
+the feeds of all your followers. Lets start first by defining these
+feeds.
+
+.. code:: python
+
+    # setting up the feeds
+
+    class PinFeed(RedisFeed):
+        key_format = 'feed:normal:%(user_id)s'
+
+    class UserPinFeed(PinFeed):
+        key_format = 'feed:user:%(user_id)s'
+
+Writing to these feeds is very simple. For instance to write to the feed
+of user 13 one would do
+
+.. code:: python
+
+
+    feed = UserPinFeed(13)
+    feed.add(activity)
+
+But we don't want to publish to just one users feed. We want to publish
+to the feeds of all users which follow you. This action is called a
+fanout and is abstracted away in the Feedly manager class. We need to
+subclass the Feedly class and tell it how we can figure out which user
+follow us.
+
+.. code:: python
+
+
+    class PinFeedly(Feedly):
+        feed_classes = dict(
+            normal=PinFeed,
+        )
+        user_feed_class = UserPinFeed
+        
+        def add_pin(self, pin):
+            activity = pin.create_activity()
+            # add user activity adds it to the user feed, and starts the fanout
+            self.add_user_activity(pin.user_id, activity)
+
+        def get_user_follower_ids(self, user_id):
+            ids = Follow.objects.filter(target=user_id).values_list('user_id', flat=True)
+            return {FanoutPriority.HIGH:ids}
+        
+    feedly = PinFeedly()
+
+Now that the feedly class is setup broadcasting a pin becomes as easy as
+
+.. code:: python
+
+    feedly.add_pin(pin)
+
+Calling this method wil insert the pin into your personal feed and into
+all the feeds of users which follow you. It does so by spawning many
+small tasks via Celery. In Django (or any other framework) you can now
+show the users feed.
+
+.. code:: python
+
+    # django example
+
+    @login_required
+    def feed(request):
+        '''
+        Items pinned by the people you follow
+        '''
+        context = RequestContext(request)
+        feed = feedly.get_feeds(request.user.id)['normal']
+        activities = list(feed[:25])
+        context['activities'] = activities
+        response = render_to_response('core/feed.html', context)
+        return response
+
+This example only briefly covered how Feedly works. The full explanation
+can be found on read the docs.
+
+Features
+--------
+
+Feedly uses celery and Redis/Cassandra to build a system with heavy
+writes and extremely light reads. It features:
+
+-  Asynchronous tasks (All the heavy lifting happens in the background,
+   your users don't wait for it)
+-  Reusable components (You will need to make tradeoffs based on your
+   use cases, Feedly doesnt get in your way)
+-  Full Cassandra and Redis support
+-  The Cassandra storage uses the new CQL3 and Python-Driver packages,
+   which give you access to the latest Cassandra features.
+-  Built for the extremely performant Cassandra 2.0
+
+Background Articles
+-------------------
+
+A lot has been written about the best approaches to building feed based
+systems. Here's a collection on some of the talks:
+
+`Twitter
+2013 <http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html>`__
+Redis based, database fallback, very similar to Fashiolista's old
+approach.
+
+`Etsy feed
+scaling <http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture/>`__
+(Gearman, separate scoring and aggregation steps, rollups - aggregation
+part two)
+
+`Facebook
+history <http://www.infoq.com/presentations/Facebook-Software-Stack>`__
+
+`Django project with good naming
+conventions <http://justquick.github.com/django-activity-stream/>`__
+
+`Activity stream
+specification <http://activitystrea.ms/specs/atom/1.0/>`__
+
+`Quora post on best
+practises <http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed?q=news+feeds>`__
+
+`Quora scaling a social network
+feed <http://www.quora.com/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed>`__
+
+`Redis ruby
+example <http://blog.waxman.me/how-to-build-a-fast-news-feed-in-redis>`__
+
+`FriendFeed
+approach <http://backchannel.org/blog/friendfeed-schemaless-mysql>`__
+
+`Thoonk setup <http://blog.thoonk.com/>`__
+
+`Yahoo Research
+Paper <http://research.yahoo.com/files/sigmod278-silberstein.pdf>`__
+
+`Twitter’s approach <http://www.slideshare.net/nkallen/q-con-3770885>`__
+
+`Cassandra at
+Instagram <http://planetcassandra.org/blog/post/instagram-making-the-switch-to-cassandra-from-redis-75-instasavings>`__
+
+.. |Build Status| image:: https://travis-ci.org/tschellenbach/Feedly.png?branch=master
+   :target: https://travis-ci.org/tschellenbach/Feedly
+
+Feedly
+------
+
+[![Build Status](https://travis-ci.org/tschellenbach/Feedly.png?branch=master)](https://travis-ci.org/tschellenbach/Feedly)
+
+**Note**
+
+The Feedly open source project is in no way related to feedly.com. To avoid confusion we are considering renaming the 1.0 release of the project.
+
+
+## What can you build? ##
+
+Feedly allows you to build newsfeed and notification systems using Cassandra and/or Redis.
+Examples of what you can build are the Facebook newsfeed, your Twitter stream or your Pinterest following page.
+We've built Feedly for [Fashiolista] [fashiolista] where it powers the [flat feed] [fashiolista_flat], [aggregated feed] [fashiolista_aggregated] and the [notification system] [fashiolista_notification].
+(Feeds are also commonly called: Activity Streams, activity feeds, news streams.)
+
+[fashiolista]: http://www.fashiolista.com/
+[fashiolista_flat]: http://www.fashiolista.com/feed/?feed_type=F
+[fashiolista_aggregated]: http://www.fashiolista.com/feed/?feed_type=A
+[fashiolista_notification]: http://www.fashiolista.com/my_style/notification/
+[example_app_link]: https://github.com/tbarbugli/feedly_pin/
+
+To quickly make you acquainted with Feedly, we've created a Pinterest like example application, you can find it [here] [example_app_link]
+
+
+**Authors**
+
+ * Thierry Schellenbach
+ * Tommaso Barbugli
+ * Guyon Morée
+
+
+**Resources**
+
+ * [Documentation] 
+ * [Bug Tracker] 
+ * [Code] 
+ * [Mailing List] 
+ * [IRC]  (irc.freenode.net, #feedly-python) 
+ * [Travis CI] 
+ 
+
+**Tutorials**
+
+ * [Pinterest style feed example app] [mellowmorning_example]
+ 
+
+[mellowmorning_example]: http://www.mellowmorning.com/2013/10/18/scalable-pinterest-tutorial-feedly-redis/
+[Documentation]: https://feedly.readthedocs.org/
+[Bug Tracker]: http://github.com/tschellenbach/Feedly/issues
+[Code]: http://github.com/tschellenbach/Feedly
+[Mailing List]: https://groups.google.com/group/feedly-python
+[IRC]: irc://irc.freenode.net/feedly-python
+[Travis CI]: http://travis-ci.org/tschellenbach/Feedly/
+
+
+## Using Feedly ##
+
+This quick example will show you how to publish a Pin to all your followers. So lets create
+an activity for the item you just pinned.
+
+```python
+def create_activity(pin):
+    from feedly.activity import Activity
+    activity = Activity(
+        pin.user_id,
+        PinVerb,
+        pin.id,
+        pin.influencer_id,
+        time=make_naive(pin.created_at, pytz.utc),
+        extra_context=dict(item_id=pin.item_id)
+    )
+    return activity
+```
+
+Next up we want to start publishing this activity on several feeds.
+First of we want to insert it into your personal feed, and secondly into the feeds of all your followers.
+Lets start first by defining these feeds.
+
+```python
+# setting up the feeds
+
+class PinFeed(RedisFeed):
+    key_format = 'feed:normal:%(user_id)s'
+
+class UserPinFeed(PinFeed):
+    key_format = 'feed:user:%(user_id)s'
+```
+
+Writing to these feeds is very simple. For instance to write to the feed of user 13 one would do
+
+```python
+
+feed = UserPinFeed(13)
+feed.add(activity)
+```
+
+But we don't want to publish to just one users feed. We want to publish to the feeds of all users which follow you.
+This action is called a fanout and is abstracted away in the Feedly manager class.
+We need to subclass the Feedly class and tell it how we can figure out which user follow us.
+
+```python
+
+class PinFeedly(Feedly):
+    feed_classes = dict(
+        normal=PinFeed,
+    )
+    user_feed_class = UserPinFeed
+    
+    def add_pin(self, pin):
+        activity = pin.create_activity()
+        # add user activity adds it to the user feed, and starts the fanout
+        self.add_user_activity(pin.user_id, activity)
+
+    def get_user_follower_ids(self, user_id):
+        ids = Follow.objects.filter(target=user_id).values_list('user_id', flat=True)
+        return {FanoutPriority.HIGH:ids}
+    
+feedly = PinFeedly()
+```
+
+Now that the feedly class is setup broadcasting a pin becomes as easy as
+
+```python
+feedly.add_pin(pin)
+```
+
+Calling this method wil insert the pin into your personal feed and into all the feeds of users which follow you.
+It does so by spawning many small tasks via Celery. In Django (or any other framework) you can now show the users feed.
+
+```python
+# django example
+
+@login_required
+def feed(request):
+    '''
+    Items pinned by the people you follow
+    '''
+    context = RequestContext(request)
+    feed = feedly.get_feeds(request.user.id)['normal']
+    activities = list(feed[:25])
+    context['activities'] = activities
+    response = render_to_response('core/feed.html', context)
+    return response
+
+```
+
+This example only briefly covered how Feedly works.
+The full explanation can be found on read the docs.
+
+
+## Features ##
+
+Feedly uses celery and Redis/Cassandra to build a system with heavy writes and extremely light reads.
+It features:
+
+  - Asynchronous tasks (All the heavy lifting happens in the background, your users don't wait for it)
+  - Reusable components (You will need to make tradeoffs based on your use cases, Feedly doesnt get in your way)
+  - Full Cassandra and Redis support
+  - The Cassandra storage uses the new CQL3 and Python-Driver packages, which give you access to the latest Cassandra features.
+  - Built for the extremely performant Cassandra 2.0
+
+
+## Background Articles ##
+
+A lot has been written about the best approaches to building feed based systems.
+Here's a collection on some of the talks:
+
+[Twitter 2013] [twitter_2013]
+Redis based, database fallback, very similar to Fashiolista's old approach.
+
+[twitter_2013]: http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html
+
+[Etsy feed scaling] [etsy]
+(Gearman, separate scoring and aggregation steps, rollups - aggregation part two)
+
+[etsy]: http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture/
+
+
+[facebook]: http://www.infoq.com/presentations/Facebook-Software-Stack
+[Facebook history] [facebook]
+
+
+[djproject]: http://justquick.github.com/django-activity-stream/
+[Django project with good naming conventions] [djproject]
+
+
+[activity_stream]: http://activitystrea.ms/specs/atom/1.0/
+[Activity stream specification] [activity_stream]
+
+[Quora post on best practises] [quora]
+
+[quora]: http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed?q=news+feeds
+
+[Quora scaling a social network feed] [quora2]
+
+[quora2]: http://www.quora.com/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed
+
+[Redis ruby example] [redisruby]
+
+[redisruby]: http://blog.waxman.me/how-to-build-a-fast-news-feed-in-redis
+
+[FriendFeed approach] [friendfeed]
+
+[friendfeed]: http://backchannel.org/blog/friendfeed-schemaless-mysql
+
+[Thoonk setup] [thoonk]
+
+[thoonk]: http://blog.thoonk.com/
+
+[Yahoo Research Paper] [yahoo]
+
+[yahoo]: http://research.yahoo.com/files/sigmod278-silberstein.pdf
+
+[Twitter’s approach] [twitter]
+
+[twitter]: http://www.slideshare.net/nkallen/q-con-3770885
+
+[Cassandra at Instagram] [instagram]
+
+[instagram]: http://planetcassandra.org/blog/post/instagram-making-the-switch-to-cassandra-from-redis-75-instasavings
+
+
+
+
+Feedly
+------
+
+|Build Status|
+
+**Note**
+
+The Feedly open source project is in no way related to feedly.com. To
+avoid confusion we are considering renaming the 1.0 release of the
+project.
+
+What can you build?
+-------------------
+
+Feedly allows you to build newsfeed and notification systems using
+Cassandra and/or Redis. Examples of what you can build are the Facebook
+newsfeed, your Twitter stream or your Pinterest following page. We've
+built Feedly for `Fashiolista <http://www.fashiolista.com/>`__ where it
+powers the `flat feed <http://www.fashiolista.com/feed/?feed_type=F>`__,
+`aggregated feed <http://www.fashiolista.com/feed/?feed_type=A>`__ and
+the `notification
+system <http://www.fashiolista.com/my_style/notification/>`__. (Feeds
+are also commonly called: Activity Streams, activity feeds, news
+streams.)
+
+[readme\_developing]:
+https://github.com/tschellenbach/Feedly/blob/master/README.md#developing-feedly
+To quickly make you acquainted with Feedly, we've created a Pinterest
+like example application, you can find it
+`here <https://github.com/tbarbugli/feedly_pin/>`__
+
+**Authors**
+
+-  Thierry Schellenbach
+-  Tommaso Barbugli
+-  Guyon Morée
+
+**Resources**
+
+-  `Documentation <https://feedly.readthedocs.org/>`__
+-  `Bug Tracker <http://github.com/tschellenbach/Feedly/issues>`__
+-  `Code <http://github.com/tschellenbach/Feedly>`__
+-  `Mailing List <https://groups.google.com/group/feedly-python>`__
+-  `IRC <irc://irc.freenode.net/feedly-python>`__ (irc.freenode.net,
+   #feedly-python)
+-  `Travis CI <http://travis-ci.org/tschellenbach/Feedly/>`__
+
+Using Feedly
+------------
+
+This quick example will show you how to publish a Pin to all your
+followers. So lets create an activity for the item you just pinned.
+
+.. code:: python
+
+    def create_activity(pin):
+        from feedly.activity import Activity
+        activity = Activity(
+            pin.user_id,
+            PinVerb,
+            pin.id,
+            pin.influencer_id,
+            time=make_naive(pin.created_at, pytz.utc),
+            extra_context=dict(item_id=pin.item_id)
+        )
+        return activity
+
+Next up we want to start publishing this activity on several feeds.
+First of we want to insert it into your personal feed, and secondly into
+the feeds of all your followers. Lets start first by defining these
+feeds.
+
+.. code:: python
+
+    # setting up the feeds
+
+    class PinFeed(RedisFeed):
+        key_format = 'feed:normal:%(user_id)s'
+
+    class UserPinFeed(PinFeed):
+        key_format = 'feed:user:%(user_id)s'
+
+Writing to these feeds is very simple. For instance to write to the feed
+of user 13 one would do
+
+.. code:: python
+
+
+    feed = UserPinFeed(13)
+    feed.add(activity)
+
+But we don't want to publish to just one users feed. We want to publish
+to the feeds of all users which follow you. This action is called a
+fanout and is abstracted away in the Feedly manager class. We need to
+subclass the Feedly class and tell it how we can figure out which user
+follow us.
+
+.. code:: python
+
+
+    class PinFeedly(Feedly):
+        feed_classes = dict(
+            normal=PinFeed,
+        )
+        user_feed_class = UserPinFeed
+        
+        def add_pin(self, pin):
+            activity = pin.create_activity()
+            # add user activity adds it to the user feed, and starts the fanout
+            self.add_user_activity(pin.user_id, activity)
+
+        def get_user_follower_ids(self, user_id):
+            ids = Follow.objects.filter(target=user_id).values_list('user_id', flat=True)
+            return {FanoutPriority.HIGH:ids}
+        
+    feedly = PinFeedly()
+
+Now that the feedly class is setup broadcasting a pin becomes as easy as
+
+.. code:: python
+
+    feedly.add_pin(pin)
+
+Calling this method wil insert the pin into your personal feed and into
+all the feeds of users which follow you. It does so by spawning many
+small tasks via Celery. In Django (or any other framework) you can now
+show the users feed.
+
+.. code:: python
+
+    # django example
+
+    @login_required
+    def feed(request):
+        '''
+        Items pinned by the people you follow
+        '''
+        context = RequestContext(request)
+        feed = feedly.get_feeds(request.user.id)['normal']
+        activities = list(feed[:25])
+        context['activities'] = activities
+        response = render_to_response('core/feed.html', context)
+        return response
+
+This example only briefly covered how Feedly works. The full explanation
+can be found on read the docs.
+
+**Documentation**
+
+[Installing Feedly] [docs\_install] [docs\_install]:
+https://feedly.readthedocs.org/en/latest/installation.html [Settings]
+[docs\_settings] [docs\_settings]:
+https://feedly.readthedocs.org/en/latest/settings.html [Feedly (Feed
+manager class) implementation] [docs\_feedly] [docs\_feedly]:
+https://feedly.readthedocs.org/en/latest/feedly.feed\_managers.html#module-feedly.feed\_managers.base
+[Feed class implementation] [docs\_feed] [docs\_feed]:
+https://feedly.readthedocs.org/en/latest/feedly.feeds.html [Choosing the
+right storage backend] [docs\_storage\_backend]
+[docs\_storage\_backend]:
+https://feedly.readthedocs.org/en/latest/choosing\_a\_storage\_backend.html
+[Building notification systems] [docs\_notification\_systems]
+[docs\_notification\_systems]:
+https://feedly.readthedocs.org/en/latest/notification\_systems.html
+
+**Tutorials**
+
+[Pinterest style feed example app] [mellowmorning\_example]
+[mellowmorning\_example]:
+http://www.mellowmorning.com/2013/10/18/scalable-pinterest-tutorial-feedly-redis/
+
+Feedly Design
+-------------
+
+*The first approach*
+
+A first feed solution usually looks something like this:
+
+.. code:: sql
+
+    SELECT * FROM tweets
+    JOIN follow ON (follow.target_id = tweet.user_id)
+    WHERE follow.user_id = 13
+
+This works in the beginning, and with a well tuned database will keep on
+working nicely for quite some time. However at some point the load
+becomes too much and this approach falls apart. Unfortunately it's very
+hard to split up the tweets in a meaningfull way. You could split it up
+by date or user, but every query will still hit many of your shards.
+Eventually this system collapses, read more about this in `Facebook's
+presentation <http://www.infoq.com/presentations/Facebook-Software-Stack>`__.
+
+*Push or Push/Pull* In general there are two similar solutions to this
+problem.
+
+In the push approach you publish your activity (ie a tweet on twitter)
+to all of your followers. So basically you create a small list per user
+to which you insert the activities created by the people they follow.
+This involves a huge number of writes, but reads are really fast they
+can easily be sharded.
+
+For the push/pull approach you implement the push based systems for a
+subset of your users. At Fashiolista for instance we used to have a push
+based approach for active users. For inactive users we only kept a small
+feed and eventually used a fallback to the database when we ran out of
+results.
+
+**Features**
+
+Feedly uses celery and Redis/Cassandra to build a system with heavy
+writes and extremely light reads. It features:
+
+-  Asynchronous tasks (All the heavy lifting happens in the background,
+   your users don't wait for it)
+-  Reusable components (You will need to make tradeoffs based on your
+   use cases, Feedly doesnt get in your way)
+-  Full Cassandra and Redis support
+-  The Cassandra storage uses the new CQL3 and Python-Driver packages,
+   which give you access to the latest Cassandra features.
+-  Built for the extremely performant Cassandra 2.0
+
+**Feedly**
+
+Feedly allows you to easily use Cassndra/Redis and Celery (an awesome
+task broker) to build infinitely scalable feeds. The high level
+functionality is located in 4 classes.
+
+-  Activities
+-  Feeds
+-  Feed managers (Feedly)
+-  Aggregators
+
+*Activities* are the blocks of content which are stored in a feed. It
+follows the nomenclatura from the [activity stream spec] [astream]
+[astream]: http://activitystrea.ms/specs/atom/1.0/#activity.summary
+Every activity therefor stores at least:
+
+-  Time (the time of the activity)
+-  Verb (the action, ie loved, liked, followed)
+-  Actor (the user id doing the action)
+-  Object (the object the action is related to)
+-  Extra context (Used for whatever else you need to store at the
+   activity level)
+
+Optionally you can also add a target (which is best explained in the
+activity docs)
+
+*Feeds* are sorted containers of activities. You can easily add and
+remove activities from them.
+
+*Feedly* classes (feed managers) handle the logic used in addressing the
+feed objects. They handle the complex bits of fanning out to all your
+followers when you create a new object (such as a tweet).
+
+In addition there are several utility classes which you will encounter
+
+-  Serializers (classes handling serialization of Activity objects)
+-  Aggregators (utility classes for creating smart/computed feeds based
+   on algorithms)
+-  Timeline Storage (cassandra or redis specific storage functions for
+   sorted storage)
+-  Activity Storage (cassandra or redis specific storage for hash/dict
+   based storage)
+
+Background Articles
+-------------------
+
+A lot has been written about the best approaches to building feed based
+systems. Here's a collection on some of the talks:
+
+`Twitter
+2013 <http://highscalability.com/blog/2013/7/8/the-architecture-twitter-uses-to-deal-with-150m-active-users.html>`__
+Redis based, database fallback, very similar to Fashiolista's old
+approach.
+
+`Etsy feed
+scaling <http://www.slideshare.net/danmckinley/etsy-activity-feeds-architecture/>`__
+(Gearman, separate scoring and aggregation steps, rollups - aggregation
+part two)
+
+`Facebook
+history <http://www.infoq.com/presentations/Facebook-Software-Stack>`__
+
+[Django project, with good naming conventions.] [djproject] [djproject]:
+http://justquick.github.com/django-activity-stream/
+http://activitystrea.ms/specs/atom/1.0/ (actor, verb, object, target)
+
+`Quora post on best
+practises <http://www.quora.com/What-are-best-practices-for-building-something-like-a-News-Feed?q=news+feeds>`__
+
+`Quora scaling a social network
+feed <http://www.quora.com/What-are-the-scaling-issues-to-keep-in-mind-while-developing-a-social-network-feed>`__
+
+`Redis ruby
+example <http://blog.waxman.me/how-to-build-a-fast-news-feed-in-redis>`__
+
+`FriendFeed
+approach <http://backchannel.org/blog/friendfeed-schemaless-mysql>`__
+
+`Thoonk setup <http://blog.thoonk.com/>`__
+
+`Yahoo Research
+Paper <http://research.yahoo.com/files/sigmod278-silberstein.pdf>`__
+
+`Twitter’s approach <http://www.slideshare.net/nkallen/q-con-3770885>`__
+
+`Cassandra at
+Instagram <http://planetcassandra.org/blog/post/instagram-making-the-switch-to-cassandra-from-redis-75-instasavings>`__
+
+Developing Feedly
+-----------------
+
+**Vagrant and Pinterest example**
+
+Clone the github repo and run the following commands to setup your
+development environment using vagrant. Booting a vagrant machine will
+take a bit of time, be sure to grab a cup of coffee while waiting for
+vagrant up to complete.
+
+.. code:: bash
+
+    From the root of the feedly project run:
+    >>> vagrant up
+    >>> vagrant provision
+    >>> vagrant ssh
+    >>> git clone https://github.com/tbarbugli/feedly_pin.git pinterest_example
+    >>> cd pinterest_example
+    >>> python manage.py runserver 0:8000
+
+Visit `192.168.50.55:8000 <http://192.168.50.55:8000/>`__ to see the
+example app up and running. The most interesting bit of example code are
+located in:
+
+core/pin\_feed.py and core/pin\_feedly.py
+
+The included Pinterest example app has its own test suite. You can run
+this by executing
+
+.. code:: bash
+
+    >>> python pinterest_example/manage.py test core
+
+.. |Build Status| image:: https://travis-ci.org/tschellenbach/Feedly.png?branch=master
+   :target: https://travis-ci.org/tschellenbach/Feedly
+
+apt
+===
+
+[![Build Status](https://travis-ci.org/puppetlabs/puppetlabs-apt.png?branch=master)](https://travis-ci.org/puppetlabs/puppetlabs-apt)
+
+## Description
+Provides helpful definitions for dealing with Apt.
+=======
+Overview
+--------
+
+The APT module provides a simple interface for managing APT source, key, and definitions with Puppet. 
+
+Module Description
+------------------
+
+APT automates obtaining and installing software packages on *nix systems. 
+
+Setup
+-----
+
+**What APT affects:**
+
+* package/service/configuration files for APT 
+* your system's `sources.list` file and `sources.list.d` directory
+    * NOTE: Setting the `purge_sources_list` and `purge_sources_list_d` parameters to 'true' will destroy any existing content that was not declared with Puppet. The default for these parameters is 'false'.
+* system repositories
+* authentication keys
+* wget (optional)
+
+###Beginning with APT
+
+To begin using the APT module with default parameters, declare the class
+
+    class { 'apt': }
+ 
+Puppet code that uses anything from the APT module requires that the core apt class be declared. 
+
+Usage
+-----
+
+Using the APT module consists predominantly in declaring classes that provide desired functionality and features. 
+ 
+###apt
+
+`apt` provides a number of common resources and options that are shared by the various defined types in this module, so you MUST always include this class in your manifests.
+
+The parameters for `apt` are not required in general and are predominantly for development environment use-cases.
+
+    class { 'apt':
+      always_apt_update    => false,
+      disable_keys         => undef,
+      proxy_host           => false,
+      proxy_port           => '8080',
+      purge_sources_list   => false,
+      purge_sources_list_d => false,
+      purge_preferences_d  => false
+    }
+
+Puppet will manage your system's `sources.list` file and `sources.list.d` directory but will do its best to respect existing content. 
+
+If you declare your apt class with `purge_sources_list` and `purge_sources_list_d` set to 'true', Puppet will unapologetically purge any existing content it finds that wasn't declared with Puppet. 
+
+###apt::builddep
+
+Installs the build depends of a specified package.
+
+    apt::builddep { 'glusterfs-server': }
+
+###apt::force
+
+Forces a package to be installed from a specific release.  This class is particularly useful when using repositories, like Debian, that are unstable in Ubuntu.
+
+    apt::force { 'glusterfs-server':
+	  release => 'unstable',
+	  version => '3.0.3',
+	  require => Apt::Source['debian_unstable'],
+    }
+
+###apt::key
+
+Adds a key to the list of keys used by APT to authenticate packages.
+
+    apt::key { 'puppetlabs':
+      key        => '4BD6EC30',
+      key_server => 'pgp.mit.edu',
+    }
+
+    apt::key { 'jenkins':
+      key        => 'D50582E6',
+      key_source => 'http://pkg.jenkins-ci.org/debian/jenkins-ci.org.key',
+    }
+
+Note that use of `key_source` requires wget to be installed and working.
+
+###apt::pin
+
+Adds an apt pin for a certain release.
+
+    apt::pin { 'karmic': priority => 700 }
+    apt::pin { 'karmic-updates': priority => 700 }
+    apt::pin { 'karmic-security': priority => 700 }
+
+Note you can also specifying more complex pins using distribution properties.
+
+    apt::pin { 'stable':
+      priority        => -10,
+      originator      => 'Debian',
+      release_version => '3.0',
+      component       => 'main',
+      label           => 'Debian'
+    }
+
+###apt::ppa
+
+Adds a ppa repository using `add-apt-repository`.
+
+    apt::ppa { 'ppa:drizzle-developers/ppa': }
+
+###apt::release
+
+Sets the default apt release. This class is particularly useful when using repositories, like Debian, that are unstable in Ubuntu.
+
+    class { 'apt::release':
+      release_id => 'precise',
+    }
+
+###apt::source
+
+Adds an apt source to `/etc/apt/sources.list.d/`.
+
+    apt::source { 'debian_unstable':
+      location          => 'http://debian.mirror.iweb.ca/debian/',
+      release           => 'unstable',
+      repos             => 'main contrib non-free',
+      required_packages => 'debian-keyring debian-archive-keyring',
+      key               => '55BE302B',
+      key_server        => 'subkeys.pgp.net',
+      pin               => '-10',
+      include_src       => true
+    }
+
+If you would like to configure your system so the source is the Puppet Labs APT repository
+
+    apt::source { 'puppetlabs':
+      location   => 'http://apt.puppetlabs.com',
+      repos      => 'main',
+      key        => '4BD6EC30',
+      key_server => 'pgp.mit.edu',
+    }
+
+###Testing
+
+The APT module is mostly a collection of defined resource types, which provide reusable logic that can be leveraged to manage APT. It does provide smoke tests for testing functionality on a target system, as well as spec tests for checking a compiled catalog against an expected set of resources.
+
+####Example Test
+
+This test will set up a Puppet Labs apt repository. Start by creating a new smoke test in the apt module's test folder. Call it puppetlabs-apt.pp. Inside, declare a single resource representing the Puppet Labs APT source and gpg key
+
+    apt::source { 'puppetlabs':
+      location   => 'http://apt.puppetlabs.com',
+      repos      => 'main',
+      key        => '4BD6EC30',
+      key_server => 'pgp.mit.edu',
+    }
+    
+This resource creates an apt source named puppetlabs and gives Puppet information about the repository's location and key used to sign its packages. Puppet leverages Facter to determine the appropriate release, but you can set it directly by adding the release type.
+
+Check your smoke test for syntax errors
+
+    $ puppet parser validate tests/puppetlabs-apt.pp
+
+If you receive no output from that command, it means nothing is wrong. Then apply the code
+
+    $ puppet apply --verbose tests/puppetlabs-apt.pp
+    notice: /Stage[main]//Apt::Source[puppetlabs]/File[puppetlabs.list]/ensure: defined content as '{md5}3be1da4923fb910f1102a233b77e982e'
+    info: /Stage[main]//Apt::Source[puppetlabs]/File[puppetlabs.list]: Scheduling refresh of Exec[puppetlabs apt update]
+    notice: /Stage[main]//Apt::Source[puppetlabs]/Exec[puppetlabs apt update]: Triggered 'refresh' from 1 events>
+
+The above example used a smoke test to easily lay out a resource declaration and apply it on your system. In production, you may want to declare your APT sources inside the classes where they’re needed. 
+
+Implementation
+--------------
+
+###apt::backports
+
+Adds the necessary components to get backports for Ubuntu and Debian. The release name defaults to `$lsbdistcodename`. Setting this manually can cause undefined behavior (read: universe exploding).
+
+Limitations
+-----------
+
+This module should work across all versions of Debian/Ubuntu and support all major APT repository management features. 
+
+Development
+------------
+
+Puppet Labs modules on the Puppet Forge are open projects, and community contributions are essential for keeping them great. We can’t access the huge number of platforms and myriad of hardware, software, and deployment configurations that Puppet is intended to serve.
+
+We want to keep it as easy as possible to contribute changes so that our modules work in your environment. There are a few guidelines that we need contributors to follow so that we can have a chance of keeping on top of things.
+
+You can read the complete module contribution guide [on the Puppet Labs wiki.](http://projects.puppetlabs.com/projects/module-site/wiki/Module_contributing)
+
+Contributors
+------------
+
+A lot of great people have contributed to this module. A somewhat current list follows:
+
+* Ben Godfrey <ben.godfrey@wonga.com>
+* Branan Purvine-Riley <branan@puppetlabs.com>
+* Christian G. Warden <cwarden@xerus.org>  
+* Dan Bode <bodepd@gmail.com> <dan@puppetlabs.com>  
+* Garrett Honeycutt <github@garretthoneycutt.com>  
+* Jeff Wallace <jeff@evolvingweb.ca> <jeff@tjwallace.ca>  
+* Ken Barber <ken@bob.sh>  
+* Matthaus Litteken <matthaus@puppetlabs.com> <mlitteken@gmail.com>  
+* Matthias Pigulla <mp@webfactory.de>  
+* Monty Taylor <mordred@inaugust.com>  
+* Peter Drake <pdrake@allplayers.com>  
+* Reid Vandewiele <marut@cat.pdx.edu>  
+* Robert Navarro <rnavarro@phiivo.com>  
+* Ryan Coleman <ryan@puppetlabs.com>  
+* Scott McLeod <scott.mcleod@theice.com>  
+* Spencer Krum <spencer@puppetlabs.com>  
+* William Van Hevelingen <blkperl@cat.pdx.edu> <wvan13@gmail.com>  
+* Zach Leslie <zach@puppetlabs.com>  
+
+Puppet Cassandra module (DSC)
+==========================================
+
+[![Build Status](https://secure.travis-ci.org/gini/puppet-cassandra.png)](http://travis-ci.org/gini/puppet-cassandra)
+
+Overview
+--------
+
+Install Apache Cassandra from the [DataStax Community Edition] [1].
+
+[1]: http://planetcassandra.org/
+
+
+Usage
+-----
+
+Simple example:
+
+    class { 'cassandra':
+      cluster_name => 'YourCassandraCluster',
+      seeds        => [ '192.0.2.5', '192.0.2.23', '192.0.2.42', ],
+    }
+
+
+If you're running on Amazon EC2 (or a similar environment) you might want to set the `broadcast_address`
+an the `endpoint_snitch` accordingly.
+
+    class { 'cassandra':
+      cluster_name      => 'YourEc2CassandraCluster',
+      seeds             => [ '192.0.2.5', '192.0.2.23', '192.0.2.42', ],
+      listen_address    => $ec2_local_ipv4,
+      broadcast_address => $ec2_public_ipv4,
+      endpoint_snitch   => 'Ec2MultiRegionSnitch',
+    }
+
+
+Supported Platforms
+-------------------
+
+The module has been tested on the following operating systems. Testing and patches for other platforms are welcome.
+
+* Debian Linux 7.0 (Wheezy)
+
+
+Support
+-------
+
+Please create bug reports and feature requests in [GitHub issues] [2].
+
+[2]: https://github.com/gini/puppet-cassandra/issues
+
+
+License
+-------
+
+Copyright (c) 2012-2013 smarchive GmbH, 2013 Gini GmbH
+
+This script is licensed under the [Apache License, Version 2.0] [3].
+
+[3]: http://www.apache.org/licenses/LICENSE-2.0.html
+
+What is it?
+===========
+
+A Puppet module that can construct files from fragments.
+
+Please see the comments in the various .pp files for details
+as well as posts on my blog at http://www.devco.net/
+
+Released under the Apache 2.0 licence
+
+Usage:
+------
+
+If you wanted a /etc/motd file that listed all the major modules
+on the machine.  And that would be maintained automatically even
+if you just remove the include lines for other modules you could
+use code like below, a sample /etc/motd would be:
+
+<pre>
+Puppet modules on this server:
+
+    -- Apache
+    -- MySQL
+</pre>
+
+Local sysadmins can also append to the file by just editing /etc/motd.local
+their changes will be incorporated into the puppet managed motd.
+
+<pre>
+# class to setup basic motd, include on all nodes
+class motd {
+   $motd = "/etc/motd"
+
+   concat{$motd:
+      owner => root,
+      group => root,
+      mode  => 644
+   }
+
+   concat::fragment{"motd_header":
+      target => $motd,
+      content => "\nPuppet modules on this server:\n\n",
+      order   => 01,
+   }
+
+   # local users on the machine can append to motd by just creating
+   # /etc/motd.local
+   concat::fragment{"motd_local":
+      target => $motd,
+      ensure  => "/etc/motd.local",
+      order   => 15
+   }
+}
+
+# used by other modules to register themselves in the motd
+define motd::register($content="", $order=10) {
+   if $content == "" {
+      $body = $name
+   } else {
+      $body = $content
+   }
+
+   concat::fragment{"motd_fragment_$name":
+      target  => "/etc/motd",
+      content => "    -- $body\n"
+   }
+}
+
+# a sample apache module
+class apache {
+   include apache::install, apache::config, apache::service
+
+   motd::register{"Apache": }
+}
+</pre>
+
+Known Issues:
+-------------
+* Since puppet-concat now relies on a fact for the concat directory,
+  you will need to set up pluginsync = true for at least the first run.
+  You have this issue if puppet fails to run on the client and you have
+  a message similar to
+  "err: Failed to apply catalog: Parameter path failed: File
+  paths must be fully qualified, not 'undef' at [...]/concat/manifests/setup.pp:44".
+
+Contributors:
+-------------
+**Paul Elliot**
+
+ * Provided 0.24.8 support, shell warnings and empty file creation support.
+
+**Chad Netzer**
+
+ * Various patches to improve safety of file operations
+ * Symlink support
+
+**David Schmitt**
+
+ * Patch to remove hard coded paths relying on OS path
+ * Patch to use file{} to copy the resulting file to the final destination.  This means Puppet client will show diffs and that hopefully we can change file ownerships now
+
+**Peter Meier**
+
+ * Basedir as a fact
+ * Unprivileged user support
+
+**Sharif Nassar**
+
+ * Solaris/Nexenta support
+ * Better error reporting
+
+**Christian G. Warden**
+
+ * Style improvements
+
+**Reid Vandewiele**
+
+ * Support non GNU systems by default
+
+**Erik Dalén*
+
+ * Style improvements
+
+**Gildas Le Nadan**
+
+ * Documentation improvements
+
+**Paul Belanger**
+
+ * Testing improvements and Travis support
+
+**Branan Purvine-Riley**
+
+ * Support Puppet Module Tool better
+
+**Dustin J. Mitchell**
+
+ * Always include setup when using the concat define
+
+**Andreas Jaggi**
+
+ * Puppet Lint support
+
+**Jan Vansteenkiste**
+
+ * Configurable paths
+
+Contact:
+--------
+R.I.Pienaar / rip@devco.net / @ripienaar / http://devco.net
+
+# How to contribute
+
+Third-party patches are essential for keeping stdlib great. We simply can't
+access the huge number of platforms and myriad configurations for running
+stdlib. We want to keep it as easy as possible to contribute changes that
+get things working in your environment. There are a few guidelines that we
+need contributors to follow so that we can have a chance of keeping on
+top of things.
+
+## Getting Started
+
+* Make sure you have a [Redmine account](http://projects.puppetlabs.com)
+* Make sure you have a [GitHub account](https://github.com/signup/free)
+* Submit a ticket for your issue, assuming one does not already exist.
+  * Clearly describe the issue including steps to reproduce when it is a bug.
+  * Make sure you fill in the earliest version that you know has the issue.
+* Fork the repository on GitHub
+
+## Making Changes
+
+* Create a topic branch from where you want to base your work.
+  * This is usually the master branch.
+  * Only target release branches if you are certain your fix must be on that
+    branch.
+  * To quickly create a topic branch based on master; `git branch
+    fix/master/my_contribution master` then checkout the new branch with `git
+    checkout fix/master/my_contribution`.  Please avoid working directly on the
+    `master` branch.
+* Make commits of logical units.
+* Check for unnecessary whitespace with `git diff --check` before committing.
+* Make sure your commit messages are in the proper format.
+
+````
+    (#99999) Make the example in CONTRIBUTING imperative and concrete
+
+    Without this patch applied the example commit message in the CONTRIBUTING
+    document is not a concrete example.  This is a problem because the
+    contributor is left to imagine what the commit message should look like
+    based on a description rather than an example.  This patch fixes the
+    problem by making the example concrete and imperative.
+
+    The first line is a real life imperative statement with a ticket number
+    from our issue tracker.  The body describes the behavior without the patch,
+    why this is a problem, and how the patch fixes the problem when applied.
+````
+
+* Make sure you have added the necessary tests for your changes.
+* Run _all_ the tests to assure nothing else was accidentally broken.
+
+## Submitting Changes
+
+* Sign the [Contributor License Agreement](http://links.puppetlabs.com/cla).
+* Push your changes to a topic branch in your fork of the repository.
+* Submit a pull request to the repository in the puppetlabs organization.
+* Update your Redmine ticket to mark that you have submitted code and are ready for it to be reviewed.
+  * Include a link to the pull request in the ticket
+
+# Additional Resources
+
+* [More information on contributing](http://links.puppetlabs.com/contribute-to-puppet)
+* [Bug tracker (Redmine)](http://projects.puppetlabs.com)
+* [Contributor License Agreement](http://links.puppetlabs.com/cla)
+* [General GitHub documentation](http://help.github.com/)
+* [GitHub pull request documentation](http://help.github.com/send-pull-requests/)
+* #puppet-dev IRC channel on freenode.org
+
+# Puppet Labs Standard Library #
+
+[![Build Status](https://travis-ci.org/puppetlabs/puppetlabs-stdlib.png?branch=master)](https://travis-ci.org/puppetlabs/puppetlabs-stdlib)
+
+This module provides a "standard library" of resources for developing Puppet
+Modules.  This modules will include the following additions to Puppet
+
+ * Stages
+ * Facts
+ * Functions
+ * Defined resource types
+ * Types
+ * Providers
+
+This module is officially curated and provided by Puppet Labs.  The modules
+Puppet Labs writes and distributes will make heavy use of this standard
+library.
+
+To report or research a bug with any part of this module, please go to
+[http://projects.puppetlabs.com/projects/stdlib](http://projects.puppetlabs.com/projects/stdlib)
+
+# Versions #
+
+This module follows semver.org (v1.0.0) versioning guidelines.  The standard
+library module is released as part of [Puppet
+Enterprise](http://puppetlabs.com/puppet/puppet-enterprise/) and as a result
+older versions of Puppet Enterprise that Puppet Labs still supports will have
+bugfix maintenance branches periodically "merged up" into master.  The current
+list of integration branches are:
+
+ * v2.1.x (v2.1.1 released in PE 1)
+ * v2.2.x (Never released as part of PE, only to the Forge)
+ * v2.3.x (Released in PE 2)
+ * v3.0.x (Never released as part of PE, only to the Forge)
+ * v4.0.x (Drops support for Puppet 2.7)
+ * master (mainline development branch)
+
+The first Puppet Enterprise version including the stdlib module is Puppet
+Enterprise 1.2.
+
+# Compatibility #
+
+Puppet Versions | < 2.6 | 2.6 | 2.7 | 3.x |
+:---------------|:-----:|:---:|:---:|:----:
+**stdlib 2.x**  | no    | **yes** | **yes** | no
+**stdlib 3.x**  | no    | no  | **yes** | **yes**
+**stdlib 4.x**  | no    | no  | no  | **yes**
+
+The stdlib module does not work with Puppet versions released prior to Puppet
+2.6.0.
+
+## stdlib 2.x ##
+
+All stdlib releases in the 2.0 major version support Puppet 2.6 and Puppet 2.7.
+
+## stdlib 3.x ##
+
+The 3.0 major release of stdlib drops support for Puppet 2.6.  Stdlib 3.x
+supports Puppet 2 and Puppet 3.
+
+## stdlib 4.x ##
+
+The 4.0 major release of stdlib drops support for Puppet 2.7.  Stdlib 4.x
+supports Puppet 3.  Notably, ruby 1.8.5 is no longer supported though ruby
+1.8.7, 1.9.3, and 2.0.0 are fully supported.
+
+# Functions #
+
+abs
+---
+Returns the absolute value of a number, for example -34.56 becomes
+34.56. Takes a single integer and float value as an argument.
+
+
+- *Type*: rvalue
+
+any2array
+---------
+This converts any object to an array containing that object. Empty argument
+lists are converted to an empty array. Arrays are left untouched. Hashes are
+converted to arrays of alternating keys and values.
+
+
+- *Type*: rvalue
+
+bool2num
+--------
+Converts a boolean to a number. Converts the values:
+false, f, 0, n, and no to 0
+true, t, 1, y, and yes to 1
+    Requires a single boolean or string as an input.
+
+
+- *Type*: rvalue
+
+capitalize
+----------
+Capitalizes the first letter of a string or array of strings.
+Requires either a single string or an array as an input.
+
+
+- *Type*: rvalue
+
+chomp
+-----
+Removes the record separator from the end of a string or an array of
+strings, for example `hello\n` becomes `hello`.
+Requires a single string or array as an input.
+
+
+- *Type*: rvalue
+
+chop
+----
+Returns a new string with the last character removed. If the string ends
+with `\r\n`, both characters are removed. Applying chop to an empty
+string returns an empty string. If you wish to merely remove record
+separators then you should use the `chomp` function.
+Requires a string or array of strings as input.
+
+
+- *Type*: rvalue
+
+concat
+------
+Appends the contents of array 2 onto array 1.
+
+*Example:*
+
+    concat(['1','2','3'],['4','5','6'])
+
+Would result in:
+
+  ['1','2','3','4','5','6']
+
+
+- *Type*: rvalue
+
+count
+-----
+Takes an array as first argument and an optional second argument.
+Count the number of elements in array that matches second argument.
+If called with only an array it counts the number of elements that are not nil/undef.
+
+
+- *Type*: rvalue
+
+defined_with_params
+-------------------
+Takes a resource reference and an optional hash of attributes.
+
+Returns true if a resource with the specified attributes has already been added
+to the catalog, and false otherwise.
+
+    user { 'dan':
+      ensure => present,
+    }
+
+    if ! defined_with_params(User[dan], {'ensure' => 'present' }) {
+      user { 'dan': ensure => present, }
+    }
+
+
+- *Type*: rvalue
+
+delete
+------
+Deletes all instances of a given element from an array, substring from a
+string, or key from a hash.
+
+*Examples:*
+
+    delete(['a','b','c','b'], 'b')
+    Would return: ['a','c']
+
+    delete({'a'=>1,'b'=>2,'c'=>3}, 'b')
+    Would return: {'a'=>1,'c'=>3}
+
+    delete('abracadabra', 'bra')
+    Would return: 'acada'
+
+
+- *Type*: rvalue
+
+delete_at
+---------
+Deletes a determined indexed value from an array.
+
+*Examples:*
+
+    delete_at(['a','b','c'], 1)
+
+Would return: ['a','c']
+
+
+- *Type*: rvalue
+
+dirname
+-------
+Returns the `dirname` of a path.
+
+*Examples:*
+
+    dirname('/path/to/a/file.ext')
+
+Would return: '/path/to/a'
+
+downcase
+--------
+Converts the case of a string or all strings in an array to lower case.
+
+
+- *Type*: rvalue
+
+empty
+-----
+Returns true if the variable is empty.
+
+
+- *Type*: rvalue
+
+ensure_packages
+---------------
+Takes a list of packages and only installs them if they don't already exist.
+
+
+- *Type*: statement
+
+ensure_resource
+---------------
+Takes a resource type, title, and a list of attributes that describe a
+resource.
+
+    user { 'dan':
+      ensure => present,
+    }
+
+This example only creates the resource if it does not already exist:
+
+    ensure_resource('user, 'dan', {'ensure' => 'present' })
+
+If the resource already exists but does not match the specified parameters,
+this function will attempt to recreate the resource leading to a duplicate
+resource definition error.
+
+An array of resources can also be passed in and each will be created with
+the type and parameters specified if it doesn't already exist.
+
+    ensure_resource('user', ['dan','alex'], {'ensure' => 'present'})
+
+
+
+- *Type*: statement
+
+flatten
+-------
+This function flattens any deeply nested arrays and returns a single flat array
+as a result.
+
+*Examples:*
+
+    flatten(['a', ['b', ['c']]])
+
+Would return: ['a','b','c']
+
+
+- *Type*: rvalue
+
+floor
+-----
+Returns the largest integer less or equal to the argument.
+Takes a single numeric value as an argument.
+
+
+- *Type*: rvalue
+
+fqdn_rotate
+-----------
+Rotates an array a random number of times based on a nodes fqdn.
+
+
+- *Type*: rvalue
+
+get_module_path
+---------------
+Returns the absolute path of the specified module for the current
+environment.
+
+Example:
+  $module_path = get_module_path('stdlib')
+
+
+- *Type*: rvalue
+
+getparam
+--------
+Takes a resource reference and name of the parameter and
+returns value of resource's parameter.
+
+*Examples:*
+
+    define example_resource($param) {
+    }
+
+    example_resource { "example_resource_instance":
+        param => "param_value"
+    }
+
+    getparam(Example_resource["example_resource_instance"], "param")
+
+Would return: param_value
+
+
+- *Type*: rvalue
+
+getvar
+------
+Lookup a variable in a remote namespace.
+
+For example:
+
+    $foo = getvar('site::data::foo')
+    # Equivalent to $foo = $site::data::foo
+
+This is useful if the namespace itself is stored in a string:
+
+    $datalocation = 'site::data'
+    $bar = getvar("${datalocation}::bar")
+    # Equivalent to $bar = $site::data::bar
+
+
+- *Type*: rvalue
+
+grep
+----
+This function searches through an array and returns any elements that match
+the provided regular expression.
+
+*Examples:*
+
+    grep(['aaa','bbb','ccc','aaaddd'], 'aaa')
+
+Would return:
+
+    ['aaa','aaaddd']
+
+
+- *Type*: rvalue
+
+has_interface_with
+------------------
+Returns boolean based on kind and value:
+* macaddress
+* netmask
+* ipaddress
+* network
+
+has_interface_with("macaddress", "x:x:x:x:x:x")
+has_interface_with("ipaddress", "127.0.0.1")    => true
+etc.
+
+If no "kind" is given, then the presence of the interface is checked:
+has_interface_with("lo")                        => true
+
+
+- *Type*: rvalue
+
+has_ip_address
+--------------
+Returns true if the client has the requested IP address on some interface.
+
+This function iterates through the 'interfaces' fact and checks the
+'ipaddress_IFACE' facts, performing a simple string comparison.
+
+
+- *Type*: rvalue
+
+has_ip_network
+--------------
+Returns true if the client has an IP address within the requested network.
+
+This function iterates through the 'interfaces' fact and checks the
+'network_IFACE' facts, performing a simple string comparision.
+
+
+- *Type*: rvalue
+
+has_key
+-------
+Determine if a hash has a certain key value.
+
+Example:
+
+    $my_hash = {'key_one' => 'value_one'}
+    if has_key($my_hash, 'key_two') {
+      notice('we will not reach here')
+    }
+    if has_key($my_hash, 'key_one') {
+      notice('this will be printed')
+    }
+
+
+
+- *Type*: rvalue
+
+hash
+----
+This function converts an array into a hash.
+
+*Examples:*
+
+    hash(['a',1,'b',2,'c',3])
+
+Would return: {'a'=>1,'b'=>2,'c'=>3}
+
+
+- *Type*: rvalue
+
+is_array
+--------
+Returns true if the variable passed to this function is an array.
+
+- *Type*: rvalue
+
+is_domain_name
+--------------
+Returns true if the string passed to this function is a syntactically correct domain name.
+
+- *Type*: rvalue
+
+is_float
+--------
+Returns true if the variable passed to this function is a float.
+
+- *Type*: rvalue
+
+is_function_available
+---------------------
+This function accepts a string as an argument, determines whether the
+Puppet runtime has access to a function by that name.  It returns a
+true if the function exists, false if not.
+
+- *Type*: rvalue
+
+is_hash
+-------
+Returns true if the variable passed to this function is a hash.
+
+- *Type*: rvalue
+
+is_integer
+----------
+Returns true if the variable returned to this string is an integer.
+
+- *Type*: rvalue
+
+is_ip_address
+-------------
+Returns true if the string passed to this function is a valid IP address.
+
+- *Type*: rvalue
+
+is_mac_address
+--------------
+Returns true if the string passed to this function is a valid mac address.
+
+- *Type*: rvalue
+
+is_numeric
+----------
+Returns true if the variable passed to this function is a number.
+
+- *Type*: rvalue
+
+is_string
+---------
+Returns true if the variable passed to this function is a string.
+
+- *Type*: rvalue
+
+join
+----
+This function joins an array into a string using a seperator.
+
+*Examples:*
+
+    join(['a','b','c'], ",")
+
+Would result in: "a,b,c"
+
+- *Type*: rvalue
+
+join_keys_to_values
+-------------------
+This function joins each key of a hash to that key's corresponding value with a
+separator. Keys and values are cast to strings. The return value is an array in
+which each element is one joined key/value pair.
+
+*Examples:*
+
+    join_keys_to_values({'a'=>1,'b'=>2}, " is ")
+
+Would result in: ["a is 1","b is 2"]
+
+- *Type*: rvalue
+
+keys
+----
+Returns the keys of a hash as an array.
+
+- *Type*: rvalue
+
+loadyaml
+--------
+Load a YAML file containing an array, string, or hash, and return the data
+in the corresponding native data type.
+
+For example:
+
+    $myhash = loadyaml('/etc/puppet/data/myhash.yaml')
+
+
+- *Type*: rvalue
+
+lstrip
+------
+Strips leading spaces to the left of a string.
+
+- *Type*: rvalue
+
+max
+---
+Returns the highest value of all arguments.
+Requires at least one argument.
+
+- *Type*: rvalue
+
+member
+------
+This function determines if a variable is a member of an array.
+
+*Examples:*
+
+    member(['a','b'], 'b')
+
+Would return: true
+
+    member(['a','b'], 'c')
+
+Would return: false
+
+- *Type*: rvalue
+
+merge
+-----
+Merges two or more hashes together and returns the resulting hash.
+
+For example:
+
+    $hash1 = {'one' => 1, 'two', => 2}
+    $hash2 = {'two' => 'dos', 'three', => 'tres'}
+    $merged_hash = merge($hash1, $hash2)
+    # The resulting hash is equivalent to:
+    # $merged_hash =  {'one' => 1, 'two' => 'dos', 'three' => 'tres'}
+
+When there is a duplicate key, the key in the rightmost hash will "win."
+
+- *Type*: rvalue
+
+min
+---
+Returns the lowest value of all arguments.
+Requires at least one argument.
+
+- *Type*: rvalue
+
+num2bool
+--------
+This function converts a number or a string representation of a number into a
+true boolean. Zero or anything non-numeric becomes false. Numbers higher then 0
+become true.
+
+- *Type*: rvalue
+
+parsejson
+---------
+This function accepts JSON as a string and converts into the correct Puppet
+structure.
+
+- *Type*: rvalue
+
+parseyaml
+---------
+This function accepts YAML as a string and converts it into the correct
+Puppet structure.
+
+- *Type*: rvalue
+
+pick
+----
+This function is similar to a coalesce function in SQL in that it will return
+the first value in a list of values that is not undefined or an empty string
+(two things in Puppet that will return a boolean false value). Typically,
+this function is used to check for a value in the Puppet Dashboard/Enterprise
+Console, and failover to a default value like the following:
+
+    $real_jenkins_version = pick($::jenkins_version, '1.449')
+
+The value of $real_jenkins_version will first look for a top-scope variable
+called 'jenkins_version' (note that parameters set in the Puppet Dashboard/
+Enterprise Console are brought into Puppet as top-scope variables), and,
+failing that, will use a default value of 1.449.
+
+- *Type*: rvalue
+
+prefix
+------
+This function applies a prefix to all elements in an array.
+
+*Examples:*
+
+    prefix(['a','b','c'], 'p')
+
+Will return: ['pa','pb','pc']
+
+- *Type*: rvalue
+
+range
+-----
+When given range in the form of (start, stop) it will extrapolate a range as
+an array.
+
+*Examples:*
+
+    range("0", "9")
+
+Will return: [0,1,2,3,4,5,6,7,8,9]
+
+    range("00", "09")
+
+Will return: [0,1,2,3,4,5,6,7,8,9] (Zero padded strings are converted to
+integers automatically)
+
+    range("a", "c")
+
+Will return: ["a","b","c"]
+
+    range("host01", "host10")
+
+Will return: ["host01", "host02", ..., "host09", "host10"]
+
+- *Type*: rvalue
+
+reject
+------
+This function searches through an array and rejects all elements that match
+the provided regular expression.
+
+*Examples:*
+
+    reject(['aaa','bbb','ccc','aaaddd'], 'aaa')
+
+Would return:
+
+    ['bbb','ccc']
+
+
+- *Type*: rvalue
+
+reverse
+-------
+Reverses the order of a string or array.
+
+- *Type*: rvalue
+
+rstrip
+------
+Strips leading spaces to the right of the string.
+
+- *Type*: rvalue
+
+shuffle
+-------
+Randomizes the order of a string or array elements.
+
+- *Type*: rvalue
+
+size
+----
+Returns the number of elements in a string or array.
+
+- *Type*: rvalue
+
+sort
+----
+Sorts strings and arrays lexically.
+
+- *Type*: rvalue
+
+squeeze
+-------
+Returns a new string where runs of the same character that occur in this set
+are replaced by a single character.
+
+- *Type*: rvalue
+
+str2bool
+--------
+This converts a string to a boolean. This attempt to convert strings that
+contain things like: y, 1, t, true to 'true' and strings that contain things
+like: 0, f, n, false, no to 'false'.
+
+
+- *Type*: rvalue
+
+str2saltedsha512
+----------------
+This converts a string to a salted-SHA512 password hash (which is used for
+OS X versions >= 10.7). Given any simple string, you will get a hex version
+of a salted-SHA512 password hash that can be inserted into your Puppet
+manifests as a valid password attribute.
+
+
+- *Type*: rvalue
+
+strftime
+--------
+This function returns formatted time.
+
+*Examples:*
+
+To return the time since epoch:
+
+    strftime("%s")
+
+To return the date:
+
+    strftime("%Y-%m-%d")
+
+*Format meaning:*
+
+    %a - The abbreviated weekday name (``Sun'')
+    %A - The  full  weekday  name (``Sunday'')
+    %b - The abbreviated month name (``Jan'')
+    %B - The  full  month  name (``January'')
+    %c - The preferred local date and time representation
+    %C - Century (20 in 2009)
+    %d - Day of the month (01..31)
+    %D - Date (%m/%d/%y)
+    %e - Day of the month, blank-padded ( 1..31)
+    %F - Equivalent to %Y-%m-%d (the ISO 8601 date format)
+    %h - Equivalent to %b
+    %H - Hour of the day, 24-hour clock (00..23)
+    %I - Hour of the day, 12-hour clock (01..12)
+    %j - Day of the year (001..366)
+    %k - hour, 24-hour clock, blank-padded ( 0..23)
+    %l - hour, 12-hour clock, blank-padded ( 0..12)
+    %L - Millisecond of the second (000..999)
+    %m - Month of the year (01..12)
+    %M - Minute of the hour (00..59)
+    %n - Newline (
+)
+    %N - Fractional seconds digits, default is 9 digits (nanosecond)
+            %3N  millisecond (3 digits)
+            %6N  microsecond (6 digits)
+            %9N  nanosecond (9 digits)
+    %p - Meridian indicator (``AM''  or  ``PM'')
+    %P - Meridian indicator (``am''  or  ``pm'')
+    %r - time, 12-hour (same as %I:%M:%S %p)
+    %R - time, 24-hour (%H:%M)
+    %s - Number of seconds since 1970-01-01 00:00:00 UTC.
+    %S - Second of the minute (00..60)
+    %t - Tab character (	)
+    %T - time, 24-hour (%H:%M:%S)
+    %u - Day of the week as a decimal, Monday being 1. (1..7)
+    %U - Week  number  of the current year,
+            starting with the first Sunday as the first
+            day of the first week (00..53)
+    %v - VMS date (%e-%b-%Y)
+    %V - Week number of year according to ISO 8601 (01..53)
+    %W - Week  number  of the current year,
+            starting with the first Monday as the first
+            day of the first week (00..53)
+    %w - Day of the week (Sunday is 0, 0..6)
+    %x - Preferred representation for the date alone, no time
+    %X - Preferred representation for the time alone, no date
+    %y - Year without a century (00..99)
+    %Y - Year with century
+    %z - Time zone as  hour offset from UTC (e.g. +0900)
+    %Z - Time zone name
+    %% - Literal ``%'' character
+
+
+- *Type*: rvalue
+
+strip
+-----
+This function removes leading and trailing whitespace from a string or from
+every string inside an array.
+
+*Examples:*
+
+    strip("    aaa   ")
+
+Would result in: "aaa"
+
+
+- *Type*: rvalue
+
+suffix
+------
+This function applies a suffix to all elements in an array.
+
+*Examples:*
+
+    suffix(['a','b','c'], 'p')
+
+Will return: ['ap','bp','cp']
+
+
+- *Type*: rvalue
+
+swapcase
+--------
+This function will swap the existing case of a string.
+
+*Examples:*
+
+    swapcase("aBcD")
+
+Would result in: "AbCd"
+
+
+- *Type*: rvalue
+
+time
+----
+This function will return the current time since epoch as an integer.
+
+*Examples:*
+
+    time()
+
+Will return something like: 1311972653
+
+
+- *Type*: rvalue
+
+to_bytes
+--------
+Converts the argument into bytes, for example 4 kB becomes 4096.
+Takes a single string value as an argument.
+
+
+- *Type*: rvalue
+
+type
+----
+Returns the type when passed a variable. Type can be one of:
+
+* string
+* array
+* hash
+* float
+* integer
+* boolean
+
+
+- *Type*: rvalue
+
+unique
+------
+This function will remove duplicates from strings and arrays.
+
+*Examples:*
+
+    unique("aabbcc")
+
+Will return:
+
+    abc
+
+You can also use this with arrays:
+
+    unique(["a","a","b","b","c","c"])
+
+This returns:
+
+    ["a","b","c"]
+
+
+- *Type*: rvalue
+
+upcase
+------
+Converts a string or an array of strings to uppercase.
+
+*Examples:*
+
+    upcase("abcd")
+
+Will return:
+
+    ASDF
+
+
+- *Type*: rvalue
+
+uriescape
+---------
+Urlencodes a string or array of strings.
+Requires either a single string or an array as an input.
+
+
+- *Type*: rvalue
+
+validate_absolute_path
+----------------------
+Validate the string represents an absolute path in the filesystem.  This function works
+for windows and unix style paths.
+
+The following values will pass:
+
+    $my_path = "C:/Program Files (x86)/Puppet Labs/Puppet"
+    validate_absolute_path($my_path)
+    $my_path2 = "/var/lib/puppet"
+    validate_absolute_path($my_path2)
+
+
+The following values will fail, causing compilation to abort:
+
+    validate_absolute_path(true)
+    validate_absolute_path([ 'var/lib/puppet', '/var/foo' ])
+    validate_absolute_path([ '/var/lib/puppet', 'var/foo' ])
+    $undefined = undef
+    validate_absolute_path($undefined)
+
+
+
+- *Type*: statement
+
+validate_array
+--------------
+Validate that all passed values are array data structures. Abort catalog
+compilation if any value fails this check.
+
+The following values will pass:
+
+    $my_array = [ 'one', 'two' ]
+    validate_array($my_array)
+
+The following values will fail, causing compilation to abort:
+
+    validate_array(true)
+    validate_array('some_string')
+    $undefined = undef
+    validate_array($undefined)
+
+
+
+- *Type*: statement
+
+validate_augeas
+---------------
+Perform validation of a string using an Augeas lens
+The first argument of this function should be a string to
+test, and the second argument should be the name of the Augeas lens to use.
+If Augeas fails to parse the string with the lens, the compilation will
+abort with a parse error.
+
+A third argument can be specified, listing paths which should
+not be found in the file. The `$file` variable points to the location
+of the temporary file being tested in the Augeas tree.
+
+For example, if you want to make sure your passwd content never contains
+a user `foo`, you could write:
+
+    validate_augeas($passwdcontent, 'Passwd.lns', ['$file/foo'])
+
+Or if you wanted to ensure that no users used the '/bin/barsh' shell,
+you could use:
+
+    validate_augeas($passwdcontent, 'Passwd.lns', ['$file/*[shell="/bin/barsh"]']
+
+If a fourth argument is specified, this will be the error message raised and
+seen by the user.
+
+A helpful error message can be returned like this:
+
+    validate_augeas($sudoerscontent, 'Sudoers.lns', [], 'Failed to validate sudoers content with Augeas')
+
+
+
+- *Type*: statement
+
+validate_bool
+-------------
+Validate that all passed values are either true or false. Abort catalog
+compilation if any value fails this check.
+
+The following values will pass:
+
+    $iamtrue = true
+    validate_bool(true)
+    validate_bool(true, true, false, $iamtrue)
+
+The following values will fail, causing compilation to abort:
+
+    $some_array = [ true ]
+    validate_bool("false")
+    validate_bool("true")
+    validate_bool($some_array)
+
+
+
+- *Type*: statement
+
+validate_cmd
+------------
+Perform validation of a string with an external command.
+The first argument of this function should be a string to
+test, and the second argument should be a path to a test command
+taking a file as last argument. If the command, launched against
+a tempfile containing the passed string, returns a non-null value,
+compilation will abort with a parse error.
+
+If a third argument is specified, this will be the error message raised and
+seen by the user.
+
+A helpful error message can be returned like this:
+
+Example:
+
+    validate_cmd($sudoerscontent, '/usr/sbin/visudo -c -f', 'Visudo failed to validate sudoers content')
+
+
+
+- *Type*: statement
+
+validate_hash
+-------------
+Validate that all passed values are hash data structures. Abort catalog
+compilation if any value fails this check.
+
+The following values will pass:
+
+    $my_hash = { 'one' => 'two' }
+    validate_hash($my_hash)
+
+The following values will fail, causing compilation to abort:
+
+    validate_hash(true)
+    validate_hash('some_string')
+    $undefined = undef
+    validate_hash($undefined)
+
+
+
+- *Type*: statement
+
+validate_re
+-----------
+Perform simple validation of a string against one or more regular
+expressions. The first argument of this function should be a string to
+test, and the second argument should be a stringified regular expression
+(without the // delimiters) or an array of regular expressions.  If none
+of the regular expressions match the string passed in, compilation will
+abort with a parse error.
+
+If a third argument is specified, this will be the error message raised and
+seen by the user.
+
+The following strings will validate against the regular expressions:
+
+    validate_re('one', '^one$')
+    validate_re('one', [ '^one', '^two' ])
+
+The following strings will fail to validate, causing compilation to abort:
+
+    validate_re('one', [ '^two', '^three' ])
+
+A helpful error message can be returned like this:
+
+    validate_re($::puppetversion, '^2.7', 'The $puppetversion fact value does not match 2.7')
+
+
+
+- *Type*: statement
+
+validate_slength
+----------------
+Validate that the first argument is a string (or an array of strings), and
+less/equal to than the length of the second argument.  It fails if the first
+argument is not a string or array of strings, and if arg 2 is not convertable
+to a number.
+
+The following values will pass:
+
+  validate_slength("discombobulate",17)
+  validate_slength(["discombobulate","moo"],17)
+
+The following valueis will not:
+
+  validate_slength("discombobulate",1)
+  validate_slength(["discombobulate","thermometer"],5)
+
+
+
+- *Type*: statement
+
+validate_string
+---------------
+Validate that all passed values are string data structures. Abort catalog
+compilation if any value fails this check.
+
+The following values will pass:
+
+    $my_string = "one two"
+    validate_string($my_string, 'three')
+
+The following values will fail, causing compilation to abort:
+
+    validate_string(true)
+    validate_string([ 'some', 'array' ])
+    $undefined = undef
+    validate_string($undefined)
+
+
+- *Type*: statement
+
+values
+------
+When given a hash this function will return the values of that hash.
+
+*Examples:*
+
+    $hash = {
+      'a' => 1,
+      'b' => 2,
+      'c' => 3,
+    }
+    values($hash)
+
+This example would return:
+
+    [1,2,3]
+
+
+- *Type*: rvalue
+
+values_at
+---------
+Finds value inside an array based on location.
+
+The first argument is the array you want to analyze, and the second element can
+be a combination of:
+
+* A single numeric index
+* A range in the form of 'start-stop' (eg. 4-9)
+* An array combining the above
+
+*Examples*:
+
+    values_at(['a','b','c'], 2)
+
+Would return ['c'].
+
+    values_at(['a','b','c'], ["0-1"])
+
+Would return ['a','b'].
+
+    values_at(['a','b','c','d','e'], [0, "2-3"])
+
+Would return ['a','c','d'].
+
+
+- *Type*: rvalue
+
+zip
+---
+Takes one element from first array and merges corresponding elements from second array. This generates a sequence of n-element arrays, where n is one more than the count of arguments.
+
+*Example:*
+
+    zip(['1','2','3'],['4','5','6'])
+
+Would result in:
+
+    ["1", "4"], ["2", "5"], ["3", "6"]
+
+
+- *Type*: rvalue
+
+*This page autogenerated on 2013-04-11 13:54:25 -0700*
+
+Puppet Specific Facts
+=====================
+
+Facter is meant to stand alone and apart from Puppet.  However, Facter often
+runs inside Puppet and all custom facts included in the stdlib module will
+almost always be evaluated in the context of Puppet and Facter working
+together.
+
+Still, we don't want to write custom facts that blow up in the users face if
+Puppet is not loaded in memory.  This is often the case if the user runs
+`facter` without also supplying the `--puppet` flag.
+
+Ah! But Jeff, the custom fact won't be in the `$LOAD_PATH` unless the user
+supplies `--facter`! You might say...
+
+Not (always) true I say!  If the user happens to have a CWD of
+`<modulepath>/stdlib/lib` then the facts will automatically be evaluated and
+blow up.
+
+In any event, it's pretty easy to write a fact that has no value if Puppet is
+not loaded.  Simply do it like this:
+
+    Facter.add(:node_vardir) do
+      setcode do
+        # This will be nil if Puppet is not available.
+        Facter::Util::PuppetSettings.with_puppet do
+          Puppet[:vardir]
+        end
+      end
+    end
+
+The `Facter::Util::PuppetSettings.with_puppet` method accepts a block and
+yields to it only if the Puppet library is loaded.  If the Puppet library is
+not loaded, then the method silently returns `nil` which Facter interprets as
+an undefined fact value.  The net effect is that the fact won't be set.
+
+NOTE
+====
+
+This project's specs depend on puppet core, and thus they require the
+`puppetlabs_spec_helper` project.  For more information please see the README
+in that project, which can be found here: [puppetlabs spec
+helper](https://github.com/puppetlabs/puppetlabs_spec_helper)
+
+Puppet-twemproxy
+================
+
+This module manages [Twemproxy](http://www.github.com/twitter/twemproxy) package installation from source. It takes into consideration the needed packages depending on the Distro yso you can compile it.
+
+## USAGE
+### Creating a pool
+<pre>
+  twemproxy::resource::nutcracker {
+    'pool1':
+      ensure    => present,
+      members   => [
+        {
+          ip          => '127.0.0.1',
+          name        => 'server1',
+          redis_port  => '22121',
+          weight      => '1',
+        },
+        {
+          ip         => '127.0.0.1',
+          name       => 'server2',
+          redis_port => '6662',
+          weight     => '1',
+        }
+      ],
+      port       => 22121,
+      statsport: => 22122
+  }
+</pre>
+
+### Creating a resource to monitor
+<pre>
+twemproxy::resource::monit {
+    'twemprodweb':
+      country   => es,
+      port      => '22114',
+      statsport => '21214';
+  }
+</pre>
+
+## Dependencies
+
+* `puppet-monit`: Ensure monit is installed and configured
+
+## Contributing
+
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
+

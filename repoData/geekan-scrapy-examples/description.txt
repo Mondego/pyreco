@@ -1,0 +1,168 @@
+Mongodb Scheme(**draft**)
+
+---
+
+**PersonProfile**
+
+	PersonProfile
+	{
+		linkedin_id:'id',
+		locality:'beijing',
+		industry:'Research',
+		summary:'I am a professor…',
+		
+		skills:
+				[
+					'data mining',
+					'machine learning'
+				],
+				
+		specilities:
+				[
+					'data mining',
+				],
+				
+		interests:
+				[
+					'data mining',
+					'machine learning'
+				],
+				
+		groups:
+				{
+					'member',
+					'affiliation':
+								[
+									'kdd 2012'
+								]
+				}
+				
+		honors:
+				[
+					'first prize',
+				],
+		
+		education:
+				[
+					{
+						school_name: 'a',
+						period: '1991-2012',
+						desc:'topic model'
+					},
+				],
+				
+		experience:
+				[
+					{
+						title:'associate professor',
+						organization:'tsinghua',
+						period:'1999-2000',
+						description:'research about data mining',
+					},
+				],
+				
+		also_view:
+				[
+					{
+						'linkedin_id':'asd',
+						'url':'http',
+					}
+				],
+		
+	}
+scrapy-linkedin
+===============
+
+Using Scrapy to get Linkedin's person public profile.
+
+### feature
+* Get all **public** profile
+* Using Scrapy
+* Enable auto throttle
+* Enable naive proxy providing
+* Agent rotating
+* Support Unicode
+* Using MongoDB as Backend
+* ...
+
+
+### Dependency
+* Scrapy == 0.20
+* pymongo 
+* BeautifulSoup4, UnicodeDammit
+
+
+### usage
+	1. start a MongoDB instance, `mongod`
+	2. run the crawler, `scrapy crawl LinkedinSpider`
+
+you may found `Rakefile` helpful.
+
+
+### configuration
+you can change MongoDB setting ang other things in `settings.py`. 
+
+### note
+if you just need whatever public profiles, there are better ways to do it. 
+check out these urls: http://www.linkedin.com/directory/people/[a-z].html
+
+Our strategy is following `also-view` links in public profile.
+
+### One more thing
+This is a toy project a few years ago. Now I won't maintain it anymore, questions about this project will be ignored. You can read the code, there isn't much. 
+I hope this project can help you get a basic understanding of Scrapy, then you can make your own Spider. 
+
+scrapy-examples
+==============
+
+Multifarious scrapy examples with integrated proxies and agents, which make you comfy to write a spider.
+
+Dont use it to do anything illegal!
+
+####PREREQUISITE
+
+* Scrapy 0.22
+  > Check https://github.com/scrapy/scrapy
+
+* Goagent
+  > If you don't want to use proxy, just comment the proxy middleware in settings.  
+  > Or if you want to custom it, you can hack `misc/proxy.py`
+
+####Avaiable Spiders
+
+* linkedin
+  * linkedin
+* tutorial
+  * dmoz_item
+  * douban_book
+  * page_recorder
+  * douban_tag_book
+* doubanbook
+  * douban_book
+* hrtencent
+  * hrtencent
+* sis
+  * sis
+
+***
+
+##doubanbook spider
+
+####Tutorial
+
+    git clone https://github.com/geekan/scrapy-examples
+    cd scrapy-examples/doubanbook
+    scrapy crawl douban_book
+
+####Depth
+
+There are several depths in the spider, and the spider gets
+real data from depth2.
+
+- Depth0: The entrance is `http://book.douban.com/tag/`
+- Depth1: Urls like `http://book.douban.com/tag/外国文学` from depth0
+- Depth2: Urls like `http://book.douban.com/subject/1770782/` from depth1
+
+####Example image
+![douban book](https://raw2.github.com/geekan/cowry/master/image/doubanbook.jpg)
+

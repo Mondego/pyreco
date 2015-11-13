@@ -1,0 +1,285 @@
+This Library opens communication between Arduino UNO and the ADS1299
+SPI register fuses are directly set to match the ADS1299 interface requirements.
+SCK rates: 1MHz, 4MHz, 8MHz. 
+All registers and commands are fully accessable.
+Here is a list of the functions and parameters available from the Library.
+
+
+
+ADS1299.Initialize(int _DRDY, int _RST, int _CS, int _FREQ)
+	Data Ready pin, Chip Select pin, and SCK frequency in MHz.
+	the current shield uses DRDY = 8; RST 9 CS = 10.
+	frequency options are 1MHz, 4MHz, 8MHz.
+	bear in mind that at higher frequencies, appropriate delays
+	must be taken when sending multiple bytes (DS p.37)
+	initialization performs recommended timing and toggle of /RESET pin
+
+//Public Variables
+
+    int DRDY, CS; 		// pin numbers for DRDY and CS 
+	These are part of the constructor
+	they are not implemented in the current library
+	but could be useful in future member functions
+
+    int stat;			// used to hold the status register
+	the status register is the first byte returned when you read channel data
+	it has 1100 + LOFF_STATP + LOFF_STATN + GPIO[7:4]
+
+    byte regData [24];		// array is used to mirror register data
+	this array is used to write multiple locations of ADS register data using WREGS()
+	user must first assign target values to the corresponding locations in regData aray
+	a call to RREGS() will read multiple locations and update regData array
+  
+    long channelData [9];	// array used when reading channel data
+    boolean verbose;		// turn on/off Serial feedback
+
+
+//System Commands   
+
+    void WAKEUP();	// wakeup from standby mode
+    void STANDBY();	// go into standby mode
+    void RESET();	// reset all registers to default values
+    void START();	// start a data conversion session
+    void STOP();	// stop data conversion
+
+	timed delays are taken where required in the above funcitons. 
+	bear in mind the timing of your byte to byte transmission.
+	clk on ADS is ~2MHz, so that is a limit.
+    
+//Data Read Commands
+
+    void RDATAC();	
+	enter Read Data Continuous mode
+	Read Data Continuous mode enables the ADC and shift registers
+	in this mode, you can start a sampling session by setting the start pin,
+	or sending the start command
+
+    void SDATAC();	
+	enter Stop Read Data Continuous mode
+	this mode will let you write and read registers
+
+    void RDATA();	
+	Read Data command is used when you're in Stop Read Data Continuous mode
+	if you send or set the 'start' command, this allows you to sample on DRDY
+	and also have access to read/write the registers. see DS p.37 
+    
+//Register Read/Write Commands	
+
+    byte getDeviceID();
+	simple hello world to check that the device is working properly
+	returns 0x3E on the Dev Module I'm using.
+	must be in Stop Data Continuous mode prior to sending this
+
+    byte RREG(byte _address);
+	returns the value of one register address, specified
+	the funcion also updates regData at _address
+
+    void RREGS(byte _address, byte _numRegistersMinusOne);     
+	updates the public regData array with current values
+	_address is the address to start reading at
+	_numRegistersMinusOne is the number of registers to read past the _address
+	NOTE: the public regData array behaves like a mirror of the ADS internal arrays,
+	however, the user must update the mirror. 
+
+    void printRegisterName(byte _address);
+	this is a look up table. part of the verbose feedback and not used external to the library
+
+    void WREG(byte _address, byte _value); 
+	writes a single value specified by _value to the register address at _address.
+
+    void WREGS(byte _address, byte _numRegistersMinusOne); 
+	writes a number of values to sequential addresses starting at _address
+	user must first set values in correct locations of the public byte array regData
+	regData is a mirror of the ADS register values
+
+    void printHex(byte _data);
+	used to streamline verbose feedback 
+
+    void updateChannelData();
+	the public array, channelData[8] gets updated, along with the status register.
+	there is bitwise conversion from 3 byte 2's compliment to 4 byte 2's compliment (long)
+    
+//SPI Transfer function
+
+    byte transfer(byte _data);
+	puts the byte _data on the SPI bus, and returns a byte from the SPI bus.
+
+
+//KNOWN ISSUES
+
+	verbose feedback in the updateChannelData() function bumps against the DRDY signal
+	this is because 115200 baud can't keep up?
+
+	
+//USING THIS LIBRARY
+	
+	The START pin is not broken out. You must send the START() command instead.
+	For daisy-chaining in the future, we will route a GPIO to the START pin and 
+	header socket.
+
+	You must remeber to get out of Read Data Continuous mode if you want 
+	to read/write, and do other register things.
+
+
+
+
+ARDUINO LIBRARIES
+------------------
+
+These are libraries that are used by the various OpenBCI Arduino sketches.
+
+
+** ADS1299: This is the core library for servicing the OpenBCI shield (V1 and V2).  It contains the base ADS1299 Class as well as the ADS1299Manager class.  This library was developed and tested using Arduino 1.0.5.
+
+** Biquad: This is a library used in some sketches to perform time-domain filtering of the EEG data on the Arduino itself.  This library was last developed and tested in Arduino 1.0.5.  This code is a slightly modified version of the code originally found at http://www.earlevel.com/main/2012/11/25/biquad-c-source-code/ 
+
+
+
+Instructions
+------------
+
+Download these libraries, unzip them, and put the contents into your Arduino "libraries" directory.  On a Windows PC, I liked to put them in "My Documents\Arduino\Libraries\".
+
+INTRODUCTION
+------------
+
+These are Arduino sketches that for using the OpenBCI in different ways.  These sketches generally upon one or more of the Arduino libraries that we've uploaded seperately.  For example, the "ADS1299" library is required by all of these sketches.  So, be sure to go download it and the other libraries!
+
+
+SKETCHES
+------------
+
+** StreamRawData: This is the main sketch for use on the Arduino to service the OpenBCI shield (V1 and V2).  It configures the shield, it retrieves the EEG data from the shield, and it sends the data out over the serial link to a PC (or whatever is attached to the serial link).  It can format the data in a variety of ways including: (1) ASCII Text, (2) full-resolution Binary for use with our Processing GUI, and (3) the binary "P2" format used by OpenEEG.  Because of this last data format -- the OpenEEG format -- the OpenBCI shield can feed data to a variety of software packages that accept data from OpenEEG (BrainBay is one example).  StreamRawData is a heavy-weight sketch.  We hope to provide a simpler sketch to make it easier to learn how to use OpenBCI.
+
+
+
+
+
+
+
+Introduction
+-------------
+
+Here are some graphical user interfaces for OpenBCI, as written for Processing.  We currently have two styles of GUI:
+
+
+* OpenBCI_GUI is the heavyweight GUI that shows data for 8 (or more!) EEG channels.  It has a traditional time-domain display, a frequency-domain display, and an illustration of a head that lights up based on the intensity of the EEG energy. 
+
+* OpenBCI_GUI_Simpler is a lighter GUI that just shows the data for fewer EEG channels.  It has a frequency domain plot and a time domain / spectrogram plot.
+
+
+
+Dependencies
+------------
+
+These GUIs require you to download the Processing environment.  This code was primarily developed using Processing 2.0.3 (* See Note).  It uses the built-in Serial library to communicate to the Arduin (or whatever) microcontroller is hosting the OpenBCI shield.  This GUI also uses the built in 'minim' library for executing the FFT to make the frequency-domain display.
+
+http://processing.org
+
+The OpenBCI Processing GUI requires the 'gwoptics' graphing library.  We developed using the 0.5.0 version of the gwoptics library.
+
+http://www.gwoptics.org/processing/gwoptics_p5lib/
+
+(* This code does NOT work with Processing 2.1 due to the Serial library, which seems to be fixed in Processing 2.1.1.  This code has not been extensively tested in 2.1.1.)
+
+
+Updates
+--------
+
+2014-04-03 OpenBCI_GUI:
+		: Added controls for lead_off detection (ie, impedance checking)
+		: Added controls for filtering and smoothing and vertical scale
+                  factor.  Added buttons to control all of these settings.
+		: Added control to toggle bias to a fixed voltage from the
+		  normal "auto" generation of the bias based on the common-mode
+		  of the active electrodes 
+		: Added loading of electrode locations from a text file
+		: Added fancier "contour" plotting of EEG voltages on the
+		  head plot.
+		: Added playback of pre-recorded data from a text file along
+		  with a couple of example recorded data files.
+
+2014-02-02 OpenBCI_GUI and OpenBCI_GUI_Simpler:
+		: More refinements in handling of incoming serial binary data.
+                  Most stable at 115200 bps
+
+2014-01-29 OpenBCI_GUI_Simpler:
+               : Added audio tone as output to Alpha Detection.
+                 Now you can know that you're making alpha even when
+                 your eyes are closed!
+
+2014-01-26 OpenBCI_GUI and OpenBCI_GUI_Simpler:
+               : Improved handling of incoming serial binary data.
+                 Now it rejects fewer packets.
+               : Updated the date in the file headers.
+
+2014-01-20 OpenBCI_GUI_Simpler: 
+               : Added spectrogram plotting option
+               : Added initial Alpha wave detector
+               : Starts a new file with each start/stop
+
+2014-01-20 OpenBCI_GUI: 
+               : Added colored lines for different traces.
+               : Starts a new file with each start/stop
+
+2013-12-22 OpenBCI_GUI_Simpler: Added spectrogram plot.
+
+2013-11-15 OpenBCI_GUI_Simpler: First Upload
+
+2013-11-14 OpenBCI_GUI: Added 60Hz notch filtering (hard-coded filter coefficients)
+
+2013-11-13 OpenBCI_GUI: First upload
+Requirements
+------------
+The easiest way to get the required libraries is to install a standard
+scientific Python distribution.
+
+This software was developed using the Anaconda Python Distribution from 
+Continuum.io. It is available free for Windows, Linux and OS X:
+
+https://store.continuum.io/cshop/anaconda/
+
+This software should also be compatible with the PythonXY (Windows; free) 
+or Enthought Python Distributions (Windows, Linux, OS X; paid).
+
+At a minimum, you need:
+  * Python 2.7
+  * Numpy/Scipy
+  * Enthought Tool Suite (ETS)
+  * PyQt or PySide
+  * matplotlib
+
+Installation / Use
+------------------
+
+Install Python, as discussed in 'Requirements'.
+
+Extract or check out the source code and, in that directory, call:::
+
+    >> pythonw run.py
+
+(Note that on a Mac, it is necessary to use ``pythonw run.py`` or ``python.app run.py`` , not bare ``python``, to avoid
+a window-system-related issue.
+
+To create a binary Windows installer install cx_freeze, and then run:::
+
+    >> python setup.py bdist_msi
+
+The installer will be located in a "dist" subdirectory.
+
+License
+-------
+
+MIT License. See LICENSE.txt.
+WELCOME!
+--------
+
+Welcome to OpenBCI's Github.  This is the place where we will keep the software that we want to share with the community and where we will keep the software that the community shares with us.
+
+
+Contents
+--------
+
+* Arduino:  Here are the Arduino libraries and sketches to help you run OpenBCI with an Arduino.  Currently, all development has been with the Arduino UNO.  We will expand to other Arduino platforms in the future.
+
+* Processing GUI: Here are some Processing libraries and sketches to help you receive data from the Arduino/OpenBCI.  You can use these sketches to watch the data in real time.  Some of the sketches also log the data to disk so that you can analyze it after the test.

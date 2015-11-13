@@ -1,0 +1,140 @@
+This script automates the deployment of a Sparrow cluster on ec2. To use it:
+
+1) Get an ec2 account.
+
+2) Get your access key ID and value from ec2. You need to have these available
+   in environment variables AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY
+   respectively.
+
+3) Generate a key-pair in the AWS control panel in the "US East" datacenter.
+
+4) Run ./ec2_exp.sh --help to see how the script works.
+
+   The basic workflow would is usually like this.
+   # Launch instances
+   ./ec2-exp.sh launch -k eastkey -i ~/.ssh/eastkey.pem
+
+   # Deploy Sparrow files, waiting 100 seconds for instances to boot before
+   # attempting to contact them. It will also set the job rate to 10 jobs/s
+   # on each frontend (-l 10). This will generate config files and send
+   # them to all machines.
+   ./ec2-exp.sh deploy -i ~/.ssh/eastkey.pem -w 100 -l 10
+
+   # Start Sparrow
+   ./ec2-exp.sh start -i ~/.ssh/eastkey.pem
+
+   # Start proto application
+   ./ec2-exp.sh start-proto -i ~/.ssh/eastkey.pem
+
+   # Stop proto application
+   ./ec2-exp.sh stop-proto -i ~/.ssh/eastkey.pem
+
+   # Stop Sparrow
+   ./ec2-exp.sh stop -i ~/.ssh/eastkey.pem
+
+NOTE:
+Right now if you start and stop the proto application while keeping Sparrow
+running (i.e. you don't also restart Sparrow) things break. You will get a
+confusing Thrift error if you do this.
+
+If you'd like to run the full TPC-H experiment, you need to run two scripts:
+1) prepare_tpch_experiments.sh <num_frontends> <num_backends>:
+This script launches the given number of frontend and backend machines,
+and loads the TPCH data into HDFS and then into Shark.
+
+2) tpch_experiments.sh:
+This runs the TPCH experiments and can be executed multiple times after
+the prepare_tpch_experiments.sh script has been run.
+
+All files in this folder are copied to each remote Sparrow node, with any
+variables filled in by the EC2 install script.
+
+Files related to deploying Sparrow.
+
+The ec2 directory contains files for deploying Sparrow on ec2. The Sparrow
+AMI is not yet public, so it is not currently possible for external users to
+use these scripts. Contact us is this is a problem for you.
+
+If you'd like to deploy Sparrow on your own cluster, you'll need to
+do a few things:
+1) Download Sparrow:
+$ git clone git://github.com/radlab/sparrow.git
+2) Build Sparrow:
+$ cd sparrow
+$ mvn package
+3) Write a configuration file and copy the file to all machines. Currently,
+each Sparrow scheduler needs a configuration file that gives a list of where
+all of the Sparrow node monitors (worker machines) are running.
+See sparrow_configuration_example.conf to get started; see
+daemon/SparrowConf.java for a full list of options.
+4) Start Sparrow on all machines (both schedulers and node monitors). Starting
+Sparrow runs both a scheduler and a node monitor on the machine. Using
+the concurrent mark and sweep garbage collector is highly recommended -- the GC
+pauses using other gargabge collectors become significant when running
+sub-second tasks). Change the class path to reflect the location where you
+built Sparrow, and replace "sparrow.conf" with the location of the
+congiguration file you wrote above.
+$ java -XX:+UseConcMarkSweepGC -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.daemon.SparrowDaemon -c sparrow.conf
+5) Start your application executor on all backends. To use the prototype
+backend, which can run either CPU-intensive or memory-intensive tasks for
+some period of time:
+$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.prototype.ProtoBackend
+6) Start a frontend that submits scheduling requests to Sparrow. The current
+implementation assumes that there is a scheduler running on the same
+machine where the frontend is started, so frontends should only be started
+on machines where Sparrow is running.
+$ java -cp target/sparrow-1.0-SNAPSHOT.jar edu.berkeley.sparrow.prototype.ProtoFrontend
+
+The frontend accepts a configuration file (by adding "-c conf_file" when
+starting the frontend) where you can specify various configuration options to
+submit different types of jobs (e.g., with different numbers of tasks,
+of different duration, etc.), described in prototype/ProtoFrontend.java.
+
+
+mvn install:install-file -DgroupId=javax.jms -DartifactId=jms           -Dversion=1.1 -Dpackaging=jar -Dfile=./javax.jms-1.1.jar
+
+Sparrow Scheduler
+================================
+Sparrow is a high throughput, low latency, and fault-tolerant distributed cluster scheduler. Sparrow is designed for applications that require resource allocations frequently for very short jobs, such as analytics frameworks. Sparrow schedules from a distributed set of schedulers that maintain no shared state. Instead, to schedule a job, a scheduler obtains intantaneous load information by sending probes to a subset of worker machines. The scheduler places the job's tasks on the least loaded of the probed workers. This technique allows Sparrow to schedule in milliseconds, two orders of magnitude faster than existing approaches. Sparrow also handles failures: if a scheduler fails, a client simply directs scheduling requests to an alternate scheduler.
+
+To read more about Sparrow, check out our [paper](http://dl.acm.org/citation.cfm?doid=2517349.2522716).
+
+If you're interested in using Sparrow, we recommend that you join the [Sparrow mailing list](https://groups.google.com/group/sparrow-scheduler-users).
+
+
+Code Layout
+-------------------------
+`/sparrow/src` (maven-style source directory)
+
+`/sparrow/src/main/java/edu/berkeley/sparrow` (most of the interesting java code)
+
+`/sparrow/src/main/java/edu/berkeley/sparrow/examples` (Example applications that use Sparrow)
+
+`/deploy/`     (contains ec2 deployment scripts)
+
+Building Sparrow
+-------------------------
+
+You can build Sparrow using Maven:
+
+<pre>
+$ mvn compile
+$ mvn package -Dmaven.test.skip=true
+</pre>
+
+Sparrow and Spark
+------------------------
+
+We have ported [Spark](http://spark.incubator.apache.org/), an in-memory analytics framework, to schedule using Sparrow. To use Spark with Sparrow, you'll need to use the [our forked version of Spark](https://github.com/kayousterhout/spark/tree/sparrow), which includes the Sparrow scheduling plugin.
+
+Research
+-------------------------
+Sparrow is a research project within the [U.C. Berkeley AMPLab](http://amplab.cs.berkeley.edu/). The Sparrow team, listed roughly order of height, consists of Kay Ousterhout, Patrick Wendell, Matei Zaharia, and Ion Stoica. Please contact us for more information.
+
+This folder contains simple frontends and backends to use in testing Sparrow's performance.
+
+For users new to Sparrow, the SimpleFrontend and SimpleBackend classes provide a good minimal example of what a Sparrow application looks like. The SimpleFrontend launches jobs with a fixed number of tasks at a fixed period; the SimpleBackend runs the tasks, which simply sleep for a specified period of time.
+
+Shell scripts in this file aid with setting up the correct path to run
+Python programs.  To run X.py, run ./X.sh.
+

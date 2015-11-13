@@ -1,0 +1,198 @@
+c2c.py / r2c.py:
+    - Run measurement
+    - Usage: --help
+    - Output: c2c.data / r2c.data
+
+rosbridge.py:
+    - Run measurement using rosbridge
+    - Server-side dependencies: ros-{ros release}-rosbridge-server
+    - On server-side run:
+       $ roscore
+       $ rosrun Test stringEcho.py
+       $ roslaunch rosbridge_server rosbridge_websocket.launch
+
+plot.py
+    - Small script to quickly plot data
+    - Usage: --help
+    - Dependencies: python-matplotlib
+
+
+
+Setup
+=====
+
+c2c - without rce:
+    - Run 'rce-ros' to create two containers
+       $ rce-ros ./measure.cfg
+    - Enter the two containers using ssh (default password: admin)
+       $ ssh root@10.0.3.xxx
+    - Stop the cloud engine components in the container
+       # service rce stop
+    - Configure the ROS network
+       # unset ROS_HOSTNAME
+       # export ROS_IP=<local IP address>
+       # export ROS_MASTER_URI=http://<IP address>:11311
+    - Run roscore in one container matching the configured IP address
+       # roscore &
+    - Run stringEcho node in one container and the testRunner in the other container
+       # rosrun Test {stringEcho.py / testRunner.py}
+
+rce++ is a header only client with dependencies on Boost, websocketpp, curl, and
+openssl.
+
+Dependencies
+============
+
+    Boost:
+        http://www.boost.org/
+
+    websocketpp:
+        http://github.com/zaphoyd/websocketpp
+
+        Requires:
+          - Boost
+
+            - successfully compiled and linked with 1.52
+            - default boost library 1.46 of ubuntu 12.04 is insufficient
+
+    curl & openssl:
+        sudo apt-get install libcurl4-openssl-dev
+
+Necessary libaries to link against
+==================================
+
+    LDLIBS=-lboost_system -lboost_regex -lboost_random -lboost_thread
+
+Test the client
+===============
+
+    To test the rce++ client:
+      1. Build the test application (configure Makefile as necessary)
+
+           cd test
+           make
+
+      2. Use the ROS client (rce-ros) to setup the container for
+         the rce++ test (ROS client needs a working ROS environment).
+
+           rce-ros ../../test/debug.cfg
+
+      3. Run the test application
+
+           ./test [IP address of cloud engine]
+
+         The test should send and receive "Hello World!" messages which can
+         be checked using the command
+
+           rostopic echo /stringEchoReq
+
+         to check what is sent and the command
+
+           rostopic echo /stringEchoResp
+
+         to check was is received from the cloud engine.
+
+Installation:
+    python setup.py install
+
+Python Client:
+    Use the class 'Connection' from the module 'rce.comm'.
+
+ROS Client:
+    Use the script 'rce-ros' to start the client. Requires a configuration
+    file. An example can be found in rce/test/debug.cfg
+    
+      rce-ros <path to config file>
+
+Content of git respository
+==========================
+
+- measure:
+    Client-side scripts for a simple communication measurements and plotting.
+
+- rce-client:
+    Python and ROS client for the RoboEarth Cloud Engine.
+    (Tested with ROS fuerte & groovy)
+
+- rce-comm:
+    The files common to rce-core and rce-client.
+
+- rce-core:
+    The core files of the RoboEarth Cloud Engine.
+    (Tested with ROS fuerte & groovy)
+
+- rce-console:
+    A console client for monitoring the Cloud Engine.
+
+- rce-util:
+    Utility package of RoboEarth Cloud Engine.
+
+- rce++:
+    C++ client for the RoboEarth Cloud Engine.
+    
+- setup:
+    Setup files and utilities that are referenced from the INSTALL file.
+
+- test:
+    ROS packages which can be used with the framework. Contains server-side
+    files for benchmark.
+
+Config Files
+============
+
+ - debug.cfg
+    Basic configuration file containing most of the configration options.
+
+    Creates one container running a string echo (service and topic based) node
+    (Test - nodes/stringEcho.py) as well as a node (Test - nodes/paramTest.py)
+    to test access to ROS parameter service. Additionally, two empty containers
+    are created designed to be uesed to test virtual network.
+
+ - lo_client.cfg / lo_server.cfg
+    Configuration files to setup the simplest case of a robot network (i.e.
+    connecting two robots).
+
+    For this setup no working container filesystem and no running container
+    process is necessary. As the names indicate, the server config file has
+    to be running before the client config can be launched. Additionally,
+    the server needs the string echo node running.
+
+
+Test
+====
+
+Contains test and measurement nodes.
+
+Available nodes:
+ - nodes/converterTest.py (Status unknown!)
+    Requires image support:
+     - Python Imaging Libary and ROS sensor_msgs
+
+    Provides a service which adds to ints and additionally returns the RoboEarth
+    logo as a ROS sensor_msgs/Image.
+
+ - nodes/paramTest.py
+    Requires serveral parameters to be sent in the ROS parameter server.
+    
+    Provides a service ro retrieve several parameters from the ROS parameter
+    server as well as a command line argument. Primarily used to test the
+    interface to add parameters to a container and the passing of command line
+    arguments to ROS nodes.
+
+ - nodes/stringEcho.py
+    Provides a string echo interface both synchronously as a service as well as
+    asynchronously as a publisher/subscriber. Used to the the communication.
+    Additionally, the node is used for performing round-trip time measurements
+    in conjunction with rce's measure tools.
+
+ - nodes/stringTester.py
+    Provides an implemenation of the TestCenter used to perform the round-trip
+    time measurements and exposes the functionality as ROS services outside the
+    container. Primarily used by rce's measure tools.
+
+Available scripts:
+ - scripts/testRunner.py
+    Provides a command line interface to the TestCenter implementation to perform
+    round-trip time measurements. Primarily used to run measurements for the
+    virutal network.
+

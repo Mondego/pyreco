@@ -1,0 +1,249 @@
+Apuohjelma videoiden lataamiseen Yle Areenasta
+Copyright (C) 2010-2014 Antti Ajanki, antti.ajanki@iki.fi
+Ohjelmistolisenssi: GPLv2
+Kotisivu: http://aajanki.github.com/yle-dl/
+Lähdekoodi: https://github.com/aajanki/yle-dl
+
+yle-dl on apuohjelma tiedostojen lataamiseen Yle Areenasta
+(http://areena.yle.fi, http://ylex.yle.fi/ylex-areena) ja Elävästä
+arkistosta (http://www.yle.fi/elavaarkisto/).
+
+Asennus
+-------
+
+Asenna vaaditut kirjastot ja ohjelmat: rtmpdump (2.4 tai uudempi),
+python (2.6 tai uudempi) ja pycrypto.
+
+Debianissa nämä löytyvät paketeista rtmpdump, python ja
+python-crypto.
+
+OS X:ssä rtmpdumpin voi asentaa homebrew:llä ``brew install --HEAD
+rtmpdump`` ja pycrypton pipillä ``pip install -r requirements.txt``.
+
+Asenna komennolla:
+
+make install
+
+Komento vaatii pääkäyttäjän oikeudet (esim. Ubuntussa: sudo make
+install).
+
+Alkaen versiosta 1.99.9 yle-dl:stä ei enää tarvitse Ylen palvelimia
+varten muunneltua kopiota rtmpdump-ohjelmasta. Aikaisemman
+yle-dl-version mukana asennetun rtmpdumpin ja pluginin voi poistaa
+komentamalla pääkäyttäjänä "make uninstall-old-rtmpdump".
+
+Valmiit asennuspaketit
+----------------------
+
+Katso lista saatavilla olevista asennuspaketeista osoitteesta
+http://aajanki.github.io/yle-dl/
+
+RPM-paketointi:
+
+Tiedoston contrib/yle-dl.spec avulla on mahdollista luoda RPM-paketti
+Fedoraan.
+
+Käyttö
+------
+
+yle-dl [yle-dl-valitsimet ja rtmpdump-valitsimet] URL
+
+Korvaa URL webbi-osoitteella, missä ladatavaa ohjelmaa voisi katsoa
+nettiselaimen kautta. URL voi olla joko Yle Areenan tai Elävän
+arkiston osoite.
+
+Valitsimet:
+
+--latestepisode Lataa viimeisimmän jakson sivulta
+--showurl       Tulostaa librtmp-yhteensopivan video-URLin, ei lataa
+                tiedostoa
+--showtitle     Tulostaa ohjelman nimen, ei lataa tiedostoa
+--vfat          Tuota Windows-yhteensopivia tiedoston nimiä
+--sublang lang  Lataa tekstitykset annetulla kielellä (Yle Areena)
+                lang = fin, swe, smi, none or all (oletus)
+--rtmpdump path Polku rtmpdump-ohjelmaan
+--destdir dir   Aseta hakemisto mihin tiedostot tallennetaan
+
+Muut valitsimet välitetään suoraan rtmpdump:lle. Luettelon
+mahdollisista valitsimista (englanniksi) näkee komentamalla
+
+yle-dl --help
+
+Jotta yhteyden muodostaminen onnistuisi, palomuurin täytyy sallia
+ulospäin menevä liikenne porteissa 80 ja 1935.
+
+Kokeellinen tuki HDS-protokollalle
+----------------------------------
+
+Jotkin Areenan TV-ohjelmat ovat ladattavissa vain HDS-protokollalla.
+Jos normaali lataaminen ei onnistu, voi yle-dl:n komentaa lataamaan
+HDS-striimin. Lataamiseen vaaditaan php-tulkki ja AdobeHDS.php-skripti
+osoitteesta https://raw.githubusercontent.com/K-S-V/Scripts/master/AdobeHDS.php
+
+yle-dl --protocol hds --adobehds "php /path/to/AdobeHDS.php" http://areena.yle.fi/...
+
+Integroiminen Firefox-selaimeen
+-------------------------------
+
+yle-dl on mahdollista asentaa käynnistymään suoraan
+Firefox-selaimesta Launchy-laajennuksen avulla.
+
+Asenna ensin yle-dl normaalisti ja sitten Launchy-laajennus
+Firefoxiin (http://gemal.dk/mozilla/launchy.html). Kopioi
+contrib/launchy.xml Firefoxin profiilihakemiston alle
+chrome-alihakemistoon. Hakemiston sijainnin saa selville Launchyn
+asetusikkunasta launchy.xml-välilehdeltä. Osoitteessa
+http://gemal.dk/mozilla/profile.html on lisää ohjeita hakemiston
+paikallistamiseen.
+
+Asennuksen jälkeen videon latauksen voi käynnistää selaimesta
+klikkaamalla hiiren oikealla näppäimellä Areenan videosivun linkkiä ja
+valitsemalla avautuvasta valikosta Launchy > Download Link with
+yle-dl. Lataus käynnistyy taustalla. Toistaiseksi latauksen
+edistymisestä (tai epäonnistumisesta) ei näy mitään tietoa
+käyttäjälle. Video tallennetaan kotihakemistoon.
+
+Esimerkkejä
+-----------
+
+* Areenan ohjelman lataaminen automaattisesti nimettävään tiedostoon:
+
+  yle-dl http://areena.yle.fi/tv/1544491
+
+* Elävän arkiston ohjelman kaikkien jaksojen lataaminen:
+
+  yle-dl "http://www.yle.fi/elavaarkisto/?s=s&g=4&ag=28&t=&a=9390"
+
+* Ohjelman lataaminen tiedostoon uutiset.flv:
+
+  yle-dl http://areena.yle.fi/tv/1544491 -o uutiset.flv
+
+* Keskeytyneen latauksen jatkaminen tiedostoon uutiset.flv:
+
+  yle-dl http://areena.yle.fi/tv/1544491 -o uutiset.flv --resume
+
+* Lataa uusimmat uutiset
+
+  yle-dl --latestepisode http://areena.yle.fi/?q=uutiset
+
+* Toistaminen suoraan videotoistimessa:
+
+  mplayer "`yle-dl --showurl http://areena.yle.fi/tv/1544491`"
+
+* Ladatulle tiedostolle annetun nimen tulostaminen (esimerkiksi
+  jos skripti tarvitseen tiedoston nimen jatkokäsittelyä varten)
+
+  yle-dl http://areena.yle.fi/tv/1864726 2>&1 | grep "Output file:" | cut -d" " -f3-
+
+rtmpdump frontend for Yle servers
+
+Copyright (C) 2010-2014 Antti Ajanki, antti.ajanki@iki.fi
+
+License: GPLv2
+
+Homepage: http://aajanki.github.com/yle-dl/index-en.html
+
+Source code: https://github.com/aajanki/yle-dl
+
+yle-dl is a rtmpdump frontend for downloading media files from the
+video streaming services of the Finnish national broadcasting company
+Yle: [Yle Areena], [YleX Areena] and [Elävä Arkisto].
+
+[Yle Areena]:http://areena.yle.fi/
+[YleX Areena]:http://ylex.yle.fi/ylex-areena/
+[Elävä arkisto]:http://www.yle.fi/elavaarkisto/
+
+Installation
+------------
+
+Install dependencies: rtmpdump (version 2.4 or newer), python (2.6 or
+newer) and pycrypto.
+
+On Debian installing packages rtmpdump, python and python-crypto
+satisfies the dependencies.
+
+On OS X install rtmpdump with homebrew: ``brew install --HEAD
+rtmpdump`` and pycrypto with pip: ``pip install -r requirements.txt``
+
+To install run:
+
+```
+make install
+```
+
+Starting from version 1.99.9 yle-dl doesn't anymore require a modified
+rtmpdump or plugin. Instead, everything is now downloadable with the
+plain rtmpdump. To remove the remnants of previous versions run "make
+uninstall-old-rtmpdump".
+
+Packages for various distros
+----------------------------
+
+See http://aajanki.github.com/yle-dl/index-en.html for a list of
+available installation packages.
+
+RPM packaging:
+
+contrib/yle-dl.spec is a spec file for creating a RPM-package for
+Fedora.
+
+Usage
+-----
+
+```
+yle-dl [yle-dl or rtmpdump options] URL
+```
+
+where URL is the address of the Areena or Elävä arkisto web page where
+you would normally watch the video in a browser.
+
+yle-dl options:
+
+--latestepisode   Download the latest episodes
+
+--showurl         Print librtmp-compatible URL, don't download
+
+--showtitle       Print stream title, don't download
+
+--vfat            Create Windows-compatible filenames
+
+--sublang lang    Download subtitles, lang = fin, swe, smi, none or all
+
+--rtmpdump path   Set path to rtmpdump binary
+
+--destdir dir     Save files to dir
+
+Type "rtmpdump --help" to see a full list of options.
+
+Firewall must allow outgoing traffic on ports 80 and 1935.
+
+Experimental support for HDS streams
+------------------------------------
+
+Some Areena streams are available only as HDS streams. If normal
+downloading fails, you can instruct yle-dl to download the HDS stream.
+Do do that, first install php interpreter and download AdobeHDS.php
+script from
+https://raw.githubusercontent.com/K-S-V/Scripts/master/AdobeHDS.php
+
+```
+yle-dl --protocol hds --adobehds "php /path/to/AdobeHDS.php" http://areena.yle.fi/...
+```
+
+Examples
+--------
+
+```
+yle-dl http://areena.yle.fi/tv/1544491 -o video.flv
+```
+
+```
+yle-dl "http://www.yle.fi/elavaarkisto/?s=s&g=4&ag=28&t=&a=9390"
+```
+
+Playing in mplayer (or vlc and others) without downloading first:
+
+```
+mplayer "`yle-dl --showurl http://areena.yle.fi/tv/1544491`"
+```
+

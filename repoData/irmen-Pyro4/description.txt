@@ -1,0 +1,722 @@
+This is an example that shows the asynchronous method call support.
+
+The server has a single method that has an artificial delay of three seconds
+before it returns the result of the computation.
+
+The client shows how you might use Pyro's async feature to run the remote
+method call in the background and deal with the results later (when they
+are available).
+
+client_batch.py shows how to do async batched calls.
+Notice how this is different from oneway batched calls because
+we will get results this time (just somewhere in the future).
+Oneway calls never return a result.
+
+client_callchain.py shows the 'call chain' feature, where you can chain
+one or more asynchronous function calls to be performed as soon as the
+async call result became available. You can chain normal functions but
+also more pyro calls ofcourse. The result of the previous call is passed
+to the next call as argument.
+
+This is an example that shows the DOTTEDNAMES support and implications.
+
+You can start the server with or without DOTTEDNAMES enabled.
+Try both. See what the client does with both settings.
+
+The client also tries to perform a security exploit in the server, which
+will fail if DOTTEDNAMES is not enabled (the default).
+
+Lastly, direct attribute access. This feature is not yet available in Pyro
+so it cannot be demonstrated at this time.
+
+This is an example that shows the autoproxy feature.
+Pyro will automatically return a Proxy instead of the object itself,
+if you are passing a Pyro object over a remote call.
+
+This means you can easily create new objects in a server and return them
+from remote calls, without the need to manually wrap them in a proxy.
+
+This behavior is enabled by default. It is different from older Pyro releases,
+so there is a config item AUTOPROXY that you can set to False if you want
+the old behaviour. You can try it with this example too, set the environment
+variable PYRO_AUTOPROXY to false and restart the server to see what
+the effect is.
+
+Note that when using the marshal serializer, this feature will not work.
+
+This is an example that shows the auto reconnect feature,
+from a client's perspective.
+
+Start the server and the client.
+You can stop the server while it's running.
+The client will report that the connection is lost, and that
+it is trying to rebind.
+Start the server again. You'll see that the client continues.
+
+There are 2 examples:
+- reconnect using NS (clientNS/serverNS)
+- reconnect using PYRO (client/server)
+
+
+NOTES:
+
+1- Your server has to be prepared for this feature. It must not rely
+   on any transient internal state to function correctly, because
+   that state is lost when your server is restarted. You could make
+   the state persistent on disk and read it back in at restart.
+2- By default Pyro starts its daemons on a random port. If you want
+   to support autoreconnection, you will need to restart your daemon
+   on the port it used before. Easiest is to pick a fixed port.
+3- If using the name server or relying on PYRO-uri's: then your server
+   MUST register the objects with their old objectId to the daemon.
+   Otherwise the client will try to access an unknown object Id.
+4- If the NS loses its registrations, you're out of luck.
+   Clients that rely on name server based reconnects will fail.
+5- The client is reponsible for detecting a network problem itself.
+   It must also explicitly call the reconnect method on the object.
+6- Why isn't this automagic? Because you need to have control about
+   it when a network problem occurs. Furthermore, only you can decide
+   if your system needs this feature, and if it can support it
+   (see points above).
+7- Read the source files for info on what is going on.
+8- Also see the 'disconnects' example for another swing at dealing
+   with client timeouts/disconnects, and how a special proxy class
+   can make it easier to deal with for the clients.
+
+This is a simple electronic banking example.
+
+There are two banks:-
+Rabobank and ABN (don't ask - I'm from Holland)
+Their services are started with BankServer.py.
+
+
+The client runs some transactions on both banks (if found), like:-
+-creating accounts
+-deleting accounts
+-deposit money
+-withdraw money
+-inquire balance
+
+The ABN bank will not allow the client to overdraw and have a negative
+balance, the Rabobank will.
+
+This is an example that shows the batched calls feature.
+
+The example does a lot of method calls on the same proxy object.
+It shows the time it takes to do them individually.
+Afterwards, it does them again but this time using the batched calls
+feature. It prints the time taken and this should be much faster.
+
+It also shows what happens when one of the calls in the batch generates
+an error.  (the batch is aborted and the error is raised locally once
+the result generator gets to it).
+
+This test is to find out the average time it takes for a remote
+PYRO method call. Also it is a kind of stress test because lots
+of calls are made in a very short time.
+
+The oneway method call test is very fast if you run the client 
+and server on different machines. If they're running on the same
+machine, the speedup is less noticable.
+
+
+There is also the 'connections' benchmark which tests the speed
+at which Pyro can make new proxy connections. It tests the raw 
+connect speed (by releasing and rebinding existing proxies) and
+also the speed at which new proxies can be created that perform
+a single remote method call.
+
+
+Different serializers
+---------------------
+Note that Pyro4's performance is very much affected by two things:
+1) the network latency and bandwith
+2) the characteristics of your data (small messages or large)
+2) the serializer that is used.
+
+For instance, here are the numbers of the various serializers
+on my system (running the benchmark on localhost):
+
+serializer | performance (avg. time/call)
+-----------+-------------------------------
+   pickle  |  0.114 msec = 8781 calls/sec
+  marshal  |  0.124 msec = 8068 calls/sec
+     json  |  0.182 msec = 5508 calls/sec
+  serpent  |  0.259 msec = 3856 calls/sec
+
+Pickle is very fast (even faster than marshal, which I find surprising)
+but it has potential security problems. Serpent, the default serializer,
+is relatively slow, but is has the richest type support of the other
+serializers that don't have security problems.
+
+Don't select a serializer upfront based on the above performance chart.
+It is just the simple result of this silly benchmark example. Real-world
+performance may be quite different in your particular situation.
+
+
+These examples shows how you can let a server call back to the client.
+There are 2 examples.
+
+1) first example: server.py + client.py
+
+The client creates some worker objects on the server. It provides them
+with a callback object that lives in the client.
+When a worker is done with its task, it will invoke a method on the
+callback object. That means that this time, the client gets a call
+from the server that notifies it that a worker has completed its job.
+
+(Note: the client uses oneway calls to start up the workers, this
+ensures that they are running in the background)
+
+For all of this to work, the client needs to create a daemon as well:
+it needs to be able to receive (callback) calls after all.
+So it creates a daemon, a callback receiver, and starts it all up just
+like a server would do.
+
+The client counts the number of 'work completed' callbacks it receives.
+To remain in the daemon loop, the client provides a special loop condition
+that is true while the counter is less than the number of workers.
+
+
+Notice that the client sets PYRO_COMMTIMEOUT.
+That is needed because otherwise it will block in the default requestloop,
+and it will never evaluate the loopcondition. By setting a timeout we
+force it to periodically break from the blocking wait and check the
+loop condition.  We could also have used the 'select' servertype instead
+of setting a PYRO_COMMTIMEOUT, because that one already breaks periodically.
+(PYRO_POLLTIMEOUT).
+
+
+2) second example: server2.py + client2.py
+
+This example shows how to use the @Pyro4.callback decorator to flag a method
+to be a callback method. This makes Pyro raise any exceptions that occur in
+this method also on the side where the method is running. Otherwise it would
+just silently pass the exception back to the side that was calling the
+callback method.
+
+
+Also note that this example makes use of Pyro's AutoProxy feature. Sending
+pyro objects 'over the wire' will automatically convert them into proxies so
+that the other side will talk to the actual object, instead of a local copy.
+So the client just sends a callback object to the server, and the server can
+just return a worker object, as if it was a normal method call.
+
+Chat box example.
+
+This chat box example is constructed as follows:
+
+A Chat Server (Pyro object) handles the login/logoff process
+and keeps track of all chat channels and clients that are
+subscribed to each channel.
+It implements the chatting and distributing of chat messages
+to all subscribers. It uses oneway calls for that to improve
+performance with a large number of subscribers, and to avoid
+blocking.
+
+The chat client runs the user input processing in the main thread.
+It runs another thread with the Pyro daemon that is listening 
+for server chat messages, so that they can be printed while
+the main thread is still waiting for user input. 
+
+
+Also note that this example makes use of Pyro's AutoProxy feature. Sending
+pyro objects 'over the wire' will automatically convert them into proxies so
+that the other side will talk to the actual object, instead of a local copy.
+So the client just sends the callback object to the server.
+
+Create a chain of objects calling each other:
+ 
+client   -->  A  -->  B
+
+              ^       |
+              |       v
+              | 
+              `-----  C
+
+
+I.e. C calls A again.
+A detects that the message went full circle and returns
+the result (a 'trace' of the route) to the client.
+(the detection checks if the name of the current server
+is already in the current trace of the route, i.e.,
+if it arrives for a second time on the same server,
+it concludes that we're done).
+
+First start the three servers (servA,B,C) and then run the client.
+  
+You need to have a nameserver running.
+
+This example shows some code that triggers a Pyro conversation deadlock.
+
+The client and server engage in a 'conversation' where they will deadlock
+because a single proxy is used for both the initial server method call,
+and client callback.
+The client callback method calls the server again.
+But it will fail, because the proxy it is using is still engaged in the
+original method call to the server and is locked (waiting for a response).
+
+A simple solution is to never reuse proxies in callbacks, and instead
+create new ones and use those in the callback functions.
+
+Example code that shows a possible way to deal with client disconnects in the server.
+
+It sets the COMMTIMEOUT config item on the server side.
+This will make the connections timeout after the given time if no more data is received.
+That connection will then be terminated.
+
+The problem with this is, that a client that is still connected but simply takes too
+long between remote method calls, will encounter a ConnectionClosedError.
+But you can use Pyro's auto-reconnect feature to deal with this.
+
+The client.py code creates a special Proxy class that you use instead of Pyro's
+default, which will automatically do this for you on every method call.
+Alternatively you can do it explicitly in your own code like the 'autoreconnect'
+client example does.
+
+A drawback of the code shown is that it is not very efficient; it now requires
+two remote messages for every method invocation on the proxy.
+
+Note that the custom proxy class shown in the client uses some advanced features
+of the Pyro API:
+ - overrides internal method that handles method calls
+ - creates and receives custom wire protocol messages
+
+A simple distributed computing example with "pull" model.
+There is a single central work dispatcher/gatherer that is contacted
+by every worker you create. The worker asks the dispatcher for a chunk
+of work data and returns the results when it is done.
+
+The worker in this example finds the prime factorials for the numbers
+that it gets as 'work' from the dispatcher, and returns the list of
+factorials as 'result' to the dispatcher.
+
+The client program generates a list of random numbers and sends
+each number as a single work item to the dispatcher. It collects
+the results and prints them to the screen once everything is complete.
+
+
+*** Starting up ***
+- We're using a Name Server:
+    * configure it to allow the pickle serializer, for instance by setting
+      the environment variable: PYRO_SERIALIZERS_ACCEPTED=pickle
+    * start the name server.
+- start the dispatcher (dispatcher.py)
+- start one or more workers (worker.py). For best results, start one of
+    these on every machine/CPU in your network :-)
+- finally, give the system a task to solve: start the client.py program.
+
+
+Note: The dispatcher is pretty braindead. It only has a single work and
+result queue. Running multiple clients will probably break the system.
+Improvements are left as an exercise.
+
+Note: because custom classes are passed over the network (such as
+WorkItem and queue.Empty) the pickle serializer is used.
+
+Shows how you might use the built-in test echo server.
+So, this example only contains some client code.
+
+You are supposed to start the echo server with something like:
+
+$ python -m Pyro4.test.echoserver
+
+This example shows a possible use of a custom 'event loop'.
+That means that your own program takes care of the main event loop,
+and that it needs to detect when 'events' happen on the appropriate
+Pyro objects. This particular example uses select to wait for the
+set of objects (sockets, really) and calls the correct event handler.
+You can add your own application's sockets easily this way.
+
+This test is to show PYRO's remote exception capabilities.
+The remote object contains various member functions which raise
+various kinds of exceptions. The client will print those.
+
+Note the special handling of the Pyro exception. 
+It is possible to extract and print the *remote* traceback.
+You can then see where in the code on the remote side the error occured!
+By installing Pyro's excepthook (Pyro4.util.excepthook) you can even
+see the remote traceback when you're not catching any exceptions.
+
+Also try to set PYRO_DETAILED_TRACEBACK to True (on the server)
+to get a very detailed traceback in your client. This can help
+debugging.
+
+
+Note: you can only use your own exception classes, when you are
+using the pickle serializer. This is not the default.
+
+Pyro Flame example.
+Flame = "foreign location automatic module exposer"
+
+Without actually writing any code on the server you can still write
+clients that access modules and other things on the server.
+
+You'll have to start a Pyro Flame server before running the client.
+Set the correct configuration (see below) and run the following command:
+
+  python -m Pyro4.utils.flameserver
+
+
+Security (explicitly enable Flame, pickle serializer
+----------------------------------------------------
+By default, Flame is switched off; the feature cannot be used.
+This is because it has severe security implications.
+If you want to use Flame, you have to explicitly enable it in
+the server's configuration (FLAME_ENABLED config item).
+
+Also, because a lot of custom classes are passed over the network,
+flame requires the pickle serializer (SERIALIZER config item).
+When launching the server via the above utility command, this
+is taken care of automatically. If you write your own server and
+client, remember to configure this correctly yourself.
+
+For this example, setting the environment variable:
+  PYRO_FLAME_ENABLED=true
+before launching the flame server is enough to make it work.
+
+This is an example that shows the asynchronous function call support
+for normal Python functions.
+
+This is just a little extra that Pyro provides, that also works
+for normal Python code.
+
+It looks similar to the async proxy support from the `async` example.
+
+This example shows two ways of embedding Pyro's event loop in another
+application, in this case a GUI application (written using Tkinter).
+
+There's one application where a background thread is used for the Pyro
+daemon. This means you can't directly update the GUI from the Pyro objects
+(because GUI update calls need to be performed from the GUI mainloop thread).
+So the threaded gui server submits the gui update calls via a Queue to the
+actual gui thread.  There is a nice thing however, the GUI won't freeze up
+if a Pyro method call takes a while to execute.
+
+The other application doesn't use any threads besides the normal GUI thread.
+It uses a Tkinter-callback to check Pyro's sockets at a fast interval rate
+to see if it should dispatch any events to the daemon.
+Not using threads means you can directly update the GUI from Pyro calls but
+it also means the GUI will freeze if a Pyro method call takes a while.
+You also can't use Pyro's requestloop anymore, as it will lock up the GUI
+while it waits for incoming calls. You'll need to check yourself, using
+select() on the Pyro socket(s) and dispatching to the daemon manually.
+
+
+This test transfers huge data structures to see how Pyro handles those.
+It sets a socket timeout as well to see how Pyro handles that.
+
+
+A couple of problems could be exposed by this test:
+
+- Some systems don't really seem to like non blocking sockets and large
+  data transfers. For instance Mac OS X seems eager to cause EAGAIN errors
+  when your data exceeds 'the devils number' number of bytes.
+  Note that this problem only occurs when using specific socket code.
+  Pyro contains a workaround. More info:
+    http://old.nabble.com/The-Devil%27s-Number-td9169165.html
+    http://www.cherrypy.org/ticket/598
+    
+- Other systems seemed to have problems receiving large chunks of data.
+  Windows causes memory errors when the receive buffer is too large.
+  Pyro's receive loop works with comfortable smaller data chunks,
+  to avoid these kind of problems.
+
+
+Performance numbers with the various serializers on my local network:
+
+serializer | performance (string) | performance (bytes)
+-----------+---------------------------------------------
+   pickle  |     33260 kb/sec     |   33450 kb/sec
+  marshal  |     27900 kb/sec     |   32300 kb/sec
+     json  |     23856 kb/sec     |   not supported
+  serpent  |     13358 kb/sec     |    9066 kb/sec
+
+
+A simple iTunes remote controller tool. (only works on Mac OS X)
+
+Run 'itunescontroller' on the mac with the iTunes that you want to control.
+It only works on mac os because it uses the osascript utility to manipulate
+iTunes via a few applescript commands.
+
+Run the 'remote' on any other host. It does a few remote control operations.
+
+
+Shows how the MAX_MESSAGE_SIZE config item works.
+
+The client sends a big message first without a limit,
+then with a limit set on the message size. The second
+attempt will fail with a protocol error.
+
+The client talks to the echo server so you'll have to start
+the echo server first in another window:
+
+$ python -m Pyro4.test.echoserver
+
+You can try to set the PYRO_MAX_MESSAGE_SIZE environment variable
+to a small value (such as 2000) before starting the echo server,
+to see how it deals with receiving messages that are too large on the server.
+(Pyro will log an error and close the connection).
+
+
+This example contains a stress test for the Naming Server.
+It creates a bunch of threads that connect to the NS
+and create/delete registrations randomly, very fast.
+
+This example shows a way to use Pyro without a Name server.
+Look at the simplicity of the client. The only thing you need to
+figure out is how to get the correct URI in the client.
+This example just lets you enter it on the console.
+You can copy it from the server's output.
+
+Shows the use of 'oneway' method calls.
+If you flag a method call 'oneway', Pyro will not wait for a response
+from the remote object. This means that your client program can continue to
+work, while the remote object is still busy processing the method call.
+(Normal remote method calls are synchronous and will always block until the
+remote object is done with the method call).
+
+This example also shows the use of the ONEWAY_THREADED setting in the
+server. This setting is on by default. It means that oneway method calls
+are executed in their own separate thread, so the server remains responsive
+for additional calls from the same client even when the oneway call is still
+running. If you set this to False, the server will process all calls from
+the same proxy sequentially (and additional calls will have to wait).
+Note that a different proxy will still be able to execute calls regardless
+of the setting of ONEWAY_THREADED.
+
+This example shows how Pyro deals with sharing proxies in different threads.
+Due to internal locking you can freely share proxies among threads.
+The lock makes sure that only a single thread is actually using the proxy's
+communication channel at all times. 
+
+This can be convenient BUT it may not be the best way. The lock essentially
+prevents parallelism. If you want calls to go in parallel, give each thread
+their own proxy.
+
+This is an example that more or less presents an online multiplayer game.
+The game is a robot destruction derby.
+It is played on a grid. There are some obstructing walls on the grid that
+hurt when you collide into them. If you collide into another robot, the
+other robot takes damage. All robots start with a certain amount of health.
+If it reaches zero, the robot dies.  The last man standing wins!
+
+Before starting the gameserver, you need to start a nameserver,
+if you want to connect remotely to the game server! If you don't
+have a nameserver running, you can still launch the gameserver but
+you won't be able to connect to it with the Pyro clients.
+(make sure you launch the name server with SERIALIZERS_ACCEPTED=pickle)
+
+You can click a button to add a couple of robots that are controlled
+by the server itself. But it is more interesting to actually connect
+remote robots to the server! Use client.py for that (provide a name
+and a robot type). The client supports a few robot types that have
+different behaviors. The robot behavior is controlled by the client!
+The server only handles game mechanics.
+
+In the game server, the Pyro calls are handled by a daemon thread.
+The GUI updates are done by Tkinter using after() calls.
+
+The most interesting parts of this example are perhaps these:
+ - server uses identical code to work with local and remote robots
+   (it did require a few minor tweaks to work around serialization requirements)
+ - Pyro used together with an interactive GUI application (Tkinter)
+ - game state handled by the server, influenced by the clients (robot behavior)
+ - this example makes use of Pyro's AutoProxy feature. Registering
+   observers and getting a robot object back is done via proxies
+   automatically because those are Pyro objects.
+
+
+Because we are using some custom classes, this example requires the
+pickle serializer.
+
+Shows the different behaviors of Pyro's server types.
+First start the server, it will ask what type of server you want to run. 
+The client will print some information about what's happening.
+
+Try it with different server types and see how that changes the behavior.
+
+You can also try to set ONEWAY_THREADED to False on the server side,
+to change the behavior of oneway calls. The client will print a message
+if it detects you have been fiddling with this ;-)
+ 
+Shows the use of the serializer hooks to be able to transfer custom classes
+via Pyro (without using the pickle serializer).
+If you don't use the serializer hooks, the code will crash with a
+ProtocolError: unsupported serialized class, but now, it will happily
+transfer your object using the custom serialization hooks.
+
+It is recommended to avoid using these hooks if possible, there's a security risk
+to create arbitrary objects from serialized data that is received from untrusted sources.
+
+A very simple example that shows the creation and manipulation of
+new objects in the server.
+
+It is a shop where the clients need to take a shopping cart
+(created in the shop server) and put items in it from the shop's
+inventory. After that they take it to the shop's counter to pay
+and get a receipt. Due to Pyro's autoproxy feature the shopping carts
+are automatically returned to the client as a proxy.
+
+The Shoppingcart objects remain in the shop server. The client code
+interacts with them (and with the shop) remotely.
+The shop returns a receipt (just a text list of purchased goods) at
+checkout time, and puts back the shopping cart (unregisters and deletes
+the object) when the client leaves the store.
+
+
+This example shows a nifty use of a Pyro proxy object.
+We use it to replace sys.stdin and sys.stdout, so that all input
+and output is handled by a remote program instead.
+
+inputoutput.py is the i/o 'server' that provides the remote input/output
+program.py is a simple program that asks a few lines of input from the
+user and prints a few lines of resulting text. If you feed it the URI of
+the inputoutput server, it will replace the local stdin/stdout with the
+appropriate Pyro proxies, so that it now does its i/o remotely.
+
+There's one special thing going on in the inputoutput server:
+it needs to wrap the stdin/stdout file objects with a simple proxy object
+because otherwise Pyro can't inject its custom attributes that it needs
+to be able to treat the object (file stream) as a Pyro object.
+The proxy 'knows' that all special Pyro attributes start with _pyro.
+Also, it needs to intercept the fileno attribute and pretend it doesn't
+exist, otherwise the thing doesn't seem to work on Python 3.x.
+
+
+This example is the code from the Pyro tutorial where we build a simple
+stock quote system.
+
+The idea is that we have multiple stock markets producing stock symbol
+quotes. There is an aggregator that combines the quotes from all stock
+markets. Finally there are multiple viewers that can register themselves
+by the aggregator and let it know what stock symbols they're interested in.
+The viewers will then receive near-real-time stock quote updates for the
+symbols they selected.  (Everything is fictional, ofcourse).
+
+
+ Stockmarket  ->-----\                /----> Viewer
+ Stockmarket  ->------>  Aggregator ->-----> Viewer
+ Stockmarket  ->-----/                \----> Viewer
+
+
+The tutorial consists of 3 phases:
+
+phase 1:
+    Simple prototype code where everything is running in a single process.
+    Main.py creates all object, connects them together, and contains a loop
+    that drives the stockmarket quote generation.
+    This code is fully operational but contains no Pyro code at all and
+    shows what the system is going to look like later on.
+
+phase 2:
+    Still no Pyro code, but the components are now more autonomous.
+    They each have a main function that starts up the component and connects
+    it to the other component(s). As the Stockmarket is the source of the
+    data, it now contains a thread that produces stock quote changes.
+    Main.py now only starts the various components and then sits to wait
+    for an exit signal.
+    While this phase still doesn't use Pyro at all, the structure of the
+    code and the components are very close to what we want to achieve
+    in the end where everything is fully distributed.
+
+phase 3:
+    The components are now fully distributed and we used Pyro to make them
+    talk to each other. There is no main.py anymore because you have to start
+    every component by itself: (in seperate console windows for instance)
+    - start a Pyro name server (python -m Pyro4.naming), make sure that
+      you've set the PYRO_SERIALIZERS_ACCEPTED=pickle environment variable first.
+    - start the stockmarket
+    - start the aggregator
+    - start one or more of the viewers.
+
+
+A lot of subjects are not addressed in this tutorial, such as what to do when
+one or more of the viewers quits (error handling and unregistration),
+what to do when a new stockmarket is opening when we have a system
+running already, what if a viewer is blocking the processing of the stock
+quote updates, etc.
+
+
+Note that phase 3 of this example makes use of Pyro's AutoProxy feature. Sending
+pyro objects 'over the wire' will automatically convert them into proxies so
+that the other side will talk to the actual object, instead of a local copy.
+
+
+Note: ignore the exact meaning of the "PYRO_SERIALIZER=pickle" settings.
+They are needed to get the stock market tutorial running in the form presented here.
+Basically it enables Pyro to transfer actual Python objects to remote calls,
+instead of only simple types such as lists and strings.
+
+This is an example that shows the connection timeout handling
+(in the client).
+
+server.py    -- the server you need to run for this example
+client.py    -- client that uses timeout settings
+
+
+The client disables and enables timeouts to show what happens.
+It shows timeouts during long remote method calls, but also timeouts
+when trying to connect to a unresponsive server.
+
+This is a very simple example that uses a Unix domain socket instead of 
+a normal tcp/ip socket for server communications.
+
+The only difference is the parameter passed to the Daemon class.
+The client code is unaware of any special socket because you just
+feed it any Pyro URI. This time the URI will encode a Unix domain socket
+however, instead of a hostname+port number.
+
+
+This example is the code from the Pyro tutorial where we build a simple
+warehouse that stores items.
+
+The idea is that there is one big warehouse that everyone can store items
+in, and retrieve other items from (if they're in the warehouse).
+
+The tutorial consists of 3 phases:
+
+phase 1:
+    Simple prototype code where everything is running in a single process.
+    visit.py creates the warehouse and two visitors.
+    This code is fully operational but contains no Pyro code at all and
+    shows what the system is going to look like later on.
+
+phase 2:
+    Pyro is now used to make the warehouse a standalone component.
+    You can still visit it of course. visit.py does need the URI of the
+    warehouse however. (It is printed as soon as the warehouse is started)
+    The code of the Warehouse and the Person classes is unchanged.
+
+phase 3:
+    Phase 2 works fine but is a bit cumbersome because you need to copy-paste
+    the warehouse URI to be able to visit it.
+    Phase 3 simplifies things a bit by using the Pyro name server.
+    Also, it uses the Pyro excepthook to print a nicer exception message
+    if anything goes wrong. (Try taking something from the warehouse that is
+    not present!)
+    The code of the Warehouse and the Person classes is still unchanged.
+
+
+Note: to avoid having to deal with serialization issues, this example only
+passes primitive types (strings in this case) to the remote method calls.
+
+PYRO - Python Remote Objects
+
+
+Pyro enables you to build applications in which objects can talk
+to each other over the network, with minimal programming effort.
+You can just use normal Python method calls to call objects on
+other machines. Pyro is written in 100% pure Python and so it
+runs on many platforms and Python versions, including Python 3.x.
+
+
+Documentation can be found online at: http://pythonhosted.org/Pyro4/
+(or unformatted here in the repo at: docs/source/intro.rst)
+
+
+This software is copyright (c) by Irmen de Jong (irmen@razorvine.net).
+
+This software is released under the MIT software license.
+This license, including disclaimer, is available in the 'LICENSE' file.
+

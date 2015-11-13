@@ -1,0 +1,1270 @@
+bind-shim for Debian
+--------------------
+
+   LD_PRELOAD library to make bind and connect to use a virtual
+   IP address as localaddress. Specified via the enviroment
+   variable BIND_ADDR.
+
+   Example in bash to make inetd only listen to the localhost
+   lo interface, thus disabling remote connections and only
+   enable to/from localhost:
+
+   BIND_ADDR="127.0.0.1" LD_PRELOAD=/usr/lib/bind.so /sbin/inetd
+
+
+   Example in bash to use your virtual IP as your outgoing
+   sourceaddress for ircII:
+
+   BIND_ADDR="your-virt-ip" LD_PRELOAD=/usr/lib/bind.so ircII
+
+   Note that you have to set up your servers virtual IP first.
+
+
+   This program was made by Daniel Ryde
+   email: daniel@ryde.net
+   web:   http://www.ryde.net/
+
+ -- Leo Moll <leo.moll@yeasoft.com>  Sun, 06 Apr 2014 15:10:57 +0200
+
+bind-shim for Debian
+--------------------
+
+Since this is a real small library, there is no official source
+archive. The one and only souce file can be downloaded under
+http://www.ryde.net/code/bind.c.txt and contains all needed
+documentation in the source itself...
+
+
+btsync credits
+==============
+
+The BitTorrent Server Package was written by Leo Moll <leo.moll@yeasoft.com>
+
+### Main Inspiration ###
+
+The main structure of this deployment was inspired by the OpenVPN package for
+Debian. In OpenVPN, you define your VPN instances by specifying configuration
+files in /etc/openvpn and so I adopted the same mechanism for BitTorrent Sync.
+
+### Contributions ###
+
+A lot of people [in the forum][1] has contributed by reporting bugs, making
+suggestions and providing some eccellent ideas. 
+
+With about 100.000 topic views and over 23 pages, I can only say:
+
+__THANK YOU ALL!!! THANK YOU FOR YOUR GOOD IDEAS, YOUR SUPPORT AND YOUR
+ENCOURAGEMENT!__
+
+Many thanks also to Daniel Ryde <daniel@ryde.net> for [bind.so][2] that makes it
+possible to bind BitTorrent Sync to a specific interface.
+
+[1]: http://forum.bittorrent.com/topic/18974-debian-and-ubuntu-server-unofficial-packages-for-bittorrent-sync/
+[2]: http://www.ryde.net/code/bind.c.txt
+
+### Localization ###
+
+The following People contributed in translating `btsync`:
+
+* Alex Novo (Russian)
+* Andreas Kiss (Hungarian)
+* Andrea Pennelli (Italian)
+* Damian _"xearonet"_ (Polish)
+* Dmitriy Lopatko (Russian)
+* Jasper Sierink _"knireis"_ (Dutch)
+* Julian _"Hennessy"_ (Chinese)
+* Leo Moll (German & Italian)
+* Marek Lukas (Czech)
+* Marti Segarra Casas (Catalan, Spanish)
+* Miguel Anxo Bouzada (Galician)
+* Loïc Fournet _"AnthorNet"_ (French)
+* Quentin Scouflaire (French)
+* Thanos Papaoikonomou (Greek)
+* Voctpr Pavlov (Russian)
+* Jose Luis Tirado (Spanish)
+
+
+btsync for Debian
+-----------------
+
+See /usr/share/doc/btsync/README.md for full documentation.
+
+ -- Leo Moll <leo.moll@yeasoft.com>  Mon, 07 Apr 2014 18:31:12 +0200
+
+
+BitTorrent Sync Server Package
+==============================
+
+BitTorrent® Inc. delivers for Linux users only a raw binary file without any
+deployment concept or setup system. It's up to the user to create a reliable
+startup and shutdown logic, manage configuration files, internal storage
+directories and everything else related to file and directory permissions,
+application update and various other aspects.
+
+The BitTorrent Sync Server Package (`btsync`) is the ideal solution for all
+users that want to deploy BitTorrent Sync on Linux servers running Debian or
+other derived distributions like Ubuntu, Raspbian, Linux Mint or similar.
+
+__THIS SERVER PACKAGE IS UNOFFICIAL AND NOT THE WORK OF BITTORRENT® INC.
+PLEASE DO NOT CONTACT THE BITTORRENT® INC. SUPPORT WITH QUESTIONS OR
+PROBLEMS RELATED TO THE USE OF THE PACKAGE. YOU WILL FIND COMPETENT
+HELP AND SUPPORT IN THE [SUPPORT FORUM](http://forum.bittorrent.com/topic/18974-debian-and-ubuntu-server-unofficial-packages-for-bittorrent-sync/)__
+
+
+Typical Use Cases
+-----------------
+
+The BitTorrent Sync Server Package is designed to run one or more BitTorrent
+Sync background processes (called _"instances"_) on servers where no specific
+user is usually logged on. Since the server package does not provide any GUI
+(except for the optional Web UI provided by BitTorrent Sync itself), it can be
+also installed on headless servers (without any desktop environment).
+
+The server version is particularly suitable for the following use cases:
+
+- BitTorrent Sync is used as a background service, to keep directories in sync
+  between all servers of a distributed infrastructure like a PXE boot system and
+  groups of shared configuration files.
+- Always-on instances of BitTorrent Sync for providing an always available
+  external copy and source of replicated data for other BitTorrent Sync clients.
+- A content distribution network based on shared folders.
+- Customized services built upon the functionality of BitTorrent Sync.
+
+
+Installation
+------------
+
+The most easy and fast way to install the repository is to paste that at a
+terminal prompt:
+
+```bash
+sh -c "$(curl -fsSL http://debian.yeasoft.net/add-btsync-repository.sh)"
+```
+
+The script explains what it will do and then pauses before it does it asking
+for your permission. If you encounter any problems or prefer to do it manually,
+please __[look here](http://www.yeasoft.com/site/projects:btsync-deb:btsync-repo)__.
+
+Now update the package index and install `btsync` by pasting that at a
+terminal prompt
+
+```bash
+`which sudo` apt-get update
+`which sudo` apt-get install btsync
+```
+
+After downloading the packages, the installation begins. The package manager
+will ask you, if you want a default instance of BitTorrent Sync to be created.
+If you answer __yes__, you will be guided through the installation and when
+finished you will have a fully operational BitTorrent Sync instance maintained
+by _debconf_. The configuration can be modified and fine tuned at any time by
+performing the following command:
+
+```bash
+`which sudo` dpkg-reconfigure btsync
+```
+
+Here you can also choose to delete the default instance by answering __no__ to
+the initial question.
+
+
+Usage Notes
+-----------
+
+The BitTorrent Sync Server Package mainly consists of an init-style startup
+script that manages every operational aspect of running BitTorrent Sync
+instances.
+
+
+### Instance Configuration Files ###
+
+All operational parameters for BitTorrent Sync instances are configured in
+configuration files located in the directory `/etc/btsync`. These configuration
+files basically are [JSON Files](http://en.wikipedia.org/wiki/JSON) and follow
+a very strict syntax. In addition to the JSON specification, comments are also
+supported. The support of commented lines permits to specify additional
+parameters that are not directly parsed by the BitTorrent Sync executable itself
+but by the init-script.
+
+The naming convention for configuration files defining BitTorrent Sync instances
+is:
+
+```
+<instance_name>.conf
+```
+
+where `<instance_name>` should be a string consisting of alphanumeric
+characters.
+
+The default instance maintained by _debconf_ has also a configuration file that
+is named `debconf-default.conf`. This name __shall never be used__ by manually
+created configuration files, since it may be deleted or overwritten by
+_debconf_. This file __shall also never be edited manually__ since it is often
+rewritten and/or created/deleted by _debconf_. If you want to manage the default
+instance, you must always use the command:
+
+```bash
+`which sudo` dpkg-reconfigure btsync
+```
+
+Each configuration file in `/etc/btsync` defines a separate running BitTorrent
+Sync _instance_ (that means: a process). When defining more than one instance
+on a system, there are some rules that must be considered:
+
+1. The listening ports (parameter `listening_port`) must be unique for each
+   BitTorrent Sync instance
+2. The internal database path (parameter `storage_path`) must be unique for each
+   BitTorrent Sync instance
+3. If the Web UI is enabled, the Web UI bind address and listening port
+   (parameter `listen`) must be unique for each BitTorrent Sync instance
+
+The syntax and configuration parameters of a BitTorrent Sync configuration file
+are partially documented in the example file `/etc/btsync/samples/complex.conf`
+and in the [official BitTorrent Sync manual](http://btsync.s3-website-us-east-1.amazonaws.com/BitTorrentSyncUserGuide.pdf)
+which can be also found in `/usr/share/doc/btsync-common/BitTorrentSyncUserGuide.pdf.gz`.
+
+There are additional parameters that are parsed by the init script upon startup
+and affect many important aspects. These parameters are not parsed directly by
+BitTorrent Sync and therefore have to be placed in comment lines. In order to
+improve the readability of configuration files, they should be grouped together
+and placed at the beginning of the configuration file. The generic syntax of
+such parameters is:
+
+```
+// PARAMETER_NAME=<parameter value>
+```
+
+The following parameters are supported:
+
+- `DAEMON_UID`: A uid (user id) for specifying the user under which the
+  BitTorrent Sync instance should run
+- `DAEMON_GID`: A gid (group id) for specifying the group under which the
+  BitTorrent Sync instance should run
+- `DAEMON_UMASK`: The umask (up to 4 octal digits) for the BitTorrent Sync
+  instance. If omitted the default umask is used.
+- `DAEMON_DEBUG`: The debug mask (4 hex digits) for the BitTorrent Sync
+  instance. If omitted the init script will not touch potential settings defined
+  manually. If set to `0000`, a potential settings file will be deleted. Full
+  detail is set by specifying `FFFF`. The log file can be found in the
+  directory specified by `storage_path` and is named `sync.log`
+- `DAEMON_NICE`: The niceness level of the BitTorrent Sync instance, which
+  affects the process scheduling. Nicenesses range from -20 (most favorable
+  scheduling) to 19 (least favorable).
+- `DAEMON_BIND`: This parameter works only in conjunction with the package
+  `bind-shim`. Please see the specific section below covering the specific
+  interface binding topic.
+
+```
+//
+// DAEMON_UID=jdoe
+// DAEMON_UMASK=0002
+//
+```
+
+This example will launch the instance running under the credentials of the user
+"__jdoe__" using __0002__ as umask.
+
+By specifying `DAEMON_UID` and `DAEMON_GID` it is possible to specify under which
+credentials the instance runs. In this case it __MUST__ be assured that the
+instance is able to read and write all files it must access:
+
+- The instance must be able to read its own configuration file. Since the
+  configuration file may contain sensitive data (the userame and password for
+  the web interface), it is usually **owned by the user** under which the
+  instance runs and has the mode `400 (-r--------)` in order to limit the access 
+  to the specific user. Usually the init script takes care of adjusting the file
+  permissions.
+- The instance must be able to read and write in its `storage_path`, since all
+  internal control and status files (and the database of file hashes) are kept
+  there. The ideal solution is to keep the `storage_path` somewhere in the home
+  directory of the user under which the instance will run. Usually the init 
+  script takes care of adjusting the file permissions.
+- Obviously the instance must be able to read and write the files and
+  directories that will be synchronized.
+
+Some example configuration files are provided under `/etc/btsync/samples`
+
+
+### Default Startup Parameters ###
+
+The additional configuration file `/etc/default/btsync` permits to specify
+some default startup parameters that may affect every configured instance of
+BitTorrent Sync.
+
+The variable **AUTOSTART** defines which instances are started automatically.
+It can take the following values:
+
+- `none` No instance is started automatically
+- `all` (default) All instances are started automatically
+- `<list>` Only the specified instances are started automatically
+
+Instances not started automatically upon system startup can be managed manually
+from the command line:
+
+```bash
+# start a specific instance
+service btsync start <instance_name>
+# stop a specific instance
+service btsync stop <instance_name>
+```
+
+The advanced variable **DAEMON_ARGS** allows to specify additional command line
+parameters passed to the daemon. __WARNING__: Be careful!  You should only add
+things here if you know __EXACTLY__ what you are doing!
+
+The variable **DAEMON_BIND** has the same purpose as the same parameter in the
+instance configuration files, but in this scope it will be applied by default to
+all instances. Please see the specific section below covering the specific
+interface binding topic.
+
+The variable **DAEMON_INIT_DEBUG** permits to enable extended debug output of
+the init-script.
+
+Binding BitTorrent Sync to a specific interface
+-----------------------------------------------
+
+Unfortunately BitTorrent Sync currently does not support to bind the main
+service routine to a specific network interface. Currently only the internal
+web server providing the Web UI and the BitTorrent Sync API can be specifically
+bound to a specific address.
+
+In order to limit the operation of BitTorrent Sync to a specific interface in a
+multihomed environment, a so called [preload shim][1] can be used. The
+BitTorrent Sync repository contains a precompiled version of
+[Daniel Ryde's bind.so shim](http://www.ryde.net/code/) that must be installed
+with:
+
+```bash
+`which sudo` apt-get install bind-shim
+```
+
+The BitTorrent Sync init script does detect the presence of the library and
+enables support for the additional parameter **DAEMON_BIND** that can be
+specified either in `/etc/default/btsync` or in instance configuration files.
+
+By specifying a valid TCP/IP address assigned to one of the interfaces of the
+system, the BitTorrent Sync instance will bind only to that specific address.
+This will affect also the Web UI, if `0.0.0.0` is specified as the bind address.
+
+[1]: https://en.wikipedia.org/wiki/Shim_(computing)
+
+Some Remarks about Autoupdate
+-----------------------------
+
+The daemon scripts require that autoupdate is disabled in the configuration
+script, otherwise the instance will not be started. The reason for that is,
+that updates are handled by the Debian/Ubuntu package handling utility itself.
+
+
+Compatibility
+-------------
+
+The deb-packages are available for the same architectures as released by
+BitTorrent Inc.:
+
+- __i386__ - Intel/AMD 32 Bit
+- __amd64__ - Intel/AMD 64 Bit
+- __armel__ - ARM EABI
+- __armhf__ - ARM hard float
+- __powerpc__ - PowerPC
+
+Since the packages still have not been tested on every platform, any
+related feedback is highly appreciated.
+
+Bug Reports, Contribution and Sources
+-------------------------------------
+
+If you want to contribute to the development of the packages or if you are
+curious how this all works, you may find the current sources of the deployment
+scripts and packaging on GitHub (https://github.com/tuxpoldo/btsync-deb)
+
+If you want to contribute to the localisation by translating changed strings or
+by adding support for your favourite language, you may
+[join the localisation team on POEditor.com](https://poeditor.com/join/project?hash=021de7da0c2a0562da16dfcefcb26cc1).
+
+If you have experienced a reproducible issue that __is related to the
+packaging and not to BitTorrent Sync itself__ you are strongly encouraged to
+[open an issue on the project's GitHub Page](https://github.com/tuxpoldo/btsync-deb/issues).
+Issues related to the native functionality of BitTorrent Sync should instead be
+discussed by creating a new topic or partecipating to an already existing topic
+in the [BitTorrent Sync Forum](http://forum.bittorrent.com/forum/56-sync-general-discussion/).
+
+
+
+btsync-common for Debian
+------------------------
+
+This package installs the original btsync binary from BitTorrent Inc.
+in /usr/lib/btsync-common as btsync-core
+The original documentation including a sample configuration file and
+all included README and LICENSE files will be installed in
+/usr/share/doc/btsync/
+
+This package does not provide any ready to use functionality but is
+solely intended as a base for other packages like btsync-user that
+rely on the btsync functionality
+
+ -- Leo Moll <leo.moll@yeasoft.com>  Mon, 14 Oct 2013 13:23:17 +0200
+
+btsync-common for Debian
+------------------------
+
+The source archive of this package can be generated from scratch by
+executing make -f debian/rules get-orig-source
+
+The original btsync binaries will be retrieved directly either from
+BitTorrent Inc. or alternatively from the maintainers site
+
+See the get-orig-source target in the rules file.
+
+btsync-gui credits
+==================
+
+The BitTorrent Sync GUI was written by Leo Moll <leo.moll@yeasoft.com>
+
+### Main Inspiration ###
+
+I would like to thank Mark Johnson <mark@barrenfrozenwasteland.com> for writing
+[`btsyncindicator.py`][1] which made a consistent part of the success of
+`btsync-user` and gave me the last nudge needed to learn python and write my
+first linux GUI application. Thank you!
+
+### Contributions ###
+
+The following people have contributed with code and/or good ideas:
+
+1. Brandon Ingalls <blingall@mtu.edu> for his [BtSyncAPI][2] Python bindings
+which inspired me in writing my own binding class.
+
+2. Harvey Mittens for his [Pull Request #42][3] to Mark's indicator which
+inspired me to implement my own abstraction class.
+
+3. Sean (_"shizeon"_) for pushing me in implementing the support for encrypted
+nodes and supplying some useful patches.
+
+
+[1]: https://github.com/marxjohnson/btsyncindicator
+[2]: https://github.com/BrandonIngalls/BTSyncAPI
+[3]: https://github.com/marxjohnson/btsyncindicator/pull/42
+[4]: https://poeditor.com/join/project?hash=447194402f4913165d4ae5f2fc60ffca
+
+### Localization ###
+
+The following People contributed in translating `btsync-gui`:
+
+* Andrea Pennelli (Italian)
+* Antoine Lorence (French)
+* Atanas Kovachki (Bulgarian, Russian)
+* Damian Szymański (Polish)
+* Dávid Szilágyi (Hungarian)
+* Jasper Sierink _"knireis"_ (Dutch)
+* Jose Luis Tirado (Spanish)
+* Leo Moll (German & Italian)
+* Loïc Fournet _"AnthorNet"_ (French)
+* Marek Lukas (Czech)
+* Miguel Anxo Bouzada (Galician)
+* Sergey Shlyapugin (Russian)
+
+If you want to help in translating changed strings or add you favourite
+language, you may [join the localisation team][4] on [POEditor.com][4].
+
+### Maintainers ###
+
+* Martin Wimpress <martin@flexion.org> for maintaining the Arch Linux package
+in the AUR
+
+btsync-gui-gtk for Debian
+-------------------------
+
+
+ -- Leo Moll <leo.moll@yeasoft.com>  Mon, 27 Jan 2014 14:34:29 +0100
+
+BitTorrent Sync Desktop GUI Package
+===================================
+
+BitTorrent® Sync is an excellent product, but as Linux user, you will miss the
+easy installation and integrated GUI provided to Windows and Mac OSX users. But
+now the dark age is over! Here comes the solution:
+
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-1-thumb.png)
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-2-thumb.png)
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-3-thumb.png)
+
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-4-thumb.png)
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-5-thumb.png)
+![BitTorrent Sync Desktop](http://www.yeasoft.com/assets/images/articles/btsync-gui-6-thumb.png)
+
+BitTorrent Sync GUI for Linux (`btsync-gui`) is the _missing link_ for all Linux
+desktop users that aims to provide the same user experience as the original
+Windows or Mac OSX versions.
+
+If you are using __Arch Linux__, __Debian__, __Ubuntu__, __Linux Mint__ or any
+other Debian derived distribution, you will also enjoy the easy to use
+installation packages.
+
+__THE SOFTWARE AND THE PACKAGES ARE UNOFFICIAL AND NOT THE WORK OF BITTORRENT®
+INC. PLEASE DO NOT CONTACT THE BITTORRENT® INC. SUPPORT WITH QUESTIONS OR
+PROBLEMS RELATED TO THE USE OF THE PACKAGES. YOU WILL FIND COMPETENT
+HELP AND SUPPORT IN THE [SUPPORT FORUM](http://forum.bittorrent.com/topic/28106-linux-desktop-gui-unofficial-packages-for-bittorrent-sync/)__
+
+### Installation on Debian and Derivates (Ubuntu, Mint, Raspian, etc) ###
+
+The most easy and fast way to install the repository is to paste that at a
+terminal prompt:
+
+```bash
+sh -c "$(curl -fsSL http://debian.yeasoft.net/add-btsync-repository.sh)"
+```
+
+The script explains what it will do and then pauses before it does it asking
+for your permission. If you encounter any problems or prefer to do it manually,
+please __[look here](http://www.yeasoft.com/site/projects:btsync-deb:btsync-repo)__.
+
+Now update the package index and install `btsync-gui` by pasting that at a
+terminal prompt
+
+```bash
+`which sudo` apt-get update
+`which sudo` apt-get install btsync-gui
+```
+
+On some systems the `AppIndicator` library is not available or maybe you do not
+want to use it. In this case, you may install the GTK only version of the
+BitTorrent Sync GUI instead:
+
+```bash
+`which sudo` apt-get update
+`which sudo` apt-get install btsync-gui-gtk
+```
+
+Please keep in mind, that __this will work only on GTK based desktops__. If you
+install it on other desktops like Unity, `btsync-gui` will start but __you will
+see nothing and you have no control over the application!__ Install
+`btsync-gui-gtk` only if you know exactly what you are doing!!! If this
+happened, you can fix it by installing `btsync-gui` and rebooting your system.
+
+After the successful installation, you have to initially start BitTorrent Sync.
+You have various possibilities to do this:
+
+- Log out and log in again. Since BitTorrent Sync GUI is registered in the
+  autostart group, it will start as soon as you log in.
+- Select _BitTorrent Sync_ from the menu or the default application launcher of
+  your desktop.
+
+
+### Installation on Arch Linux ###
+
+Arch Linux users will find a `btsync-gui` package in the [AUR](https://aur.archlinux.org/packages/btsync-gui/)
+The package is maintained by Martin Wimpress (@flexiondotorg) and can be
+installed from the AUR using your favourite package manager. e.g.: if you are
+using [yaourt](https://wiki.archlinux.org/index.php/yaourt):
+
+```
+sudo yaourt -S btsync-gui
+```
+
+
+### Upgrading from btsync-user ###
+
+`btsync-gui` is a drop-in replacement for `btsync-user`. By installing
+`btsync-gui` (or `btsync-gui-gtk`), your existing installation of `btsync-user`
+will be automatically replaced by `btsync-gui` without losing any data.
+
+
+Usage Notes
+-----------
+
+The BitTorrent Sync GUI aims to be a clone of the original BitTorrent Sync
+application on Windows and Mac OSX and to replace on long term the legacy
+package `btsync-user`.
+
+If launched without any options, the GUI starts a local BitTorrent Sync agent in
+the context of the user and connects to it (standalone mode). The GUI is divided
+into two main sections:
+
+- The __status indicator__ is the central access point to BitTorrent Sync and
+  shows information about the current status via its icon. The context menu
+  allows to perform some operations and to open the application window.
+- The __application window__ allows to manage the shared folders, view the
+  connected peers, manage the standard and advanced preferences and connect
+  mobile devices via QR-codes with the connection information.
+
+The GUI provides two modes of operation:
+- __Standalone Mode__: This is the default mode. When the GUI starts, an
+  underlaying BitTorrent Sync agent is started too providing an overall
+  experience similar to the GUI applications on Windows or Mac OSX.
+- __Client Mode__: The GUI can be started from the command line with parameters
+  specifying a connection to a remote BitTorrent Sync agent. In this case, the
+  GUI does not start a local BitTorrent Sync agent, but connects to an already
+  running agent at a remote location. __This will work only, if the remote agent 
+  has activated API access by specifying a valid API key in the configuration
+  file.__
+
+The behaviour of the GUI can be influenced by specifying various options on the
+command line. There is also a way to make some options persistent across
+restarts making it superfluous to specify the options each time you start the
+GUI. You can get detailed help about the command line options by invoking the
+man page:
+
+```bash
+man btsync-gui
+```
+
+Here you find an overview of the available options:
+
+```
+usage: btsync-gui [-h] [--log {CRITICAL,ERROR,WARNING,INFO,DEBUG}]
+                  [--host HOST] [--port PORT] [--username USERNAME]
+                  [--password PASSWORD] [--bindui BINDUI] [--webui]
+                  [--savedefaults] [--cleardefaults]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  --log {CRITICAL,ERROR,WARNING,INFO,DEBUG}
+                        Sets the logging level. By default the logging level
+                        is WARNING
+  --host HOST           Hostname for the connection to BitTorrent Sync. If not
+                        specified, a local BitTorrent Sync agent will be
+                        launched.
+  --port PORT           Optional port number for the connection to BitTorrent
+                        Sync. If not specified, port 8888 is taken for a
+                        connection to a remote BitTorrent Sync agent or (8999
+                        + uid) is taken when creating a locally lauched agent.
+                        This option can be made persistent for local agents
+                        with --savedefaults
+  --username USERNAME   Optional user name for connecting to a remote
+                        BitTorrent Sync agent or username to use when creating
+                        a locally launched agent. This option can be made
+                        persistent for local agents with --savedefaults
+  --password PASSWORD   Optional password for connecting to a remote
+                        BitTorrent Sync agent or password to use when creating
+                        a locally launched agent. This option can be made
+                        persistent for local agents with --savedefaults
+  --bindui BINDUI       Optional bind address for the Web UI of a locally
+                        created BitTorrent Sync agent. By default the agent
+                        binds to 127.0.0.1. If you want the Web UI of the
+                        agent to be reachable by other computers, specify one
+                        of the available IP addresses of this computer or
+                        "all" to bind to all available adapters. This option
+                        can be made persistent for local agents with
+                        --savedefaults
+  --webui               Include the Web UI in the menu. This option can be
+                        made persistent with --savedefaults
+  --savedefaults        If specified, the optionally supplied credentials,
+                        bind address and port will be stored as default in the
+                        application preferences and used when launching a
+                        local BitTorrent Sync agent.
+  --cleardefaults       If specified, all internally stored credentials, bind
+                        address and port information will be cleared from the
+                        application preferences.
+```
+
+The usage of the command line options will be explained by some examples below.
+
+### Standalone Mode ###
+
+By default there is __no way to access the Web UI__ provided by the BitTorrent
+Sync agent, since the agent itself defines at each start random credentials to
+protect the system. If you still want to access the Web UI, you can activate an
+extended menu option by specifying `--webui` on the command line. You will then
+have an additional menu item, that invokes a browser and connects you to the
+Web UI.
+
+If you want to make this setting persistent, you can invoke the following
+command from the console:
+
+```bash
+btsync-gui --webui --savedefaults
+```
+
+From now you will not need to specify it again at each start.
+
+Sometimes it may happen, that you want to access your running BitTorrent Sync
+agent from another computer via the Web UI or a `btsync-gui` in Client Mode.
+By default this is not possible, because of two reasons:
+
+- The BitTorrent Sync agent binds the administration interface only to the
+  loopback adapter making it possible to connect only from the same machine
+  (This is a security feature).
+- The BitTorrent Sync agent is started at every time with randomly generated
+  credentials. Without knowing them, it is impossible to access the
+  administration interface of the agent (This is also a security feature).
+
+For users that want to access their system from another computer, there is
+still a possibility to configure the GUI in a way that makes the agent
+accessible also from other computers. In order to do so, the following
+parameters must be changed:
+
+- The BitTorrent Sync agent must bind its administrative interface to all
+  adapters of the system or an adapter reachable from outside.
+- The BitTorrent Sync agent must bind its administrative interface to a
+  well-known port. By default the port is the sum of 8999 and the uid of the
+  user.
+- The credentials must be set to something known.
+
+The GUI can be launched in such a mode, by specifying the following parameters:
+
+```bash
+btsync-gui --bindui 0.0.0.0 --port 10888 --username Leopoldo --password SuperSecret
+```
+
+This example configures the BitTorrent Sync agent to bind on all interfaces on
+port 10888 and to be accessible with the user name "Leopoldo" and the password
+"SuperSecret".
+
+Also these settings can be made persistent by adding the option `--savedefaults`
+
+__WARNING:__ as every comfort function, you pay the comfort by lowering the
+security. Remember: the product of comfort and security is a constant. You
+cannot increase both.
+
+
+### Client Mode ###
+
+In client mode, the GUI can be used to access a remotely running BitTorrent
+Sync agent. The only prerequisites are that the remote BitTorrent Sync agent is
+reachable from your computer, you know the credentials and the API access is
+enabled on the remote agent. You can also use the GUI to connect to another
+machine where a BitTorrent Sync GUI is running in standalone mode, if you have
+configured access possibilities like shown in the example above.
+
+The connection to a remote BitTorrent Sync agent is done by entering the
+following command:
+
+```bash
+btsync-gui --host myserver.example.com --port 8888 --username Leopoldo --password SuperSecret 
+```
+
+If you are able to access the Web UI of a remote BitTorrent Sync system, you
+should know everything you need to also launch successfully the GUI.
+
+Since the connection to remote systems is slower, you will notice the following
+limitations:
+
+- The refresh rate is slower. It adapts dynamically to the overall performance.
+- During the status refreshes, the GUI may be a bit unresponsive.
+- There are no local file system checks, when you add a new folder. You must be
+  sure, that you enter a valid path on the remote machine.
+- Some features are disabled (Pause/resume, Enable/Disable Debug) since they
+  are not feasible on remote systems.
+
+Compatibility
+-------------
+
+The GUI package is available for the same architectures as released by
+BitTorrent Inc.:
+
+- __i386__ - Intel/AMD 32 Bit
+- __amd64__ - Intel/AMD 64 Bit
+- __armel__ - ARM EABI
+- __armhf__ - ARM hard float
+- __powerpc__ - PowerPC
+
+The GUI packages have been tested on the following distributions:
+- __Debian Wheezy__ with __Gnome__ Desktop
+- __Ubuntu Raring__ 13.04 with __Unity__ Desktop
+- __Linux Mint Petra__ with __Cinnamon__ Desktop
+
+Users have reported successful installations on:
+- __Xubuntu Saucy__ 13.10 with __OpenBox+Tint2__
+- __Debian Jessie__ with __KDE__
+- __Ubuntu Trusty__ 14.04 with __Cinnamon__, __MATE__ and __OpenBox__
+- __Arch Linux__ with __MATE__
+
+The GUI package has also been released for other Linux distributions:
+- __Arch Linux__: Packages can be found in the [AUR](https://aur.archlinux.org/packages/btsync-gui/)
+
+###### WANTED ######
+ 
+Maintainers for other Linux distributions beeing able to write a suitable
+packaging for their favourite distribution:
+- __Centos/RHEL__ (rpm)
+- __Fedora__ (rpm)
+- __SLES__ (rpm)
+- __Gentoo__
+ 
+Now it's up to you to test it and give me lots of feedback in order to extend
+this list. Any related feedback is highly appreciated.
+
+Bug Reports, Contribution and Sources
+-------------------------------------
+
+If you want to contribute to the development of the packages or if you are
+curious how this all works, you may find the current sources, the deployment
+scripts and packaging on GitHub (https://github.com/tuxpoldo/btsync-deb)
+
+If you want to contribute to the localisation by translating changed strings or
+by adding support for your favourite language, you may
+[join the localisation team on POEditor.com](https://poeditor.com/join/project?hash=447194402f4913165d4ae5f2fc60ffca).
+
+If you have experienced a reproducible issue that __is related to the
+gui or the packaging and not to BitTorrent Sync itself__ you are strongly
+encouraged to [open an issue on the project's GitHub Page](https://github.com/tuxpoldo/btsync-deb/issues).
+Issues related to the native functionality of BitTorrent Sync should instead be
+discussed by creating a new topic or partecipating to an already existing topic
+in the [BitTorrent Sync Forum](http://forum.bittorrent.com/forum/56-sync-general-discussion/).
+
+
+btsyncindicator
+===============
+
+**BitTorrent Sync indicator for Linux desktops**
+
+```
+usage: btsyncindicator.py [-h] [--config CONFIG] [--iconpath ICONPATH] [-v]
+                          [--log LOG]
+
+optional arguments:
+  -h, --help           show this help message and exit
+  --config CONFIG      Location of BitTorrent Sync config file
+  --iconpath ICONPATH  Path to icon theme folder
+  -v, --version        Print version information and exit
+  --log LOG            Set logging level
+```
+
+* Displays an application indicator for BitTorrent Sync on Linux desktops.
+* Shows syncing folders and the status of connected peers.
+* Allows you copy the secret for each folder to the clipboard.
+
+### Contributions welcome
+
+I'm not actively developing the indicator at the moment but am keeping an eye on bug reports and will test and merge pull requests.  If you'd like to contribute, please raise a bug in the tracker, I'll be notified and get back to you.
+
+## Installation
+
+The recommended installation method is using the [Debian and Ubuntu Desktop Packages for BitTorrent Sync](http://forum.bittorrent.com/topic/19560-debian-and-ubuntu-desktop-packages-for-bittorrent-sync/) which includes the indicator.
+
+### Ubuntu/Debian (i386, and amd64)
+```
+sudo add-apt-repository ppa:tuxpoldo/btsync
+sudo apt-get update
+sudo apt-get install btsync-user
+```
+If you get a *command not found* error, run `sudo apt-get install python-software-properties software-properties-common` first. 
+
+The indicator will start on login with BitTorrent Sync.
+
+### Debian (i386, amd64, powerpc, armel, and armhf)
+```
+sudo gpg --keyserver pgp.mit.edu --recv-keys 6BF18B15
+sudo gpg --armor --export 6BF18B15 | sudo apt-key add -
+sudo echo deb http://debian.yeasoft.net/btsync $(lsb_release -cs) main contrib non-free >> /etc/apt/sources.list.d/btsync.list
+sudo echo deb-src http://debian.yeasoft.net/btsync $(lsb_release -cs) main contrib non-free >> /etc/apt/sources.list.d/btsync.list
+sudo apt-get update
+sudo apt-get install btsync-user
+```
+The indicator will start on login with BitTorrent Sync.
+
+### Arch Linux
+btsyncindicator is available in the [AUR](https://aur.archlinux.org).
+```
+sudo packer -S --noedit --noconfirm btsyncindicator
+```
+
+### Other distributions
+The indicator is not packaged for other distros. You will have to [download BitTorrent Sync](http://labs.bittorrent.com/experiments/sync.html), then download and run the indicator seperately:
+```
+cd ~/
+git clone https://github.com/marxjohnson/btsyncindicator.git
+~/btsyncindicator/btsyncindicator.py`
+```
+You may want to make it start on login.
+
+## Documentation
+
+The API used by the indicator is (partially) documented on the [GitHub Wiki](https://github.com/marxjohnson/btsyncindicator/wiki)
+
+Copyright Mark Johnson <mark@barrenfrozenwasteland.com> and contributors, 2013
+Released under GNU Lesser General Public License V3
+
+btsync-user for Debian
+----------------------
+
+This package of BitTorrent Sync is mainly intended for generic desktop usage.
+It tries to create a desktop experience similar to Windows or Mac OS/X: When
+the user logs in, an instance of BitTorrent Sync is automatically launched
+under the user's credentials and an applet is launched enabling the user
+to control the application.
+
+The web UI of btsync can be launched through the applet or by a user specific
+desktop shortcut.
+
+The configuration file for each user is created automatically in his home
+directory based on the template /etc/btsync-user/btsync-user.conf with the
+filename ~/.config/btsync/btsync-auto.conf defining a user specific device
+name, a user specific storage directory (~/.btsync), a user specific PID
+file and a user specific port number for the web ui. A user specific web ui
+shortcut is created in ~/.local/share/applications
+
+In order to give more freedom to the advanced user, there is also a
+possibility to launch BitTorrent Sync with a custom configuration file
+instead of the automatically created file: the startup routine of BitTorrent
+Sync checks, if there is a file named btsync-user.conf in the configuration
+directory ~/.config/btsync of the user. If this file is found, then it is used
+as configuration file. If not, BitTorrent Sync uses the automatically created
+default configuration file ~/.config/btsync/btsync-auto.conf that will be
+recreated on every restart.
+
+The simplest way to create a custom configuration file, is to create a copy
+of the default configuration file and then to edit it according to your
+needs:
+
+cp ~/.config/btsync/btsync-auto.conf ~/.config/btsync/btsync-user.conf
+
+When you are ready with your modifications, you can restart BitTorrent Sync
+by executing:
+
+btsync restart
+
+on the command line.
+
+ -- Leo Moll <leo.moll@yeasoft.com>  Mon, 27 Jan 2014 14:34:29 +0100
+
+BitTorrent Sync Desktop Packages
+================================
+
+If you are using Ubuntu, Debian, Raspian or other derived distributions
+based on Debian and you are searching for an easy way to deploy
+BitTorrent Sync on your systems, this topic is definitively for you.
+Here you will find information about a family of easy to install
+deb-packages that offers both a solution for the need of typical
+server/cloud operators as for interactive users.
+
+![BitTorrent Sync Desktop](http://s6.postimg.org/935hs88vl/btsync_user_1.jpg)
+
+
+The __desktop user packages__ are explicitly intended for __desktop usage__ and
+provide a user experience similar to BitTorrent Sync on Windows or Mac OSX by
+still giving the user the possibility to customise his installation if he has
+special needs.
+
+![BitTorrent Sync Desktop](http://s6.postimg.org/7qnsqcbg1/btsync_user_3.jpg)
+
+__THESE PACKAGES ARE UNOFFICIAL AND NOT THE WORK OF BITTORRENT® INC.
+PLEASE DO NOT CONTACT THE BITTORRENT® INC. SUPPORT WITH QUESTIONS OR
+PROBLEMS RELATED TO THE USE OF THE PACKAGES. YOU WILL FIND COMPETENT
+HELP AND SUPPORT IN THE [SUPPORT FORUM](http://forum.bittorrent.com/topic/19560-debian-and-ubuntu-desktop-unofficial-packages-for-bittorrent-sync/)__
+
+The deb-packages are available for the same architectures as released by
+BitTorrent Inc.:
+
+- __i386__ - Intel/AMD 32 Bit
+- __amd64__ - Intel/AMD 64 Bit
+- __armel__ - ARM EABI
+- __armhf__ - ARM hard float
+- __powerpc__ - PowerPC
+
+Since the packages still have __not been tested__ with KDE, LXDE, Cinnamon and
+Linux Mint, any related feedback is highly appreciated.
+
+Bug Reports, Contribution and Sources
+-------------------------------------
+
+If you want to contribute to the development of the packages or if you are
+curious how this all works, you may find the current sources of the deployment
+scripts and packaging on GitHub (https://github.com/tuxpoldo/btsync-deb)
+
+The full source of the great indicator applet written by
+[Mark Johnson](http://forum.bittorrent.com/user/33710-marxjohnson/) is also
+hosted on GitHub (https://github.com/marxjohnson/btsyncindicator)
+
+If you have experienced a reproducible issue that __is related to the
+packaging and not to BitTorrent Sync itself__ you are strongly encouraged to
+[open an issue on the project's GitHub Page](https://github.com/tuxpoldo/btsync-deb/issues).
+Issues related to the native functionality of BitTorrent Sync should instead be
+discussed by creating a new topic or partecipating to an already existing topic
+in the [BitTorrent Sync Forum](http://forum.bittorrent.com/forum/56-sync-general-discussion/).
+
+### Adding the Repositories ###
+
+Debian and Debian based distributions (Linspire, Xandros, Ubuntu, and Mepis to
+name a few) use a tool called APT (Advanced Packaging Tool) to manage all
+software on the system. The term _"package"_ refers to an individual file with
+a `.deb` extension that contains either all or part of an application.
+
+Your distribution comes with some default repositories that are already setup,
+but these contain only the software officially distributed by the creator of
+your distribution. In order to install the btsync packages, you have to add the
+specific repositories where btsync is hosted.
+
+__If you are using Ubuntu__, you may also use the Launchpad PPA instead of the
+default repositories. Although it is easier to install, there are some
+disadvantages:
+
+- The PPA only supports Ubuntu versions that are supported (currently lucid,
+precise, quantal, raring, saucy and trusty)
+- The PPA only supports the __i386__ and __amd64__ architectures
+- Often it takes some hours for the packages to be published
+
+If you are OK with this, you can add the Launchpad PPA by issuing the following
+commands:
+
+```bash
+`which sudo` add-apt-repository ppa:tuxpoldo/btsync
+`which sudo` apt-get update
+```
+
+After this, you can directly proceed with the installation.
+
+__If you are not using Ubuntu or you are using an unsupported version or
+architecture or by any other reason you prefer the default repositories,
+continue here.__
+
+The btsync packages are all signed with a key in order to guarantee their
+authenticity. Before using the repository, you should add the key to the
+package manager. To do that, run the following command:
+
+```bash
+`which sudo` apt-key adv --keyserver keys.gnupg.net --recv-keys 6BF18B15
+```
+
+On success you should see an output like this:
+
+```
+gpg: requesting key 6BF18B15 from hkp server keys.gnupg.net
+gpg: key 6BF18B15: public key "Leo Moll <leo.moll@yeasoft.com>" imported
+gpg: no ultimately trusted keys found
+gpg: Total number processed: 1
+gpg:               imported: 1
+```
+
+Now you can easily add the package sources, by executing the following commands:
+
+```bash
+CODENAME=$(lsb_release -cs | sed -n '/lucid\|precise\|quantal\|raring\|saucy\|trusty\|squeeze\|wheezy\|jessie\|sid/p')
+echo deb http://debian.yeasoft.net/btsync ${CODENAME:-sid} main > ~/btsync.list
+echo deb-src http://debian.yeasoft.net/btsync ${CODENAME:-sid} main >> ~/btsync.list
+unset CODENAME
+`which sudo` mv ~/btsync.list /etc/apt/sources.list.d/btsync.list
+`which sudo` chown root:root /etc/apt/sources.list.d/btsync.list
+```
+
+Remember to update the local cache:
+
+```bash
+`which sudo` apt-get update
+```
+
+After that you can proceed with the installation.
+
+### Installation of the BitTorrent Sync Desktop Version ###
+
+The installation of btsync-user is really easy:
+
+```bash
+`which sudo` apt-get install btsync-user
+```
+
+After the successful installation, you have to initially start BitTorrent Sync.
+You have different possibilities to do this:
+
+- Log out and login again. Since BitTorrent Sync is started on logon, it will
+start automatically.
+- Select _BitTorrent Sync_ from the menu or Unity-Launcher
+- Start it from the console by issuing the command:
+
+```
+btsync start
+```
+
+More details can be found in the usages notes:
+
+Usage Notes
+-----------
+
+This package of BitTorrent Sync is explicitly intended for generic desktop
+usage and provide a user experience similar to BitTorrent Sync on Windows or
+Mac OSX: When the user logs in, an instance of BitTorrent Sync is automatically
+launched under the user's credentials and a tray applet is launched to show the
+status and manage the running instance.
+
+By default the user instance has an automatical created configuration file in
+`~/.config/btsync/btsync-auto.conf` and keeps its internal data in the
+directory `~/.btsync`
+
+A user specific desktop shortcut to the web UI is installed into the system.
+Since every user has it's web UI on a different port number, only the desktop
+shortcut or the indicator applet should be used to invoke the web UI.
+
+In order to give more freedom to the advanced user, there is also a possibility
+to launch BitTorrent Sync with a custom configuration file instead of the
+automatically created file: the startup routine of BitTorrent Sync checks,
+if there is a file named `btsync-user.conf` in the configuration directory
+`~/.config/btsync` of the user. If this file is found, then it is used as
+configuration file. If not, BitTorrent Sync uses the automatically created
+default configuration file `~/.config/btsync/btsync-auto.conf` that will be
+recreated on every restart.
+
+The simplest way to create a custom configuration file, is to create a copy of
+the default configuration file and then to edit it according to your needs:
+
+```bash
+cp ~/.config/btsync/btsync-auto.conf ~/.config/btsync/btsync-user.conf
+```
+
+When you are ready with your modifications, you can restart BitTorrent Sync by
+executing the command:
+
+```bash
+btsync restart
+```
+ 
+on the command line.
+
+In addition to the desktop shortcuts and menu functions in the indicator applet,
+BitTorrent Sync can also be controlled from the command line using the tool
+`btsync`. The tool provides usage instructions by issuing the command:
+
+```bash
+btsync -h
+```
+
+More comprehensive help can be found on the corresponding manpage:
+
+```bash
+man btsync
+```
+
+Adding the BitTorrent Sync Repositories
+=======================================
+
+Debian and Debian based distributions (Linux Min, Ubuntu, Linspire, Xandros and
+Mepis to name a few) use a tool called APT (Advanced Packaging Tool) to manage
+all software on the system. The term _"package"_ refers to an individual file
+with a `.deb` extension that contains either all or part of an application.
+
+Your distribution comes with some default repositories that are already setup,
+but these contain only the software officially distributed by the creator of
+your distribution. In order to install the btsync packages, you have to add the
+specific repositories where btsync is hosted.
+
+Install the Repository
+----------------------
+
+The most easy and fast way to install the repository is to paste that at a
+terminal prompt:
+
+```bash
+sh -c "$(curl -fsSL http://debian.yeasoft.net/add-btsync-repository.sh)"
+```
+ 
+The script explains what it will do and then pauses before it does it asking
+for your permission.
+
+After this, you can directly proceed to the installation.
+
+
+### Alternative Manual Installation ###
+
+If you prefer to perform all the steps manually because you really want to
+understand what the script is doing, you can also install the repository
+manually. The procedure is described hereunder:
+
+The btsync packages are all signed with a key in order to guarantee their
+authenticity. Before using the repository, you should add the key to the
+package manager. To do that, run the following command:
+
+```bash
+`which sudo` apt-key adv --keyserver keys.gnupg.net --recv-keys 6BF18B15
+```
+
+On success you should see an output like this:
+
+```
+gpg: requesting key 6BF18B15 from hkp server keys.gnupg.net
+gpg: key 6BF18B15: public key "Leo Moll <leo.moll@yeasoft.com>" imported
+gpg: no ultimately trusted keys found
+gpg: Total number processed: 1
+gpg:               imported: 1
+```
+
+Now you can easily add the package sources, by executing the following commands:
+
+```bash
+CODENAME=$(lsb_release -cs | sed -n '/lucid\|precise\|quantal\|raring\|saucy\|trusty\|squeeze\|wheezy\|jessie\|sid/p')
+echo deb http://debian.yeasoft.net/btsync ${CODENAME:-unstable} main > ~/btsync.list
+echo deb-src http://debian.yeasoft.net/btsync ${CODENAME:-unstable} main >> ~/btsync.list
+unset CODENAME
+`which sudo` mv ~/btsync.list /etc/apt/sources.list.d/btsync.list
+`which sudo` chown root:root /etc/apt/sources.list.d/btsync.list
+`which sudo` apt-get update
+```
+
+After this, you can directly proceed to the installation.
+
+### Alternative for Ubuntu ###
+
+__If you are using Ubuntu__, you may also use the Launchpad PPA instead of the
+default repositories but this has __some relevant disadvantages:__
+
+- The PPA only supports Ubuntu versions that are supported (currently lucid,
+precise, quantal, saucy and trusty)
+- The PPA only supports the __i386__ and __amd64__ architectures
+- Often it takes some hours for the packages to be published
+
+If you are OK with this, you can add the Launchpad PPA by issuing the following
+commands:
+
+```bash
+`which sudo` add-apt-repository ppa:tuxpoldo/btsync
+`which sudo` apt-get update
+```
+
+After this, you can [directly proceed to the installation](http://www.yeasoft.com/site/projects:btsync-deb).
+
+
+BitTorrent Sync Packaging Project
+=================================
+
+[BitTorrent&reg; Sync][1] from BitTorrent&reg; Inc. is a simple tool that
+applies p2p protocol for direct live folder sync with maximum security, network
+speed and storage capacity. It has native versions for Mac, Windows and Linux,
+as well as native NAS integration.
+
+BitTorrent&reg; Inc. __delivers for Linux users only a raw binary file without
+any deployment concept or setup system__. It's up to the user to create a
+reliable startup and shutdown logic and to manage a configuration file. Also a
+dedicated GUI, as provided for Windows and Mac OSX is missing.
+
+The scope of this project is to provide a __Linux GUI__ with all features as in
+Windows and Mac OSX and __easy to install packages__ both for servers and
+desktop systems.
+
+**THESE SOFTWARE IS UNOFFICIAL AND NOT THE WORK OF BITTORRENT&reg; INC.
+PLEASE DO NOT CONTACT THE BITTORRENT&reg; INC. SUPPORT WITH QUESTIONS OR
+PROBLEMS RELATED TO THE USE OF THE PACKAGES. YOU WILL FIND COMPETENT HELP
+AND SUPPORT IN THE RELATED DISCUSSION THREAD IN THE SUPPORT FORUM (Links
+below)**
+
+The mere executables and documentation provided by BitTorrent&reg; Inc. are
+distributed in a package named __btsync-common__ - all other packages are
+dependent upon it.
+
+The brand new package containing the full featured GUI for BitTorrent Sync for
+desktop users is named __btsync-gui__ - This package is going to replace
+__btsync-user__ on long term.
+
+The package containing support for BitTorrent Sync as a single or multiple
+service with or without WebUI for server/NAS deployment is named __btsync__
+
+The legacy package containing support for BitTorrent Sync as a WebUI and tray
+application for desktop users is named __btsync-user__
+
+
+Useful Links
+-------------
+
+- [Project Home Page][2]
+- [BitTorrent Sync Home Page][1]
+- [BitTorrent Sync Support Forum][3]
+  - [Desktop GUI Package Support Thread][4]
+  - [Server Package Thread][5]
+  - [Legacy Desktop Package Thread][6]
+
+[1]: http://www.bittorrent.com/sync
+[2]: http://www.yeasoft.com/site/projects:btsync-deb
+[3]: http://forum.bittorrent.com/forum/107-bittorrent-sync/
+[4]: http://forum.bittorrent.com/topic/28106-linux-desktop-gui-unofficial-packages-for-bittorrent-sync/
+[5]: http://forum.bittorrent.com/topic/18974-debian-and-ubuntu-server-packages-for-bittorrent-sync/
+[6]: http://forum.bittorrent.com/topic/19560-debian-and-ubuntu-legacy-desktop-unofficial-packages-for-bittorrent-sync/
+

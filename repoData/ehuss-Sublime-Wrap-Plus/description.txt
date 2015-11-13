@@ -1,0 +1,431 @@
+# Sublime Wrap Plus #
+Enhanced "wrap lines" command for Sublime Text 2 or 3.  This is for the *manual* hard line wrap command (Alt-Q in Windows, Command-Alt-Q in OS X).  It does not affect the automatic soft line wrapping.
+
+## Downloading ##
+The best way to download and install Sublime Wrap Plus is to use the Package Control plugin.  If you do not already have it installed, it's really the best way to manage your packages.
+
+For users new to the package manager:
+* Go to http://wbond.net/sublime_packages/package_control and install Package Control.
+* Restart Sublime Text.
+
+Install Sublime Wrap Plus:
+* Bring up the Command Palette (`Command+Shift+P` on OS X, `Control+Shift+P` on Linux/Windows).
+* Select "Package Control: Install Package" and wait while Package Control fetches the latest package list.
+* Select Wrap Plus when the list appears.
+
+Package Control will handle automatically updating your packages.
+
+Alternatively, you can fetch from github:
+
+	git clone git://github.com/ehuss/Sublime-Wrap-Plus.git
+
+and place it in your packages directory.
+
+## Configuring ##
+No need to configure anything.  By default it uses the default keystroke for wrap lines:
+
+* Windows/Linux: Alt+Q
+* OS X: Super+Alt+Q
+
+If you want to use a different keystroke, go to "Preferences" then "Key Bindings - User", and add an entry like this:
+
+	{ "keys": ["alt+q"], "command": "wrap_lines_plus" },
+
+Do not include the trailing comma if it is the last entry.
+
+There are a few settings you can tweak if you so desire.  You can set them in Preferences / Settings-User.  They are:
+
+<table>
+  <tr>
+    <th>Name</th><th>Default</th><th>Description</th>
+  </tr>
+  <tr>
+    <td>"WrapPlus.break_long_words"</td>
+    <td>true</td>
+    <td>A single word that is longer than your wrap column will be forced to be break at the wrap column.</td>
+  </tr>
+  <tr>
+    <td>"WrapPlus.break_on_hyphens"</td>
+    <td>true</td>
+    <td>Whether or not to break lines on hyphens.</td>
+  </tr>
+</table>
+
+## Using ##
+Whenever the cursor is anywhere within a paragraph, hitting the Wrap Plus keystroke will cause it to try to discover where the paragraph starts and where it ends.  It will then wrap all of those lines according to the wrap width you currently have set (View/Word Wrap Column).
+
+### Lists ###
+It handles a variety of lists, like bulleted lists or numbered lists. They should line up nicely:
+
+<pre>
+	- Kielbasa beef andouille chuck short loin, filet mignon jerky
+      tail fatback ball tip meatloaf sausage spare ribs bresaola
+      rump.
+	* Shankle shoulder ham, strip steak pastrami ground round shank
+      sausage tail corned beef drumstick boudin bacon prosciutto
+      turkey.
+	1. Jerky prosciutto pork loin shankle, corned beef capicola
+       pork pastrami fatback short loin ground round.
+		a. Sirloin fatback pancetta pork belly ham hock strip
+           steak chuck, drumstick brisket chicken corned
+           beef speck pig kielbasa short loin.
+</pre>
+
+### Subsequent Indents ###
+Lines with subsequent indents should maintain their indent:
+
+<pre>
+	:param cupcake: Cupcake ipsum dolor sit amet marzipan faworki.
+		Wafer I love croissant. Tart carrot cake pastry applicake
+		lollipop I love cotton brownie.
+</pre>
+
+### Comment Lines ###
+In a source code file, it should transparently handle single-line
+comment characters, like:
+
+<pre>
+    # Lorem ipsum dolor sit amet, consectetuer adipiscing elit.
+    # Aenean commodo ligula eget dolor. Aenean massa. Cum sociis
+    # natoque penatibus et magnis dis parturient montes, nascetur
+</pre>
+
+If you use block-style comments in C or C++, it will restrict the wrapping to only the contents in the comment (it won't jump out and wrap nearby code lines).  Also, if you use funny C block comments that start with an asterisk, that should be preserved:
+
+<pre>
+    /*
+     * This is a multiline C-style comment.  The asterisk characters on the
+     * left should be preserved (when in C or C++ mode), if they are already
+     * there.
+     */
+</pre>
+
+In addition, JavaDoc or JsDoc style documentation should work, too:
+
+<pre>
+    /**
+     * Sample function description.  Just in case the description is very long.
+     * Cupcake ipsum dolor sit amet marzipan faworki. Wafer I love croissant. Tart
+     * carrot cake pastry applicake lollipop I love cotton brownie.
+     * @param {string} paramname Multi-line parameter description (or any javadoc
+     *     tag) should indent with 4 spaces.  Cupcake ipsum dolor sit amet
+     *     marzipan faworki. Wafer I love croissant. Tart carrot cake pastry
+     *     applicake lollipop I love cotton brownie.
+     */
+</pre>
+
+### Python Strings ###
+When wrapping inside a Python triple quoted string, wrapping will be constrained to the inside of the string.  That way, doc strings won't get wrapped with function definitions:
+
+<pre>
+    def foo():
+        """Pressing the wrap lines character while inside this string should wrap it
+        nicely, without affecting the def foo line.
+        """
+</pre>
+
+### Email Quotes ###
+Lines with email-style quoting should be handled.  Nested quotes should be treated as separate paragraphs.
+
+<pre>
+    &gt; This is a quoted paragraph.
+    &gt; &gt; This is a nested quoted paragraph.  Wrapping the first paragraph won't
+    &gt; &gt; touch this paragraph.
+    &gt; And continuing with a third paragraph.
+</pre>
+
+### Selection Wrapping ###
+If you select a range of characters, *only* the lines that are selected will be wrapped (the stock Sublime wrap lines extends the selection to what it thinks is a paragraph).  I find this behavior preferable to give me more control.
+
+## Epilogue ##
+Wrap Plus handles a lot of situations that the stock Sublime word wrapper doesn't handle, but it's likely there are many situations where it doesn't work quite right.  If you come across a problem, the immediate solution is to manually select the lines you want to wrap (this will constrain wrapping to just those lines).  If you'd like, feel free to post an issue on the github page: https://github.com/ehuss/Sublime-Wrap-Plus
+
+Use Cases
+=========
+
+Notes
+-----
+- A blank line is a line with only zero or more whitespace.
+- Tabs probably need special handling.  Currently just expand them to spaces.
+- Cursor should move below post-wrapped text in such a way that you can
+  repeatedly press the wrap key and keep moving forward.
+
+One Paragraph
+-------------
+A single normal standalone paragraph, separated by blank lines.
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim
+ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim.
+ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim.
+
+Single point: Anywhere in text should wrap the whole thing as one paragraph, no indent.
+Selection: Only wrap lines selected (still one paragraph).
+
+Two Paragraphs
+--------------
+Multiple paragraphs, separated by blank lines.
+
+Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+
+
+Paragraph two consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+
+Single point: Anywhere in one paragraph, wrap that paragraph only, no indent, preserve blank lines.
+Selection: Only wrap lines in the selection.  If there is a blank line in the selection, this indicates a separation between paragraphs.  Multiple blank lines should be preserved.
+
+Indented Paragraphs1
+--------------------
+
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+
+Single point: Preserve indent, wrap as before.
+Selection: Only wrap selected lines, preserve indent.
+
+Indented Paragraphs2
+--------------------
+First line is indented, subsequent lines are not.
+
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+Paragraph one continued consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+
+    Paragraph two consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+Paragraph one continued consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, se.
+
+Single point: Preserve indent on first line, subsequent lines have whatever indentation level is on the second line.
+Selection: Same logic, wherever the selection starts, pretend that's the line the paragraph starts.
+
+Indented Paragraphs3
+--------------------
+First line is not indented, subsequent lines are.
+
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+        Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+        Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+            Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+First line should keep whatever indentation it has.  Subsequent lines should match whatever indentation the second line has.
+
+Line Separators
+---------------
+Line separators behave like blank lines.  They stop paragraph discovery.  They should be preserved if selected.
+A separator is a line with only punctuation.
+    !@#$%^&*=+`~'\":;.,?_-
+
+    ...........................
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis
+    ...........................
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis
+    Paragraph one consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis
+
+Single point: In paragraph, do not go above or below separators, don't modify them.
+Selection (text only): Wrap only selected lines.
+Selection (includes separator): Treat separator like a blank line (separates paragraphs), preserve it without modification.
+
+Headers
+-------
+Markdown atx headers (only in Markdown mode):
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+# Header
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+## Header 2
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+### Header 3
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+# Header 4 #
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+## Header 5 ##
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+Don't touch header lines.  Treat them as separators.
+
+Lists
+-----
+Various types of lists.  Bullets:
+    * Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    ** Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    + Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    - Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    # Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    # Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et
+      magnis dis parturient montes, nascetur ridiculus mus.
+    ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et.
+
+Bullet must be followed by a space.
+Bullets may be multiple characters.
+Beware bullets which appear like comment characters.
+
+Numbers:
+Must end with a dot or paren:
+
+1. foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo
+1.2. bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar
+1) Blah
+1.2) bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar
+1.3.4) bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar
+
+Letters:
+Must end with dot or paren.
+a. foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo
+bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar bar
+a) foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo
+A. baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz baz
+I. foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo foo
+
+Single point on line where list starts: Maintain indent of bullet on first
+line. Paragraph discovery does not go up.  Discovery stops when it sees a new
+bullet start.  Subsequent lines lign up with the start of the text on the
+first line.
+
+Single point on line within bullet entry: Same as before, except discovery
+goes up until the entry start.
+
+Selection: Only wrap lines in selection.  Bullet starts within selection are
+treated like new paragraphs with same rules.
+
+ReST field name
+---------------
+":" field name ":"
+
+    :foo: Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    :bar: Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+          Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+Similar to bullet lists, except alignment of subsequent lines follow whatever
+is there.  If not indented relative to the field name, add an indent.
+
+ReST Directives
+---------------
+.. data:: sample
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+.. data:: sample2
+    Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+        I'm indented, preserve me.  Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+
+Preserve directive line (don't touch).  All lines indented at whatever the
+first line was indented at, plus any additional indent found at the start of a
+paragraph.
+
+Python Triple Strings
+---------------------
+"""Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium."""
+
+
+def foo():
+    """Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et
+    magnis dis parturient montes, nascetur ridiculus mus. Donec quam felis,
+    ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget,
+    arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+    """
+    sample code here.
+
+    """Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus."""
+    situation where triple quote not.
+
+
+Treat the triple quote at the beginning as the start of a paragraph (similar
+to bullets).  Don't go beyond the triple quote.  It's OK if this only works
+when Python syntax is selected.  (Possibly make this work for all languages.)
+
+GT Quoted
+---------
+Quoted with the greater-than symbol.
+
+    >> This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+    >>
+    >> Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.
+    > This is a blockquote with two paragraphs. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+    >
+    > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.
+
+    Intermixed line without quote. Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.
+
+    > > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.
+    > > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse id sem consectetuer libero luctus adipiscing.
+    > This is a blockquote with one paragraph. Lorem ipsum dolor sit amet,
+    consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus.
+    Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
+
+    > Donec sit amet nisl. Aliquam semper ipsum sit amet velit. Suspendisse
+    id sem consectetuer libero luctus adipiscing.
+
+Single point: Should ignore gt symbol.  Wrap as normal, but remove the gt
+symbol first, and then readd it with the correct indentation.
+
+Selection: Only wrap selected lines.  Ignore gt symbol.  Use gt symbol indent
+found on first line of each paragraph.
+
+This behaves just like comments.
+
+Changes in the number of carets (with possible intermixed spaces) should be
+treated like a paragraph boundary.
+
+LaTeX Math
+----------
+The quadratic form $\mN$ for the integration of the squared norm of an $m$-dimensional linear function on any simplex $\Omega$ of dimension $n$ can therefore be written as
+\begin{align}
+\label{eq:integration_matrix}
+\mN &= \Factorial{n} \, \vol{\Omega} \, \Transpose{\mP} \inp{\mH^0_n \otimes \IdentityMatrix_m} \, \mP \nonumber\\%
+    &= \Factorial{n} \, \vol{\Omega} \, \mN^0~.
+\end{align}
+The discrete $L^2$-product of piecewise-linear functions on a simplical complexes is obtained by assembling the quadratic forms $\mN$ of each simplex into an operator $\mM$ on the whole complex.
+
+Don't touch lines that start with a backslash.
+
+Comments
+--------
+Comments are somewhat complicated.
+
+When wrapping inside a comment, the comment characters should be invisible,
+and all rules above should work correctly.  The comment characters should be
+removed before wrapping and added with the correct indentation after wrapping.
+
+These only apply to their respective syntax modes.
+
+    Shouldn't touch this line.
+    /* C comment style1
+     * I put stars
+     * at the beginning
+     * of each line
+     */
+    /* C comment style2
+    just writing stuff. */
+    Shouldn't touch this line.
+    /*
+    C comment style3
+    just writing stuff. */
+    /*
+    C comment style4
+    just writing stuff.
+    */
+    Shouldn't touch this line.
+
+    don't touch
+    /* C comment style5 Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus. Donec
+
+    Quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+    */
+    don't touch
+
+    // Single line comment. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes,
+    // nascetur ridiculus mus. Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo. Nullam dictum felis eu pede mollis pretium.
+
+    Don't touch this line.
+    # Pound comment. Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa. Cum sociis natoque penatibus et magnis dis parturient montes, nascetur ridiculus mus.
+    # Donec quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo.
+    # Nullam dictum felis eu pede mollis pretium.
+    #
+    # Next paragraph quam felis, ultricies nec, pellentesque eu, pretium quis, sem. Nulla consequat massa quis enim. Donec pede justo, fringilla vel, aliquet nec, vulputate eget, arcu. In enim justo, rhoncus ut, imperdiet a, venenatis vitae, justo.
+    Don't touch this line.
+
+Selections that span both comment and non-comment lines should treat them as
+paragraph boundaries, although this is a silly use case, and probably is OK if
+it doesn't work.
+

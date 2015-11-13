@@ -1,0 +1,465 @@
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+- The gold templates:                                                         -
+- The gold images contain no cfntools                                         -
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+WordPress_Single_Instance_gold.template
+ - Creates a gold image wordpress single instance - not working
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+- The cfntools templates:                                                     -
+- The CFNTOOLS images contain analogs of AWS cfn tools for full orchestration -
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+*******************************************************************************
+* INSECURE TEMPLATES                                                          *
+* The following templates do not properly secure the mysql server and allow   *
+* any user to connect to the wordpress database.                              *
+*******************************************************************************
+
+WordPress_2_Instances.template
+ - Creates a two instance wordpress/mysql server
+   Note: There is an instance for mysql and instance for wordpress
+
+WordPress_2_Instances_With_EBS.template
+ - Creates a two instance wordpress/mysql server with persistent volume
+   Note: There is an instance for mysql and instance for wordpress
+
+WordPress_Composed_Instances.template
+ - Creates a two instance wordpress/mysql server.
+ - The MySQL server is loaded as a nested template from the URL of the latest
+   MySQL_Single_Instance template on GitHub.
+   Note: There is an instance for mysql and instance for wordpress
+
+MySQL_Single_Instance.template
+ - Creates a single instance MySQL server, for use in template composition
+
+*******************************************************************************
+* SECURE TEMPLATES                                                            *
+* These templates either are single vm or use EIP and security groups to      *
+* secure the servers                                                          *
+*******************************************************************************
+
+WordPress_Single_Instance.template
+ - Creates a single instance wordpress/mysql server
+
+WordPress_Single_Instance_With_EBS.template
+ - Creates a single instance wordpress/mysql server with EBS Volume
+
+WordPress_Single_Instance_With_EIP.template
+ - Creates a single instance wordpress/mysql server with EIP with full security
+
+WordPress_Single_Instance_With_EBS_EIP.template
+ - Creates a single instance wordpress/mysql server with EIP with full security
+   and EBS Volume
+
+WordPress_Single_Instance_deb.template
+ - Creates a single instance wordpress/mysql server, ubuntu based template
+
+WordPress_Single_Instance_puppet.template
+ - Creates a single instance wordpress/mysql server
+ - Uses the Puppet client to install server roles
+
+WordPress_Single_Instance_With_HA.template
+ - Creates a single instance wordpress/mysql server
+ - Includes configuration to use heat HA features
+
+PuppetMaster_Single_Instance.template
+ - Sample template to bring up a Puppet Master instance
+
+WordPress_2_Instances_With_EBS_EIP.template
+ - Creates a two instance wordpress/mysql server with persistent volume
+ - EIP with full security
+   Note: There is an instance for mysql and instance for wordpress
+
+Rails_Single_Instance.template
+- Create a Ruby on Rails stack
+
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+- Other templates:                                                            -
+-------------------------------------------------------------------------------
+-------------------------------------------------------------------------------
+
+getting_started.template
+ - Skeleton example template
+
+-------------------------------------------------------------------------------
+- END OF TEMPLATES                                                            -
+-------------------------------------------------------------------------------
+
+This is an os-refresh-config script which iterates over deployments configuration
+data and invokes the appropriate hook for each deployment item. Any outputs returned
+by the hook will be signalled back to heat using the configured signalling method.
+A hook which consumes configuration in the format of AWS::CloudFormation::Init
+metadata. It is provided to enable migrating from CloudFormation metadata
+configuration to configuration using config and deployment resources.
+A hook which invokes ``puppet apply`` on the provided configuration.
+Config inputs are passed in as facts, and output values are read from written-out
+files.
+A hook which invokes the provided configuration as an executable script.
+Config inputs are passed in as environment variables, and output values are
+read from written-out files.
+
+============================
+Software configuration hooks
+============================
+
+This directory contains `diskimage-builder <https://github.com/openstack/diskimage-builder>`_
+elements to build an image which contains the software configuration hook
+required to use your preferred configuration method.
+
+These elements depend on some elements found in the
+`tripleo-image-elements <https://github.com/openstack/tripleo-image-elements>`_
+repository. These elements will build an image which uses
+`os-collect-config <https://github.com/openstack/os-collect-config>`_,
+`os-refresh-config <https://github.com/openstack/os-refresh-config>`_, and
+`os-apply-config <https://github.com/openstack/os-apply-config>`_ together to
+invoke a hook with the supplied configuration data, and return any outputs back
+to heat.
+
+When building an image, the heat-config element is required, along with the elements
+for the hooks which enable the preferred configuration methods.
+
+An example fedora based image containing all hooks can be built and uploaded to glance
+with the following:
+
+::
+
+  git clone https://git.openstack.org/openstack/diskimage-builder.git
+  git clone https://git.openstack.org/openstack/tripleo-image-elements.git
+  git clone https://git.openstack.org/openstack/heat-templates.git
+  export ELEMENTS_PATH=tripleo-image-elements/elements:heat-templates/hot/software-config/elements
+  diskimage-builder/bin/disk-image-create vm \
+    fedora selinux-permissive \
+    heat-config \
+    os-collect-config \
+    os-refresh-config \
+    os-apply-config \
+    heat-config-cfn-init \
+    heat-config-puppet \
+    heat-config-script \
+    -o fedora-software-config.qcow2
+  glance image-create --disk-format qcow2 --container-format bare --name fedora-software-config < \
+    fedora-software-config.qcow2
+
+========================================
+Example software configuration templates
+========================================
+
+These example templates demonstrate various aspects of using Heat's
+software configuration templates. The description in each template describes what
+that template demonstrates.
+
+See heat-templates/hot/software-config/elements/README.rst for instructions on
+building an image which works with these templates.
+=============================================
+HOT software configuration hooks and examples
+=============================================
+
+The Heat software configuration resources can be combined with a server agent
+and hooks to configure software on servers using a variety of techniques.
+
+Contained here are the following directories:
+
+elements
+--------
+This contains `diskimage-builder <https://github.com/openstack/diskimage-builder>`_
+elements which will install the hooks for different configuration tools onto
+a custom-built image.
+
+example-templates
+-----------------
+This contains example heat templates which demonstrate how the software config
+resources and the hooks work together to perform software configuration.
+This element installs packages required by a typical OpenShift Enterprise broker.
+
+The objective of including these packages on the instance is to speed the boot time of a broker.
+
+This element installs packages required by a typical OpenShift Enterprise node.
+
+The objective of including these packages on the instance is to speed the boot time of a node.
+
+# OpenShift Enterprise Highly Available Environment
+This nested heat stack deploys a highly-available OpenShift Enterprise environment.
+
+## Resources Deployed
+* 6 instances
+  * Highly available OpenShift broker set (3)
+  * OpenShift nodes (3)
+* 7 floating IPs (includes one for LBaaS VIP)
+* 3 cinder volumes 12GB or larger, attached to nodes
+* LBaaS, consisting of health monitor (HTTPS), pool, virtual IP (VIP)
+* Integrated BIND server on broker 1 for dynamic DNS updates
+
+### Deployment
+
+
+
+       zone transferred to
+        upstream DNS (IT)
+                  \          ----------------------
+                   \        /   mongo replica set  \
+                    \      /      ActiveMQ pool     \
+                   --\---------   ------------   ------------
+                   | BIND |   |   |          |   |          |
+                   --------   |---| broker 2 |---| broker 3 |
+                   | broker 1 |   |          |   |          |
+                   ------------   ------------   ------------
+                               \       |          /
+                                \      |         /
+                                LBaaS agent (API) ---------------- developers
+                                /      |       \
+                               /       |        \
+                   ------------   ------------   ------------
+                   |          |   |          |   |          |
+                   |  node 1  |---|  node 2  |---|  node  3 | ---- application
+                   |          |   |          |   |          |         users
+                   ------------   ------------   ------------
+                         |              |              |
+                    ----------     ----------     ----------
+                    | cinder |     | cinder |     | cinder |
+                    |   vol  |     |   vol  |     |   vol  |
+                    ----------     ----------     ----------
+
+
+
+## Requirements
+* Neutron networking: one private and one public network
+* Compute quota for six VM instances
+* Pool of seven available floating IP addresses. Addresses will be created and assigned at deployment.
+* Available Cinder storage: at least 40GB
+* Load Balancer as a Server (LBaaS) configured. See neutron [lbaas agent configuration section](http://openstack.redhat.com/LBaaS).
+* IP address of upstream (IT) DNS server for zone transfers
+
+## Files
+These templates are [Heat Orchestration Templates (HOT)](http://docs.openstack.org/developer/heat/template_guide/environment.html). Environment files are used to reduce CLI parameters and provide a way to reuse resources.
+
+* Templates
+  * ose_ha_stack.yaml
+  * ose_node_stack.yaml
+* Environments
+  * ose_ha_env.yaml
+  * ose_node_env.yaml
+
+## How to Deploy
+1. `git clone https://github.com/openstack/heat-templates.git` this repository
+2. Change to this directory
+
+        cd heat-templates/openshift-enterprise/heat/neutron/highly-available/
+
+3. Edit heat environment file `ose_ha_env.yaml` according to your environment.
+4. Launch highly available OpenShift stack
+
+        heat stack-create openshift-ha-stack -f ose_ha_stack.yaml -e ose_ha_env.yaml
+
+5. Monitor progress. Options include:
+  * `tail -f /var/log/heat/heat-engine.log`
+  * `heat stack-list`
+  * `heat resource-list openshift-ha-stack`
+6. Additional configuration:
+  * Copy BIND_KEYVALUE from broker1 `/etc/openshift/plugins.d/openshift-origin-dns-nsupdate.conf` to broker2 and broker3 and restart broker service, `service openshift-broker restart`.
+
+## Scaling: Adding Nodes
+
+OpenShift nodes may be manually added as needed using the OpenShift node heat template.
+
+1. From directory `heat-templates/openshift-enterprise/heat/neutron/highly-available/` edit the heat environment file `ose_node_env.yaml`
+2. Launch node stack. This will deploy a single node server with attached cinder volume and floating IP address. Be sure to pass in the node hostname parameter to override the default.
+
+        heat stack-create openshift-node -f ose_node_stack.yaml -e ose_node_env.yaml -P "node_hostname=node4"
+
+3. On broker1 add a DNS record for the new node server in `/var/named/dynamic/<my_domain>.db`. To force a zone transfer to the upstream DNS increment the serial number by 1 and run `rndc freeze ; rndc thaw`.
+
+## Additional configuration Steps
+
+1. Add brokers to LBaaS pool. On OpenStack:
+
+        neutron lb-member-create --address <broker1_fixed_ip> --protocol-port 443 ose_broker_lb_pool
+        neutron lb-member-create --address <broker2_fixed_ip> --protocol-port 443 ose_broker_lb_pool
+        neutron lb-member-create --address <broker3_fixed_ip> --protocol-port 443 ose_broker_lb_pool
+
+2. Add session persistence to LBaaS virtual IP (VIP):
+
+        neutron lb-vip-update ose_broker_vip --session-persistence type=dict type='SOURCE_IP'
+
+3. Update upstream DNS server to accept zone transfers from the OpenShift dynamic DNS. An example configuration would be to add a slave zone to /var/named.conf
+
+
+        zone "<openshift_domain_name>" {
+            type slave;
+            file "slaves/<openshift_domain_name>.db";
+            masters { <broker1_ip_address>; };
+        };
+
+
+    * If the upstream DNS configuration is not available a test client machine may be pointed to the broker 1 IP address (e.g. edit /etc/resolv.conf).
+
+4. Create districts. The following creates a small district and adds two nodes to the district.
+
+        oo-admin-ctl-district -c create -n small_district -p small
+        oo-admin-ctl-district -c add-node -n small_district -i <node1_hostname>
+        oo-admin-ctl-district -c add-node -n small_district -i <node2_hostname>
+
+## Troubleshooting
+* `oo-mco ping` on a broker to verify nodes are registered
+* `oo-diagnostics -v` on a broker to run a comprehensive set of tests
+* `oo-accept-node -v` on a node
+* If LBaaS is not set up any broker hostname can be used temporarily as the developer and node API target. Be sure to edit `/etc/openshift/node.conf`.
+
+==========================
+OpenShift Enterprise templates
+==========================
+
+This directory contains files for deploying OpenShift Enterprise to an OpenStack environment via heat.
+
+It includes the following files:
+
+* `OpenShift.yaml` - heat template for launching OpenShift Enterprise with a single broker server and a single node server
+* `openshift-enterprise` - diskimage-builder elements to build images
+
+OpenShift Enteprise now requires that you use Red Hat Enterprise Linux 6.5, which can be downloaded from:
+https://rhn.redhat.com/rhn/software/channel/downloads/Download.do?cid=16952
+
+To build with diskimage-builder, do the following in the parent directory of heat-templates::
+
+  git clone https://github.com/openstack/diskimage-builder.git
+  mkdir $HOME/tmp
+  export ELEMENTS_PATH=heat-templates/openshift-enterprise/dib/elements
+  export DIB_CLOUD_IMAGES=url rhel-guest-image-6-6.5-20131220.3-1.qcow2 image can be found (download this from rhn)
+
+  # Either set the following variables if you have the packages in a yum repo
+  # or specify an OpenShift Enterprise subscription pool id.
+
+  # Use yum repos for package installation
+  export DIB_CONF_JBOSS_REPO_BASE=<location of JBoss repo>
+  export DIB_CONF_REPO_BASE=<location of OpenShift Enteprise repo>
+
+  # Or, use Red Hat subscriptions for package installation
+  export DIB_RHSM_OSE_POOL=<OpenShift Enterprise subscription pool id>
+  export DIB_RHSM_POOL=<Red Hat Enterprise Linux Server subscription pool id (if not setting a custom repo url for it)>
+
+  # You will need to provide credentials for the Red Hat Enterprise Linux
+  # Server packages. If you don't provide a pool id with DIB_RHSM_POOL, a
+  # matching subscription on your user account will be automatically attached to
+  the system.
+  export DIB_RHSM_USER=your_rhel_subscription_username
+  export DIB_RHSM_PASSWORD=your_rhel_subscription_password
+
+  # Add the following to the disk image bulding command:
+
+  export DIB_OSE_VERSION=2.0
+  export DIB_YUM_VALIDATOR_VERSION=2.0
+
+  export TMP_DIR=$HOME/tmp
+  export DIB_IMAGE_SIZE=5
+  diskimage-builder/bin/disk-image-create --no-tmpfs -a amd64 vm rhel openshift-enterprise-broker -o RHEL65-x86_64-broker
+
+  export TMP_DIR=$HOME/tmp
+  export DIB_IMAGE_SIZE=20
+  diskimage-builder/bin/disk-image-create --no-tmpfs -a amd64 vm rhel openshift-enterprise-node -o RHEL65-x86_64-node
+
+  # Register the RHEL65-x86_64-broker and RHEL65-x86_64-node with OpenStack Glance::
+  glance add name=RHEL65-x86_64-broker is_public=true disk_format=qcow2 container_format=bare < RHEL65-x86_64-broker.qcow2
+  glance add name=RHEL65-x86_64-node is_public=true disk_format=qcow2 container_format=bare < RHEL65-x86_64-node.qcow2
+
+Invoke Heat
+-----------
+
+Once you have the required disk images registered with glance, you can use OpenStack Heat to provision instances of your images and configure them to work together as an OpenShift infrastructure::
+
+For OSE 1.2:
+
+heat create openshift --template-file=./heat-templates/openshift-enterprise/heat/neutron/OpenShift-1B1N-neutron.yaml --parameters="key_name=${USER}_key;prefix=novalocal;BrokerHostname=openshift.brokerinstance.novalocal;NodeHostname=openshift.nodeinstance.novalocal;ConfInstallMethod=rhsm;ConfSMRegName=username;ConfSMRegPass=password;ConfSMRegPool=OSE_1.2_pool_id;private_net_id=neturon_private_net_id;public_net_id=neutron_public_net_id;private_subnet_id=neutron_private_subnet_id;yum_validator_version=1.2;ose_version=1.2"
+
+For OSE 2.0 (Only available via beta subscription for now):
+
+heat create openshift --template-file=./heat-templates/openshift-enterprise/heat/neutron/OpenShift-1B1N-neutron.yaml --parameters="key_name=${USER}_key;prefix=novalocal;BrokerHostname=openshift.brokerinstance.novalocal;NodeHostname=openshift.nodeinstance.novalocal;ConfInstallMethod=rhsm;ConfSMRegName=username;ConfSMRegPass=password;ConfSMRegPool=OSE_2.0_pool_id;private_net_id=neturon_private_net_id;public_net_id=neutron_public_net_id;private_subnet_id=neutron_private_subnet_id;yum_validator_version=2.0;ose_version=2.0"
+
+Using Custom Yum repos
+----------------------
+
+By default, the Heat Orchestration Template assumes you're using the Yum installation method, which means it also expects you to pass parameters to heat for yum repositories. As an example, you can add the following to your list of parameters::
+
+  ConfRHELRepoBase=http://example.com/rhel/server/6/6Server/x86_64/os;ConfJBossRepoBase=http://example.com/rhel/server/6/6Server/x86_64;ConfRepoBase=http://example.com/OpenShiftEnterprise/1.2/latest
+
+Using Subscription Manager
+--------------------------
+
+You can switch from the default installation method by passing in the parameter ConfInstallMethod, as demonstrated above. The allowed values, other than yum are rhsm and rhn. If you set the installation method to rhsm, you'll want to also pass in the following parameters ConfSMRegName and ConfSMRegPass for the username and password respectively. Additionally, you'll need to set the ConfSMRegPool parameter with the value of the subscription pool id that corresponds to your OpenShift Enterprise subscription. When setting the ConfInstallMethod to something other than yum it is not necessary to pass the Conf*RepoBase parameters::
+
+  ConfInstallMethod=rhsm;ConfSMRegName=myuser;ConfSMRegPass=mypass;ConfSMRegPool=XYZ01234567
+
+Using RHN
+---------
+
+You can switch from the default installation method by passing in the parameter ConfInstallMethod. The allowed values, other than yum are rhsm and rhn. If you set the installation method to rhn, you'll want to also pass in the following parameters ConfRHNRegName and ConfRHNRegPass for the username and password respectively. Additionally, you'll need to set the ConfRHNRegAK parameter with the value of the subscription activation key that corresponds to your OpenShift Enterprise subscription. When setting the ConfInstallMethod to something other than yum it is not necessary to pass the Conf*RepoBase parameters::
+
+  ConfInstallMethod=rhn;ConfRHNRegName=myuser;ConfRHNRegPass=mypass;ConfRHNRegAK=activationkey
+
+
+==========================
+OpenShift Origin templates
+==========================
+
+This directory contains files for deploying OpenShift Origin to an OpenStack environment via Heat.
+
+It includes the following template files:
+
+* `OpenShift.yaml` - deploys OpenShift Origin in an all-in-one setup (broker+console+node)
+* `OpenShift-1B1N.yaml` - deploys OpenShift Origin with separate instances for broker and node
+
+Minimal packages required for Heat to successfully
+deploy an OpenShift Origin Broker instance.
+
+Note: All other packages are managed by Puppet.
+
+Minimal packages required for Heat to successfully
+deploy an OpenShift Origin Node instance.
+
+Note: All other packages are managed by Puppet.
+
+==========================
+OpenShift Origin Templates
+==========================
+
+This directory contains files for deploying OpenShift Origin to an OpenStack environment via Heat.
+The template has been tested with the OpenStack Icehouse-2 release.
+
+It includes the following files:
+
+* `OpenShift.template` - heat template for launching OpenShift Origin with a single broker instance and a single node instance
+* `elements` - diskimage-builder elements to build images
+
+To build with diskimage-builder, do the following in the parent directory of heat-templates::
+
+  git clone https://github.com/openstack/diskimage-builder.git
+  apt-get install -y qemu-utils kpartx
+  mkdir $HOME/tmp
+  export DIB_RELEASE=19
+  export ELEMENTS_PATH=heat-templates/openshift-origin/F19/elements
+  export TMP_DIR=$HOME/tmp
+  export DIB_IMAGE_SIZE=5
+  diskimage-builder/bin/disk-image-create --no-tmpfs -a amd64 vm fedora openshift-origin-broker -o F19-x86_64-openshift-origin-broker
+  glance image-create --name F19-x86_64-openshift-origin-broker --is-public true --disk-format qcow2 --container-format bare < F19-x86_64-openshift-origin-broker.qcow2
+  export DIB_IMAGE_SIZE=20
+  diskimage-builder/bin/disk-image-create --no-tmpfs -a amd64 vm fedora openshift-origin-node -o F19-x86_64-openshift-origin-node
+  glance image-create --name F19-x86_64-openshift-origin-node --is-public true --disk-format qcow2 --container-format bare < F19-x86_64-openshift-origin-node.qcow2
+
+==============
+Heat Templates
+==============
+
+Heat is a service to orchestrate multiple composite cloud applications using
+templates
+
+This repository provides:
+
+* Example templates which demonstrate core Heat functionality
+* Related image-building templates
+* Template-related scripts and conversion tools
+

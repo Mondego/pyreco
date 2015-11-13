@@ -1,0 +1,643 @@
+# Events
+
+<span id="EventEmitter"/>
+## thor.events.EventEmitter ()
+
+An event emitter, in the style of Node.JS.
+
+
+### thor.events.EventEmitter.on ( _event_, _listener_ )
+
+Add the callable _listenter_ to the list of listeners that will be called when _event_ is emitted.
+
+
+### thor.events.EventEmitter.once ( _event_, _listener_ )
+
+Call _listener_ exactly once, the next time that _event_ is emitted.
+
+
+### thor.events.EventEmitter.removeListener ( _event_, _listener_ )
+
+Remove the callable _listener_ from the list of those that will be called when _event_ is emitted.
+
+
+### thor.events.EventEmitter.removeListeners ( _event_, ... )
+
+Remove all listeners for _event_. Additional _event_s can be passed as following arguments.
+
+
+### thor.events.EventEmitter.listeners ( _event_ )
+
+Return the list of callables listening for _event_.
+
+
+### thor.events.EventEmitter.emit ( _event_, _arg_, ... )
+
+Emit _event_ with one or more _arg_s.
+
+
+### thor.events.EventEmitter.sink ( _sink_ )
+
+Given an object _sink_, call its method (if present) that corresponds to an _events_ name if and only if there are no listeners for that event.
+
+
+## Decorator thor.events.on ( _EventEmitter_, _event_ )
+
+A decorator to nominate functions as event listeners. Its first argument is
+the [EventEmitter](#EventEmitter) to attach to, and the second argument is 
+the event to listen for.
+
+For example:
+
+    @on(my_event_emitter, 'blow_up')
+    def push_red_button(thing):
+        thing.red_button.push()
+        
+If the _event_ is omitted, the name of the function is used to determine
+the event. For example, this is equivalent to the code above:
+
+    @on(my_event_emitter)
+    def blow_up(thing):
+        thing.red_button.push()
+
+# HTTP
+
+Thor provides both a HTTP/1.1 client and server implementation. They support most HTTP features, such as:
+
+* Persistent Connections (HTTP/1.0-style as well as 1.1)
+* Headers across multiple lines
+* Chunked requests
+
+
+## thor.http.HttpClient ( _loop_, _idle_timeout_ )
+
+Instantiates a HTTP client. If _loop_ is supplied, it will be used as the *thor.loop*; otherwise, the "default" loop will be used.
+
+HTTP clients share a pool of idle connections.
+
+There are several settings available as class variables:
+
+* HttpClient.tcp_client_class - what to use as a TCP client; must implement *thor.TcpClient*.
+* HttpClient.connect_timeout - connect timeout, in seconds. Default _None_.
+* HttpClient.read_timeout - timeout between reads on an active connection, in seconds. Default _None_.
+* HttpClient.idle_timeout - how long idle persistent connections are left open, in seconds. Default 60; None to disable.
+* HttpClient.retry_limit - How many additional times to try a request that fails (e.g., dropped connection). Default _2_.
+* HttpClient.retry_delay - how long to wait between retries, in seconds (or fractions thereof). Default _0.5_.
+
+
+### thor.http.HttpClient.exchange ()
+
+Create a request/response exchange.
+
+
+#### thor.http.HttpClient.exchange.request\_start ( _method_, _uri_, _headers_ )
+
+Start the request to _uri_ using _method_ and a list of tuples _headers_ (see [working with HTTP headers](#headers)).
+
+Note that hop-by-hop headers will be stripped from _headers_; Thor manages its own connections headers (such as _Connection_, _Keep-Alive_, and so on.)
+
+After calling *request_start*, *request_body* may be called zero or more times, and then *request_done* must be called.
+
+#### thor.http.HttpClient.exchange.request\_body ( _chunk_ ) 
+
+Send a _chunk_ of request body content.
+
+
+#### thor.http.HttpClient.exchange.request\_done ( _trailers_ )
+
+Signal that the request body is finished. This must be called for every request. _trailers_ is the list of HTTP trailers; see [working with HTTP headers](#headers).
+
+
+#### Event 'response\_start' ( _status_, _phrase_, _headers_ )
+
+Emitted when the client starts receiving the exchange's response. _status_ and _phrase_ contain the HTTP response status code and reason phrase, respectively, and _headers_ contains the response header tuples (see [working with HTTP headers](#headers)).
+
+
+#### Event 'response\_body' ( _chunk_ )
+
+Emitted when a _chunk_ of the response body is received.
+
+
+#### Event 'response\_done' ( _trailers_ )
+
+Emitted when the response is successfully completed. _trailers_ is the list
+of HTTP trailers; see [working with HTTP headers](#headers).
+
+
+#### Event 'error' ( _err_ )
+
+Emitted when there is an error with the request or response. _err_ is an instance of one of the *thor.http.error* classes that describes what happened.
+
+If *error* is emitted, no other events will be emitted by this exchange.
+
+
+
+## thor.http.HttpServer ( _host_, _port_, _loop_ )
+
+Creates a new server listening on _host_:_port_. If _loop_ is supplied, it will be used as the *thor.loop*; otherwise, the "default" loop will be used. 
+
+The following settings are available as class variables:
+
+* HttpServer.tcp_server_class - what to use as a TCP server; must implement *thor.TcpServer*.
+* HttpServer.idle_timeout - how long idle persistent connections are left open, in seconds. Default 60; None to disable.
+
+### event 'start'
+
+Emitted when the server starts.
+
+### event 'stop'
+
+Emitted when the server stops.
+
+
+### Event 'exchange' ( _exchange_ )
+
+Emitted when the server starts a new request/response _exchange_.
+
+#### event 'request\_start' ( _method_, _uri_, _headers_ )
+
+Emitted when the exchange receives a request to _uri_ using _method_ and a list of tuples _headers_ (see [working with HTTP headers](#headers)).
+
+
+#### event 'request\_body' ( _chunk_ )
+
+Emitted when a _chunk_ of the request body is received.
+
+
+#### event 'request\_done' ( _trailers_ )
+
+Emitted when the request is successfully completed. _trailers_ is the list of HTTP trailers; see [working with HTTP headers](#headers).
+
+
+#### exchange.response\_start ( _status_, _phrase_, _headers_ )
+
+Start sending the exchange's response. _status_ and _phrase_ should contain the HTTP response status code and reason phrase, respectively, and _headers_ should contain the response header tuples (see [working with HTTP headers](#headers)).
+
+Note that hop-by-hop headers will be stripped from _headers_; Thor manages its own connections headers (such as _Connection_, _Keep-Alive_, and so on.)
+
+
+#### exchange.response\_body ( _chunk_ )
+
+Send a _chunk_ of response body content.
+
+
+#### exchange.response\_done ( _trailers_ )
+
+Signal that the response body is finished. This must be called for every response. _trailers_ is the list of HTTP trailers; see [working with HTTP headers](#headers).
+
+
+<span id="headers"/>
+## Working with HTTP Headers 
+
+In Thor's HTTP APIs, headers are moved around as lists of tuples, where each tuple is a (field-name, field-value) pair. For example:
+
+    [
+        ("Content-Type", " text/plain"),
+        ("Foo", "bar, baz"),
+        ("Cache-Control", " max-age=30, must-revalidate"),
+        ("Foo", "boom"),
+        ("user-agent", "Foo/1.0")
+    ]
+
+This is an intentionally low-level representation of HTTP headers; each tuple corresponds to one on-the-wire line, in order. That means that a field-name can appear more than once (note that 'Foo' appears twice above), and that multiple values can appear in one field-value (note the "Foo" and "Cache-Control" headers above). Whitespace can appear at the beginning of field-values, and field-names are not case-normalised.
+
+Thor has several utility functions for manipulating this data structure; see [thor.http.header_names](#header_names), [thor.http.header_dict](#header_dict), and [thor.http.get_header](#get_header)
+
+
+<span id="header_names"/>
+### thor.http.header\_names ( _headers_ )
+
+Given a list of header tuples _headers_, return the set of header field-names present.
+
+
+<span id="header_dict"/>
+### thor.http.header\_dict ( _headers_, _omit_ )
+
+Given a list of header tuples _headers_, return a dictionary whose keys are the header field-names (normalised to lower case) and whose values are lists of field-values. 
+
+Note that header field-values containing commas are split into separate values. Therefore, this function is NOT suitable for use on fields whose values may contain commas (e.g., in quoted strings, or in cookie values).
+
+If _omit_, a list of field-names, is specified, those field names will be omitted from the dictionary.
+
+
+<span id="get_header"/>
+### thor.http.get\_header ( _headers_, _fieldname_ )
+
+Given a list of header tuples _headers_, return a list of field-values for the given _fieldname_. 
+
+Note that header field-values containing commas are split into separate values. Therefore, this function is NOT suitable for use on fields whose values may contain commas (e.g., in quoted strings, or in cookie values).
+
+
+
+## Event Loops
+
+Thor creates a "default" event loop in the *thor.loop* namespace which can be 
+run using *thor.loop.run*, and so on. If you need to run multiple loops (e.g., 
+for testing), or want to create a loop with a custom precision, they can be 
+explicitly created and bound to a variable using *thor.loop.make*.
+
+
+### thor.loop.make ( _precision_ )
+
+Create and return a named loop that is suitable for the current system. If 
+_precision_ is given, it indicates how often scheduled events will be run.
+
+Returned loop instances have all of the methods and instance variables that 
+*thor.loop* has.
+
+
+### thor.loop.run ()
+
+Start the loop. Events can be scheduled, etc., before the loop is run, but
+they won't fire until it starts running.
+
+
+### thor.loop.stop ()
+
+Stop the loop. Some events may still run while the loop is stopping. Stopping
+the loop clears all scheduled events and forgets the file descriptors that
+it's interested in.
+
+
+### thor.loop.schedule ( _delta_, _callback_, _arg_, ... )
+
+Schedule callable _callback_ to be called _delta_ seconds from now, with
+one or more _arg_s.
+
+Returns an object with a *delete* () method; if called, it will remove the
+timeout.
+
+
+### thor.loop.time ()
+
+Returns the current Unix timestamp, using the loop to save a system call
+when possible. 
+
+Note that the precision of the timestamp is determined by the _precision_ of 
+the loop. Therefore, this method is not suitable for high-precision timers, 
+but is useful when a reasonable resolution is adequate (e.g., in non-critical
+logfiles).
+
+
+### thor.loop.running 
+
+Read-only boolean that is True when the loop is running.
+
+
+### thor.loop.debug
+
+Boolean that, when True, prints warnings to STDERR when the loop is
+behaving oddly; e.g., a scheduled event is blocking. Default is False.
+
+
+### event 'start'
+
+Emitted right before loop starts.
+
+
+### event 'stop'
+
+Emitted right after the loop stops.
+
+# Thor - Easy Evented Intermediation
+
+## API Reference
+
+* [Events](events.md) - Emitting and listening for events
+* [The Loop](loop.md) - The event loop itself
+* [TCP](tcp.md) - Network connections
+* [TLS/SSL](tls.md) - Encrypted network connections
+* [UDP](udp.md) - Network datagrams
+* [HTTP](http.md) - HyperText Transfer Protocol
+# TCP
+
+
+<span id="TcpClient"/>
+## thor.TcpClient ( _loop_ ) 
+
+A TCP client. _loop_ is a *thor.loop*; if omitted, the "default" loop will be used.
+
+Note that new connections will not emit *data* events until they are unpaused;  see [thor.tcp.TcpConnection.pause](#pause).
+
+For example:
+
+    import sys
+    import thor
+
+    test_host, test_port = sys.argv[1:2]
+    
+    def handle_connect(conn):
+        conn.on('data', sys.stdout.write)
+        conn.on('close', thor.stop)
+        conn.write("GET /\n\n")
+        conn.pause(False)
+        
+    def handle_err(err_type, err):
+        sys.stderr.write(str(err_type))
+        thor.stop()
+
+    c = thor.TcpClient()
+    c.on('connect', handle_connect)
+    c.on('connect_error', handle_err)
+    c.connect(test_host, test_port)
+    thor.run()
+
+
+<span id="client_connect"/>
+### thor.TcpClient.connect ( _host_, _port_, _timeout_ ) 
+
+Call to initiate a connection to _port_ on _host_. [connect](#client_connect_event) will be emitted when a connection is available, and [connect_error](#connect_error) will be emitted when it fails.
+
+If _timeout_ is given, it specifies a connect timeout, in seconds. If the  timeout is exceeded and no connection or explicit failure is encountered, [connect_error](#connect_error) will be emitted with *socket.error* as the _errtype_ and  *errno.ETIMEDOUT* as the _error_.
+
+
+<span id="client_connect_event"/>
+### event 'connect' ( _connection_ ) 
+
+Emitted when the connection has succeeded. _connection_ is a [TcpConnection](#TcpConnection).
+
+
+<span id="connect_error"/>
+### event 'connect\_error' ( _errtype_, _error_ )  
+
+Emitted when the connection failed. _errtype_ is *socket.error* or  *socket.gaierror*; _error_ is the error type specific to the type. 
+
+
+<span id="TcpServer"/>
+## thor.TcpServer ( _host_, _port_, _loop_ ) 
+
+A TCP server. _host_ and _port_ specify the host and port to listen on,  respectively; if given, _loop_ specifies the *thor.loop* to use. If _loop_ is omitted, the "default" loop will be used.
+
+Note that new connections will not emit *data* events until they are unpaused;  see [thor.tcp.TcpConnection.pause](#pause).
+
+For example:
+
+    s = TcpServer("localhost", 8000)
+    s.on('connect', handle_conn)
+
+<span id="server_start_event"/>
+### event 'start'
+
+Emitted when the server starts.
+
+<span id="server_connect_event"/>
+### event 'connect' ( _connection_ ) 
+
+Emitted when a new connection is accepted by the server. _connection_ is a [TcpConnection](#TcpConnection).
+
+### thor.TcpServer.close () <span id="server_close"/>
+
+Stops the server from accepting new connections.
+
+<span id="server_stop_event"/>
+### event 'stop'
+
+Emitted when the server stops.
+
+
+<span id="TcpConnection"/>
+## thor.tcp.TcpConnection () 
+
+A single TCP connection.
+
+
+<span id="data_event"/>
+### event 'data' ( _data_ ) 
+
+Emitted when incoming _data_ is received by the connection. See [thor.tcp.TcpConnection.pause](#pause) to control these events.
+
+
+### event 'close' () <span id="close_event"/>
+
+Emitted when the connection is closed, either because the other side has closed it, or because of a network problem.
+
+
+### event 'pause' ( _paused_ ) <span id="pause_event"/>
+
+Emitted to indicate the pause state, using _paused_, of the outgoing side of the connection (i.e., the *write* side).
+
+When True, the connection buffers are full, and *write* should not be called again until this event is emitted again with _paused_ as False.
+
+
+<span id="write"/>
+### thor.tcp.TcpConnection.write ( _data_ ) 
+
+Write _data_ to the connection. Note that it may not be sent immediately.
+
+
+<span id="pause"/>
+### thor.tcp.TcpConnnection.pause ( _paused_ ) 
+
+Controls the incoming side of the connection (i.e., *data* events). When  _paused_ is True, incoming [data](#data_event) events will stop; when _paused_ is false, they will resume again.
+
+Note that by default, *TcpConnection*s are paused; i.e., to read from them, you must first *thor.tcp.TcpConnection.pause*(_False_).
+
+
+<span id="close"/>
+### thor.tcp.TcpConnection.close () 
+
+Close the connection. If there is data still in the outgoing buffer, it will be written before the socket is shut down.
+
+# TLS/SSL
+
+<span id="TlsClient"/>
+## thor.TlsClient ( _loop_ )
+
+A TCP client with a SSL/TLS wrapper. The interface is identical to that
+of *thor.TcpClient*.
+
+For example:
+
+    import sys
+    import thor
+
+    test_host, test_port = sys.argv[1:2]
+    
+    def handle_connect(conn):
+        conn.on('data', sys.stdout.write)
+        conn.on('close', thor.stop)
+        conn.write("GET /\n\n")
+        conn.pause(False)
+        
+    def handle_err(err_type, err):
+        sys.stderr.write(str(err_type))
+        thor.stop()
+
+    c = thor.TlsClient()
+    c.on('connect', handle_connect)
+    c.on('connect_error', handle_err)
+    c.connect(test_host, test_port)
+    thor.run()
+
+
+# UDP
+
+
+## thor.UdpEndpoint ( _loop_ )
+
+A UDP endpoint. _loop_ is a *thor.loop*; if omitted, the "default" loop will be used.
+
+Note that new endpoints will not emit *datagram* events until they are unpaused;  see [thor.UdpEndpoint.pause](#pause).
+
+### thor.UdpEndpoint.max\_dgram
+
+The maximum number of bytes that sent with *send()*.
+
+
+### thor.UdpEndpoint.bind ( _host_, _port_ )
+
+Optionally binds the endpoint to _port_ on _host_ (which must be a local interface). If called, it must occur before *send()*.
+
+If not called before *send()*, the socket will be assigned a random local port by the operating system. 
+
+
+### thor.UdpEndpoint.send ( _datagram_, _host_, _port_ )
+
+Send _datagram_ to _port_ on _host_. 
+
+Note that UDP is intrinsically an unreliable protocol, so the datagram may or may not be received. See also *thor.UdpEndpoint.max\_dgram.*
+
+
+### thor.UdpEndpoint.pause ( _paused_ )
+
+Stop the endpoint from emitting *datagram* events if _paused_ is True; resume emitting them if False.
+
+
+### thor.UdpEndpoint.shutdown ()
+
+Stop the endpoint.
+
+
+### event 'datagram' ( _datagram_, _host_, _port_ )
+
+Emitted when the socket receives _datagram_ from _port_ on _host_.
+Thor - Easy Evented Intermediation
+==================================
+
+.. image:: https://secure.travis-ci.org/mnot/thor.png?branch=master
+   :alt: build status
+   :target: http://travis-ci.org/mnot/thor
+
+About Thor
+----------
+
+Thor is a Python library for evented IO.
+
+There are many such libraries for Python already available. Thor focuses
+on making it easy to build high-performance HTTP intermediaries like
+proxies, load balancers, content transformation engines and service
+aggregators. Of course, you can use it just as a client or server too.
+
+It aims to be as fast as possible, to implement the protocols correctly,
+and to be simple. You can help meet these goals by contributing issues,
+patches and tests.
+
+Thor’s EventEmitter API is influenced by^H^H^H copied from NodeJS; if
+you’re familiar with Node, it shouldn’t be too hard to use Thor.
+However, Thor is nothing like Twisted; this is considered a feature.
+
+Currently, Thor has an event loop as well as TCP, UDP and HTTP APIs
+(client and server). New APIs (e.g., DNS) and capabilities should be
+arriving soon, along with a framework for intermediation.
+
+Requirements
+------------
+
+Thor just needs Python 2.6 or greater; see `http://python.org/`_.
+Currently, it will run on most Posix platforms; specifically, those that
+offer one of poll, epoll or kqueue.
+
+Installation
+------------
+
+If you have setuptools, you can install from the repository:
+
+    easy\_install thor
+
+or using pip:
+
+    pip install thor
+
+Otherwise, download a tarball and install using:
+
+    python setup.py install
+
+Using Thor
+----------
+
+The `documentation`_ is a good starting point; see also the docstrings
+for the various modules, as well as the tests, to give an idea of how to
+use Thor.
+
+For example, a very simple HTTP server looks like this::
+
+    import thor
+    def test_handler(exch):
+        @thor.events.on(exch)
+        def request_start(*args):
+            exch.response_start(200, "OK", [('Content-Type', 'text/plain')])
+            exch.response_body('Hello, world!')
+            exch.response_done([])
+
+    if __name__ == "__main__":
+        demo_server = thor.HttpServer('127.0.0.1', 8000)
+        demo_server.on('exchange', test_handler)
+        thor.run()
+
+Support and Contributions
+-------------------------
+
+See `http://github.com/mnot/thor/`_ to give feedback, view and report
+`issues`_, and contribute code.
+
+All helpful input is welcome, particularly code contributions via a Github
+pull request, and test cases are the cherry on top.
+
+Why Thor?
+---------
+
+Thor is not only “a hammer-wielding god associated with thunder,
+lightning, storms, oak trees, strength, destruction, fertility, healing,
+and the protection of mankind”, he’s also my Norwegian Forest Cat.
+
+Thor (the software program) grew out of nbhttp, which itself came
+from earlier work on evented Python in `redbot`_ and tarawa.
+
+Thor (the cat) now rules our house with a firm but benevolent paw. He
+gets sick if we give him any milk, though.
+
+.. figure:: http://www.mnot.net/lib/thor.jpg
+   :align: center
+   :alt: Thor, the cat
+
+   Thor, the cat
+
+License
+=======
+
+Copyright (c) 2005–2013 Mark Nottingham
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+
+.. _`http://python.org/`: http://python.org/
+.. _documentation: https://github.com/mnot/thor/tree/master/doc
+.. _`http://github.com/mnot/thor/`: http://github.com/mnot/thor/
+.. _issues: https://github.com/mnot/thor/issues
+.. _redbot: http://redbot.org/
+

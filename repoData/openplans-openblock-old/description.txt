@@ -1,0 +1,292 @@
+======
+ebdata
+======
+
+Code to help write scripts that import/crawl/parse data from the web
+into `ebpub <http://pypi.python.org/pypi/ebpub>`_,
+as well as extract (US) street addresses from (English) text.
+
+This package is part of OpenBlock. Originally developed for EveryBlock.com.
+
+For more information, see the
+`documentation <http://openblockproject.org/docs/>`_
+or the `project website <http://openblockproject.org>`_.
+
+Problems can be reported to the `issue tracker <http://developer.openblockproject.org>`_.
+
+Discussion is on the `ebcode google group <http://groups.google.com/group/ebcode>`_
+or the #openblock channel on freenode.
+
+Installation
+============
+
+Do *not* just try to easy_install or pip install ebdata.  It has a lot
+of specific dependencies which can't/shouldn't be captured by
+setup.py.
+
+Instead, see the full documentation at http://openblockproject.org/docs/install/index.html which includes links to pip requirements files
+and instructions on preparing your system.
+
+{% load eb full_links %}
+
+{% ifequal obj.0 'newsitem' %}
+	<ul>
+		{% full_links EB_DOMAIN %}{% with obj.1 as place %}{% with obj.4 as is_block %}{% with obj.5 as block_radius %}{% newsitem_list_by_schema obj.3 %}{% endwith %}{% endwith %}{% endwith %}{% end_full_links %}
+
+	</ul>
+{% else %}
+	<p>{{ obj.1.summary }} <a href="{{ obj.1.url }}">Read more...</a></p>
+{% endifequal %}
+
+=====
+ebpub
+=====
+
+A Django application that provides hyperlocal news.
+
+This package is part of OpenBlock. Originally developed for EveryBlock.com.
+
+For more information, see the
+`documentation <http://openblockproject.org/docs/>`_
+or the `project website <http://openblockproject.org>`_.
+
+Problems can be reported to the `issue tracker <http://developer.openblockproject.org>`_.
+
+Discussion is on the `ebcode google group <http://groups.google.com/group/ebcode>`_
+or the #openblock channel on freenode.
+
+Licensed under the GNU General Public License version 3, except where
+otherwise noted.
+
+
+Installation
+============
+
+Do *not* just try to easy_install or pip install ebpub.  It has a lot
+of specific dependencies which can't/shouldn't be captured by
+setup.py.
+
+Instead, see the full documentation at http://openblockproject.org/docs/install/index.html which includes links to pip requirements files
+and instructions on preparing your system.
+
+.. -*- mode: rst; -*-
+
+==========================================
+Building OpenBlock on Amazon EC2
+==========================================
+
+Scripts in here are for two purposes: creating a clone-able EC2 AMI,
+or for smoke testing of the install docs on fresh Ubuntu images,
+eg. on newly cloned EC2 AMIs.
+
+The scripts should be literal translations of the instructions from
+our docs.  I'm feeling out the approach, not sure yet if these are
+worth keeping around, or what.  Chef or some such would be a more
+robust alternative to a pile of ad-hoc shell scripts.
+
+Creating Instances, Getting SSH Access
+========================================
+
+"Micro" EC2 instances are big enough, but "large" is much
+faster for populating streets data.
+
+I assume we're using Ubuntu AMI images. Get Ubuntu AMI numbers from here:
+https://help.ubuntu.com/community/EC2StartersGuide#Official%20Ubuntu%20Amazon%20Machine%20Images%20%28AMIs%29
+You want the EBS storage version, and I generally choose 64-bit.
+
+If you install mr.awsome (http://pypi.python.org/pypi/mr.awsome)
+locally, then there is an ``aws`` script and an ``etc/aws.conf``
+config file that you can use to create, stop, terminate, etc. some
+instances. Like so::
+
+ $ aws start natty-64
+ $ aws status natty-64
+ $ aws terminate natty-64
+
+Modify the config file as you like.
+(You could also of course use Amazon's ec-* scripts but I find mr.awsome
+convenient.)
+
+To ssh to an EC2 instance, you get the public dns info from the AWS
+control panel (or ``aws status``) and::
+
+ $ export EC2HOST=ubuntu@....compute-1.amazonaws.com  # <-- your hostname goes here
+ $ ssh -i ~/.ssh/openblock.pem $EC2HOST
+
+
+Creating a Cloneable Image (AMI)
+================================
+
+First, set up an EC2 instance via eg.
+``scenario_runner.sh $EC2HOST ubuntu1104 global dev custom.sh``
+
+Then try the ``make_cloneable_image.sh ubuntu@$EC2HOST`` script.
+This sets up apache, logrotate, cron jobs, openblock-related services.
+
+Then you can use the EC2 management console (or scripts, if you like)
+to create a clone-able AMI from this instance. 
+On the web management console, this is as simple as:
+* Select the instance
+* Instance Actions -> Stop
+* Instance Actions -> Create Image (EBS AMI)
+
+
+Using EC2 for Release Testing - Manual
+======================================
+
+First create a new instance as described above.
+
+Then run a specific base system setup script over ssh remotely like
+so, substituting the hostname as needed::
+
+ $ ssh -i ~/.ssh/openblock.pem $EC2HOST < src/openblock/ami_scripts/ubuntu1004_64_globalpkgs
+
+Then set up the db with a specific db config::
+
+ $ cat ubuntu1004_db_config db_postinstall | ssh -i ~/.ssh/openblock.pem $EC2HOST
+
+Finally run a script to install openblock, eg.::
+
+ $ ssh -i ~/.ssh/openblock.pem $EC2HOST < demo_setup_detailed.sh
+
+Release Testing - More Automation
+=====================================
+
+There's now a little wrapper script that can do all that in one go.
+The parameters are: hostname, distro version, global|local, dev|stable, install
+script. Like so::
+
+ $ ./scenario_runner.sh ubuntu@$EC2HOST  ubuntu1004 local  dev demo_setup_detailed.sh
+
+
+CONFIGURATIONS TO TEST:
+=======================
+
+platforms:
+
+1. ubuntu 10.04 64 (lucid) (ami-63be790a)
+2. ubuntu 10.10 64 (maverick) (ami-cef405a7)
+3. ubuntu 11.04 64 (natty) (ami-fd589594)
+
+
+sets of instructions:
+
+1. demo_setup_quickstart.sh
+2. demo_setup_detailed.sh
+3. custom.rst
+
+lib options:
+
+1. gdal & lxml installed locally by pip (use *_globalpkgs)
+2. gdal & lxml globally via distro packages (use *_noglobal)
+
+
+This is a Django app that was generated by running
+`paster create -t openblock ${project}`.
+It starts as a thin wrapper around ebpub, and like any such django app
+it may be customized by adding templates, modifying urls.py, etc.
+
+For more documentation, see
+http://openblockproject.org/docs/install/custom.html
+
+For deployment with apache's mod_wsgi, there is a suitable wsgi script
+in the wsgi/ directory.
+
+There are more example config files in etc/.
+
+=======
+obadmin
+=======
+
+Setup and administrative scripts and utilities for
+`ebpub <http://pypi.python.org/pypi/ebpub>`_.
+
+This package is part of OpenBlock. Originally developed for EveryBlock.com.
+
+For more information, see the
+`documentation <http://openblockproject.org/docs/>`_
+or the `project website <http://openblockproject.org>`_.
+
+Problems can be reported to the `issue tracker <http://developer.openblockproject.org>`_.
+
+Discussion is on the `ebcode google group <http://groups.google.com/group/ebcode>`_
+or the #openblock channel on freenode.
+
+Installation
+============
+
+Do *not* just try to easy_install or pip install obadmin.  It has a lot
+of specific dependencies which can't/shouldn't be captured by
+setup.py.
+
+Instead, see the full documentation at http://openblockproject.org/docs/install/index.html which includes links to pip requirements files
+and instructions on preparing your system.
+
+Unless otherwise noted, these icons are from
+http://mapicons.nicolasmollet.com/
+by Nicholas Mollet, licensed as Creative Commons 3.0 BY-SA.
+
+==========
+obdemo
+==========
+
+A Django application containing configuration and overrides for
+`the openblock demo site <http://demo.openblockproject.org>`_.
+
+obdemo is intented to serve as a useful example of how to set up a site
+based on the OpenBlock code, in particular
+`ebpub <http://pypi.python.org/pypi/ebpub>`_.
+
+This package is part of OpenBlock.
+For more information, see the
+`documentation <http://openblockproject.org/docs/>`_
+or the `project website <http://openblockproject.org>`_.
+
+Problems can be reported to the `issue tracker <http://developer.openblockproject.org>`_.
+
+Discussion is on the `ebcode google group <http://groups.google.com/group/ebcode>`_
+or the #openblock channel on freenode.
+
+
+Installation
+=============
+
+Do *not* just try to easy_install or pip install obdemo.  It has a lot
+of specific dependencies which can't/shouldn't be captured by
+setup.py.
+
+Instead, see the full documentation at http://openblockproject.org/docs/install/index.html which includes links to pip requirements files
+and instructions on preparing your system.
+
+This directory contains patches that we apply to packages installed
+from source.  These are typically applied automatically by the
+``oblock`` installer script provided by the obadmin package.
+
+=========
+OpenBlock
+=========
+
+OpenBlock is a web application and RESTful service that allows users
+to browse and search their local area for "hyper-local news" - to see
+what's going on recently in the immediate geographic area.
+
+For installation instructions and other documentation, see
+http://openblockproject.org/docs/ (or the .rst files in the docs/ directory).
+
+For help, you can try the ebcode group:
+http://groups.google.com/group/ebcode
+or look for us in the #openblock IRC channel on irc.freenode.net.
+
+
+About the Project
+=================
+
+OpenBlock began life as the open-source code released by
+Everyblock.com in June 2009.  Originally created by Adrian Holovaty
+and the Everyblock team, it is now developed as an open-source (GPL)
+project by OpenPlans, at http://openblockproject.org.
+
+Funding for the initial creation of Everyblock and the ongoing
+development of OpenBlock has been provided by the Knight Foundation
+(http://www.knightfoundation.org/).
+

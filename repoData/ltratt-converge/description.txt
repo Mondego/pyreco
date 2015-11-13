@@ -1,0 +1,315 @@
+Because of the unfortunate incompatibilities between different makes, Converge
+is forced to use GNU make idioms in its makefiles. On BSD one thus has to
+substitute the "gmake" command for "make"
+
+Cross-compiling for Converge means creating convergec and convergel binaries that
+can run on a target platform other than the one being used to create them. For
+example on a 64 bit system one can cross-compile to create 32 bit binaries by
+building the host Converge system as normal and then executing:
+
+  make cross TARGET=32bit
+
+When this has finished the following two cross-compiled binaries will have been
+created:
+
+  compiler/convergec.32bit
+  compiler/convergel.32bit
+
+To clean the files created by cross-compilation one must execute:
+
+  make cross-clean TARGET=32bit
+
+These files are not cleaned by the normal "make clean" target.
+
+Available targets are documented in compiler/Compiler/Targets/Available.cv. Note
+that some platforms are not capable of cross-compiling to other targets (e.g.
+currently the 32bit platform can not currently cross-compile the 64bit compiler).
+
+To compile Converge in a standard Cygwin installation you will need to
+install at least the pcre, pcre-devel, libxml2, libxml2-devel, and gmake
+packages.
+
+You may find that compiling Converge under the normal Cygwin prompt causes a
+stack exception error to be raised. In such a case, try executing "startx"
+and compiling Converge under the xterm that opens. This seems to fix the
+problem - if anyone understands why, please get in touch.
+
+Building Converge on Mac OS X follows a typical "unixish" approach that users unfamiliar with unix may find confusing. The following steps should make the installation process simple:
+
+1 - Let's assume that the Converge source has been decompressed into a folder named 'Converge' located on the desktop. 
+
+
+2 - Converge relies on two external libraries: PCRE (Perl Compatible Regular Expressions) and libxml2. PCRE is typically not found on Mac OS X systems, while libxml2 may be partially installed. In both cases full version need to be manually installed. Download the PCRE source code from http://pcre.org/ and decompress it into the Converge folder. Open a terminal (a.k.a xterm), go to the pcre-X.Y folder (where X.Y is the PCRE version number) and execute the following command:
+
+  $ ./configure --prefix=$HOME/Desktop/Converge
+
+This invocation will build the Makefile needed to compile PCRE. It also says that it will have to be installed in the Converge folder. I am sure you do not not want to touch the Darwin filesystem :-) You can now invoke 'make' and then 'make install':
+
+  $ make
+  gcc -DHAVE_CONFIG_H -I. -O2 -MT pcre_compile.lo -MD -MP -MF .deps/pcre_compile.Tpo -c pcre_compile.c -o pcre_compile.o >/dev/null 2>&1
+  mv -f .deps/pcre_compile.Tpo .deps/pcre_compile.Plo
+  /bin/sh ./libtool --tag=CC
+  ........
+  gcc -O2 -o .libs/pcredemo pcredemo.o  ./.libs/libpcre.dylib
+  creating pcredemo
+  $ make install
+
+New folders titled 'bin', 'include' will have been created, and populated, in the Converge folder.
+
+
+3 - Perform the same sequence of operations (with the same commands) for libxml2.
+
+
+4 - The path has to be adjusted. The new 'bin' folder has to be included in the shell variable PATH. Simply execute:
+
+  $ export PATH=$HOME/Desktop/Converge/bin/:$PATH
+
+Note that since we want to ensure that our versions of PCRE and libxml2 are picked up, rather than other versions that may have been previously installed we put the 'bin' folder at the beginning of $PATH. This command will only effect your current terminal, and its effects will be lost when you close the terminal.
+
+
+5 - Converge can now be compiled. Following the instructions in the INSTALL file.
+
+6 - If you now type 'converge' in your Terminal, you should see be taken to the interactive prompt:
+
+  $ converge
+  Converge current
+  >>> 
+
+The prompt can be exited from with Ctrl-D. You're done! Converge is installed!
+
+
+Originally written by: Alexandre Bergel, July 3, 2007
+
+Hardware used during the writing of this file:
+Mac book, OSX version 10.4.9. Processor 1.83GHz Intel Core 2 Duo. 
+1GB 667 MHz DDR2 SDRAM
+
+
+MinGW is how Converge produces native Windows binaries. You will almost
+certainly need to install extra MinGW packages to get everthying up and
+running.
+
+The easiest way to compile things is to run "sh.exe" in MinGW/bin. You will
+first need to manually compile MinGW versions of PCRE and libXML2. I put
+these into C:\pcre and C:\libXML2 respectively.
+
+You may find that you need to alter your path for the configure script to
+execute correctly. The following works for me:
+
+  "C:/MinGW/bin/sh.exe"-2.04$ export PATH=/c/MinGW/bin/:/c/pcre/bin/:/c/libxml2/bin/:$PATH
+  
+Since the install script included with MinGW appears to be defective, you
+may need to specify an alternative via the INSTALL variable when running
+configure. A suitable alternative is included in the distribution, and can
+be used as follows:
+
+  "C:/MinGW/bin/sh.exe"-2.04$ INSTALL=./install-sh ./configure
+
+================================================================================
+  Converge documentation
+================================================================================
+
+
+  First time users
+ ==================
+
+If you are new to Converge and want to work out how to install it, check
+install/INSTALL and then (if necessary) install/README.X where "X" is your
+platform. You may then wish to read quick_intro/index.html for a whistle-top
+tour of the language's major features.
+
+
+
+  Detailed information
+ ======================
+
+If you wish to find out about all the documenation that comes with Converge,
+herewith a brief description of the various documentation:
+
+  CHANGES       A description of the major changes between versions
+
+  CREDITS       A list of people
+
+  ctmp/
+    index.html  A detailed explanation of compile-time meta-progamming in
+                Converge. This is, in a sense, a detailed addendum to the
+                "quick intro".
+
+  install/
+    INSTALL     General installation instructions
+    README.X    Specific instructions for platform X
+
+  modules_html/
+    index.html  Links to documentation on all parts of Converge's standard
+                libraries. Note this documentation is built from the XML
+                in the "modules_cvd" directory; modules_html is thus not
+                populated until the whole Converge system is built.
+
+  quick_intro/
+    index.html  An overview of Converge's major language features.
+
+  tools/
+    index.html  Detailed explanations of the various tools (convergec,
+                convergei, convergep, cvd_to_html) that come with
+                Converge.
+
+The examples in this directory show an example of a statemachine DSL evolving in
+power and reliability. It is intended to show a small, but realistic, example of
+DSL development. It is a good first starting point for learning about DSL
+development in Converge.
+
+Each evolution of the DSL comes with two files SMr.cv and exr.cv where r is
+the DSL's version number. Therefore SM1.cv and ex1.cv are the starting
+point. Each version of the DSL is runnable. e.g. to run the first version
+type:
+
+  $ converge -v ex1.cv
+
+The DSL and its implementation will be compiled and run. The first three
+versions are non-interactive, whereas the fourth and fifth versions require
+input from the user.
+
+A brief description of each version now follows:
+
+  1: Very simple implementation allowing only states, transitions, and events.
+     Events received by the system cause transitions to be taken; if no valid
+     transition is found for a given event, an exception is raised.
+     
+     Try making a syntactic error in the input (e.g. change a "to" keyword to
+     "ro"), and you will get a compile-time error pinpointing exactly where
+     the mistake occurred - notice that this is automatic and required no
+     extra effort from the DSL implementor.
+
+  2: Guards (effectively preconditions), variables and simple actions (updating
+     variables) on top of version 1. This is expressive enough for a decent
+     subset of statemachines. The general format of a transition is:
+
+       "TRANSITION" "FROM" <state> "TO" <state>: <event> "[" <guard> "]"
+       "/" <action>
+
+     where <event>, "[" <guard> "]", and "/" <action> are all optional.
+
+     However there is a notable usability problem with this example. If the
+     user makes a mistake in their input which leads to a run-time exception,
+     then the resulting run-time exception will be in terms of the SMr.cv file,
+     not the exr.cv file. To simulate this, change one of the actions from:
+     
+       drinks := drinks - 1
+       
+     to:
+     
+       drinks := drinks - "woo"
+     
+     As you will see, the resulting exception does not provide much assistance
+     for debugging purposes.
+
+  3: The same as version 2, but extra src infos are added to generated code.
+     Make the same run-time-exception-raising change to one of the actions
+     as you did to version 2, and you will see that the resulting exception now
+     also pinpoints exactly where within the ex3.cv the error resulted from.
+
+     This is achived by adding src infos to quasi-quoted code e.g.:
+
+       [<node[1].src_infos>| ... |]
+
+  4: Allow functions to be called from actions. Some "built in" functions are
+     added to the statemachine (the input() function returns input from the
+     user). Non-built in functions are assumed to be calls to user-defined
+     functions outside the statemachine. This allows the statemachine in ex4.cv
+     sufficient power to model a cash-machine including user input. To use the
+     statemachine, first choose an account number (1 or 2), and then choose
+     whether to Withdraw or Finish. If you withdraw, you will be asked for an
+     amount; you can not overdraw an account.
+
+     There is a subtle problem with this version of the DSL. If you use certain
+     names for functions, then seemingly inexplicable behaviour occurs. Try for
+     example renaming the read_card function (and all references to it) to
+     "sm" which will trigger this problem. The reason this happens is that the
+     DSL dynamically scopes references to unknown functions; in other words the
+     read_card function is translated to an unmolested read_card variable
+     without being renamed to a fresh name. Parts of the generated DSL code use
+     - for their own convenience - dynamically scoped names too (e.g. "sm" which
+     you will see in SM4.cv as "&sm"). In other words, this version of the DSL
+     suffers from a hygiene problem.
+
+  5: Same as version 4, but without the hygiene problem. This version of the DSL
+     renames unknown functions such as read_card to a fresh name; in the
+     generated code it then uses the rename declaration to ensure that the fresh
+     name is the one in scope. This means that the generated code looks roughly
+     as follows:
+
+       rename read_card as $$20$$
+       ...
+       $$20$$(...)
+
+     This version of the DSL thus solves the hygiene problem of version 4.
+
+The examples in this directory are of a simple, idealised assembler for a Word
+Size Independent (WSI) VM. WSI essentially means that the VM in question
+abstracts away from issues such as the bit size of an integer (it's not
+defined), which means that addresses start at 0 and monotonically increase by 1.
+Instructions begin at address 0; the stack starts at the end of memory and grows
+downwards. Addresses and integers are synonymous, and labels can be used
+wherever addresses are valid. Any memory location can be overwritten. Invalid
+actions lead to "seg faults" (represented by normal Converge expressions). The
+VM defines built-in routines to perform some primitive operations.
+
+By default the VM has 8 registers R0 to R7 inclusive. R7 is the Program Counter
+(PC) storing the address of the current instruction. R6 is the stack pointer
+pointing to the first free stack address. The default size of memory is 524288
+words.
+
+An assembly program is a sequence of lines. Each line specifies an action or a
+label. Actions are things like:
+
+  R0 := 2      // Store the value 2 into R0
+  R1 := R0 + 1 // Assign the value stored into R0, and incremented by 2, into R1
+ 
+Labels are identifiers followed by a colon:
+
+  L0:
+
+There are 8 types of action:
+
+  R0 := <expr>      // Store <expr> into R0
+  [R0] := <expr>    // Store <expr> into the address stored in R0
+  CALL L0           // Call L0, storing the return PC on the stack
+  RTN               // Pop the return PC from the stack and jump to it
+  PUSH R1           // Push R1 onto the stack
+  POP R2            // Pop R1 from the stack
+  SWI printi        // Execute the specified SoftWare Interrupt routine
+  if <cond> jmp L2  // If <cond> is true, jump to L2; "if <cond>" is optional
+
+There are 5 types of expression:
+
+  R0      // Read the contents of R0
+  L0      // Substitute the address of L0
+  R0 + R2 // Add R0 and R1
+  R0 + 2  // Add R0 and 2
+  [R2]    // Read the value in the address stored in R2
+
+Note that expressions involving [+-*/] are all of the form <reg> <op> <reg> or
+<reg> <op> <int> to approximate the limitations of typical assembler
+instructions. Note that this also implicitly means that there are no precedence
+issues to consider.
+
+The VM defines the following builtin SWIs:
+
+  exit   // Exits the program unconditionally
+  printi // Prints the integer in R0 to screen
+  inputi // Reads an integer from stdin, placing the result in R0
+
+There are 5 examples included with this DSL. ex1.cv to ex4.cv inclusive
+demonstrate low-level features with artifical examples. fib.cv defines a
+recursive fibonacci function. Execute this as follows:
+
+  $ converge fib.cv
+  >
+
+At the ">" prompt enter a number in the Fibonacci sequence e.g. 8:
+
+  $ converge fib.cv 
+  > 8
+  21
+  $
+

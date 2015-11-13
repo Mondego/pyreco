@@ -1,0 +1,1474 @@
+Implementation of the `apitrace` command line interface.
+
+The dispatch layer objective is to resolve the addresses of public and private
+symbols from DLLs / shared objects and dispatch calls to them.
+
+It used both by the tracing wrappers (to dispatch the intercepted calls to
+their true counterparts) and when replaying traces (to dispatch the calls
+recorded on the file).
+
+Most of the code is generated from dispatch.py script, which is then derived
+for particular APIs.
+
+Implementation of the `qapitrace` Qt-based GUI for apitrace.
+
+This directory contains several headers with inline functions that are referred
+by the specs for determining sizes to array, blobs, etc.
+
+These are relied upon both when tracing and replaying so care must be taken to
+not make any assumptions.
+
+This directory contains a class to represent and manipulate images, in memory
+or disk.
+
+Utilities for injection of DLLs in Windows.
+
+Wrapper DLLs work well for self-contained APIs (e.g., OpenGL with its
+opengl32.dll), but not for APIs which are spread across multiple DLLs, in
+particular DXGI and D3D10+ APIs.
+
+About **apitrace**
+==================
+
+**apitrace** consists of a set of tools to:
+
+* trace OpenGL, OpenGL ES, Direct3D, and DirectDraw APIs calls to a file;
+
+* replay OpenGL and OpenGL ES calls from a file;
+
+* inspect OpenGL state at any call while retracing;
+
+* visualize and edit trace files.
+
+See the [apitrace homepage](http://apitrace.github.io/) for more details.
+
+
+Obtaining **apitrace**
+======================
+
+To obtain apitrace either [download the latest
+binaries](http://apitrace.github.io/#download) for your platform if
+available, or follow the instructions in INSTALL.markdown to build it yourself.
+On 64bits Linux and Windows platforms you'll need apitrace binaries that match
+the architecture (32bits or 64bits) of the application being traced.
+
+
+Basic usage
+===========
+
+Run the application you want to trace as
+
+    apitrace trace --api API /path/to/application [args...]
+
+and it will generate a trace named `application.trace` in the current
+directory.  You can specify the written trace filename by passing the
+`--output` command line option.
+
+Problems while tracing (e.g, if the application uses calls/parameters
+unsupported by apitrace) will be reported via stderr output on Unices.  On
+Windows you'll need to run
+[DebugView](http://technet.microsoft.com/en-us/sysinternals/bb896647) to view
+these messages.
+
+Follow the "Tracing manually" instructions below if you cannot obtain a trace.
+
+View the trace with
+
+    apitrace dump application.trace
+
+Replay an OpenGL trace with
+
+    apitrace replay application.trace
+
+Pass the `--sb` option to use a single buffered visual.  Pass `--help` to
+`apitrace replay` for more options.
+
+
+Basic GUI usage
+===============
+
+Start the GUI as
+
+    qapitrace application.trace
+
+You can also tell the GUI to go directly to a specific call
+
+    qapitrace application.trace 12345
+
+
+Backtrace Capturing
+===================
+
+apitrace now has the ability to capture the call stack to an OpenGL call.
+This can be helpful in determing which piece of code made that glDrawArrays call.
+
+*NOTE* this feature is currently only available on Android and Linux at the moment.
+
+On linux you need to have libunwind, and libdwarf installed to compile in the feature.
+
+To use the feature you need to set an environment variable with the list of GL
+call prefixes you wish to capture stack traces to.
+
+    export APITRACE_BACKTRACE="glDraw* glUniform*"
+
+The backtrace data will show up in qapitrace in the bottom section as a new tab.
+
+
+Advanced command line usage
+===========================
+
+
+Call sets
+---------
+
+Several tools take `CALLSET` arguments, e.g:
+
+    apitrace dump --calls=CALLSET foo.trace
+    apitrace dump-images --calls=CALLSET foo.trace
+    apitrace trim --calls=CALLSET1 --calls=CALLSET2 foo.trace
+
+The call syntax is very flexible. Here are a few examples:
+
+ * `4`             one call
+
+ * `0,2,4,5`       set of calls
+
+ * `"0 2 4 5"`     set of calls (commas are optional and can be replaced with whitespace)
+
+ * `0-100/2`       calls 1, 3, 5, ...,  99
+
+ * `0-1000/draw`   all draw calls between 0 and 1000
+
+ * `0-1000/fbo`    all fbo changes between calls 0 and 1000
+
+ * `frame`         all calls at end of frames
+
+ * `@foo.txt`      read call numbers from `foo.txt`, using the same syntax as above
+
+
+
+Tracing manually
+----------------
+
+### Linux ###
+
+On 64 bits systems, you'll need to determine whether the application is 64 bits
+or 32 bits.  This can be done by doing
+
+    file /path/to/application
+
+But beware of wrapper shell scripts -- what matters is the architecture of the
+main process.
+
+Run the GLX application you want to trace as
+
+    LD_PRELOAD=/path/to/apitrace/wrappers/glxtrace.so /path/to/application
+
+and it will generate a trace named `application.trace` in the current
+directory.  You can specify the written trace filename by setting the
+`TRACE_FILE` environment variable before running.
+
+For EGL applications you will need to use `egltrace.so` instead of
+`glxtrace.so`.
+
+The `LD_PRELOAD` mechanism should work with the majority of applications.  There
+are some applications (e.g., Unigine Heaven, Android GPU emulator, etc.), that
+have global function pointers with the same name as OpenGL entrypoints, living in a
+shared object that wasn't linked with `-Bsymbolic` flag, so relocations to
+those global function pointers get overwritten with the address to our wrapper
+library, and the application will segfault when trying to write to them.  For
+these applications it is possible to trace by using `glxtrace.so` as an
+ordinary `libGL.so` and injecting it via `LD_LIBRARY_PATH`:
+
+    ln -s glxtrace.so wrappers/libGL.so
+    ln -s glxtrace.so wrappers/libGL.so.1
+    ln -s glxtrace.so wrappers/libGL.so.1.2
+    export LD_LIBRARY_PATH=/path/to/apitrace/wrappers:$LD_LIBRARY_PATH
+    export TRACE_LIBGL=/path/to/real/libGL.so.1
+    /path/to/application
+
+If you are an application developer, you can avoid this either by linking with
+`-Bsymbolic` flag, or by using some unique prefix for your function pointers.
+
+See the `ld.so` man page for more information about `LD_PRELOAD` and
+`LD_LIBRARY_PATH` environment flags.
+
+### Android ###
+
+To trace standalone native OpenGL ES applications, use
+`LD_PRELOAD=/path/to/egltrace.so /path/to/application` as described in the
+previous section.  To trace Java applications, refer to Dalvik.markdown.
+
+### Mac OS X ###
+
+Run the application you want to trace as
+
+    DYLD_FRAMEWORK_PATH=/path/to/apitrace/wrappers /path/to/application
+
+Note that although Mac OS X has an `LD_PRELOAD` equivalent,
+`DYLD_INSERT_LIBRARIES`, it is mostly useless because it only works with
+`DYLD_FORCE_FLAT_NAMESPACE=1` which breaks most applications.  See the `dyld` man
+page for more details about these environment flags.
+
+### Windows ###
+
+When tracing third-party applications, you can identify the target
+application's main executable, either by:
+
+* right clicking on the application's icon in the _Start Menu_, choose
+  _Properties_, and see the _Target_ field;
+
+* or by starting the application, run Windows Task Manager (taskmgr.exe), right
+  click on the application name in the _Applications_ tab, choose _Go To Process_,
+  note the highlighted _Image Name_, and search it on `C:\Program Files` or
+  `C:\Program Files (x86)`.
+
+On 64 bits Windows, you'll need to determine ether the application is a 64 bits
+or 32 bits. 32 bits applications will have a `*32` suffix in the _Image Name_
+column of the _Processes_ tab of _Windows Task Manager_ window.
+
+You also need to know which graphics API is being used.  If you are unsure, the
+simplest way to determine what API an application uses is to:
+
+* download and run [Process Explorer](http://technet.microsoft.com/en-us/sysinternals/bb896653.aspx)
+
+* search and select the application's process in _Process Explorer_
+
+* list the DLLs by pressing `Ctrl + D`
+
+* sort DLLs alphabetically, and look for the DLLs such as `opengl32.dll`,
+  `d3d9.dll`, `d3d10.dll`, etc.
+
+Copy the appropriate `opengl32.dll`, `d3d8.dll`, or `d3d9.dll` from the
+wrappers directory to the directory with the application you want to trace.
+Then run the application as usual.
+
+You can specify the written trace filename by setting the `TRACE_FILE`
+environment variable before running.
+
+For D3D10 and higher you really must use `apitrace trace -a DXGI ...`. This is
+because D3D10-11 API span many DLLs which depend on each other, and once a DLL
+with a given name is loaded Windows will reuse it for LoadLibrary calls of the
+same name, causing internal calls to be traced erroneously. `apitrace trace`
+solves this issue by injecting a DLL `dxgitrace.dll` and patching all modules
+to hook only the APIs of interest.
+
+
+Emitting annotations to the trace
+---------------------------------
+
+From within OpenGL applications you can embed annotations in the trace file
+through the following extensions:
+
+* [`GL_KHR_debug`](http://www.opengl.org/registry/specs/KHR/debug.txt)
+
+* [`GL_ARB_debug_output`](http://www.opengl.org/registry/specs/ARB/debug_output.txt)
+
+* [`GL_EXT_debug_marker`](http://www.khronos.org/registry/gles/extensions/EXT/EXT_debug_marker.txt)
+
+* [`GL_EXT_debug_label`](http://www.opengl.org/registry/specs/EXT/EXT_debug_label.txt)
+
+* [`GL_AMD_debug_output`](http://www.opengl.org/registry/specs/AMD/debug_output.txt)
+
+* [`GL_GREMEDY_string_marker`](http://www.opengl.org/registry/specs/GREMEDY/string_marker.txt)
+
+* [`GL_GREMEDY_frame_terminator`](http://www.opengl.org/registry/specs/GREMEDY/frame_terminator.txt)
+
+**apitrace** will advertise and intercept these OpenGL extensions regardless
+of whether the OpenGL implementation supports them or not.  So all you have
+to do is to use these extensions when available, and you can be sure they
+will be available when tracing inside **apitrace**.
+
+For example, if you use [GLEW](http://glew.sourceforge.net/) to dynamically
+detect and use OpenGL extensions, you could easily accomplish this by doing:
+
+    void foo() {
+    
+      if (GLEW_KHR_debug) {
+        glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, __FUNCTION__);
+      }
+      
+      ...
+      
+      if (GLEW_KHR_debug) {
+        glDebugMessageInsert(GL_DEBUG_SOURCE_APPLICATION, GL_DEBUG_TYPE_OTHER,
+                             0, GL_DEBUG_SEVERITY_MEDIUM, -1, "bla bla");
+      }
+      
+      ...
+      
+      if (GLEW_KHR_debug) {
+        glPopDebugGroup();
+      }
+    
+    }
+
+This has the added advantage of working equally well with other OpenGL debugging tools.
+
+Also, provided that the OpenGL implementation supports `GL_KHR_debug`, labels
+defined via glObjectLabel() , and the labels of several objects (textures,
+framebuffers, samplers, etc. ) will appear in the GUI state dumps, in the
+parameters tab.
+
+
+For OpenGL ES applications you can embed annotations in the trace file through the
+[`GL_KHR_debug`](http://www.khronos.org/registry/gles/extensions/KHR/debug.txt) or 
+[`GL_EXT_debug_marker`](http://www.khronos.org/registry/gles/extensions/EXT/EXT_debug_marker.txt)
+extensions.
+
+
+For Direct3D applications you can follow the standard procedure for
+[adding user defined events to Visual Studio Graphics Debugger / PIX](http://msdn.microsoft.com/en-us/library/vstudio/hh873200.aspx):
+
+- `D3DPERF_BeginEvent`, `D3DPERF_EndEvent`, and `D3DPERF_SetMarker` for D3D9 applications.
+
+- `ID3DUserDefinedAnnotation::BeginEvent`,
+  `ID3DUserDefinedAnnotation::EndEvent`, and
+  `ID3DUserDefinedAnnotation::SetMarker` for D3D11.1 applications.
+
+
+Dump OpenGL state at a particular call
+----------------------------------
+
+You can get a dump of the bound OpenGL state at call 12345 by doing:
+
+    apitrace replay -D 12345 application.trace > 12345.json
+
+This is precisely the mechanism the GUI uses to obtain its own state.
+
+You can compare two state dumps by doing:
+
+    apitrace diff-state 12345.json 67890.json
+
+
+Comparing two traces side by side
+---------------------------------
+
+    apitrace diff trace1.trace trace2.trace
+
+This works only on Unices, and it will truncate the traces due to performance
+limitations.
+
+
+Recording a video with FFmpeg/Libav
+-----------------------------------
+
+You can make a video of the output with FFmpeg by doing
+
+    apitrace dump-images -o - application.trace \
+    | ffmpeg -r 30 -f image2pipe -vcodec ppm -i pipe: -vcodec mpeg4 -y output.mp4
+
+or Libav (which replaces FFmpeg on recent Debian/Ubuntu distros) doing
+
+    apitrace dump-images -o - application.trace \
+    | avconv -r 30 -f image2pipe -vcodec ppm -i - -vcodec mpeg4 -y output.mp4
+
+Recording a video with gstreamer
+--------------------------------------
+
+You can make a video of the output with gstreamer by doing
+
+    glretrace --snapshot-format=RGB -s - smokinguns.trace | gst-launch-0.10 fdsrc blocksize=409600 ! queue \
+    ! videoparse format=rgb width=1920 height=1080 ! queue ! ffmpegcolorspace ! queue \
+    ! vaapiupload direct-rendering=0 ! queue ! vaapiencodeh264 ! filesink location=xxx.264
+
+Trimming a trace
+----------------
+
+You can truncate a trace by doing:
+
+    apitrace trim --exact --calls 0-12345 -o trimed.trace application.trace
+
+If you need precise control over which calls to trim you can specify the
+individual call numbers in a plain text file, as described in the 'Call sets'
+section above.
+
+There is also experimental support for automatically trimming the calls
+necessary for a given frame or call:
+
+    apitrace trim --auto --calls=12345 -o trimed.trace application.trace
+    apitrace trim --auto --frames=12345 -o trimed.trace application.trace
+
+
+Profiling a trace
+-----------------
+
+You can perform gpu and cpu profiling with the command line options:
+
+ * `--pgpu` record gpu times for frames and draw calls.
+
+ * `--pcpu` record cpu times for frames and draw calls.
+
+ * `--ppd` record pixels drawn for each draw call.
+
+The results from these can then be read by hand or analyzed with a script.
+
+`scripts/profileshader.py` will read the profile results and format them into a
+table which displays profiling results per shader.
+
+For example, to record all profiling data and utilise the per shader script:
+
+    apitrace replay --pgpu --pcpu --ppd foo.trace | ./scripts/profileshader.py
+
+
+Advanced usage for OpenGL implementors
+======================================
+
+There are several advanced usage examples meant for OpenGL implementors.
+
+
+Regression testing
+------------------
+
+These are the steps to create a regression test-suite around **apitrace**:
+
+* obtain a trace
+
+* obtain reference snapshots, by doing on a reference system:
+
+        mkdir /path/to/reference/snapshots/
+        apitrace dump-images -o /path/to/reference/snapshots/ application.trace
+
+* prune the snapshots which are not interesting
+
+* to do a regression test, use `apitrace diff-images`:
+
+        apitrace dump-images -o /path/to/test/snapshots/ application.trace
+        apitrace diff-images --output summary.html /path/to/reference/snapshots/ /path/to/test/snapshots/
+
+
+Automated git-bisection
+-----------------------
+
+With tracecheck.py it is possible to automate git bisect and pinpoint the
+commit responsible for a regression.
+
+Below is an example of using tracecheck.py to bisect a regression in the
+Mesa-based Intel 965 driver.  But the procedure could be applied to any OpenGL
+driver hosted on a git repository.
+
+First, create a build script, named build-script.sh, containing:
+
+    #!/bin/sh
+    set -e
+    export PATH=/usr/lib/ccache:$PATH
+    export CFLAGS='-g'
+    export CXXFLAGS='-g'
+    ./autogen.sh --disable-egl --disable-gallium --disable-glut --disable-glu --disable-glw --with-dri-drivers=i965
+    make clean
+    make "$@"
+
+It is important that builds are both robust, and efficient.  Due to broken
+dependency discovery in Mesa's makefile system, it was necessary to invoke `make
+clean` in every iteration step.  `ccache` should be installed to avoid
+recompiling unchanged source files.
+
+Then do:
+
+    cd /path/to/mesa
+    export LIBGL_DEBUG=verbose
+    export LD_LIBRARY_PATH=$PWD/lib
+    export LIBGL_DRIVERS_DIR=$PWD/lib
+    git bisect start \
+        6491e9593d5cbc5644eb02593a2f562447efdcbb 71acbb54f49089b03d3498b6f88c1681d3f649ac \
+        -- src/mesa/drivers/dri/intel src/mesa/drivers/dri/i965/
+    git bisect run /path/to/tracecheck.py \
+        --precision-threshold 8.0 \
+        --build /path/to/build-script.sh \
+        --gl-renderer '.*Mesa.*Intel.*' \
+        --retrace=/path/to/glretrace \
+        -c /path/to/reference/snapshots/ \
+        topogun-1.06-orc-84k.trace
+
+The trace-check.py script will skip automatically when there are build
+failures.
+
+The `--gl-renderer` option will also cause a commit to be skipped if the
+`GL_RENDERER` is unexpected (e.g., when a software renderer or another OpenGL
+driver is unintentionally loaded due to a missing symbol in the DRI driver, or
+another runtime fault).
+
+
+Side by side retracing
+----------------------
+
+In order to determine which draw call a regression first manifests one could
+generate snapshots for every draw call, using the `-S` option.  That is, however,
+very inefficient for big traces with many draw calls.
+
+A faster approach is to run both the bad and a good OpenGL driver side-by-side.
+The latter can be either a previously known good build of the OpenGL driver, or a
+reference software renderer.
+
+This can be achieved with retracediff.py script, which invokes glretrace with
+different environments, allowing to choose the desired OpenGL driver by
+manipulating variables such as `LD_LIBRARY_PATH`, `LIBGL_DRIVERS_DIR`, or
+`TRACE_LIBGL`.
+
+For example, on Linux:
+
+    ./scripts/retracediff.py \
+        --ref-env LD_LIBRARY_PATH=/path/to/reference/OpenGL/implementation \
+        --retrace /path/to/glretrace \
+        --diff-prefix=/path/to/output/diffs \
+        application.trace
+
+Or on Windows:
+
+    python scripts\retracediff.py --retrace \path\to\glretrace.exe --ref-env TRACE_LIBGL=\path\to\reference\opengl32.dll application.trace
+
+
+Advanced GUI usage
+==================
+
+qapitrace has rudimentary support for replaying traces on a remote
+target device. This can be useful, for example, when developing for an
+embedded system. The primary GUI will run on the local host, while any
+replays will be performed on the target device.
+
+In order to target a remote device, use the command-line:
+
+    qapitrace --remote-target <HOST> <trace-file>
+
+In order for this to work, the following must be available in the
+system configuration:
+
+1. It must be possible for the current user to initiate an ssh session
+   that has access to the target's window system. The command to be
+   exectuted by qapitrace will be:
+
+        ssh <HOST> glretrace
+
+   For example, if the target device is using the X window system, one
+   can test whether an ssh session has access to the target X server
+   with:
+
+        ssh <HOST> xdpyinfo
+
+   If this command fails with something like "cannot open display"
+   then the user will have to configure the target to set the DISPLAY
+   environment variable, (for example, setting DISPLAY=:0 in the
+   .bashrc file on the target or similar).
+
+   Also, note that if the ssh session requires a custom username, then
+   this must be configured on the host side so that ssh can be
+   initiated without a username.
+
+   For example, if you normally connect with `ssh user@192.168.0.2`
+   you could configure ~/.ssh/config on the host with a block such as:
+
+        Host target
+          HostName 192.168.0.2
+          User user
+
+   And after this you should be able to connect with `ssh target` so
+   that you can also use `qapitrace --remote-target target`.
+
+2. The target host must have a functional glretrace binary available
+
+3. The target host must have access to <trace-file> at the same path
+   in the filesystem as the <trace-file> path on the host system being
+   passed to the qapitrace command line.
+
+The source for replaying retraces lives in this directory.
+
+There are actually several distinct layers in this directory which should be eventually be split out:
+
+ * retrace -- deserialization and interpretation of calls from a trace
+
+ * ws -- windowing system helpers and abstractions
+
+ * state -- dumping of state into JSON format
+
+This directory contains specification of several APIs in a Python class
+hierarchy.
+
+The base classes of this hierarchy are in stdapi.py.
+
+Some of these specifications are (partially) generated from other external
+specifications, by ad-hoc scripts in the `scripts` subdirectory.
+
+This directory contains several helper scripts that facilitate the generation
+of the API descriptions from specs and/or header files.
+
+The specs/headers are not expressive enough, which is why we can't just code
+generate everything from them directly.  However the scripts in this directory
+usually get 90% of the work done automatically.
+
+
+OpenGL
+======
+
+For OpenGL the typical procedure is to run
+
+    make -B
+
+which will generate several python scripts with prototypes and defines from the
+Khronos `.spec` files:
+    
+* glapi.py
+
+* glparams.py 
+
+* glxapi.py 
+
+* wglapi.py
+
+* wglenum.py
+
+and then manually crossport new functions / enums to the identically named
+files in the parent dir via a side-by-side diff tool, such as gvimdiff.
+
+
+OpenGL ES
+=========
+
+Khronos doesn't provide `.spec` files for OpenGL ES.  But the `txt2api.py` script
+can extract and convert prototypes for the `.txt` extension specifications:
+
+    $ ./txt2api.py http://www.khronos.org/registry/gles/extensions/OES/OES_mapbuffer.txt
+        # GL_OES_mapbuffer
+        GlFunction(Void, "glGetBufferPointervOES", [(GLenum, "target"), (GLenum, "pname"), (OpaquePointer(OpaquePointer(Void)), "params")], sideeffects=False),
+        GlFunction(OpaquePointer(Void), "glMapBufferOES", [(GLenum, "target"), (GLenum, "access")]),
+        GlFunction(GLboolean, "glUnmapBufferOES", [(GLenum, "target")]),
+
+
+Generic
+=======
+
+When the domain specific scripts don't work the fallback solution is `c2api.py`, which can parse most C declarations:
+
+    $ echo 'void *memcpy(void *dest, const void *src, size_t n);' | ./c2api.py 
+        Function(OpaquePointer(Void), "memcpy", [(OpaquePointer(Void), "dest"), (OpaquePointer(Const(Void)), "src"), (size_t, "n")]),
+
+
+
+DIRECTX TEXTURE LIBRARY (DirectXTex)
+------------------------------------
+
+Copyright (c) Microsoft Corporation. All rights reserved.
+
+November 15, 2012
+
+This package contains DirectXTex, a shared source library for reading and writing DDS
+files, and performing various texture content processing operations including
+resizing, format conversion, mip-map generation, block compression for Direct3D runtime
+texture resources, and height-map to normal-map conversion. This library makes
+use of the Windows Image Component (WIC) APIs. It also includes a simple .TGA reader and
+writer since this image file format is commonly used for texture content processing pipelines,
+but is not currently supported by a built-in WIC codec.
+
+The source is written for Visual C++ 2010 using the Direct3D headers from either
+a current DirectX SDK or Windows SDK. It can also be compiled using Visual Studio 2012 and the
+Windows SDK 8.0 headers.
+
+It is recommended that you make use of Visual C++ 2010 Service Pack 1 or VS 2012, and
+Windows 7 Service Pack 1 or Windows 8.
+
+DDSTextureLoader\
+    This contains a streamlined version of the DirectX SDK sample DDSWithoutD3DX11 texture
+    loading code for a simple light-weight runtime DDS loader. This version only supports
+    Direct3D 11 and performs no runtime pixel data conversions (i.e. 24bpp legacy DDS files
+    always fail). This is ideal for runtime usage, and supports the full complement of
+    Direct3D 11 texture resources (1D, 2D, volume maps, cubemaps, mipmap levels,
+    texture arrays, BC formats, etc.).
+
+WICTextureLoader\
+    This contains a Direct3D 11 2D texture loader that uses WIC to load a bitmap
+    (BMP, JPEG, PNG, HD Photo, or other WIC supported file container), resize if needed
+    based on the current feature level (or by explicit parameter), format convert to a
+    DXGI_FORMAT if required, and then create a 2D texture. Furthermore, if a Direct3D 11
+    device context is provided and the current device supports it for the given pixel format,
+    it will auto-generate mipmaps. Note this does not support 1D textures, volume textures,
+    cubemaps, or texture arrays. DDSTextureLoader is recommended for fully "precooked" textures
+    for maximum performance and image quality, but this loader can be useful for creating
+    simple 2D texture from standard image files at runtime.
+
+    Note: This function is not thread-safe if given a non-NULL device context for the auto-gen
+    mip-map support.
+
+DirectXTex\
+    This contains the DirectXTex library. This includes a full-featured DDS reader and writer
+    including legacy format conversions, a TGA reader and writer, a WIC-based bitmap reader and
+    writer (BMP, JPEG, PNG, TIFF, and HD Photo), and various texture processing functions. This
+    is intended primarily for tool usage.
+
+    Note that the majority of the header files here are intended for internal implementation
+    of the library only (BC.h, DDS.h, DirectXTexP.h, and scoped.h). Only DirectXTex.h is
+    meant as a 'public' header for the library.
+
+Texconv\
+    This DirectXTex sample is an implementation of the "texconv" command-line texture utility
+    from the DirectX SDK utilizing DirectXTex rather than D3DX.
+
+    It supports the same arguments as the Texture Conversion Tool Extended (texconvex.exe) DirectX
+    SDK utility. See <http://msdn.microsoft.com/en-us/library/ee422506.aspx>. The primary differences
+    are the -10 and -11 arguments are not applicable; the filter names (POINT, LINEAR, CUBIC,
+    FANT, POINT_DITHER, LINEAR_DITHER, CUBIC_DITHER, FANT_DITHER); and support for the .TGA file format.
+    This also includes support for JPEG XR/HD Photo bitmap formats (see
+    <http://blogs.msdn.com/b/chuckw/archive/2011/01/19/known-issue-texconvex.aspx>)
+    
+DDSView\
+    This DirectXTex sample is a simple Direct3D 11-based viewer for DDS files. For array textures
+    or volume maps, the "<" and ">" keyboard keys will show different images contained in the DDS.
+    The "1" through "0" keys can also be used to jump to a specific image index.
+
+XNAMath\
+    This contains a copy of XNA Math version 2.05, which is an updated version of the library. This is
+    required if building content with USE_XNAMATH (the default for the VS 2010 projects). The VS 2012
+    projects use DirectXMath in the Windows SDK 8.0 instead.
+    For details see
+    <http://blogs.msdn.com/b/chuckw/archive/2012/06/22/xna-math-version-2-05-smoothing-the-transition-to-directxmath.aspx>
+
+All content and source code for this package except XNA Math are bound to the Microsoft Public License (Ms-PL)
+<http://www.microsoft.com/en-us/openness/licenses.aspx#MPL>. The XNA Math library is subject
+to the DirectX SDK (June 2010) End-User License Agreement.
+
+http://go.microsoft.com/fwlink/?LinkId=248926
+
+
+------------------------------------
+RELEASE NOTES
+
+* The DirectXTex library does not support block compression or decompression of mipmapped non-power-of-2 textures,
+  although DDSTextureLoader will load these files correctly if the underlying device supports it.
+
+* The DirectXTex library only supports CLAMP filtering, and does not yet support MIRROR or WRAP filtering
+  (WIC operations only support CLAMP filtering).
+
+* The DirectXTex library only supports box and POINT filtering, and does not support LINEAR or CUBIC filtering,
+  for 3D volume mipmap-generation.
+
+* Due to the underlying Windows BMP WIC codec, alpha channels are not supported for 16bpp or 32bpp BMP pixel format files. The Windows 8
+  version of the Windows BMP WIC codec does support 32bpp pixel formats with alpha when using the BITMAPV5HEADER file header. Note the updated
+  WIC is available on Windows 7 SP1 with KB 2670838 installed.
+
+* The WIC conversion cases currently ignore TEX_FILTER_SRGB_IN and TEX_FILTER_SRGB_OUT out.
+
+* For the DXGI 1.1 version of DirectXTex, 4:4:4:4 pixel format DDS files are always expanded to 8:8:8:8 upon load since DXGI 1.0
+  and DXGI 1.1 versions of Direct3D do not support these resource formats. The DXGI 1.2 versions of DirectXTex and DDSTextureLoader
+  make use of the DXGI_FORMAT_B4G4R4A4_UNORM format instead.
+
+* While DXGI 1.0 and DXGI 1.1 include 5:6:5 (DXGI_FORMAT_B5G6R5_UNORM) and 5:5:5:1 (DXGI_FORMAT_B5G5R5A1_UNORM)
+  pixel format enumerations, the DirectX 10.x and 11.0 Runtimes do not support these formats for use with Direct3D. The DirectX 11.1 runtime,
+  DXGI 1.2, and the WDDM 1.2 driver model fully support 16bpp formats (5:6:5, 5:5:5:1, and 4:4:4:4). The DXGI 1.2 version of WICTextureLoader
+  will load 16bpp pixel images as 5:6:5 or 5:5:5:1 rather than expand them to 32bpp RGBA.
+
+* WICTextureLoader cannot load .TGA files unless the system has a 3rd party WIC codec installed. You must use the DirectXTex
+  library for TGA file format support without relying on an add-on WIC codec.
+
+* Loading of 96bpp floating-point TIFF files results in a corrupted image prior to Windows 8. This fix is available on Windows 7 SP1 with
+  KB 2670838 installed.
+
+
+------------------------------------
+RELEASE HISTORY
+
+November 15, 2012
+    Added support for WIC2 when available on Windows 8 and Windows 7 with KB 2670838
+    Added optional targetGUID parameter to SaveWIC* APIs to influence final container pixel format choice
+    Fixed bug in SaveDDS* which was generating invalid DDS files for 1D dimension textures
+    Improved robustness of CaptureTexture when resolving MSAA source textures
+    Sync'd DDSTextureLoader, ScreenGrab, and WICTextureLoader standalone versions with latest DirectXTK release
+
+September 28, 2012
+    Added ScreenGrab module for creating runtime screenshots
+    Renamed project files for better naming consistency
+    New Typeless utilities for DirectXTex
+    Some minor code cleanup for DirectXTex's WIC writer function
+    Bug fixes and new -tu/-tf options for texconv
+
+June 22, 2012
+    Moved to using XNA Math 2.05 instead of XNA Math 2.04 for USE_XNAMATH builds
+    Fixed BGR vs. RGB color channel swizzle problem with 24bpp legacy .DDS files in DirectXTex
+    Update to DirectXTex WIC and WICTextureLoader for additional 96bpp float format handling on Windows 8
+
+May 31, 2012
+    Minor fix for DDSTextureLoader's retry fallback that can happen with 10level9 feature levels
+    Switched to use "_DEBUG" instead of "DEBUG" and cleaned up debug warnings
+    added Metro style application project files for DirectXTex
+
+April 20, 2012
+    DirectTex's WIC-based writer opts-in for the Windows 8 BMP encoder option for writing 32 bpp RGBA files with the BITMAPV5HEADER
+
+March 30, 2012
+    WICTextureLoader updated with Windows 8 WIC pixel formats
+    DirectXTex updated with limited non-power-of-2 texture support and TEX_FILTER_SEPARATE_ALPHA option
+    Texconv updated with '-sepalpha' command-line option
+    Added USE_XNAMATH control define to build DirectXTex using either XNAMath or DirectXMath
+    Added VS 2012 project files (which use DirectXMath instead of XNAMath and define DXGI_1_2_FORMATS)
+
+March 15, 2012
+    Fix for resource leak in CreateShaderResourceView() Direct3D 11 helper function in DirectXTex
+
+March 5, 2012
+    Fix for too much temp memory allocated by WICTextureLoader; cleaned up legacy 'min/max' macro usage in DirectXTex
+
+February 21, 2012
+    WICTextureLoader updated to handle systems and device drivers without BGRA or 16bpp format support
+
+February 20, 2012
+    Some code cleanup for DirectXTex and DDSTextureLoader
+    Fixed bug in 10:10:10:2 format fixup in the LoadDDSFromMemory function
+    Fixed bugs in "non-zero alpha" special-case handling in LoadTGAFromFile
+    Fixed bug in _SwizzleScanline when copying alpha channel for BGRA<->RGBA swizzling
+
+February 11, 2012
+    Update of DDSTextureLoader to also build in Metro style apps; added WICTextureLoader
+    Added CMYK WIC pixel formats to the DirectXTex conversion table
+
+January 30, 2012
+    Minor code-cleanup for DirectXTex to enable use of PCH through 'directxtexp.h' header
+
+January 24, 2011
+    Some code-cleanup for DirectXTex
+    Added DXGI 1.2 implementation for DDSTextureLoader and DirectXTex guarded with DXGI_1_2_FORMATS compiliation define 
+
+December 16, 2011
+    Fixed x64 compilation warnings in DDSTextureLoader
+
+November 30, 2011
+    Fixed some of the constants used in IsSupportedTexture(),
+    added ability to strip off top levels of mips in DDSTextureLoader,
+    changed DirectXTex to use CoCreateInstance rather than LoadLibrary to obtain the WIC factory,
+    a few minor /analyze related annotations for DirectXTex
+
+October 27, 2011
+    Original release
+This directory contains headers for all relevant Khronos APIs, based from:
+
+* http://www.khronos.org/
+
+* http://www.opengl.org/registry/
+
+* http://oss.sgi.com/projects/ogl-sample/
+
+
+To update simply run:
+
+    make
+
+The libbacktrace library
+Initially written by Ian Lance Taylor <iant@google.com>
+
+The libbacktrace library may be linked into a program or library and
+used to produce symbolic backtraces.  Sample uses would be to print a
+detailed backtrace when an error occurs or to gather detailed
+profiling information.
+
+The libbacktrace library is provided under a BSD license.  See the
+source files for the exact license text.
+
+The public functions are declared and documented in the header file
+backtrace.h, which should be #include'd by a user of the library.
+
+Building libbacktrace will generate a file backtrace-supported.h,
+which a user of the library may use to determine whether backtraces
+will work.  See the source file backtrace-supported.h.in for the
+macros that it defines.
+
+As of September 2012, libbacktrace only supports ELF executables with
+DWARF debugging information.  The library is written to make it
+straightforward to add support for other object file and debugging
+formats.
+
+README for libpng version 1.5.9 - February 18, 2012 (shared library 15.0)
+See the note about version numbers near the top of png.h
+
+See INSTALL for instructions on how to install libpng.
+
+Libpng comes in several distribution formats.  Get libpng-*.tar.gz,
+libpng-*.tar.xz or libpng-*.tar.bz2 if you want UNIX-style line endings
+in the text files, or lpng*.zip if you want DOS-style line endings.
+
+Version 0.89 was the first official release of libpng.  Don't let the
+fact that it's the first release fool you.  The libpng library has been in
+extensive use and testing since mid-1995.  By late 1997 it had
+finally gotten to the stage where there hadn't been significant
+changes to the API in some time, and people have a bad feeling about
+libraries with versions < 1.0.  Version 1.0.0 was released in
+March 1998.
+
+****
+Note that some of the changes to the png_info structure render this
+version of the library binary incompatible with libpng-0.89 or
+earlier versions if you are using a shared library.  The type of the
+"filler" parameter for png_set_filler() has changed from png_byte to
+png_uint_32, which will affect shared-library applications that use
+this function.
+
+To avoid problems with changes to the internals of png_info_struct,
+new APIs have been made available in 0.95 to avoid direct application
+access to info_ptr.  These functions are the png_set_<chunk> and
+png_get_<chunk> functions.  These functions should be used when
+accessing/storing the info_struct data, rather than manipulating it
+directly, to avoid such problems in the future.
+
+It is important to note that the APIs do not make current programs
+that access the info struct directly incompatible with the new
+library.  However, it is strongly suggested that new programs use
+the new APIs (as shown in example.c and pngtest.c), and older programs
+be converted to the new format, to facilitate upgrades in the future.
+****
+
+Additions since 0.90 include the ability to compile libpng as a
+Windows DLL, and new APIs for accessing data in the info struct.
+Experimental functions include the ability to set weighting and cost
+factors for row filter selection, direct reads of integers from buffers
+on big-endian processors that support misaligned data access, faster
+methods of doing alpha composition, and more accurate 16->8 bit color
+conversion.
+
+The additions since 0.89 include the ability to read from a PNG stream
+which has had some (or all) of the signature bytes read by the calling
+application.  This also allows the reading of embedded PNG streams that
+do not have the PNG file signature.  As well, it is now possible to set
+the library action on the detection of chunk CRC errors.  It is possible
+to set different actions based on whether the CRC error occurred in a
+critical or an ancillary chunk.
+
+The changes made to the library, and bugs fixed are based on discussions
+on the PNG-implement mailing list and not on material submitted
+privately to Guy, Andreas, or Glenn.  They will forward any good
+suggestions to the list.
+
+For a detailed description on using libpng, read libpng-manual.txt.  For
+examples of libpng in a program, see example.c and pngtest.c.  For usage
+information and restrictions (what little they are) on libpng, see
+png.h.  For a description on using zlib (the compression library used by
+libpng) and zlib's restrictions, see zlib.h
+
+I have included a general makefile, as well as several machine and
+compiler specific ones, but you may have to modify one for your own needs.
+
+You should use zlib 1.0.4 or later to run this, but it MAY work with
+versions as old as zlib 0.95.  Even so, there are bugs in older zlib
+versions which can cause the output of invalid compression streams for
+some images.  You will definitely need zlib 1.0.4 or later if you are
+taking advantage of the MS-DOS "far" structure allocation for the small
+and medium memory models.  You should also note that zlib is a
+compression library that is useful for more things than just PNG files.
+You can use zlib as a drop-in replacement for fread() and fwrite() if
+you are so inclined.
+
+zlib should be available at the same place that libpng is, or at.
+ftp://ftp.info-zip.org/pub/infozip/zlib
+
+You may also want a copy of the PNG specification.  It is available
+as an RFC, a W3C Recommendation, and an ISO/IEC Standard.  You can find
+these at http://www.libpng.org/pub/png/documents/
+
+This code is currently being archived at libpng.sf.net in the
+[DOWNLOAD] area, and on CompuServe, Lib 20 (PNG SUPPORT)
+at GO GRAPHSUP.  If you can't find it in any of those places,
+e-mail me, and I'll help you find it.
+
+If you have any code changes, requests, problems, etc., please e-mail
+them to me.  Also, I'd appreciate any make files or project files,
+and any modifications you needed to make to get libpng to compile,
+along with a #define variable to tell what compiler/system you are on.
+If you needed to add transformations to libpng, or wish libpng would
+provide the image in a different way, drop me a note (and code, if
+possible), so I can consider supporting the transformation.
+Finally, if you get any warning messages when compiling libpng
+(note: not zlib), and they are easy to fix, I'd appreciate the
+fix.  Please mention "libpng" somewhere in the subject line.  Thanks.
+
+This release was created and will be supported by myself (of course
+based in a large way on Guy's and Andreas' earlier work), and the PNG
+development group.
+
+Send comments/corrections/commendations to png-mng-implement at
+lists.sourceforge.net (subscription required; visit 
+https://lists.sourceforge.net/lists/listinfo/png-mng-implement
+to subscribe) or to glennrp at users.sourceforge.net
+
+You can't reach Guy, the original libpng author, at the addresses
+given in previous versions of this document.  He and Andreas will
+read mail addressed to the png-implement list, however.
+
+Please do not send general questions about PNG.  Send them to
+png-mng-misc at lists.sf.net (subscription required; visit
+https://lists.sourceforge.net/lists/listinfo/png-mng-misc to
+subscribe).  If you have a question about something
+in the PNG specification that is related to using libpng, send it
+to me.  Send me any questions that start with "I was using libpng,
+and ...".  If in doubt, send questions to me.  I'll bounce them
+to others, if necessary.
+
+Please do not send suggestions on how to change PNG.  We have
+been discussing PNG for sixteen years now, and it is official and
+finished.  If you have suggestions for libpng, however, I'll
+gladly listen.  Even if your suggestion is not used immediately,
+it may be used later.
+
+Files in this distribution:
+
+      ANNOUNCE      =>  Announcement of this version, with recent changes
+      CHANGES       =>  Description of changes between libpng versions
+      KNOWNBUG      =>  List of known bugs and deficiencies
+      LICENSE       =>  License to use and redistribute libpng
+      README        =>  This file
+      TODO          =>  Things not implemented in the current library
+      Y2KINFO       =>  Statement of Y2K compliance
+      example.c     =>  Example code for using libpng functions
+      libpng.3      =>  manual page for libpng (includes libpng-manual.txt)
+      libpng-manual.txt  =>  Description of libpng and its functions
+      libpngpf.3    =>  manual page for libpng's private functions
+      png.5         =>  manual page for the PNG format
+      png.c         =>  Basic interface functions common to library
+      png.h         =>  Library function and interface declarations (public)
+      pngpriv.h     =>  Library function and interface declarations (private)
+      pngconf.h     =>  System specific library configuration (public)
+      pngstruct.h   =>  png_struct declaration (private)
+      pnginfo.h     =>  png_info struct declaration (private)
+      pngdebug.h    =>  debugging macros (private)
+      pngerror.c    =>  Error/warning message I/O functions
+      pngget.c      =>  Functions for retrieving info from struct
+      pngmem.c      =>  Memory handling functions
+      pngbar.png    =>  PNG logo, 88x31
+      pngnow.png    =>  PNG logo, 98x31
+      pngpread.c    =>  Progressive reading functions
+      pngread.c     =>  Read data/helper high-level functions
+      pngrio.c      =>  Lowest-level data read I/O functions
+      pngrtran.c    =>  Read data transformation functions
+      pngrutil.c    =>  Read data utility functions
+      pngset.c      =>  Functions for storing data into the info_struct
+      pngtest.c     =>  Library test program
+      pngtest.png   =>  Library test sample image
+      pngtrans.c    =>  Common data transformation functions
+      pngwio.c      =>  Lowest-level write I/O functions
+      pngwrite.c    =>  High-level write functions
+      pngwtran.c    =>  Write data transformations
+      pngwutil.c    =>  Write utility functions
+      contrib       =>  Contributions
+       gregbook         =>  source code for PNG reading and writing, from
+                            Greg Roelofs' "PNG: The Definitive Guide",
+                            O'Reilly, 1999
+       msvctest     =>  Builds and runs pngtest using a MSVC workspace
+       pngminus     =>  Simple pnm2png and png2pnm programs
+       pngsuite     =>  Test images
+       visupng      =>  Contains a MSVC workspace for VisualPng
+      projects      =>  Contains project files and workspaces for
+                        building a DLL
+       cbuilder5        =>  Contains a Borland workspace for building
+                            libpng and zlib
+       visualc6         =>  Contains a Microsoft Visual C++ (MSVC)
+                            workspace for building libpng and zlib
+       visualc71        =>  Contains a Microsoft Visual C++ (MSVC)
+                            workspace for building libpng and zlib
+       xcode            =>  Contains an Apple xcode
+                            workspace for building libpng and zlib
+      scripts       =>  Directory containing scripts for building libpng:
+                            (see scripts/README.txt for the list of scripts)
+
+Good luck, and happy coding.
+
+-Glenn Randers-Pehrson (current maintainer, since 1998)
+ Internet: glennrp at users.sourceforge.net
+
+-Andreas Eric Dilger (former maintainer, 1996-1997)
+ Internet: adilger at enel.ucalgary.ca
+ Web: http://www-mddsp.enel.ucalgary.ca/People/adilger/
+
+-Guy Eric Schalnat (original author and former maintainer, 1995-1996)
+ (formerly of Group 42, Inc)
+ Internet: gschal at infinet.com
+
+QJson
+-------------------------------------------------
+Website: http://qjson.sourceforge.net/
+Mailing List: https://lists.sourceforge.net/mailman/listinfo/qjson-devel
+
+Project Lead/Maintainer (2008-current):
+  Flavio Castelli <flavio@castelli.name>
+
+Install
+-------
+  For installation or compiling instructions, see the INSTALL file.
+
+License
+-------
+  This library is licensed under the Lesser GNU General Public License version 2.1.
+  See the COPYING.lib file for more information.
+
+Description
+-----------
+  JSON (JavaScript Object Notation) is a lightweight data-interchange format.
+  It can represents integer, real number, string, an ordered sequence of value, and a collection of name/value pairs.
+
+  QJson is a qt-based library that maps JSON data to QVariant objects.
+  JSON arrays will be mapped to QVariantList instances, while JSON's objects will be mapped to QVariantMap.
+
+Happy hacking
+Flavio
+
+Snappy compressed format description
+Last revised: 2011-10-05
+
+
+This is not a formal specification, but should suffice to explain most
+relevant parts of how the Snappy format works. It is originally based on
+text by Zeev Tarantov.
+
+Snappy is a LZ77-type compressor with a fixed, byte-oriented encoding.
+There is no entropy encoder backend nor framing layer -- the latter is
+assumed to be handled by other parts of the system.
+
+This document only describes the format, not how the Snappy compressor nor
+decompressor actually works. The correctness of the decompressor should not
+depend on implementation details of the compressor, and vice versa.
+
+
+1. Preamble
+
+The stream starts with the uncompressed length (up to a maximum of 2^32 - 1),
+stored as a little-endian varint. Varints consist of a series of bytes,
+where the lower 7 bits are data and the upper bit is set iff there are
+more bytes to be read. In other words, an uncompressed length of 64 would
+be stored as 0x40, and an uncompressed length of 2097150 (0x1FFFFE)
+would be stored as 0xFE 0xFF 0x7F.
+
+
+2. The compressed stream itself
+
+There are two types of elements in a Snappy stream: Literals and
+copies (backreferences). There is no restriction on the order of elements,
+except that the stream naturally cannot start with a copy. (Having
+two literals in a row is never optimal from a compression point of
+view, but nevertheless fully permitted.) Each element starts with a tag byte,
+and the lower two bits of this tag byte signal what type of element will
+follow:
+
+  00: Literal
+  01: Copy with 1-byte offset
+  10: Copy with 2-byte offset
+  11: Copy with 4-byte offset
+
+The interpretation of the upper six bits are element-dependent.
+
+
+2.1. Literals (00)
+
+Literals are uncompressed data stored directly in the byte stream.
+The literal length is stored differently depending on the length
+of the literal:
+
+ - For literals up to and including 60 bytes in length, the upper
+   six bits of the tag byte contain (len-1). The literal follows
+   immediately thereafter in the bytestream.
+ - For longer literals, the (len-1) value is stored after the tag byte,
+   little-endian. The upper six bits of the tag byte describe how
+   many bytes are used for the length; 60, 61, 62 or 63 for
+   1-4 bytes, respectively. The literal itself follows after the
+   length.
+
+
+2.2. Copies
+
+Copies are references back into previous decompressed data, telling
+the decompressor to reuse data it has previously decoded.
+They encode two values: The _offset_, saying how many bytes back
+from the current position to read, and the _length_, how many bytes
+to copy. Offsets of zero can be encoded, but are not legal;
+similarly, it is possible to encode backreferences that would
+go past the end of the block (offset > current decompressed position),
+which is also nonsensical and thus not allowed.
+
+As in most LZ77-based compressors, the length can be larger than the offset,
+yielding a form of run-length encoding (RLE). For instance,
+"xababab" could be encoded as
+
+  <literal: "xab"> <copy: offset=2 length=4>
+
+Note that since the current Snappy compressor works in 32 kB
+blocks and does not do matching across blocks, it will never produce
+a bitstream with offsets larger than about 32768. However, the
+decompressor should not rely on this, as it may change in the future.
+
+There are several different kinds of copy elements, depending on
+the amount of bytes to be copied (length), and how far back the
+data to be copied is (offset).
+
+
+2.2.1. Copy with 1-byte offset (01)
+
+These elements can encode lengths between [4..11] bytes and offsets
+between [0..2047] bytes. (len-4) occupies three bits and is stored
+in bits [2..4] of the tag byte. The offset occupies 11 bits, of which the
+upper three are stored in the upper three bits ([5..7]) of the tag byte,
+and the lower eight are stored in a byte following the tag byte.
+
+
+2.2.2. Copy with 2-byte offset (10)
+
+These elements can encode lengths between [1..64] and offsets from
+[0..65535]. (len-1) occupies six bits and is stored in the upper
+six bits ([2..7]) of the tag byte. The offset is stored as a
+little-endian 16-bit integer in the two bytes following the tag byte.
+
+
+2.2.3. Copy with 4-byte offset (11)
+
+These are like the copies with 2-byte offsets (see previous subsection),
+except that the offset is stored as a 32-bit integer instead of a
+16-bit integer (and thus will occupy four bytes).
+
+Snappy, a fast compressor/decompressor.
+
+
+Introduction
+============
+
+Snappy is a compression/decompression library. It does not aim for maximum
+compression, or compatibility with any other compression library; instead,
+it aims for very high speeds and reasonable compression. For instance,
+compared to the fastest mode of zlib, Snappy is an order of magnitude faster
+for most inputs, but the resulting compressed files are anywhere from 20% to
+100% bigger. (For more information, see "Performance", below.)
+
+Snappy has the following properties:
+
+ * Fast: Compression speeds at 250 MB/sec and beyond, with no assembler code.
+   See "Performance" below.
+ * Stable: Over the last few years, Snappy has compressed and decompressed
+   petabytes of data in Google's production environment. The Snappy bitstream
+   format is stable and will not change between versions.
+ * Robust: The Snappy decompressor is designed not to crash in the face of
+   corrupted or malicious input.
+ * Free and open source software: Snappy is licensed under a BSD-type license.
+   For more information, see the included COPYING file.
+
+Snappy has previously been called "Zippy" in some Google presentations
+and the like.
+
+
+Performance
+===========
+ 
+Snappy is intended to be fast. On a single core of a Core i7 processor
+in 64-bit mode, it compresses at about 250 MB/sec or more and decompresses at
+about 500 MB/sec or more. (These numbers are for the slowest inputs in our
+benchmark suite; others are much faster.) In our tests, Snappy usually
+is faster than algorithms in the same class (e.g. LZO, LZF, FastLZ, QuickLZ,
+etc.) while achieving comparable compression ratios.
+
+Typical compression ratios (based on the benchmark suite) are about 1.5-1.7x
+for plain text, about 2-4x for HTML, and of course 1.0x for JPEGs, PNGs and
+other already-compressed data. Similar numbers for zlib in its fastest mode
+are 2.6-2.8x, 3-7x and 1.0x, respectively. More sophisticated algorithms are
+capable of achieving yet higher compression rates, although usually at the
+expense of speed. Of course, compression ratio will vary significantly with
+the input.
+
+Although Snappy should be fairly portable, it is primarily optimized
+for 64-bit x86-compatible processors, and may run slower in other environments.
+In particular:
+
+ - Snappy uses 64-bit operations in several places to process more data at
+   once than would otherwise be possible.
+ - Snappy assumes unaligned 32- and 64-bit loads and stores are cheap.
+   On some platforms, these must be emulated with single-byte loads 
+   and stores, which is much slower.
+ - Snappy assumes little-endian throughout, and needs to byte-swap data in
+   several places if running on a big-endian platform.
+
+Experience has shown that even heavily tuned code can be improved.
+Performance optimizations, whether for 64-bit x86 or other platforms,
+are of course most welcome; see "Contact", below.
+
+
+Usage
+=====
+
+Note that Snappy, both the implementation and the main interface,
+is written in C++. However, several third-party bindings to other languages
+are available; see the Google Code page at http://code.google.com/p/snappy/
+for more information. Also, if you want to use Snappy from C code, you can
+use the included C bindings in snappy-c.h.
+
+To use Snappy from your own C++ program, include the file "snappy.h" from
+your calling file, and link against the compiled library.
+
+There are many ways to call Snappy, but the simplest possible is
+
+  snappy::Compress(input.data(), input.size(), &output);
+
+and similarly
+
+  snappy::Uncompress(input.data(), input.size(), &output);
+
+where "input" and "output" are both instances of std::string.
+
+There are other interfaces that are more flexible in various ways, including
+support for custom (non-array) input sources. See the header file for more
+information.
+
+
+Tests and benchmarks
+====================
+
+When you compile Snappy, snappy_unittest is compiled in addition to the
+library itself. You do not need it to use the compressor from your own library,
+but it contains several useful components for Snappy development.
+
+First of all, it contains unit tests, verifying correctness on your machine in
+various scenarios. If you want to change or optimize Snappy, please run the
+tests to verify you have not broken anything. Note that if you have the
+Google Test library installed, unit test behavior (especially failures) will be
+significantly more user-friendly. You can find Google Test at
+
+  http://code.google.com/p/googletest/
+
+You probably also want the gflags library for handling of command-line flags;
+you can find it at
+
+  http://code.google.com/p/google-gflags/
+
+In addition to the unit tests, snappy contains microbenchmarks used to
+tune compression and decompression performance. These are automatically run
+before the unit tests, but you can disable them using the flag
+--run_microbenchmarks=false if you have gflags installed (otherwise you will
+need to edit the source).
+
+Finally, snappy can benchmark Snappy against a few other compression libraries
+(zlib, LZO, LZF, FastLZ and QuickLZ), if they were detected at configure time.
+To benchmark using a given file, give the compression algorithm you want to test
+Snappy against (e.g. --zlib) and then a list of one or more file names on the
+command line. The testdata/ directory contains the files used by the
+microbenchmark, which should provide a reasonably balanced starting point for
+benchmarking. (Note that baddata[1-3].snappy are not intended as benchmarks; they
+are used to verify correctness in the presence of corrupted data in the unit
+test.)
+
+
+Contact
+=======
+
+Snappy is distributed through Google Code. For the latest version, a bug tracker,
+and other information, see
+
+  http://code.google.com/p/snappy/
+
+ZLIB DATA COMPRESSION LIBRARY
+
+zlib 1.2.8 is a general purpose data compression library.  All the code is
+thread safe.  The data format used by the zlib library is described by RFCs
+(Request for Comments) 1950 to 1952 in the files
+http://tools.ietf.org/html/rfc1950 (zlib format), rfc1951 (deflate format) and
+rfc1952 (gzip format).
+
+All functions of the compression library are documented in the file zlib.h
+(volunteer to write man pages welcome, contact zlib@gzip.org).  A usage example
+of the library is given in the file test/example.c which also tests that
+the library is working correctly.  Another example is given in the file
+test/minigzip.c.  The compression library itself is composed of all source
+files in the root directory.
+
+To compile all files and run the test program, follow the instructions given at
+the top of Makefile.in.  In short "./configure; make test", and if that goes
+well, "make install" should work for most flavors of Unix.  For Windows, use
+one of the special makefiles in win32/ or contrib/vstudio/ .  For VMS, use
+make_vms.com.
+
+Questions about zlib should be sent to <zlib@gzip.org>, or to Gilles Vollant
+<info@winimage.com> for the Windows DLL version.  The zlib home page is
+http://zlib.net/ .  Before reporting a problem, please check this site to
+verify that you have the latest version of zlib; otherwise get the latest
+version and check whether the problem still exists or not.
+
+PLEASE read the zlib FAQ http://zlib.net/zlib_faq.html before asking for help.
+
+Mark Nelson <markn@ieee.org> wrote an article about zlib for the Jan.  1997
+issue of Dr.  Dobb's Journal; a copy of the article is available at
+http://marknelson.us/1997/01/01/zlib-engine/ .
+
+The changes made in version 1.2.8 are documented in the file ChangeLog.
+
+Unsupported third party contributions are provided in directory contrib/ .
+
+zlib is available in Java using the java.util.zip package, documented at
+http://java.sun.com/developer/technicalArticles/Programming/compression/ .
+
+A Perl interface to zlib written by Paul Marquess <pmqs@cpan.org> is available
+at CPAN (Comprehensive Perl Archive Network) sites, including
+http://search.cpan.org/~pmqs/IO-Compress-Zlib/ .
+
+A Python interface to zlib written by A.M. Kuchling <amk@amk.ca> is
+available in Python 1.5 and later versions, see
+http://docs.python.org/library/zlib.html .
+
+zlib is built into tcl: http://wiki.tcl.tk/4610 .
+
+An experimental package to read and write files in .zip format, written on top
+of zlib by Gilles Vollant <info@winimage.com>, is available in the
+contrib/minizip directory of zlib.
+
+
+Notes for some targets:
+
+- For Windows DLL versions, please see win32/DLL_FAQ.txt
+
+- For 64-bit Irix, deflate.c must be compiled without any optimization. With
+  -O, one libpng test fails. The test works in 32 bit mode (with the -n32
+  compiler flag). The compiler bug has been reported to SGI.
+
+- zlib doesn't work with gcc 2.6.3 on a DEC 3000/300LX under OSF/1 2.1 it works
+  when compiled with cc.
+
+- On Digital Unix 4.0D (formely OSF/1) on AlphaServer, the cc option -std1 is
+  necessary to get gzprintf working correctly. This is done by configure.
+
+- zlib doesn't work on HP-UX 9.05 with some versions of /bin/cc. It works with
+  other compilers. Use "make test" to check your compiler.
+
+- gzdopen is not supported on RISCOS or BEOS.
+
+- For PalmOs, see http://palmzlib.sourceforge.net/
+
+
+Acknowledgments:
+
+  The deflate format used by zlib was defined by Phil Katz.  The deflate and
+  zlib specifications were written by L.  Peter Deutsch.  Thanks to all the
+  people who reported problems and suggested various improvements in zlib; they
+  are too numerous to cite here.
+
+Copyright notice:
+
+ (C) 1995-2013 Jean-loup Gailly and Mark Adler
+
+  This software is provided 'as-is', without any express or implied
+  warranty.  In no event will the authors be held liable for any damages
+  arising from the use of this software.
+
+  Permission is granted to anyone to use this software for any purpose,
+  including commercial applications, and to alter it and redistribute it
+  freely, subject to the following restrictions:
+
+  1. The origin of this software must not be misrepresented; you must not
+     claim that you wrote the original software. If you use this software
+     in a product, an acknowledgment in the product documentation would be
+     appreciated but is not required.
+  2. Altered source versions must be plainly marked as such, and must not be
+     misrepresented as being the original software.
+  3. This notice may not be removed or altered from any source distribution.
+
+  Jean-loup Gailly        Mark Adler
+  jloup@gzip.org          madler@alumni.caltech.edu
+
+If you use the zlib library in a product, we would appreciate *not* receiving
+lengthy legal documents to sign.  The sources are provided for free but without
+warranty of any kind.  The library has been entirely written by Jean-loup
+Gailly and Mark Adler; it does not include third-party code.
+
+If you redistribute modified sources, we would appreciate that you include in
+the file ChangeLog history information documenting your changes.  Please read
+the FAQ for more information on the distribution of modified source versions.
+
+This directory contains the source for the generation of wrapper DLLs or
+preload shared-objects.
+
+The cmake targets have names different from the true DLLs/shared-objects to
+prevent collision when trying to link against the true ones.
+

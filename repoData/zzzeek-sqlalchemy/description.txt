@@ -1,0 +1,728 @@
+========================
+Developing new Dialects
+========================
+
+.. note::
+
+   When studying this file, it's probably a good idea to also
+   familiarize with the  README.unittests.rst file, which discusses
+   SQLAlchemy's usage and extension of the Nose test runner.
+
+While SQLAlchemy includes many dialects within the core distribution, the
+trend for new dialects should be that they are published as external
+projects.   SQLAlchemy has since version 0.5 featured a "plugin" system
+which allows external dialects to be integrated into SQLAlchemy using
+standard setuptools entry points.  As of version 0.8, this system has
+been enhanced, so that a dialect can also be "plugged in" at runtime.
+
+On the testing side, SQLAlchemy as of 0.8 also includes a "dialect
+compliance suite" that is usable by third party libraries.  There is no
+longer a strong need for a new dialect to run through SQLAlchemy's full
+testing suite, as a large portion of these tests do not have
+dialect-sensitive functionality.  The "dialect compliance suite" should
+be viewed as the primary target for new dialects, and as it continues
+to grow and mature it should become a more thorough and efficient system
+of testing new dialects.
+
+As of SQLAlchemy 0.9.4, both nose and pytest are supported for running tests,
+and pytest is now preferred.
+
+Dialect Layout
+===============
+
+The file structure of a dialect is typically similar to the following::
+
+    sqlalchemy-<dialect>/
+                         setup.py
+                         setup.cfg
+                         run_tests.py
+                         sqlalchemy_<dialect>/
+                                              __init__.py
+                                              base.py
+                                              <dbapi>.py
+                                              requirements.py
+                         test/
+                                              conftest.py
+                                              __init__.py
+                                              test_suite.py
+                                              test_<dialect_specific_test>.py
+                                              ...
+
+An example of this structure can be seen in the Access dialect at
+https://bitbucket.org/zzzeek/sqlalchemy-access/.
+
+Key aspects of this file layout include:
+
+* setup.py - should specify setuptools entrypoints, allowing the
+  dialect to be usable from create_engine(), e.g.::
+
+        entry_points={
+         'sqlalchemy.dialects': [
+              'access = sqlalchemy_access.pyodbc:AccessDialect_pyodbc',
+              'access.pyodbc = sqlalchemy_access.pyodbc:AccessDialect_pyodbc',
+              ]
+        }
+
+  Above, the two entrypoints ``access`` and ``access.pyodbc`` allow URLs to be
+  used such as::
+
+    create_engine("access://user:pw@dsn")
+
+    create_engine("access+pyodbc://user:pw@dsn")
+
+* setup.cfg - this file contains the traditional contents such as [egg_info],
+  [pytest] and [nosetests] directives, but also contains new directives that are used
+  by SQLAlchemy's testing framework.  E.g. for Access::
+
+    [egg_info]
+    tag_build = dev
+
+    [pytest]
+    addopts= --tb native -v -r fxX
+    python_files=test/*test_*.py
+
+    [nosetests]
+    with-sqla_testing = true
+    where = test
+    cover-package = sqlalchemy_access
+    with-coverage = 1
+    cover-erase = 1
+
+    [sqla_testing]
+    requirement_cls=sqlalchemy_access.requirements:Requirements
+    profile_file=.profiles.txt
+
+    [db]
+    default=access+pyodbc://admin@access_test
+    sqlite=sqlite:///:memory:
+
+  Above, the ``[sqla_testing]`` section contains configuration used by
+  SQLAlchemy's test plugin.  The ``[pytest]`` and ``[nosetests]`` sections
+  include directives to help with these runners; in the case of
+  Nose, the directive ``with-sql_testing = true``, which indicates to Nose that
+  the SQLAlchemy nose plugin should be used.  In the case of pytest, the
+  test/conftest.py file will bootstrap SQLAlchemy's plugin.
+
+* test/conftest.py - This script bootstraps SQLAlchemy's pytest plugin
+  into the pytest runner.  This
+  script can also be used to install your third party dialect into
+  SQLAlchemy without using the setuptools entrypoint system; this allows
+  your dialect to be present without any explicit setup.py step needed.
+  The other portion invokes SQLAlchemy's pytest plugin::
+
+    from sqlalchemy.dialects import registry
+
+    registry.register("access", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+    registry.register("access.pyodbc", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+
+    from sqlalchemy.testing.plugin.pytestplugin import *
+
+  Where above, the ``registry`` module, introduced in SQLAlchemy 0.8, provides
+  an in-Python means of installing the dialect entrypoints without the use
+  of setuptools, using the ``registry.register()`` function in a way that
+  is similar to the ``entry_points`` directive we placed in our ``setup.py``.
+
+* run_tests.py - This script is used when running the tests via Nose.
+  The purpose of the script is to plug in SQLAlchemy's nose plugin into
+  the Nose environment before the tests run.
+
+  The format of this file is similar to that of conftest.py; first,
+  the optional but helpful step of registering your third party plugin,
+  then the other is to import SQLAlchemy's nose runner and invoke it::
+
+    from sqlalchemy.dialects import registry
+
+    registry.register("access", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+    registry.register("access.pyodbc", "sqlalchemy_access.pyodbc", "AccessDialect_pyodbc")
+
+    from sqlalchemy.testing import runner
+
+    # use this in setup.py 'test_suite':
+    # test_suite="run_tests.setup_py_test"
+    def setup_py_test():
+        runner.setup_py_test()
+
+    if __name__ == '__main__':
+        runner.main()
+
+  The call to ``runner.main()`` then runs the Nose front end, which installs
+  SQLAlchemy's testing plugins.   Invoking our custom runner looks like the
+  following::
+
+    $ python run_tests.py -v
+
+* requirements.py - The ``requirements.py`` file is where directives
+  regarding database and dialect capabilities are set up.
+  SQLAlchemy's tests are often annotated with decorators   that mark
+  tests as "skip" or "fail" for particular backends.  Over time, this
+  system   has been refined such that specific database and DBAPI names
+  are mentioned   less and less, in favor of @requires directives which
+  state a particular capability.   The requirement directive is linked
+  to target dialects using a ``Requirements`` subclass.   The custom
+  ``Requirements`` subclass is specified in the ``requirements.py`` file
+  and   is made available to SQLAlchemy's test runner using the
+  ``requirement_cls`` directive   inside the ``[sqla_testing]`` section.
+
+  For a third-party dialect, the custom ``Requirements`` class can
+  usually specify a simple yes/no answer for a particular system. For
+  example, a requirements file that specifies a database that supports
+  the RETURNING construct but does not support reflection of tables
+  might look like this::
+
+      # sqlalchemy_access/requirements.py
+
+      from sqlalchemy.testing.requirements import SuiteRequirements
+
+      from sqlalchemy.testing import exclusions
+
+      class Requirements(SuiteRequirements):
+          @property
+          def table_reflection(self):
+              return exclusions.closed()
+
+          @property
+          def returning(self):
+              return exclusions.open()
+
+  The ``SuiteRequirements`` class in
+  ``sqlalchemy.testing.requirements`` contains a large number of
+  requirements rules, which attempt to have reasonable defaults. The
+  tests will report on those requirements found as they are run.
+
+  The requirements system can also be used when running SQLAlchemy's
+  primary test suite against the external dialect.  In this use case,
+  a ``--dburi`` as well as a ``--requirements`` flag are passed to SQLAlchemy's
+  main test runner ``./sqla_nose.py`` so that exclusions specific to the
+  dialect take place::
+
+    cd /path/to/sqlalchemy
+    py.test -v \
+      --requirements sqlalchemy_access.requirements:Requirements \
+      --dburi access+pyodbc://admin@access_test
+
+* test_suite.py - Finally, the ``test_suite.py`` module represents a
+  stub test suite, which pulls in the actual SQLAlchemy test suite.
+  To pull in the suite as a whole, it can   be imported in one step::
+
+      # test/test_suite.py
+
+      from sqlalchemy.testing.suite import *
+
+  That's all that's needed - the ``sqlalchemy.testing.suite`` package
+  contains an ever expanding series of tests, most of which should be
+  annotated with specific requirement decorators so that they can be
+  fully controlled. To specifically modify some of the tests, they can
+  be imported by name and subclassed::
+
+      from sqlalchemy.testing.suite import *
+
+      from sqlalchemy.testing.suite import ComponentReflectionTest as _ComponentReflectionTest
+
+      class ComponentReflectionTest(_ComponentReflectionTest):
+          @classmethod
+          def define_views(cls, metadata, schema):
+              # bypass the "define_views" section of the
+              # fixture
+              return
+
+Going Forward
+==============
+
+The third-party dialect can be distributed like any other Python
+module on Pypi. Links to prominent dialects can be featured within
+SQLAlchemy's own documentation; contact the developers (see AUTHORS)
+for help with this.
+
+While SQLAlchemy includes many dialects built in, it remains to be
+seen if the project as a whole might move towards "plugin" model for
+all dialects, including all those currently built in.  Now that
+SQLAlchemy's dialect API is mature and the test suite is not far
+behind, it may be that a better maintenance experience can be
+delivered by having all dialects separately maintained and released.
+
+As new versions of SQLAlchemy are released, the test suite and
+requirements file will receive new tests and changes.  The dialect
+maintainer would normally keep track of these changes and make
+adjustments as needed.
+
+Continuous Integration
+======================
+
+The most ideal scenario for ongoing dialect testing is continuous
+integration, that is, an automated test runner that runs in response
+to changes not just in the dialect itself but to new pushes to
+SQLAlchemy as well.
+
+The SQLAlchemy project features a Jenkins installation that runs tests
+on Amazon EC2 instances.   It is possible for third-party dialect
+developers to provide the SQLAlchemy project either with AMIs or EC2
+instance keys which feature test environments appropriate to the
+dialect - SQLAlchemy's own Jenkins suite can invoke tests on these
+environments.  Contact the developers for further info.
+
+
+SQLAlchemy
+==========
+
+The Python SQL Toolkit and Object Relational Mapper
+
+Introduction
+-------------
+
+SQLAlchemy is the Python SQL toolkit and Object Relational Mapper
+that gives application developers the full power and
+flexibility of SQL. SQLAlchemy provides a full suite
+of well known enterprise-level persistence patterns,
+designed for efficient and high-performing database
+access, adapted into a simple and Pythonic domain
+language.
+
+Major SQLAlchemy features include:
+
+* An industrial strength ORM, built 
+  from the core on the identity map, unit of work,
+  and data mapper patterns.   These patterns
+  allow transparent persistence of objects 
+  using a declarative configuration system.
+  Domain models
+  can be constructed and manipulated naturally,
+  and changes are synchronized with the
+  current transaction automatically.
+* A relationally-oriented query system, exposing
+  the full range of SQL's capabilities 
+  explicitly, including joins, subqueries, 
+  correlation, and most everything else, 
+  in terms of the object model.
+  Writing queries with the ORM uses the same 
+  techniques of relational composition you use 
+  when writing SQL.  While you can drop into
+  literal SQL at any time, it's virtually never
+  needed.
+* A comprehensive and flexible system 
+  of eager loading for related collections and objects.
+  Collections are cached within a session,
+  and can be loaded on individual access, all 
+  at once using joins, or by query per collection
+  across the full result set.
+* A Core SQL construction system and DBAPI 
+  interaction layer.  The SQLAlchemy Core is
+  separate from the ORM and is a full database
+  abstraction layer in its own right, and includes
+  an extensible Python-based SQL expression 
+  language, schema metadata, connection pooling, 
+  type coercion, and custom types.
+* All primary and foreign key constraints are 
+  assumed to be composite and natural.  Surrogate
+  integer primary keys are of course still the 
+  norm, but SQLAlchemy never assumes or hardcodes
+  to this model.
+* Database introspection and generation.  Database
+  schemas can be "reflected" in one step into
+  Python structures representing database metadata;
+  those same structures can then generate 
+  CREATE statements right back out - all within
+  the Core, independent of the ORM.
+
+SQLAlchemy's philosophy:
+
+* SQL databases behave less and less like object
+  collections the more size and performance start to
+  matter; object collections behave less and less like
+  tables and rows the more abstraction starts to matter.
+  SQLAlchemy aims to accommodate both of these
+  principles.
+* An ORM doesn't need to hide the "R".   A relational
+  database provides rich, set-based functionality
+  that should be fully exposed.   SQLAlchemy's
+  ORM provides an open-ended set of patterns
+  that allow a developer to construct a custom
+  mediation layer between a domain model and 
+  a relational schema, turning the so-called
+  "object relational impedance" issue into
+  a distant memory.
+* The developer, in all cases, makes all decisions
+  regarding the design, structure, and naming conventions
+  of both the object model as well as the relational
+  schema.   SQLAlchemy only provides the means
+  to automate the execution of these decisions.
+* With SQLAlchemy, there's no such thing as 
+  "the ORM generated a bad query" - you 
+  retain full control over the structure of 
+  queries, including how joins are organized,
+  how subqueries and correlation is used, what 
+  columns are requested.  Everything SQLAlchemy
+  does is ultimately the result of a developer-
+  initiated decision.
+* Don't use an ORM if the problem doesn't need one.
+  SQLAlchemy consists of a Core and separate ORM
+  component.   The Core offers a full SQL expression
+  language that allows Pythonic construction 
+  of SQL constructs that render directly to SQL
+  strings for a target database, returning
+  result sets that are essentially enhanced DBAPI
+  cursors.
+* Transactions should be the norm.  With SQLAlchemy's
+  ORM, nothing goes to permanent storage until
+  commit() is called.  SQLAlchemy encourages applications
+  to create a consistent means of delineating
+  the start and end of a series of operations.
+* Never render a literal value in a SQL statement.
+  Bound parameters are used to the greatest degree
+  possible, allowing query optimizers to cache 
+  query plans effectively and making SQL injection
+  attacks a non-issue.
+
+Documentation
+-------------
+
+Latest documentation is at:
+
+http://www.sqlalchemy.org/docs/
+
+Installation / Requirements
+---------------------------
+
+Full documentation for installation is at 
+`Installation <http://www.sqlalchemy.org/docs/intro.html#installation>`_.
+
+Getting Help / Development / Bug reporting
+------------------------------------------
+
+Please refer to the `SQLAlchemy Community Guide <http://www.sqlalchemy.org/support.html>`_.
+
+License
+-------
+
+SQLAlchemy is distributed under the `MIT license
+<http://www.opensource.org/licenses/mit-license.php>`_.
+
+
+=====================
+SQLALCHEMY UNIT TESTS
+=====================
+
+**NOTE:** SQLAlchemy as of 0.9.4 now standardizes on `pytest <http://pytest.org/>`_
+for test running!  However, the existing support for Nose **still remains**!
+That is, you can now run the tests via pytest or nose.  We hope to keep the
+suite nose-compatible indefinitely however this might change at some point.
+
+SQLAlchemy unit tests by default run using Python's built-in sqlite3
+module.   If running on a Python installation that doesn't include this
+module, then pysqlite or compatible must be installed.
+
+Unit tests can be run with pytest or nose:
+
+    py.test: http://pytest.org/
+
+    nose: https://pypi.python.org/pypi/nose/
+
+The suite includes enhanced support when running with pytest.
+
+SQLAlchemy implements plugins for both pytest and nose that must be
+present when tests are run.   In the case of pytest, this plugin is automatically
+used when pytest is run against the SQLAlchemy source tree.  However,
+for Nose support, a special test runner script must be used.
+
+
+The test suite as also requires the mock library.  While
+mock is part of the Python standard library as of 3.3, previous versions
+will need to have it installed, and is available at::
+
+    https://pypi.python.org/pypi/mock
+
+RUNNING TESTS VIA SETUP.PY
+--------------------------
+A plain vanilla run of all tests using sqlite can be run via setup.py, and
+requires that pytest is installed::
+
+    $ python setup.py test
+
+
+RUNNING ALL TESTS - PYTEST
+--------------------------
+To run all tests::
+
+    $ py.test
+
+The pytest configuration in setup.cfg will point the runner at the
+test/ directory, where it consumes a conftest.py file that gets everything
+else up and running.
+
+
+RUNNING ALL TESTS - NOSE
+--------------------------
+
+When using Nose, a bootstrap script is provided which sets up sys.path
+as well as installs the nose plugin::
+
+    $ ./sqla_nose.py
+
+Assuming all tests pass, this is a very unexciting output.  To make it more
+interesting::
+
+    $ ./sqla_nose.py -v
+
+RUNNING INDIVIDUAL TESTS
+---------------------------------
+
+Any directory of test modules can be run at once by specifying the directory
+path, and a specific file can be specified as well::
+
+    $ py.test test/dialect
+
+    $ py.test test/orm/test_mapper.py
+
+When using nose, the setup.cfg currently sets "where" to "test/", so the
+"test/" prefix is omitted::
+
+    $ ./sqla_nose.py dialect/
+
+    $ ./sqla_nose.py orm/test_mapper.py
+
+With Nose, it is often more intuitive to specify tests as module paths::
+
+    $ ./sqla_nose.py test.orm.test_mapper
+
+Nose can also specify a test class and optional method using this syntax::
+
+    $ ./sqla_nose.py test.orm.test_mapper:MapperTest.test_utils
+
+With pytest, the -k flag is used to limit tests::
+
+    $ py.test test/orm/test_mapper.py -k "MapperTest and test_utils"
+
+
+COMMAND LINE OPTIONS
+--------------------
+
+SQLAlchemy-specific options are added to both runners, which are viewable
+within the help screen.  With pytest, these options are easier to locate
+as they are underneath the "sqlalchemy" grouping::
+
+    $ py.test --help
+
+    $ ./sqla_nose.py --help
+
+The --help screen is a combination of common nose options and options which
+the SQLAlchemy nose plugin adds.  The most commonly SQLAlchemy-specific
+options used are '--db' and '--dburi'.
+
+Both pytest and nose support the same set of SQLAlchemy options, though
+pytest features a bit more capability with them.
+
+
+DATABASE TARGETS
+----------------
+
+Tests will target an in-memory SQLite database by default.  To test against
+another database, use the --dburi option with any standard SQLAlchemy URL::
+
+    --dburi=postgresql://user:password@localhost/test
+
+If you'll be running the tests frequently, database aliases can save a lot of
+typing.  The --dbs option lists the built-in aliases and their matching URLs::
+
+    $ py.test --dbs
+    Available --db options (use --dburi to override)
+               mysql    mysql://scott:tiger@127.0.0.1:3306/test
+              oracle    oracle://scott:tiger@127.0.0.1:1521
+            postgresql    postgresql://scott:tiger@127.0.0.1:5432/test
+    [...]
+
+To run tests against an aliased database::
+
+    $ py.test --db postgresql
+
+This list of database urls is present in the setup.cfg file.   The list
+can be modified/extended by adding a file ``test.cfg`` at the
+top level of the SQLAlchemy source distribution which includes
+additional entries::
+
+    [db]
+    postgresql=postgresql://myuser:mypass@localhost/mydb
+
+Your custom entries will override the defaults and you'll see them reflected
+in the output of --dbs.
+
+MULTIPLE DATABASE TARGETS
+-------------------------
+
+As of SQLAlchemy 0.9.4, the test runner supports **multiple databases at once**.
+This doesn't mean that the entire test suite runs for each database, but
+instead specific test suites may do so, while other tests may choose to
+run on a specific target out of those available.   For example, if the tests underneath
+test/dialect/ are run, the majority of these tests are either specific to
+a particular backend, or are marked as "multiple", meaning they will run repeatedly
+for each database in use.  If one runs the test suite as follows::
+
+    $ py.test test/dialect --db sqlite --db postgresql --db mysql
+
+The tests underneath test/dialect/test_suite.py will be tripled up, running
+as appropriate for each target database, whereas dialect-specific tests
+within test/dialect/mysql, test/dialect/postgresql/ test/dialect/test_sqlite.py
+should run fully with no skips, as each suite has its target database available.
+
+The multiple targets feature is available both under pytest and nose,
+however when running nose, the "multiple runner" feature won't be available;
+instead, the first database target will be used.
+
+When running with multiple targets, tests that don't prefer a specific target
+will be run against the first target specified.  Putting sqlite first in
+the list will lead to a much faster suite as the in-memory database is
+extremely fast for setting up and tearing down tables.
+
+
+
+DATABASE CONFIGURATION
+----------------------
+
+Use an empty database and a database user with general DBA privileges.
+The test suite will be creating and dropping many tables and other DDL, and
+preexisting tables will interfere with the tests.
+
+Several tests require alternate usernames or schemas to be present, which
+are used to test dotted-name access scenarios.  On some databases such
+as Oracle or Sybase, these are usernames, and others such as Postgresql
+and MySQL they are schemas.   The requirement applies to all backends
+except SQLite and Firebird.  The names are::
+
+    test_schema
+    test_schema_2 (only used on Postgresql)
+
+Please refer to your vendor documentation for the proper syntax to create
+these namespaces - the database user must have permission to create and drop
+tables within these schemas.  Its perfectly fine to run the test suite
+without these namespaces present, it only means that a handful of tests which
+expect them to be present will fail.
+
+Additional steps specific to individual databases are as follows::
+
+    MYSQL: Default storage engine should be "MyISAM".   Tests that require
+    "InnoDB" as the engine will specify this explicitly.
+
+    ORACLE: a user named "test_schema" is created.
+
+    The primary database user needs to be able to create and drop tables,
+    synonyms, and constraints within the "test_schema" user.   For this
+    to work fully, including that the user has the "REFERENCES" role
+    in a remote schema for tables not yet defined (REFERENCES is per-table),
+    it is required that the test the user be present in the "DBA" role:
+
+        grant dba to scott;
+
+    SYBASE: Similar to Oracle, "test_schema" is created as a user, and the
+    primary test user needs to have the "sa_role".
+
+    It's also recommended to turn on "trunc log on chkpt" and to use a
+    separate transaction log device - Sybase basically seizes up when
+    the transaction log is full otherwise.
+
+    A full series of setup assuming sa/master:
+
+        disk init name="translog", physname="/opt/sybase/data/translog.dat", size="10M"
+        create database sqlalchemy on default log on translog="10M"
+        sp_dboption sqlalchemy, "trunc log on chkpt", true
+        sp_addlogin scott, "tiger7"
+        sp_addlogin test_schema, "tiger7"
+        use sqlalchemy
+        sp_adduser scott
+        sp_adduser test_schema
+        grant all to scott
+        sp_role "grant", sa_role, scott
+
+    Sybase will still freeze for up to a minute when the log becomes
+    full.  To manually dump the log::
+
+        dump tran sqlalchemy with truncate_only
+
+    MSSQL: Tests that involve multiple connections require Snapshot Isolation
+    ability implemented on the test database in order to prevent deadlocks that
+    will occur with record locking isolation. This feature is only available
+    with MSSQL 2005 and greater. You must enable snapshot isolation at the
+    database level and set the default cursor isolation with two SQL commands:
+
+     ALTER DATABASE MyDatabase SET ALLOW_SNAPSHOT_ISOLATION ON
+
+     ALTER DATABASE MyDatabase SET READ_COMMITTED_SNAPSHOT ON
+
+    MSSQL+zxJDBC: Trying to run the unit tests on Windows against SQL Server
+    requires using a test.cfg configuration file as the cmd.exe shell won't
+    properly pass the URL arguments into the nose test runner.
+
+    POSTGRESQL: Full-text search configuration should be set to English, else
+    several tests of ``.match()`` will fail. This can be set (if it isn't so
+    already) with:
+
+     ALTER DATABASE test SET default_text_search_config = 'pg_catalog.english'
+
+
+CONFIGURING LOGGING
+-------------------
+SQLAlchemy logs its activity and debugging through Python's logging package.
+Any log target can be directed to the console with command line options, such
+as::
+
+    $ ./sqla_nose.py test.orm.unitofwork --log-info=sqlalchemy.orm.mapper \
+      --log-debug=sqlalchemy.pool --log-info=sqlalchemy.engine
+
+This would log mapper configuration, connection pool checkouts, and SQL
+statement execution.
+
+
+BUILT-IN COVERAGE REPORTING
+------------------------------
+Coverage is tracked using the coverage plugins built for pytest or nose::
+
+    $ py.test test/sql/test_query --cov=sqlalchemy
+
+    $ ./sqla_nose.py test.sql.test_query --with-coverage
+
+BIG COVERAGE TIP !!!  There is an issue where existing .pyc files may
+store the incorrect filepaths, which will break the coverage system.  If
+coverage numbers are coming out as low/zero, try deleting all .pyc files.
+
+DEVELOPING AND TESTING NEW DIALECTS
+-----------------------------------
+
+See the new file README.dialects.rst for detail on dialects.
+
+
+TESTING WITH MULTIPLE PYTHON VERSIONS USING TOX
+-----------------------------------------------
+
+If you want to test across multiple versions of Python, you may find `tox
+<http://tox.testrun.org/>`_ useful. To use it:
+
+1. Create a ``tox.ini`` file with the following:
+
+.. code-block:: ini
+
+    # Tox (http://tox.testrun.org/) is a tool for running tests
+    # in multiple virtualenvs. This configuration file will run the
+    # test suite on all supported python versions. To use it, "pip install tox"
+    # and then run "tox" from this directory.
+
+    [tox]
+    envlist = py26, py27, py33, py34, pypy
+
+    [testenv]
+    deps =
+        mock
+        nose
+    commands = {envpython} ./sqla_nose.py
+
+2. Run::
+
+    pip install tox
+
+3. Run::
+
+    tox
+
+This will run the test suite on all the Python versions listed in the
+``envlist`` in the ``tox.ini`` file. You can also manually specify the versions
+to test against::
+
+    tox -e py26,py27,py33
+
+

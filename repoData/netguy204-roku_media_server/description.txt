@@ -1,0 +1,194 @@
+h1. My Media
+
+h2. Roku DVP Personal Media Server and Channel
+
+A simple media server and a channel designed for the Roku set-top box.
+
+h1(#install). INSTALLATION
+
+# "Add the private channel to your Roku":https://owner.roku.com/Account/ChannelCode/?code=mymedia
+
+# Start the channel and then visit "the MyMedia registration page":http://rokumm.appspot.com/ to enter the registration code you were given.
+
+# Continue by downloading, installing, starting, and configuring the MyMedia server as detailed by the "installation guide":http://rokumm.appspot.com/walkthrough
+
+# Enjoy!
+
+h2. License
+
+The server code in this package is to be distributed under the terms of the GPL. The client code is also GPL but with a special attribution exception for the Roku business entity (per their SDK license agreement.)
+
+Some third party code is also included in the web, simplejson, and eyeD3 folders. Each of these are distributed under their author's original license (look in their source to see what they are.)
+
+The folder icon is distributed under the creative commons. All other channel theming artwork is Copyright 2010 _umbighouse_. Channel artwork is free for non-commercial use. Contact the original author if you would like to use the art under different terms.
+
+h2. Security Warning
+
+The way the server works allows external devices (like your Roku) to access files in specific directories on your computer without authenticating.  Definitely don't run this unless your local network is somehow isolated from the internet at large -- ie, you're behind a router.  
+
+In other words: If your IP address isn't something like 192. ? . ? . ? or 10 . ? . ? . ? -- you're running the risk of exposing data on your computer to people who don't have your consent.
+
+Bottom line: I think I've done a reasonable job of making this secure for isolated home network use but I make no promises and imply no warranty.
+
+h2. Disclaimer
+
+I don't think it will happen but following these instructions could break your computer or your Roku. Don't hold me responsible if they do. If this breaks something for you, I'm sorry, and if you ask nice I may try to help you. No promises, no warranty, good luck. (No one, to my knowledge, has damaged their computer or Roku by using this software so far.)
+
+h1. Troubleshooting
+
+* Make sure you can get to your server from your server. Point a browser at "http://localhost:8001/feed":http://localhost:8001/feed . If you changed the port number in your configuration then adjust the link appropriately. If this doesn't work then the server probably isn't running. Did you start it? Windows users can press alt+ctrl+delete and make sure python is under the process tab.
+* Make sure you can get to your server from another computer. Change localhost in the link above to the ip address of your server. If this doesn't work then you almost definitely have a firewall in the way.
+* Make sure the new channel appears on your home screen. If it doesn't you need to add the private channel (link at the top of this document) and open and close the channel store to make it appear.
+
+h2. For more help
+
+There's an active and growing community of users eager to help you. Drop by the forum "http://forums.rokulabs.com/viewtopic.php?p=330401":http://forums.rokulabs.com/viewtopic.php?p=159473 or shoot me an email and hopefully we can work through whatever ails you.
+
+h1. Epilogue
+
+This is a work in progress. I welcome feedback from your experiences. Let's make this readme file much better.
+
+*With contributions from*
+
+(alphabetized)
+
+_all testers_ - Thank you for installing this code and providing feedback and suggestions. You make building this fun!
+
+_el.wubo_
+
+_hammerpocket_ - mac PIL install guide
+
+_hoffmcs_ - server side improvements
+
+_renojim_ - massive contributions to the functionality of the channel
+
+_onecaribou_ - testing. contributing the DNS323 NAS installation guide.
+
+_umbighouse_ - helping debug the windows client and providing excellent beta testing feedback. Windows installation tips and scripts. Channel icon and theming.
+
+_witmar_ (tdurrant420@gmail.com) - high contrast theme
+
+Initial development by:
+Brian Taylor (el.wubo@gmail.com)
+Copyright 2010
+
+
+-B
+
+
+<html>
+  <head><title>README</title></head>
+  <script type="text/javascript">
+//<![CDATA[
+<!--
+
+/*
+ * This is the orginial function from Stuart Langridge at http://www.kryogenix.org/
+ */
+ 
+/*
+* This is the update function from Jeff Minard - http://www.jrm.cc/
+*/
+function superTextile(s) {
+    var r = s;
+    // quick tags first
+    qtags = [['\\*', 'strong'],
+             ['\\?\\?', 'cite'],
+             ['\\+', 'ins'],  //fixed
+             ['~', 'sub'],   
+             ['\\^', 'sup'], // me
+             ['@', 'code']];
+    for (var i=0;i<qtags.length;i++) {
+        ttag = qtags[i][0]; htag = qtags[i][1];
+        re = new RegExp(ttag+'\\b(.+?)\\b'+ttag,'g');
+        r = r.replace(re,'<'+htag+'>'+'$1'+'</'+htag+'>');
+    }
+    // underscores count as part of a word, so do them separately
+    re = new RegExp('\\b_(.+?)_\\b','g');
+    r = r.replace(re,'<em>$1</em>');
+  
+  //jeff: so do dashes
+    re = new RegExp('[\s\n]-(.+?)-[\s\n]','g');
+    r = r.replace(re,'<del>$1</del>');
+
+    // links
+    re = new RegExp('"\\b(.+?)\\(\\b(.+?)\\b\\)":([^\\s]+)','g');
+    r = r.replace(re,'<a href="$3" title="$2">$1</a>');
+    re = new RegExp('"\\b(.+?)\\b":([^\\s]+)','g');
+    r = r.replace(re,'<a href="$2">$1</a>');
+
+    // images
+    re = new RegExp('!\\b(.+?)\\(\\b(.+?)\\b\\)!','g');
+    r = r.replace(re,'<img src="$1" alt="$2">');
+    re = new RegExp('!\\b(.+?)\\b!','g');
+    r = r.replace(re,'<img src="$1">');
+    
+    // block level formatting
+  
+    // Jeff's hack to show single line breaks as they should.
+    // insert breaks - but you get some....stupid ones
+      re = new RegExp('(.*)\n([^#\*\n].*)','g');
+      r = r.replace(re,'$1<br />$2');
+    // remove the stupid breaks.
+      re = new RegExp('\n<br />','g');
+      r = r.replace(re,'\n');
+  
+    lines = r.split('\n');
+    nr = '';
+    for (var i=0;i<lines.length;i++) {
+        line = lines[i].replace(/\s*$/,'');
+        changed = 0;
+        if (line.search(/^\s*bq\.\s+/) != -1) { 
+      line = line.replace(/^\s*bq\.\s+/,'\t<blockquote>')+'</blockquote>'; 
+      changed = 1; 
+    }
+    
+    // jeff adds h#.
+        if (line.search(/^\s*h[1|2|3|4|5|6]\.\s+/) != -1) { 
+        re = new RegExp('h([1|2|3|4|5|6])\.(.+)','g');
+        line = line.replace(re,'<h$1>$2</h$1>');
+      changed = 1; 
+    }
+    
+    if (line.search(/^\s*\*\s+/) != -1) { line = line.replace(/^\s*\*\s+/,'\t<liu>') + '</liu>'; changed = 1; } // * for bullet list; make up an liu tag to be fixed later
+        if (line.search(/^\s*#\s+/) != -1) { line = line.replace(/^\s*#\s+/,'\t<lio>') + '</lio>'; changed = 1; } // # for numeric list; make up an lio tag to be fixed later
+        if (!changed && (line.replace(/\s/g,'').length > 0)) line = '<p>'+line+'</p>';
+        lines[i] = line + '\n';
+    }
+  
+    // Second pass to do lists
+    inlist = 0; 
+  listtype = '';
+    for (var i=0;i<lines.length;i++) {
+        line = lines[i];
+        if (inlist && listtype == 'ul' && !line.match(/^\t<liu/)) { line = '</ul>\n' + line; inlist = 0; }
+        if (inlist && listtype == 'ol' && !line.match(/^\t<lio/)) { line = '</ol>\n' + line; inlist = 0; }
+        if (!inlist && line.match(/^\t<liu/)) { line = '<ul>' + line; inlist = 1; listtype = 'ul'; }
+        if (!inlist && line.match(/^\t<lio/)) { line = '<ol>' + line; inlist = 1; listtype = 'ol'; }
+        lines[i] = line;
+    }
+
+    r = lines.join('\n');
+  // jeff added : will correctly replace <li(o|u)> AND </li(o|u)>
+    r = r.replace(/li[o|u]>/g,'li>');
+
+    return r;
+}
+  </script>
+
+  <script src="js/jquery.js" type="text/javascript"></script>
+  <script>
+    $(document).ready(function() {
+      $.get('/readme', function(textile) {
+        $("#content").html(superTextile(textile));
+      });
+    });
+  </script>
+  <body>
+    <div id="content">
+      Loading readme...
+    </div>
+  </body>
+</html>
+
+

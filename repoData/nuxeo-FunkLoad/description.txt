@@ -1,0 +1,348 @@
+README.txt
+Introduction
+==============
+
+FunkLoad_ is a functional and load web tester, written in Python, whose
+main use cases are:
+
+* Functional testing of web projects, and thus regression testing as well.
+
+* Performance testing: by loading the web application and monitoring
+  your servers it helps you to pinpoint bottlenecks, giving a detailed
+  report of performance measurement.
+
+* Load testing tool to expose bugs that do not surface in cursory testing,
+  like volume testing or longevity testing.
+
+* Stress testing tool to overwhelm the web application resources and test
+  the application recoverability.
+
+* Writing web agents by scripting any web repetitive task.
+
+Features
+---------
+
+Main FunkLoad_ features are:
+
+* Functional test are pure Python scripts using the pyUnit_ framework
+  like normal unit test. Python enable complex scenarios to handle
+  real world applications.
+
+* Truly emulates a web browser (single-threaded) using an enhanced
+  Richard Jones' webunit_:
+
+  - get/post/put/delete support
+  - post any kind of content type like ``application/xml``
+  - DAV support
+  - basic authentication support
+  - file upload and multipart/form-data submission
+  - cookies support
+  - referrer support
+  - accept gzip content encoding
+  - https support
+  - https with ssl/tls by providing a private key and certificate (PEM
+    formatted)
+  - http_proxy support
+  - fetching css, javascript and images
+  - emulating a browser cache
+
+* Advanced test runner with many command-line options:
+
+  - set the target server url
+  - display the fetched page in real time in your browser
+  - debug mode to display http headers
+  - check performance of a single page (or set of pages) inside a test
+  - green/red color mode
+  - select or exclude tests cases using a regex
+  - support normal pyUnit_ test
+  - support doctest_ from a plain text file or embedded in python
+    docstring
+
+* Turn a functional test into a load test: just by invoking the bench
+  runner you can identify scalability and performance problems. If
+  needed the bench can distributed over a group of worker machines.
+
+* Detailed bench reports in ReST, HTML, Org-mode_, PDF (using
+  LaTeX/PDF Org-mode export) containing:
+
+  - the bench configuration
+  - tests, pages, requests stats and charts
+  - the requets that took the most time
+  - monitoring one or many servers cpu usage, load average,
+    memory/swap usage and network traffic charts
+  - an http error summary list
+
+* Differential reports to compare 2 bench reports giving a quick
+  overview of scalability and velocity changes.
+
+* Trend reports to view the performance evolution with multiple
+  reports.
+
+* Easy test customization using a configuration file or command line
+  options.
+
+* Easy test creation using embeded TCPWatch_ as proxy recorder, so you
+  can use your web browser and produce a FunkLoad_ test automatically,
+  including file upload or any ajax call.
+
+* Provides web assertion helpers to check expected results in responses.
+
+* Provides helpers to retrieve contents in responses page using DOM.
+
+* Easy to install (EasyInstall_).
+
+* Comes with examples look at the demo_ folder.
+
+* Successfully tested with dozen of differents web servers: PHP,
+  python, Java...
+
+License
+----------
+
+FunkLoad_ is free software distributed under the `GNU GPL`_ license.
+
+\(C) Copyright 2005-2011 Nuxeo SAS (http://nuxeo.com).
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or (at
+your option) any later version.
+
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program; if not, write to the Free Software
+Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA
+02110-1301, USA.
+
+
+.. _FunkLoad: http://funkload.nuxeo.org/
+.. _Org-mode: http://orgmode.org/
+.. _TCPWatch: http://hathawaymix.org/Software/TCPWatch/
+.. _webunit: http://mechanicalcat.net/tech/webunit/
+.. _pyUnit: http://pyunit.sourceforge.net/
+.. _API: api/index.html
+.. _Nuxeo: http://www.nuxeo.com/
+.. _`python cheese shop`: http://www.python.org/pypi/funkload/
+.. _EasyInstall: http://peak.telecommunity.com/DevCenter/EasyInstall
+.. _`GNU GPL`: http://www.gnu.org/licenses/licenses.html#GPL
+.. _doctest: http://docs.python.org/lib/module-doctest.html
+.. _demo: https://github.com/nuxeo/FunkLoad/tree/master/src/funkload/demo/
+
+.. Local Variables:
+.. mode: rst
+.. End:
+.. vim: set filetype=rst:
+
+=================
+FunkLoad demo/cmf
+=================
+$Id$
+
+This is a simple CMF tests.
+
+It requires a zope 2.7 or 2.8 test server running, you should *not* run this
+script against a production server as it will try to create a CMF Site and
+setup test accounts.
+
+You need to have the CMF 1.5.4 products installed on your Zope server.
+
+You need to edit the Cmf.conf configuration file to point to your zope
+server (section main url key).
+
+Then you need to edit the passwords.txt file to set the Zope admin credential.
+
+If your zope admin is not called ``admin`` add your credential to the
+`passwords.txt` file and edit the `groups.txt` file to add your login in the
+``AdminZope`` group.
+
+To run the test::
+
+  fl-credential-ctl credential.conf start
+  fl-run-test -v test_Cmf.py
+
+You can view the debug information::
+
+  fl-run-test -d test_Zope.py
+
+If something goes wrong try to view the html output::
+
+  fl-run-test -dV test_Zope.py
+
+
+Note that all errors are logged in the xml output file ``cmf-test.xml``.
+
+=============
+FunkLoad demo
+=============
+$Id$
+
+You can find 4 examples of FunkLoad usage here:
+
+* simple/
+  An example on how to use test and bench runner with monitoring.
+
+* zope/
+  A basic ZopeTestCase example.
+
+* cmf/
+  An test case that requires a credential server.
+
+* xmlrpc/
+  An example on how to test/bench an XML RPC server with a Makefile example.
+
+===============================
+FunkLoad demo/seam-bookin-1.1.5
+===============================
+$Id$
+
+Simple test of the Seam Booking application that comes with the JBoss Seam
+Framework 1.1.5
+
+This script register a new user, search an hotel and book a room.
+
+To install seam booking application refer to the
+http://www.seamframework.org/, the script works with version 1.1.5 along
+with a jboss 4.0.5.
+
+Run test on a local instance:
+
+  make
+
+Run test on a remote instance:
+
+  make URL=http://another.seam.booking:8080
+
+Run test in debug mode viewing all queries::
+
+  make debug
+
+Run test and view each fetched page into a running firefox::
+
+  make debug_firefox
+
+Run a small bench and produce a report::
+
+  make bench
+
+
+When you have 2 reports you can generate a differential report:
+
+  fl-build-report --diff path/to/report/reference path/to/report/challenger
+
+More info on the http://funkload.nuxeo.org/ site.
+
+====================
+FunkLoad demo/simple
+====================
+$Id$
+
+This is a simple FunkLoadTestCase demonstration.
+
+It requires an web test server (configuration is done for an apache2
+default install)
+
+WARNING: You should *not* run this script against a server that is not under
+your responsablity as it can result a DOS in bench mode.
+
+1/ Modify the Simple.conf file
+
+  Set the [main] url and pages keys
+
+2/ Test it
+
+   verbose mode::
+
+     fl-run-test -v test_Simple.py
+
+   debug mode::
+
+     fl-run-test -d test_Simple.py
+
+   view the downloaded page in real time using firefox::
+
+     fl-run-test -V test_Simple.py
+
+   check performance of a single page::
+
+     fl-run-test -l 4 -n 100 test_Simple.py
+
+
+3/ Bench it
+
+   Start a monitord server to log server activities::
+
+     fl-monitor-ctl monitor.conf start
+
+   Bench it with few cycles::
+
+     fl-run-bench -c 1:25:50:75 test_Simple.py Simple.test_simple
+
+   Note that for correct interpretation you should run the FunkLoad bencher
+   in a different host than the server, the server should be 100% dedicated
+   to the application.
+
+   If you want to bench with more than 200 users, you need to reduce the
+   default stack size used by a thread, for example try a `ulimit -s 2048`
+   before running the bench.
+
+   Performance limits are hit by FunkLoad before apache's limit is reached,
+   since it uses significant CPU resources.
+
+4/ Build the report::
+
+   fl-build-report --html simple-bench.xml
+
+
+
+====================
+FunkLoad demo/xmlrpc
+====================
+$Id$
+
+By using ``xmlrpc_call`` you can bench an xmlrpc service, in this small
+example we test the credentiald XML RPC service.
+
+This demo use a Makefile to drive tests.
+
+To test it just::
+
+  make
+
+To bench it::
+
+  make bench
+
+To test another server that the one define in the Credential.conf::
+
+  make URL=http://localhost:33301
+
+==================
+FunkLoad demo/zope
+==================
+$Id$
+
+This is a simple ZopeTestCase demonstration.
+
+It requires a zope 2.7 or 2.8 test server running, you should *not* run this
+script against a production server as it will try to pack the main Zodb, and
+setup the default Zope Examples.
+
+Modify the Zope.conf funkload configuration file and set the zope server url
+and admin credential ([main] section, url, admin_id and admin_pwd keys).
+
+The test will setup the zope Examples and test them, then it will flush the
+zope cache, pack the zodb and restart the zope server.
+
+To run the test::
+
+  fl-run-test -v test_Zope.py
+
+You can view the debug information::
+
+  fl-run-test -d test_Zope.py
+
+

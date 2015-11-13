@@ -1,0 +1,2506 @@
+Asset management
+----------------
+
+This plugin allows you to use the `Webassets`_ module to manage assets such as
+CSS and JS files. The module must first be installed::
+
+    pip install webassets
+
+The Webassets module allows you to perform a number of useful asset management
+functions, including:
+
+* CSS minifier (``cssmin``, ``yui_css``, ...)
+* CSS compiler (``less``, ``sass``, ...)
+* JS minifier (``uglifyjs``, ``yui_js``, ``closure``, ...)
+
+Others filters include CSS URL rewriting, integration of images in CSS via data
+URIs, and more. Webassets can also append a version identifier to your asset
+URL to convince browsers to download new versions of your assets when you use
+far-future expires headers. Please refer to the `Webassets documentation`_ for
+more information.
+
+When used with Pelican, Webassets is configured to process assets in the
+``OUTPUT_PATH/theme`` directory. You can use Webassets in your templates by
+including one or more template tags. The Jinja variable ``{{ ASSET_URL }}`` can
+be used in templates and is relative to the ``theme/`` url. The
+``{{ ASSET_URL }}`` variable should be used in conjunction with the
+``{{ SITEURL }}`` variable in order to generate URLs properly. For example:
+
+.. code-block:: jinja
+
+    {% assets filters="cssmin", output="css/style.min.css", "css/inuit.css", "css/pygment-monokai.css", "css/main.css" %}
+        <link rel="stylesheet" href="{{ SITEURL }}/{{ ASSET_URL }}">
+    {% endassets %}
+
+... will produce a minified css file with a version identifier that looks like:
+
+.. code-block:: html
+
+    <link href="http://{SITEURL}/theme/css/style.min.css?b3a7c807" rel="stylesheet">
+
+These filters can be combined. Here is an example that uses the SASS compiler
+and minifies the output:
+
+.. code-block:: jinja
+
+    {% assets filters="sass,cssmin", output="css/style.min.css", "css/style.scss" %}
+        <link rel="stylesheet" href="{{ SITEURL }}/{{ ASSET_URL }}">
+    {% endassets %}
+
+Another example for Javascript:
+
+.. code-block:: jinja
+
+    {% assets filters="uglifyjs", output="js/packed.js", "js/jquery.js", "js/base.js", "js/widgets.js" %}
+        <script src="{{ SITEURL }}/{{ ASSET_URL }}"></script>
+    {% endassets %}
+
+The above will produce a minified JS file:
+
+.. code-block:: html
+
+    <script src="http://{SITEURL}/theme/js/packed.js?00703b9d"></script>
+
+Pelican's debug mode is propagated to Webassets to disable asset packaging
+and instead work with the uncompressed assets.
+
+If you need to create named bundles (for example, if you need to compile SASS
+files before minifying with other CSS files), you can use the ``ASSET_BUNDLES``
+variable in your settings file. This is an ordered sequence of 3-tuples, where
+the 3-tuple is defined as ``(name, args, kwargs)``. This tuple is passed to the
+`environment's register() method`_. The following will compile two SCSS files
+into a named bundle, using the ``pyscss`` filter:
+
+.. code-block:: python
+
+    ASSET_BUNDLES = (
+        ('scss', ['colors.scss', 'main.scss'], {'filters': 'pyscss'}),
+    )
+
+Many of Webasset's available compilers have additional configuration options
+(i.e. 'Less', 'Sass', 'Stylus', 'Closure_js').  You can pass these options to
+Webassets using the ``ASSET_CONFIG`` in your settings file.
+
+The following will handle Google Closure's compilation level and locate
+LessCSS's binary:
+
+.. code-block:: python
+
+    ASSET_CONFIG = (('closure_compressor_optimization', 'WHITESPACE_ONLY'),
+                    ('less_bin', 'lessc.cmd'), )
+
+If you wish to place your assets in locations other than the theme output
+directory, you can use ``ASSET_SOURCE_PATHS`` in your settings file to provide
+webassets with a list of additional directories to search, relative to the
+theme's top-level directory. For example:
+
+.. code-block:: python
+
+   ASSET_SOURCE_PATHS = (
+       'vendor/css',
+       'scss',
+   )
+
+.. _Webassets: https://github.com/miracle2k/webassets
+.. _Webassets documentation: http://webassets.readthedocs.org/en/latest/builtin_filters.html
+.. _environment's register() method: http://webassets.readthedocs.org/en/latest/environment.html#registering-bundles
+
+Requirements
+------------
+
+* pip install pillow beautifulsoup4
+
+Summary
+===========
+
+This plug-in:
+
+- Adds a `style="width: ???px; height: auto;"` attribute to any `<img>` tags in the content, by checking
+the dimensions of the image file and adding the appropriate `style="width: ???px; height: auto;"` to the `<img>` tag.
+- Also finds any `div class="figures"` tags in the content, that contain images and adds the same style to them too.
+- If RESPONSIVE_IMAGES setting is true, it adds `style="width: ???px; max-width: 100%; height: auto;"` instead.
+- Corrects Alt text: If an img alt attribute = the image filename, it sets it to ""
+
+
+Assuming that the image is 250px wide, it turns output like this:
+
+	<div class="figure">
+	    <img alt="/static/images/image.jpg" src="/static/images/image.jpg" />
+	    <p class="caption">
+	        This is the caption of the figure.
+	    </p>
+	    <div class="legend">
+	        Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+	        tempor incididunt ut labore et dolore magna aliqua.
+	    </div>
+	</div>
+
+into output like this:
+
+	<div class="figure" style="width: 250px; height: auto;">
+	    <img style="width: 250px; height: auto;" alt="" src="/static/images/image.jpg" />
+	    <p class="caption">
+	        This is the caption of the figure.
+	    </p>
+	    <div class="legend">
+	        Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+	        tempor incididunt ut labore et dolore magna aliqua.
+	    </div>
+	</div>
+
+or this, if RESPONSIVE_IMAGES = True:
+
+	<div class="figure" style="width: 250px; max-width: 100%; height: auto;">
+	    <img style="width: 250px; max-width: 100%; height: auto;" alt="" src="/static/images/image.jpg" />
+	    <p class="caption">
+	        This is the caption of the figure.
+	    </p>
+	    <div class="legend">
+	        Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod
+	        tempor incididunt ut labore et dolore magna aliqua.
+	    </div>
+	</div>
+
+#Clean Summary Plugin#
+
+Plugin to clean your summary of excess images. Images can take up much more
+space than text and lead to summaries being different sizes on archive and 
+index pages. With this plugin you can specify a maximum number of images that
+will appear in your summaries.
+
+There is also an option to include a minimum of one image.
+
+##Settings##
+
+This plugin has two settings. `CLEAN_SUMMARY_MAXIMUM` which takes an int, and 
+`CLEAN_SUMMARY_MINIMUM_ONE` which takes a boolean. They default to 0 and False.
+
+`CLEAN_SUMMARY_MAXIMUM` sets the maximum number of images that will appear in 
+your summary.
+
+if `CLEAN_SUMMARY_MINIMUM_ONE` is set to `True` and your summary doesn't already
+contain an image, the plugin will add the first image in your article (if one 
+exists) to the beginning of the summary.
+
+##Requirements##
+
+Requires Beautiful Soup:
+
+    pip install BeautifulSoup4
+
+
+##Usage with Summary Plugin##
+
+If using the summary plugin, make sure summary appears in your plugins before
+clean summary. Eg.
+
+    PLUGINS = ['summary', 'clean_summary', ... ]
+
+Include Pygments highlighted code with reStructuredText
+=======================================================
+
+:author: Colin Dunklau
+
+Use this plugin to make writing coding tutorials easier! You can
+maintain the example source files separately from the actual article.
+
+Based heavily on ``docutils.parsers.rst.directives.Include``. Include
+a file and output as a code block formatted with pelican's Pygments
+directive.
+
+Note that this is broken with the Docutils 0.10 release, there's a
+circular import. It was fixed in trunk:
+http://sourceforge.net/p/docutils/bugs/214/
+
+Directives
+----------
+
+.. code:: rst
+
+    .. code-include:: incfile.py
+        :lexer: string, name of the Pygments lexer to use, default 'text'
+        :encoding: string, encoding with which to open the file
+        :tab-width: integer, hard tabs are replaced with `tab-width` spaces
+        :start-line: integer, starting line to begin reading include file
+        :end-line: integer, last line from include file to display
+
+``start-line``, and ``end-line`` have the same meaning as in the
+docutils ``include`` directive, that is, they index from zero.
+
+Example
+-------
+
+./incfile.py:
+
+.. code:: python
+
+    # These two comment lines will not
+    # be included in the output
+    import random
+
+    insults = ['I fart in your general direction',
+               'your mother was a hampster',
+               'your father smelt of elderberries']
+
+    def insult():
+        print random.choice(insults)
+    # This comment line will be included
+    # ...but this one won't
+
+./yourfile.rst:
+
+.. code:: rst
+
+    How to Insult the English
+    =========================
+
+    :author: Pierre Devereaux
+
+    A function to help insult those silly English knnnnnnniggets:
+
+    .. code-include:: incfile.py
+        :lexer: python
+        :encoding: utf-8
+        :tab-width: 4
+        :start-line: 3
+        :end-line: 11
+
+
+# Creole Reader
+
+This plugins allows you to write your posts using the wikicreole syntax. Give to
+these files the creole extension. The metadata are between `<<header>> <</header>>`
+tags.
+
+## Dependency
+This plugin relies on [python-creole](https://pypi.python.org/pypi/python-creole/) to work. Install it with:
+`pip install python-creole`
+
+## Syntax
+Use ** for strong, // for emphasis, one = for 1st level titles. Please use the
+following macro for code highlighting:
+`<<code ext=".file_extension">> <</code>>`
+
+For the complete syntax, look at: http://www.wikicreole.org/
+
+## Basic example
+```
+<<header>>
+title: Créole
+tags: creole, python, pelican_open
+date: 2013-12-12
+<</header>>
+
+= Title 1
+== Title 2
+
+Some nice text with **strong** and //emphasis//.
+
+* A nice list
+** With sub-elements
+* Python
+
+<<code ext=".py">>
+print("Hello World")
+<</code>>
+
+# An ordered list
+# A second item
+```
+
+#Custom Article URLs#
+
+This plugin adds support for defining different default URLs for different
+categories, or different subcategories if using the subcategory plugin.
+
+##Usage##
+
+After adding `custom_article_urls` to your `PLUGINS`, add a
+`CUSTOM_ARTICLE_URLS` setting, which is a dictionary of rules. The rules are
+also a dictionary, consisting of the `URL` and the `SAVE_AS` values.
+
+For example, if you had two categories, *Category 1* and *Category 2*, and you
+would like *Category 1* saved as `category-1/article-slug/` and *Category 2*
+saved as `/year/month/article-slug/`, you would add:
+
+    CUSTOM_ARTICLE_URLS = {
+        'Category 1': {'URL': '{category}/{slug}/,
+            'SAVE_AS': '{category}/{slug}/index.html},
+        'Category 2': {'URL': '{date:%Y}/{date:%B}/{slug}/,
+            'SAVE_AS': '{date:%Y}/{date:%B}/{slug}/index.html},
+        }
+
+If you had any other categories, they would use the default `ARTICLE_SAVE_AS`
+and `ARTICLE_URL` settings.
+
+If you are using the subcategory plugin, you can define them the same way.
+For example, if *Category 1* had a subcategory called *Sub Category*, you could
+define its rules with::
+
+    'Category 1/Sub Category`: ...
+
+##Other Usage: Article Metadata##
+
+If you define `URL` and `Save_as` in your article metadata, then this plugin
+will not alter that value. So you can still specify special one-off URLs as
+you normally would.
+
+Disqus static comment plugin for Pelican
+====================================
+
+This plugin adds a disqus_comments property to all articles.
+Comments are fetched at generation time using disqus API.
+
+Installation
+------------
+Because we use disqus API to retrieve the comments you need to create an application at
+http://disqus.com/api/applications/ which will provide you with a secret and public keys for the API.
+
+We use disqus-python package for communication with disqus API:
+``pip install disqus-python``
+
+Put ``disqus_static.py`` plugin in ``plugins`` folder in pelican installation 
+and use the following in your settings::
+
+    PLUGINS = [u"disqus_static"]
+
+    DISQUS_SITENAME = u'YOUR_SITENAME'
+    DISQUS_SECRET_KEY = u'YOUR_SECRET_KEY'
+    DISQUS_PUBLIC_KEY = u'YOUR_PUBLIC_KEY'
+
+Usage
+-----
+
+.. code-block:: html+jinja
+
+    {% if article.disqus_comments %}
+    <div id="disqus_static_comments">
+        <h4>{{ article.disqus_comment_count }} comments</h4>
+        <ul class="post-list">
+            {% for comment in article.disqus_comments recursive %}
+            <li class="post">
+                <div class="post-content">
+                    <div class="avatar hovercard">
+                        <img alt="Avatar" src="{{ comment.author.avatar.small.cache }}">
+                    </div>
+                    <div class="post-body">
+                        <header>
+                            <span class="publisher-anchor-color">{{ comment.author.name }}</span>
+                            <span class="time-ago" title="{{ comment.createdAt }}">{{ comment.createdAt }}</span>
+                        </header>
+                        <div class="post-message-container">
+                            <div class="post-message publisher-anchor-color ">
+                                {{ comment.message }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% if comment.children %}
+                <ul class="children">
+                    {{ loop(comment.children) }}
+                </ul>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+Extract Table of Content
+========================
+
+A Pelican plugin to extract table of contents (ToC) from `article.content` and
+place it in its own `article.toc` variable.
+
+Copyright (c) Talha Mansoor
+
+Author          | Talha Mansoor
+----------------|-----
+Author Email    | talha131@gmail.com
+Author Homepage | http://onCrashReboot.com
+Github Account  | https://github.com/talha131
+
+Acknowledgement
+---------------
+
+Thanks to [Avaris](https://github.com/avaris) for going out of the way to help
+me fix Unicode issues and doing a thorough code review.
+
+Why do you need it?
+===================
+
+Pelican can generate ToC of reST and Markdown files, using markup's respective
+directive and extension. ToC is generated and placed at the beginning of
+`article.content`. You cannot place the ToC in `<nav>` HTML5 tag, nor can you
+place the ToC at the end of your article's content because ToC is part of
+`article.content`.
+
+This plugin extracts ToC from `article.content` and places it in `article.toc`.
+
+Requirements
+============
+
+`extract_toc` requires BeautifulSoup.
+
+```bash
+pip install beautifulsoup4
+```
+
+How to Use
+==========
+
+**Important!** This plugin only works with reST and Markdown files. reST files
+should have `.rst` extension. Markdown files can have `.md`, `.mkd` or
+`markdown`.
+
+If ToC appears in your article at more than one places, `extract_toc` will
+remove only the first occurrence. You shouldn't probably need to have multiple
+ToC in your article. In case you need to display it multiple times, you can
+print it via your template.
+
+ToC generated by Markdown is enclosed in `<div class="toc">`. On the other hand
+ToC generated by reST is enclosed in `<div class="contents topic">`.
+`extract_toc` relies on this behavior to work.
+
+reStructuredText Example
+------------------------
+
+To add a table of contents to your reStructuredText document you need to add a 'contents directive' at the place where you want the table of contents to appear. See the [documentation](http://docutils.sourceforge.net/docs/ref/rst/directives.html#table-of-contents) for more details.
+
+```rst
+My super title
+##############
+
+:date: 2010-10-03
+:tags: thats, awesome
+
+.. contents::
+..
+   1  Head 1
+     1.1  Head 2
+   2  Head 3
+   3  head 4
+
+Heading 1
+---------
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa.
+```
+
+Markdown Example
+----------------
+
+To add a table of contents to your Markdown document you need to place the 'TOC marker' at the place where you would like the table of contents to appear. See the Python Markdown  [documentation](http://pythonhosted.org/Markdown/extensions/toc.html) for more details.
+
+Important! To enable table of contents generation for the markdown reader you need to set `MD_EXTENSIONS = (['toc'])` in your pelican configuration file.
+
+```Markdown
+title: My super title
+date: 4-4-2013
+tags: thats, awesome
+
+[TOC]
+
+# Heading 1 #
+
+Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aenean commodo ligula eget dolor. Aenean massa.
+```
+
+Template Example
+================
+
+```python
+{% if article.toc %}
+    <nav class="affix">
+    {{ article.toc }}
+    </nav>
+{% endif %}
+```
+
+# Feed Summary #
+This plugin allows article summaries to be used in ATOM and RSS feeds instead of the entire article. It uses the
+built-in pelican `Summary:` metadata.
+
+The summary of an article can either be set explicitly with the `Summary:` metadata attribute as described in the
+[pelican getting started docs](http://docs.getpelican.com/en/latest/getting_started.html#file-metadata),
+or automatically generated using the number of words specified in the
+[SUMMARY_MAX_LENGTH](http://docs.getpelican.com/en/latest/settings.html) setting.
+
+## Usage ##
+To use this plugin, ensure the following are set in your `pelicanconf.py` file:
+
+    PLUGIN_PATH = '/path/to/pelican-plugins'
+    PLUGINS = [
+		'feed_summary',
+		]
+    'FEED_USE_SUMMARY' = True
+
+The default value of `'FEED_USE_SUMMARY'` is `False`, so it must be set to `True` to enable the plugin, even if it is loaded.
+
+This plugin is written for pelican 3.3 and later.
+
+
+## Implementation Notes ##
+
+This plugin derives `FeedSummaryWriter` from the `Writer` class, duplicating code of the `Writer._add_item_to_the_feed` method.
+
+When the `initialized` signal is sent, it alternates the `get_writer` method of the `Pelican` object to use `FeedSummaryWriter` instead of `Writer`.
+
+A little hackish, but currently this can't be done otherwise via the regular plugin methods.
+
+ * *Initial Code (PR #36): Michelle L. Gill <michelle.lynn.gill@gmail.com>*
+ * *Resumption of PR and Maintainer: Florian Jacob ( projects[PLUS]pelican[ÄT]florianjacob.de )*
+
+Gallery
+==================
+
+* Allows an article to contain an album of pictures.
+* All albums can also be syndicated into a central gallery page.
+
+##How to Use
+
+1. Group images into folders, with each folder representing an album.
+2. Place all album folders within a folder named gallery, which resides within the images folder.
+
+		./content/images/gallery/album_name
+	
+###Articles
+
+Attach an album to an article/post by placing a gallery metadata tag with the name of the album.
+
+	gallery:album_name
+    
+The template has access to the album name.
+
+	article.album
+
+And the filename of images within an album.
+
+	article.albumimages
+
+###Gallery Page
+
+Create a page and a gallery template (named gallery.html). And inform pelican to use the gallery template for the page.
+
+	template:gallery
+    
+The template has access to a dictionary of lists.  
+The dictionary key is the name of the album and the lists contain the filenames.
+
+	page.gallery
+	
+##Examples
+
+###article.html
+
+	<h2><a href="{{ SITEURL }}/pages/gallery.html#{{ article.album }}">{{ article.album }}</a></h2>
+	    <ul>
+		{% for image in article.galleryimages %}
+		<li><a class="{{ article.album }} cboxElement" href="{{ SITEURL }}/static/images/gallery/{{ article.album }}/{{ image }}"><img src="{{ SITEURL }}/static/images/gallery200x200/{{ article.album }}/{{ image }}"></a></li>
+		{% endfor %}
+	    </ul>
+		
+###gallery.html
+
+	{% for album, images in page.gallery.iteritems() %}
+	<h2><a name="{{ album }}">{{ album }}</a></h2>
+	<ul>
+	    {% for image in images %}
+	    <li><a class="{{ album }} cboxElement" href="{{ SITEURL }}/static/images/gallery/{{album}}/{{ image }}" title="{{ image }}"><img src="{{ SITEURL }}/static/images/gallery200x200/{{album}}/{{ image }}"></a></li>
+	    {% endfor %}
+	</ul>
+	{% endfor %}
+
+###posts/foo.md
+
+	title:Foo
+	gallery:albumname
+	
+###pages/gallery.md
+
+	title:All Images
+	template:gallery
+	
+##Reasoning
+
+The album name and filenames are returned as opposed to the direct path to the images,
+to allow flexibility of different thumbnail sizes to be used it different locations of a website.
+
+	href="{{ SITEURL }}/static/images/gallery/{{album}}/{{ image }}"
+	href="{{ SITEURL }}/static/images/gallery200x200/{{album}}/{{ image }}"
+	
+It also allows a thumbnail to link to the full image,
+as well as the filename extension to be stripped and the title of an image to be displayed along side the title of an album.
+
+##Recommendation
+
+It is recommended to use this extension along with the thumbnailer plugin.
+
+	RESIZE = [
+            ('gallery', False, 200,200),
+          ]
+
+You may also wish to use this along with a gallery plugin such as [Colorbox](http://www.jacklmoore.com/colorbox/).
+
+##In Use
+
+* [SESIF Article](http://sesif.github.io/my-super-title.html)
+* [SESIF Gallery](http://sesif.github.io/pages/gallery.html)
+* [SESIF Source](http://github.com/SESIF/SESIF.github.io/tree/source)
+
+GitHub activity
+---------------
+
+This plugin makes use of the `feedparser`_ library that you'll need to
+install.
+
+Set the ``GITHUB_ACTIVITY_FEED`` parameter to your GitHub activity feed.
+For example, to track Pelican project activity, the setting would be::
+
+     GITHUB_ACTIVITY_FEED = 'https://github.com/getpelican.atom'
+
+If you want to limit the amount of entries to a certain maximum set the
+``GITHUB_ACTIVITY_MAX_ENTRIES`` parameter.
+
+     GITHUB_ACTIVITY_MAX_ENTRIES = 10
+
+On the template side, you just have to iterate over the ``github_activity``
+variable, as in this example::
+
+     {% if GITHUB_ACTIVITY_FEED %}
+        <div class="social">
+                <h2>Github Activity</h2>
+                <ul>
+
+                {% for entry in github_activity %}
+                    <li><b>{{ entry[0] }}</b><br /> {{ entry[1] }}</li>
+                {% endfor %}
+                </ul>
+        </div><!-- /.github_activity -->
+     {% endif %}
+
+``github_activity`` is a list of lists. The first element is the title,
+and the second element is the raw HTML from GitHub.
+
+.. _feedparser: https://crate.io/packages/feedparser/
+
+Global license
+--------------
+
+This plugin allows you to define a ``LICENSE`` setting and adds the contents of that
+license variable to the article's context, making that variable available to use
+from within your theme's templates.
+
+Goodreads Activity
+==================
+
+A Pelican plugin to lists books from your Goodreads shelves.
+
+Copyright (c) Talha Mansoor
+
+Author          | Talha Mansoor
+----------------|-----
+Author Email    | talha131@gmail.com 
+Author Homepage | http://onCrashReboot.com 
+Github Account  | https://github.com/talha131 
+
+### Credits
+
+This plugin is inspired by Marco Milanesi <kpanic@gnufunk.org> Github activity plugin.
+
+Requirements
+============
+
+`goodreads_activity` requires feedparser.
+
+```bash
+pip install feedparser
+```
+
+How to Use
+==========
+
+**Important** Unlike Marco's Github activity plugin, this plugin returns
+a dictionary composed of the books in your Goodreads shelf and their
+details.
+
+To enable it, set `GOODREADS_ACTIVITY_FEED` in your pelican config file. It should point to the activity feed of your bookshelf.
+
+To find your self's activity feed,
+
+1.  Open Goodreads homepage and login
+2.  Click on My Books in the top navigational bar
+3.  Select the bookshelf you are interested in from the left hand column
+4.  Look for RSS link in the footer. Copy it's link.
+
+Here is an example feed of currently-reading shelf,
+
+```python
+GOODREADS_ACTIVITY_FEED='http://www.goodreads.com/review/list_rss/8028663?key=b025l3000336epw1pix047e853agggannc9932ed&shelf=currently-reading'
+```
+
+You can access the `goodreads_activity` in your Jinja2 template. `goodreads_activity` is a dictionary. Its valid keys are
+
+1.  `shelf_title` it has the title of your shelf
+2.  `books` it is an array of book dictionary
+
+Valid keys for `book` dictionary are
+
+1.  `title`
+2.  `author`
+3.  `link` link to your book review
+4.  `l_cover` large cover
+5.  `m_cover` medium cover
+6.  `s_cover` small cover
+7.  `description`
+8.  `rating`
+9.  `review`
+10. `tags`
+
+Template Example
+================
+
+```python
+{% if GOODREADS_ACTIVITY_FEED %}
+    <h2>{{ goodreads_activity.shelf_title }}</h2>
+    {% for book in goodreads_activity.books %}
+        <img src="{{book.s_cover}}"/>
+        <header>{{book.title}}<small> by {{book.author}}</small></header>
+        <article>{{book.description|truncate(end='')}}
+        <a href={{book.link}} target="_blank">...more</a></article>
+    {% endfor %}
+{% endif %}
+```
+
+GooglePlus Comments Plugin For Pelican
+==================================
+
+Adds GooglePlus comments to Pelican
+
+Add the plugin to `pelicanconf.py`:
+
+    PLUGIN_PATH = 'pelican-plugins'
+    PLUGINS = ["googleplus_comments"]
+
+Add a `<div>` for comments to the `article.html` of your template:
+
+    <div id="commentswrap">
+    <div id="comments"></div>
+    </div>
+    {{ article.metadata.googleplus_comments }}
+
+See it working, and ask for support:
+
+<http://zonca.github.io/2013/09/google-plus-comments-plugin-for-pelican.html>
+
+Gravatar
+--------
+
+This plugin assigns the ``author_gravatar`` variable to the Gravatar URL and
+makes the variable available within the article's context. You can add
+``AUTHOR_EMAIL`` to your settings file to define the default author's email
+address. Obviously, that email address must be associated with a Gravatar
+account.
+
+Alternatively, you can provide an email address from within article metadata.
+
+In ReSTructuredText::
+
+    :email:  john.doe@example.com
+
+In Markdown::
+
+    Email:  john.doe@example.com
+
+If the email address is defined via at least one of the two methods above, the
+``author_gravatar`` variable is added to the article's context. For markdown,
+it is critical the 'E' in Email is capitalized.
+
+
+Gzip cache
+----------
+
+Certain web servers (e.g., Nginx) can use a static cache of gzip-compressed
+files to prevent the server from compressing files during an HTTP call. Since
+compression occurs at another time, these compressed files can be compressed
+at a higher compression level for increased optimization.
+
+The ``gzip_cache`` plugin compresses all common text type files into a ``.gz``
+file within the same directory as the original file.
+
+HTML Entities for reStructuredText
+##################################
+
+This plugin allows you to enter HTML entities such as &copy;, &lt;, &#149; inline in a RST document, as opposed
+to the tedious method of creating substitution definitions.
+
+Roles
+=====
+
+Adds one inline role:
+
+::
+
+    :html_entity:
+
+Usage
+=====
+
+::
+
+    :html_entity:`copy` 2013 :html_entity:`lt` Pelican :html_entity:`gt` Industries :html_entity:`149` All Rights Reserved
+
+produces:
+
+|copy| 2013 |lt| Pelican |gt| Industries |bullet| All Rights Reserved
+
+.. |copy|   unicode:: U+000A9 .. COPYRIGHT SIGN
+.. |lt|     unicode:: U+003C  .. LESS THAN
+.. |gt|     unicode:: U+003E  .. GREATER THAN
+.. |bullet| unicode:: U+2022  .. BULLET
+
+HTML tags for reStructuredText
+------------------------------
+
+This plugin allows you to use HTML tags from within reST documents. 
+
+
+Directives
+----------
+
+
+::
+
+    .. html::
+
+        (HTML code)
+
+
+Example
+-------
+
+A search engine::
+
+    .. html::
+
+       <form action="http://seeks.fr/search" method="GET">
+         <input type="text" value="Pelican v2" title="Search" maxlength="2048" name="q" autocomplete="on" />
+         <input type="hidden" name="lang" value="en" />
+         <input type="submit" value="Seeks !" id="search_button" />
+       </form>
+
+
+A contact form::
+
+    .. html::
+
+        <form method="GET" action="mailto:some email">
+          <p>
+            <input type="text" placeholder="Subject" name="subject">
+            <br />
+            <textarea name="body" placeholder="Message">
+            </textarea>
+            <br />
+            <input type="reset"><input type="submit">
+          </p>
+        </form>
+
+======================
+ I18N Sub-sites Plugin
+======================
+
+This plugin extends the translations functionality by creating internationalized sub-sites for the default site. It is therefore redundant with the *\*_LANG_{SAVE_AS,URL}* variables, so it disables them to prevent conflicts.
+
+What it does
+============
+1. The *\*_LANG_URL* and *\*_LANG_SAVE_AS* variables are set to their normal counterparts (e.g. *ARTICLE_URL*) so they don't conflict with this scheme.
+2. While building the site for *DEFAULT_LANG* the translations of pages and articles are not generated, but their relations to the original content is kept via links to them.
+3. For each non-default language a "sub-site" with a modified config [#conf]_ is created [#run]_, linking the translations to the originals (if available). The configured language code is appended to the *OUTPUT_PATH* and *SITEURL* of each sub-site. For each sub-site, *DEFAULT_LANG* is changed to the language of the sub-site so that articles in a different language are treated as translations.
+
+If *HIDE_UNTRANSLATED_CONTENT* is True (default), content without a translation for a language is generated as hidden (for pages) or draft (for articles) for the corresponding language sub-site.
+
+.. [#conf] For each language a config override is given in the *I18N_SUBSITES* dictionary.
+.. [#run] Using a new *PELICAN_CLASS* instance and its ``run`` method, so each sub-site could even have a different *PELICAN_CLASS* if specified in *I18N_SUBSITES* conf overrides.
+
+Setting it up
+=============
+
+For each extra used language code, a language-specific variables overrides dictionary must be given (but can be empty) in the *I18N_SUBSITES* dictionary
+
+.. code-block:: python
+
+    PLUGINS = ['i18n_subsites', ...]
+
+    # mapping: language_code -> conf_overrides_dict
+    I18N_SUBSITES = {
+        'cz': {
+	    'SITENAME': 'Hezkej blog',
+	    }
+	}
+
+- The language code is the language identifier used in the *lang* metadata. It is appended to *OUTPUT_PATH* and *SITEURL* of each I18N sub-site.
+- The internationalized config overrides dictionary may specify configuration variable overrides — e.g. a different *LOCALE*, *SITENAME*, *TIMEZONE*, etc. However, it **must not** override *OUTPUT_PATH* and *SITEURL* as they are modified automatically by appending the language code.
+
+Localizing templates
+--------------------
+
+Most importantly, this plugin can use localized templates for each sub-site. There are two approaches to having the templates localized:
+
+- You can set a different *THEME* override for each language in *I18N_SUBSITES*, e.g. by making a copy of a theme ``my_theme`` to ``my_theme_lang`` and then editing the templates in the new localized theme. This approach means you don't have to deal with gettext ``*.po`` files, but it is harder to maintain over time.
+- You use only one theme and localize the templates using the `jinja2.ext.i18n Jinja2 extension <http://jinja.pocoo.org/docs/templates/#i18n>`_. For a kickstart read this `guide <./localizing_using_jinja2.rst>`_.
+
+It may be convenient to add language buttons to your theme in addition to the translation links of articles and pages. These buttons could, for example, point to the *SITEURL* of each (sub-)site. For this reason the plugin adds these variables to the template context:
+
+main_lang
+  The language of the top-level site — the original *DEFAULT_LANG*
+main_siteurl
+  The *SITEURL* of the top-level site — the original *SITEURL*
+lang_siteurls
+  An ordered dictionary, mapping all used languages to their *SITEURL*. The ``main_lang`` is the first key with ``main_siteurl`` as the value. This dictionary is useful for implementing global language buttons that show the language of the currently viewed (sub-)site too.
+extra_siteurls
+  An ordered dictionary, subset of ``lang_siteurls``, the current *DEFAULT_LANG* of the rendered (sub-)site is not included, so for each (sub-)site ``set(extra_siteurls) == set(lang_siteurls) - set([DEFAULT_LANG])``. This dictionary is useful for implementing global language buttons that do not show the current language.
+
+If you don't like the default ordering of the ordered dictionaries, use a Jinja2 filter to alter the ordering.
+
+This short `howto <./implementing_language_buttons.rst>`_ shows two example implementations of language buttons.
+
+Usage notes
+===========
+- It is **mandatory** to specify *lang* metadata for each article and page as *DEFAULT_LANG* is later changed for each sub-site, so content without *lang* metadata woudl be rendered in every (sub-)site.
+- As with the original translations functionality, *slug* metadata is used to group translations. It is therefore often convenient to compensate for this by overriding the content URL (which defaults to slug) using the *URL* and *Save_as* metadata.
+
+Future plans
+============
+
+- add a test suite
+
+Development
+===========
+
+- A demo and test site is in the ``gh-pages`` branch and can be seen at http://smartass101.github.io/pelican-plugins/
+
+ical
+----
+
+This plugin looks for and parses an ``.ics`` file if it is defined in a given
+page's ``calendar`` metadata. One calendar can be defined per page.
+
+Dependencies
+------------
+
+This plugin depends on the ``icalendar`` package, which can be installed via
+pip::
+
+	pip install icalendar
+
+Usage
+-----
+
+For a reST-formatted page, include the following line in the metadata::
+
+    :calendar: /path/to/your/ics/file
+
+For Markdown, include the following line in the page metadata::
+
+    Calendar: /path/to/your/ics/file
+
+Following is some example code that can be added to your theme's ``page.html``
+template in order to display the calendar::
+
+    {% if page.calendar %}
+    <dl>
+        {% for vevent in events[page.slug] %}
+            <dt>{{ vevent.summary }}</dt>
+            <dd>{{ vevent.description|replace('\n\n', '<br>') }}</dd>
+            <dd>{{ vevent.dtstart }}</dd>
+            <dd>{{ vevent.dtend }}</dd>
+            <dd class="footer"><a href="{{ vevent.url }}">See more</a></dd>
+        {% endfor %}
+    </dl>
+    {% endif %}
+
+Interlinks
+=========================
+
+This plugin lets you add frequently used URLs to your markup using short keywords. Short URL format is 
+``keyword>rest-of-url`` where ``keyword`` is defined in the settings.py. Later it is replaced with acutal URL in
+the generated HTML output.
+
+
+Requirements
+--------------------
+``interlinks`` requires BeautifulSoup
+
+	pip install beautifulsoup4
+
+Installation
+--------------------
+
+Install the plugin normally (plugins folder), then add interlinks in the settings.py:
+
+	PLUGINS = ["interlinks"]
+	
+Usage
+------------------
+
+The interlinks are specified in the settings.py file as (example):
+
+	INTERLINKS = {
+	    'wikipedia_en': 'http://en.wikipedia.org/wiki/',
+	    'wikipedia_es': 'http://es.wikipedia.org/wiki/',
+	    'ddg': 'https://duckduckgo.com/?q='
+	}
+
+There's also a default key, ``this``, that is mapped to the ``SITEURL`` variable.
+
+Then, in a blog post, you just create a normal link but adding the ``keyword>`` syntax in the url specification, followed by the rest of the url. 
+
+Example 
+-------------------
+(markdown syntax)
+
+	[Normal boring link](http://www.example.com). But this is a [cool link](this>) that links to this site.
+
+	Search in [Wikipedia](wikipedia_en>python), ([here](wikipedia_es>python) in spanish). Also can [search](ddg>python) it.
+
+All the above will be rendered as: 
+
+	<p><a href="http://www.example.com">Normal boring link</a>. But this is a <a href="http://[yoursite]/index.html">cool link</a> that links to this site.</p>
+	
+	<p>Search in <a href="http://en.wikipedia.org/wiki/python">Wikipedia</a>, (<a href="http://es.wikipedia.org/wiki/python">here</a> in spanish). Also can <a href="https://duckduckgo.com/?q=python">search</a> it.</p>
+
+Title: Testing
+Date: 3000-07-09
+Slug: plugin-test
+
+Testeando un poco la cosa
+
+[Normal boring link](http://www.example.com). But this is a [cool link](this>) that links to this site.
+
+Search in [Wikipedia](wikipedia_en>python), ([here](wikipedia_es>python) in spanish). Also can [search](ddg>python) it.
+
+# Liquid-style Tags
+*Author: Jake Vanderplas <jakevdp@cs.washington.edu>*
+
+This plugin allows liquid-style tags to be inserted into markdown within
+Pelican documents. Liquid uses tags bounded by ``{% ... %}``, and is used
+to extend markdown in other blogging platforms such as octopress.
+
+This set of extensions does not actually interface with liquid, but allows
+users to define their own liquid-style tags which will be inserted into
+the markdown preprocessor stream.  There are several built-in tags, which
+can be added as follows.
+
+First, in your pelicanconf.py file, add the plugins you want to  use:
+
+    PLUGIN_PATH = '/path/to/pelican-plugins'
+    PLUGINS = ['liquid_tags.img', 'liquid_tags.video',
+               'liquid_tags.youtube', 'liquid_tags.vimeo',
+               'liquid_tags.include_code', 'liquid_tags.notebook']
+
+There are several options available
+
+## Image Tag
+To insert a sized and labeled image in your document, enable the
+``liquid_tags.img`` plugin and use the following:
+
+    {% img [class name(s)] path/to/image [width [height]] [title text | "title text" ["alt text"]] %}
+
+## Youtube Tag
+To insert youtube video into a post, enable the
+``liquid_tags.youtube`` plugin, and add to your document:
+
+    {% youtube youtube_id [width] [height] %}
+
+The width and height are in pixels, and can be optionally specified.  If they
+are not, then the dimensions will be 640 (wide) by 390 (tall).
+
+## Vimeo Tag
+To insert a Vimeo video into a post, enable the
+``liquid_tags.vimeo`` plugin, and add to your document:
+
+    {% vimeo vimeo_id [width] [height] %}
+
+The width and height are in pixels, and can be optionally specified.  If they
+are not, then the dimensions will be 640 (wide) by 390 (tall).
+
+## Video Tag
+To insert flash/HTML5-friendly video into a post, enable the
+``liquid_tags.video`` plugin, and add to your document:
+
+    {% video /url/to/video.mp4 [width] [height] [/path/to/poster.png] %}
+
+The width and height are in pixels, and can be optionally specified.  If they
+are not, then the original video size will be used.  The poster is an image
+which is used as a preview of the video.
+
+To use a video from file, make sure it's in a static directory and put in
+the appropriate url.
+
+## Include Code
+To include code from a file in your document with a link to the original
+file, enable the ``liquid_tags.include_code`` plugin, and add to your
+document:
+
+    {% include_code /path/to/code.py [lang:python] [lines:X-Y] [:hidefilename:] [title] %}
+
+All arguments are optional but their order must be kept. `:hidefilename:` is
+only allowed if a title is also given.
+
+    {% include_code /path/to/code.py lines:1-10 :hidefilename: Test Example %}
+
+This example will show the first 10 lines of the file while hiding the actual
+filename.
+
+The script must be in the ``code`` subdirectory of your content folder:
+this default location can be changed by specifying
+
+   CODE_DIR = 'code'
+
+within your configuration file. Additionally, in order for the resulting
+hyperlink to work, this directory must be listed under the STATIC_PATHS
+setting, e.g.:
+
+    STATIC_PATHS = ['images', 'code']
+
+## IPython notebooks
+To insert an ipython notebook into your post, enable the
+``liquid_tags.notebook`` plugin and add to your document:
+
+    {% notebook filename.ipynb %}
+
+The file should be specified relative to the ``notebooks`` subdirectory of the
+content directory.  Optionally, this subdirectory can be specified in the
+config file:
+
+    NOTEBOOK_DIR = 'notebooks'
+
+Because the conversion and rendering of notebooks is rather involved, there
+are a few extra steps required for this plugin:
+
+- First, you will need to install IPython >= 1.0 [1]_
+
+- After typing "make html" when using the notebook tag, a file called
+  ``_nb_header.html`` will be produced in the main directory.  The content
+  of the file should be included in the header of the theme.  An easy way
+  to accomplish this is to add the following lines within the header template
+  of the theme you use:
+
+      {% if EXTRA_HEADER %}
+      {{ EXTRA_HEADER }}
+      {% endif %}
+
+  and in your configuration file, include the line:
+
+      EXTRA_HEADER = open('_nb_header.html').read().decode('utf-8')
+
+  this will insert the proper css formatting into your document.
+
+### Collapsible Code in IPython Notebooks
+
+The plugin also enables collapsible code input boxes. For this to work
+you first need to copy the file ``pelicanhtml_1.tpl`` (for IPython
+1.x) ``pelicanhtml_2.tpl`` (for IPython 2.x) to the top level of your
+Pelican blog. Notebook input cells containing the comment line ``#
+<!-- collapse=True -->`` will be collapsed when the html page is
+loaded and can be expanded by clicking on them. Cells containing the
+comment line ``# <!-- collapse=False -->`` will be open on load but
+can be collapsed by clicking on their header. Cells without collapse
+comments are rendered as standard code input cells.
+
+[1] http://ipython.org/
+
+Multi parts posts
+-----------------
+
+The multi-part posts plugin allow you to write multi-part posts.
+
+In order to mark posts as part of a multi-part post, use the `:parts:` metadata:
+
+    :parts:  MY_AWESOME_MULTI_PART_POST
+
+You can then use the `article.metadata.parts_articles` variable in your templates 
+to display other parts of current post.
+
+For example:
+
+    {% if article.metadata.parts_articles %}
+        <p>This post is part of a series:</p>
+        <ol class="parts">
+            {% for part_article in article.metadata.parts_articles %}
+                <li {% if part_article == article %}class="active"{% endif %}>
+                    <a href='{{ SITEURL }}/{{ part_article.url }}'>{{ part_article.title }}</a>
+                </li>
+            {% endfor %}
+        </ol>
+    {% endif %}
+
+Neighbor Articles Plugin for Pelican
+====================================
+
+This plugin adds ``next_article`` (newer) and ``prev_article`` (older) 
+variables to the article's context.
+
+Also adds ``next_article_in_category`` and ``prev_article_in_category``.
+
+
+Usage
+-----
+
+.. code-block:: html+jinja
+
+    <ul>
+    {% if article.prev_article %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.prev_article.url}}">
+                {{ article.prev_article.title }}
+            </a>
+        </li>
+    {% endif %}
+    {% if article.next_article %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.next_article.url}}">
+                {{ article.next_article.title }}
+            </a>
+        </li>
+    {% endif %}
+   </ul>    
+   <ul>
+    {% if article.prev_article_in_category %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.prev_article_in_category.url}}">
+                {{ article.prev_article_in_category.title }}
+            </a>
+        </li>
+    {% endif %}
+    {% if article.next_article %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.next_article_in_category.url}}">
+                {{ article.next_article_in_category.title }}
+            </a>
+        </li>
+    {% endif %}
+    </ul> 
+
+Usage with the Subcategory plugin
+---------------------------------
+
+If you want to get the neigbors within a subcategory it's a little different.
+Since an article can belong to more than one subcategory, subcategories are
+stored in a list. If you have an article with subcategories like 
+
+``Category/Foo/Bar``
+
+it will belong to both subcategory Foo, and Foo/Bar. Subcategory neighbors are
+added to an article as ``next_article_in_subcategory#`` and 
+``prev_article_in_subcategory#`` where ``#`` is the level of subcategory. So using
+the example from above, subcategory1 will be Foo, and subcategory2 Foo/Bar. 
+Therefor the usage with subcategories is:
+
+.. code-block:: html+jinja
+
+    <ul>
+    {% if article.prev_article_subcategory1 %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.prev_article_in_subcategory1.url}}">
+                {{ article.prev_article_in_subcategory1.title }}
+            </a>
+        </li>
+    {% endif %}
+    {% if article.next_article %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.next_article_subcategory1.url}}">
+                {{ article.next_article_subcategory1.title }}
+            </a>
+        </li>
+    {% endif %}
+   </ul>    
+   <ul>
+    {% if article.prev_article_in_subcategory2 %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.prev_article_in_subcategory2.url}}">
+                {{ article.prev_article_in_subcategory2.title }}
+            </a>
+        </li>
+    {% endif %}
+    {% if article.next_article %}
+        <li>
+            <a href="{{ SITEURL }}/{{ article.next_article_in_subcategory2.url}}">
+                {{ article.next_article_in_subcategory2.title }}
+            </a>
+        </li>
+    {% endif %}
+    </ul> 
+
+
+Optimize Images Plugin For Pelican
+==================================
+
+This plugin applies lossless compression on JPEG and PNG images, with no
+effect on image quality. It uses [jpegtran][1] and [OptiPNG][2]. It assumes
+that both of these tools are installed on system path.
+
+[1]: http://jpegclub.org/jpegtran/              "jpegtran"
+[2]: http://optipng.sourceforge.net/            "OptiPNG"
+
+
+Installation
+------------
+
+To enable, ensure that `optimize_images.py` is put somewhere that is accessible.
+Then use as follows by adding the following to your settings.py:
+
+    PLUGIN_PATH = 'path/to/pelican-plugins'
+    PLUGINS = ["optimize_images"]
+
+`PLUGIN_PATH` can be a path relative to your settings file or an absolute path.
+
+Usage
+-----
+The plugin will activate and optimize images upon `finalized` signal of
+pelican.
+-------------
+PDF Generator
+-------------
+
+The PDF Generator plugin automatically exports RST articles and pages
+as PDF files as part of the site-generation process. PDFs are saved to
+output/pdf/
+
+# Avatars and Identicons
+To activate the avatars and [identicons](https://en.wikipedia.org/wiki/Identicon) you have to set `PELICAN_COMMENT_SYSTEM_IDENTICON_DATA`.
+
+##### Example
+```python
+PELICAN_COMMENT_SYSTEM_IDENTICON_DATA = ('author')
+```
+Now every comment with the same author tag will be treated as if written from the same person. And therefore have the same avatar/identicon. Of cause you can modify this tuple so other metadata are checked.
+
+## Specific Avatars
+To set a specific avatar for a author you have to add them to the `PELICAN_COMMENT_SYSTEM_AUTHORS` dictionary.
+
+The `key` of the dictionary has to be a tuple of the form of `PELICAN_COMMENT_SYSTEM_IDENTICON_DATA`, so in our case only the author's name.
+
+The `value` of the dictionary is the path to the specific avatar.
+
+##### Example
+```python
+PELICAN_COMMENT_SYSTEM_AUTHORS = {
+	('John'): "images/authors/john.png",
+	('Tom'): "images/authors/tom.png",
+}
+```
+
+## Theme
+To display the avatars and identicons simply add the following in the "comment for loop" in your theme:
+
+```html
+<img src="{{ SITEURL }}/{{ comment.avatar }}"
+		alt="Avatar"
+		height="{{ PELICAN_COMMENT_SYSTEM_IDENTICON_SIZE }}"
+		width="{{ PELICAN_COMMENT_SYSTEM_IDENTICON_SIZE }}">
+```
+
+Of cause the `height` and `width` are optional, but they make sure that everything has the same size (in particular  specific avatars).
+
+# Comment Atom Feed
+## Custom comment url
+Be sure that the id of the html tag containing the comment matches `COMMENT_URL`.
+
+##### pelicanconf.py
+```python
+COMMENT_URL = "#my_own_comment_id_{path}"
+```
+
+##### Theme
+```html
+{% for comment in article.comments recursive %}
+	...
+	<article id="my_own_comment_id_{{comment.id}}">{{ comment.content }}</article>
+	...
+{% endfor %}
+```
+## Theme
+#### Link
+To display a link to the article feed simply add the following to your theme:
+
+```html
+{% if article %}
+	<a href="{{ FEED_DOMAIN }}/{{ PELICAN_COMMENT_SYSTEM_FEED|format(article.slug) }}">Comment Atom Feed</a>
+{% endif %}
+```
+
+
+
+# Comment Form (aka: never gather Metadata)
+Add a form, which allows your visitors to easily write comments.
+
+But more importantly, on submit the form generates a mailto-link.
+The resulting email contains a valid markdown block. Now you only have to copy this block in a new file. And therefore there is no need to gather the metadata (like date, author, replyto) yourself.
+
+#### Reply button
+Add this in the "comment for loop" in your article theme, so your visitors can reply to a comment.
+
+```html
+<button onclick="reply('{{comment.id | urlencode}}');">Reply</button>
+```
+
+#### Form
+A basic form so your visitors can write comments.
+
+```html
+<form role="form" id="commentForm" action="#">
+	<input name="Name" type="text" id="commentForm_inputName" placeholder="Enter your name or synonym">
+	<textarea name="Text" id="commentForm_inputText" rows="10" style="resize:vertical;" placeholder="Your comment"></textarea>
+	<button type="submit" id="commentForm_button">Post via email</button>
+	<input name="replyto" type="hidden" id="commentForm_replyto">
+</form>
+```
+You may want to add a button to reset the `replyto` field.
+
+#### Javascript
+To generate the mailto-Link and set the `replyto` field there is some javascript required.
+
+```javascript
+<script type="text/javascript">
+	function reply(id)
+	{
+		id = decodeURIComponent(id);
+		$('#commentForm_replyto').val(id);
+	}
+
+	$(document).ready(function() {
+		function generateMailToLink()
+		{
+			var user = 'your_user_name'; //user@domain = your email address
+			var domain = 'your_email_provider';
+			var subject = 'Comment for \'{{ article.slug }}\'' ;
+
+			var d = new Date();
+			var body = ''
+				+ 'Hey,\nI posted a new comment on ' + document.URL + '\n\nGreetings ' + $("#commentForm_inputName").val() + '\n\n\n'
+				+ 'Raw comment data:\n'
+				+ '----------------------------------------\n'
+				+ 'date: ' + d.getFullYear() + '-' + (d.getMonth()+1) + '-' + d.getDate() + ' ' + d.getHours() + ':' + d.getMinutes() + '\n'
+				+ 'author: ' + $("#commentForm_inputName").val() + '\n';
+
+			var replyto = $('#commentForm_replyto').val();
+			if (replyto.length != 0)
+			{
+				body += 'replyto: ' + replyto + '\n'
+			}
+
+			body += '\n'
+				+ $("#commentForm_inputText").val() + '\n'
+				+ '----------------------------------------\n';
+
+			var link = 'mailto:' + user + '@' + domain + '?subject='
+				+ encodeURIComponent(subject)
+				+ "&body="
+				+ encodeURIComponent(body);
+			return link;
+		}
+
+
+		$('#commentForm').on("submit",
+			function( event )
+			{
+				event.preventDefault();
+				$(location).attr('href', generateMailToLink());
+			}
+		);
+	});
+</script>
+```
+(jQuery is required for this script)
+
+Don't forget to set the Variables `user` and `domain`.
+
+# Installation
+Activate the plugin by adding it to your `pelicanconf.py`
+
+	PLUGIN_PATH = '/path/to/pelican-plugins'
+	PLUGINS = ['pelican_comment_system']
+	PELICAN_COMMENT_SYSTEM = True
+
+And modify your `article.html` theme (see below).
+
+## Settings
+Name                                           | Type      | Default                    | Description
+-----------------------------------------------|-----------|----------------------------|-------
+`PELICAN_COMMENT_SYSTEM`                       | `boolean` | `False`                    | Activates or deactivates the comment system
+`PELICAN_COMMENT_SYSTEM_DIR`                   | `string`  | `comments`                 | Folder where the comments are stored
+`PELICAN_COMMENT_SYSTEM_IDENTICON_OUTPUT_PATH` | `string`  | `images/identicon`         | Relative URL to the output folder where the identicons are stored
+`PELICAN_COMMENT_SYSTEM_IDENTICON_DATA`        | `tuple`   | `()`                       | Contains all Metadata tags, which in combination identifies a comment author (like `('author', 'email')`)
+`PELICAN_COMMENT_SYSTEM_IDENTICON_SIZE`        | `int`     | `72`                       | Width and height of the identicons. Has to be a multiple of 3.
+`PELICAN_COMMENT_SYSTEM_AUTHORS`               | `dict`    | `{}`                       | Comment authors, which should have a specific avatar. More info [here](avatars.md)
+`PELICAN_COMMENT_SYSTEM_FEED`                  | `string`  |`feeds/comment.%s.atom.xml` | Relative URL to output the Atom feed for each article.`%s` gets replaced with the slug of the article. More info [here](http://docs.getpelican.com/en/latest/settings.html#feed-settings)
+`COMMENT_URL`                                  | `string`  | `#comment-{path}`          | `{path}` gets replaced with the id of the comment. More info [here](feed.md)
+
+## Folder structure
+Every comment file has to be stored in a sub folder of `PELICAN_COMMENT_SYSTEM_DIR`.
+Sub folders are named after the `slug` of the articles.
+
+So the comments to your `foo-bar` article are stored in `comments/foo-bar/`
+
+The filenames of the comment files are up to you. But the filename is the Identifier of the comment (**with** extension).
+
+##### Example folder structure
+
+	.
+	└── comments
+		└── foo-bar
+		│   ├── 1.md
+		│   └── 0.md
+		└── some-other-slug
+			├── random-Name.md
+			├── 1.md
+			└── 0.md
+
+
+## Comment file
+### Meta information
+Tag           | Required  | Description
+--------------|-----------|----------------
+`date`        | yes       | Date when the comment was posted
+`author`      | yes       | Name of the comment author
+`replyto`     | no        | Identifier of the parent comment. Identifier = Filename (**with** extension)
+
+Every other (custom) tag gets parsed as well and will be available through the theme.
+
+##### Example of a comment file
+
+	date: 2014-3-21 15:02
+	author: Author of the comment
+	website: http://authors.website.com
+	replyto: 7
+	anothermetatag: some random tag
+
+	Content of the comment.
+
+## Theme
+In the `article.html` theme file are now two more variables available.
+
+Variables                | Description
+-------------------------|--------------------------
+`article.comments_count` | Amount of total comments for this article (including replies to comments)
+`article.comments`       | Array containing the top level comments for this article (no replies to comments)
+
+### Comment object
+The comment object is a [content](https://github.com/getpelican/pelican/blob/master/pelican/contents.py#L34) object, so all common attributes are available (like author, content, date, local_date, metadata, ...).
+
+Additional following attributes are added:
+
+Attribute  | Description
+-----------|--------------------------
+`id`       | Identifier of this comment
+`replies`  | Array containing the top level replies for this comment
+`avatar`   | Path to the avatar or identicon of the comment author
+
+##### Example article.html theme
+(only the comment section)
+```html
+{% if article.comments %}
+	{% for comment in article.comments recursive %}
+		{% if loop.depth0 == 0 %}
+			{% set marginLeft = 0 %}
+		{% else %}
+			{% set marginLeft = 50 %}
+		{% endif %}
+			<article id="comment-{{comment.id}}" style="border: 1px solid #DDDDDD; padding: 5px 0px 0px 5px; margin: 0px -1px 5px {{marginLeft}}px;">
+				<a href="{{ SITEURL }}/{{ article.url }}#comment-{{comment.id}}" rel="bookmark" title="Permalink to this comment">Permalink</a>
+				<h4>{{ comment.author }}</h4>
+				<p>Posted on <abbr class="published" title="{{ comment.date.isoformat() }}">{{ comment.locale_date }}</abbr></p>
+				{{ comment.metadata['my_custom_metadata'] }}
+				{{ comment.content }}
+				{% if comment.replies %}
+					{{ loop(comment.replies) }}
+				{% endif %}
+			</article>
+	{% endfor %}
+{% else %}
+	<p>There are no comments yet.<p>
+{% endif %}
+```
+
+identicon.py: identicon python implementation.
+==============================================
+:Author:Shin Adachi <shn@glucose.jp>
+
+## usage
+
+### commandline
+
+    python identicon.py [code]
+
+### python
+
+    import identicon
+    identicon.render_identicon(code, size)
+
+Return a PIL Image class instance which have generated identicon image.
+`size` specifies patch size. Generated image size is 3 * `size`.
+# Pelican comment system
+The pelican comment system allows you to add static comments to your articles.
+The comments are stored in Markdown files. Each comment in it own file.
+
+#### Features
+ - Static comments for each article
+ - Replies to comments
+ - Avatars and [Identicons](https://en.wikipedia.org/wiki/Identicon)
+ - Comment Atom Feed for each article
+ - Easy styleable via the themes
+
+
+See it in action here: [blog.scheirle.de](http://blog.scheirle.de/posts/2014/March/29/static-comments-via-email/)
+
+Author             | Website                   | Github
+-------------------|---------------------------|------------------------------
+Bernhard Scheirle  | <http://blog.scheirle.de> | <https://github.com/Scheirle>
+
+## Instructions
+ - [Installation and basic usage](doc/installation.md)
+ - [Avatars and Identicons](doc/avatars.md)
+ - [Comment Atom Feed](doc/feed.md)
+ - [Comment Form (aka: never gather Metadata)](doc/form.md)
+ 
+## Requirements
+To create identicons the Python Image Library is needed. Therefore you either need PIL **or** Pillow (recommended).
+
+##### Install Pillow
+	easy_install Pillow
+	
+If you don't use avatars or identicons this plugin works fine without PIL/Pillow. You will however get a warning that identicons are deactivated (as expected).
+
+Post Statistics
+==================
+
+A Pelican plugin to calculate various statistics about a post and store them in an article.stats dictionary:
+
+- ``wc``: how many words
+- ``read_mins``: how many minutes would it take to read this article, based on 250 wpm (http://en.wikipedia.org/wiki/Words_per_minute#Reading_and_comprehension)
+- ``word_counts``: frquency count of all the words in the article; can be used for tag/word clouds
+- ``fi``: Flesch-kincaid Index/ Reading Ease (see: http://en.wikipedia.org/wiki/Flesch%E2%80%93Kincaid_readability_tests)
+- ``fk``: Flesch-kincaid Grade Level
+
+Example:
+
+.. code-block:: python
+
+    {
+        'wc': 2760,
+        'fi': '65.94',
+        'fk': '7.65',
+        'word_counts': Counter({u'to': 98, u'a': 90, u'the': 83, u'of': 50, ...}),
+        'read_mins': 12
+    }
+
+This allows you to output these values in your templates, like this, for example:
+
+.. code-block:: html+jinja
+
+	<p title="~{{ article.stats['wc'] }} words">~{{ article.stats['read_mins'] }} min read</p>
+	<ul>
+	    <li>Flesch-kincaid Index/ Reading Ease: {{ article.stats['fi'] }}</li>
+	    <li>Flesch-kincaid Grade Level: {{ article.stats['fk'] }}</li>
+	</ul>
+
+The ``word_counts`` variable is a python ``Counter`` dictionary and looks something like this, with each unique word and it's frequency:
+
+.. code-block:: python
+
+	Counter({u'to': 98, u'a': 90, u'the': 83, u'of': 50, u'karma': 50, .....
+
+and can be used to create a tag/word cloud for a post.
+
+Requirements
+----------------
+
+`post_stats` requires BeautifulSoup.
+
+.. code-block:: console
+
+    $ pip install beautifulsoup4
+
+Random Article Plugin For Pelican
+========================
+
+This plugin generates a html file which redirect to a random article
+using javascript's `window.location`. The generated html file is 
+saved at `SITEURL`.
+
+Only published articles are listed to redirect.
+
+Usage
+-----
+
+To use it you have to add in your config file the name of the file to use:
+
+    RANDOM = 'random.html'
+
+Then in some template you add:
+
+    <a href="{{ SITEURL }}/{{ RANDOM }}">random article</a>
+
+Pelican Plugins
+###############
+
+Beginning with version 3.0, Pelican supports plugins. Plugins are a way to add
+features to Pelican without having to directly modify the Pelican core. Starting
+with 3.2, all plugins (including the ones previously in the core) are 
+moved here, so this is the central place for all plugins. 
+
+How to use plugins
+==================
+
+Easiest way to install and use these plugins is cloning this repo::
+
+    git clone https://github.com/getpelican/pelican-plugins
+
+and activating the ones you want in your settings file::
+
+    PLUGIN_PATH = 'path/to/pelican-plugins'
+    PLUGINS = ['assets', 'sitemap', 'gravatar']
+
+``PLUGIN_PATH`` can be a path relative to your settings file or an absolute path.
+
+Alternatively, if plugins are in an importable path, you can omit ``PLUGIN_PATH``
+and list them::
+
+    PLUGINS = ['assets', 'sitemap', 'gravatar']
+
+or you can ``import`` the plugin directly and give that::
+
+    import my_plugin
+    PLUGINS = [my_plugin, 'assets']
+
+Please refer to the ``Readme`` file in a plugin's folder for detailed information about 
+that plugin.
+
+Contributing a plugin
+=====================
+
+Please refer to the `Contributing`_ file.
+
+.. _Contributing: Contributing.rst
+
+Read More Link
+===
+
+**Author**: Vuong Nguyen (http://vuongnguyen.com)
+
+This plugin inserts an inline "read more" or "continue" link into the last html element of the object summary.
+
+For more information, please visit: http://vuongnguyen.com/creating-inline-read-more-link-python-pelican-lxml.html
+
+Requirements
+---
+
+    lxml - for parsing html elements
+
+Settings
+---
+    # This settings indicates that you want to create summary at a certain length
+    SUMMARY_MAX_LENGTH = 50
+
+    # This indicates what goes inside the read more link
+    READ_MORE_LINK = None (ex: '<span>continue</span>')
+
+    # This is the format of the read more link
+    READ_MORE_LINK_FORMAT = '<a class="read-more" href="/{url}">{text}</a>'
+
+
+
+Related posts
+-------------
+
+This plugin adds the ``related_posts`` variable to the article's context.
+By default, up to 5 articles are listed. You can customize this value by 
+defining ``RELATED_POSTS_MAX`` in your settings file::
+
+    RELATED_POSTS_MAX = 10
+
+You can then use the ``article.related_posts`` variable in your templates.
+For example::
+
+    {% if article.related_posts %}
+        <ul>
+        {% for related_post in article.related_posts %}
+            <li><a href="{{ SITEURL }}/{{ related_post.url }}">{{ related_post.title }}</a></li>
+        {% endfor %}
+        </ul>
+    {% endif %}
+
+
+Your related posts should share a common tag. You can also use ``related_posts:`` in your post's meta data.
+The 'related_posts:' meta data works together with your existing slugs:
+
+    related_posts: slug1,slug2,slug3...slugN 
+
+N represents the RELATED_POSTS_MAX
+
+Math Render Plugin For Pelican
+==============================
+This plugin gives pelican the ability to render mathematics. It accomplishes
+this by using the [MathJax](http://www.mathjax.org/) javascript engine. Both
+[LaTex](http://en.wikipedia.org/wiki/LaTeX) and [MathML](http://en.wikipedia.org/wiki/MathML) 
+can be rendered within the content.
+
+The plugin also ensures that pelican and recognized math "play" nicely together, by
+ensuring [Typogrify](https://github.com/mintchaos/typogrify) does not alter math content
+and summaries that get cut off are repaired.
+
+Recognized math in the context of this plugin is either LaTex or MathML as described below.
+
+### LaTex
+Anything between `$`...`$` (inline math) and `$$`..`$$` (displayed math) will be recognized as
+LaTex. In addition, anything the `\begin` and `\end` LaTex macros will also be 
+recognized as LaTex. For example, `\begin{equation}`...`\end{equation}` would be used to 
+render math equations with numbering.
+
+Within recognized LaTex as described above, any supported LaTex macro can be used.
+
+### MathML
+Anything between `<math>` and `</math>` tags will be recognized as MathML
+
+Installation
+------------
+To enable, ensure that `render_math` plugin is accessible.
+Then add the following to settings.py:
+
+    PLUGINS = ["render_math"]
+
+Your site is now capable of rendering math math using the mathjax JavaScript
+engine. No alterations to the template is needed, just use and enjoy!
+
+### Typogrify
+In the past, using [Typgogrify](https://github.com/mintchaos/typogrify) would alter the math contents resulting
+in math that could not be rendered by MathJax. The only option was to ensure
+that Typogrify was disabled in the settings.
+
+The problem has been recitified in this plugin, but it requires [Typogrify version 2.04](https://pypi.python.org/pypi/typogrify)
+(or higher). If this version of Typogrify is not present, the plugin will inform that an incorrect
+version of Typogrify is not present and disable Typogrify for the entire site
+
+Usage
+-----
+### Backward Compatibility
+This plugin is backward compatible in the sense that it
+will render previous setups correctly. This is because those
+settings and metadata information is ignored by this version. Therefore
+you can remove them to neaten up your site
+
+### Templates
+No alteration is needed to a template for this plugin to work. Just install
+the plugin and start writing your Math. 
+
+If on the other hand, you are template designer and want total control
+over the MathJax JavaScript, you can set the `auto_insert` setting to 
+`False` which will cause no MathJax JavaScript to be added to the content.
+
+If you choose this option, you should really know what you are doing. Therefore
+only do this if you are designing your template. There is no real advantage to
+to letting template logic handle the insertion of the MathJax JavaScript other
+than it being slightly neater.
+
+By setting `auto_insert` to `False`, metadata with `key` value of `mathjax`
+will be present in all pages and articles where MathJax should be present.
+The template designer can detect this and then use the `MATHJAXSCRIPT` setting
+which will contain the user specified MathJax script to insert into the content.
+
+For example, this code could be used:
+```
+{% if not MATH['auto_insert'] %}
+    {% if page and page.mathjax or article and article.mathjax %}
+        {{ MATHJAXSCRIPT }}
+    {% endif %}
+{% endif %}
+```
+
+### Settings
+Certain MathJax rendering options can be set. These options 
+are in a dictionary variable called `MATH` in the pelican
+settings file.
+
+The dictionary can be set with the following keys:
+
+ * `auto_insert`: controls whether plugin should automatically insert
+MathJax JavaScript in content that has Math. It is only recommended
+to set this to False if you are a template designer and you want
+extra control over where the MathJax JavaScript is renderd. **Default Value**:
+True
+ * `wrap_latex`: controls the tags that LaTex math is wrapped with inside the resulting
+html. For example, setting `wrap_latex` to `mathjax` would wrap all LaTex math inside
+`<mathjax>...</mathjax>` tags. If typogrify is set to True, then math needs
+to be wrapped in tags and `wrap_latex` will therefore default to `mathjax` if not
+set. `wrap_latex` cannot be set to `'math'` because this tag is reserved for 
+mathml notation. **Default Value**: None unless Typogrify is enabled in which case, 
+it defaults to `mathjax`
+ * `align`: controls how displayed math will be aligned. Can be set to either
+`left`, `right` or `center`. **Default Value**: `center`.
+ * `indent`: if `align` not set to `center`, then this controls the indent
+level. **Default Value**: `0em`.
+ * `show_menu`: a boolean value that controls whether the mathjax contextual 
+menu is shown. **Default Value**: True
+ * `process_escapes`: a boolean value that controls whether mathjax processes escape 
+sequences. **Default Value**: True
+ * `latex_preview`: controls the preview message users are seen while mathjax is
+rendering LaTex. If set to `Tex`, then the TeX code is used as the preview 
+(which will be visible until it is processed by MathJax). **Default Value**: `Tex`
+ * `color`: controls the color of the mathjax rendered font. **Default Value**: `black`
+ * `ssl`: specifies if ssl should be used to load MathJax engine. Can be set to one
+of three things
+  * `auto`: **Default Value** will automatically determine what protodol to use 
+based on current protocol of the site. 
+  * `force`: will force ssl to be used.
+  * `off`: will ensure that ssl is not used
+
+For example, in settings.py, the following would make math render in blue and
+displaymath align to the left:
+
+    MATH = {'color':'blue','align':left}
+
+LaTex Examples
+--------------
+###Inline
+LaTex between `$`..`$`, for example, `$`x^2`$`, will be rendered inline
+with respect to the current html block.
+
+###Displayed Math
+LaTex between `$$`..`$$`, for example, `$$`x^2`$$`, will be rendered centered in a
+new paragraph.
+
+###Equations
+LaTex between `\begin` and `\end`, for example, `begin{equation}` x^2 `\end{equation}`,
+will be rendered centered in a new paragraph with a right justified equation number
+at the top of the paragraph. This equation number can be referenced in the document.
+To do this, use a `label` inside of the equation format and then refer to that label
+using `ref`. For example: `begin{equation}` `\label{eq}` X^2 `\end{equation}`. Now
+refer to that equation number by `$`\ref{eq}`$`.
+
+MathML Examples
+---------------
+The following will render the Quadratic formula:
+```
+<math xmlns="http://www.w3.org/1998/Math/MathML" display="block"> 
+  <mrow>
+    <mi>x</mi>
+    <mo>=</mo>
+    <mfrac>
+      <mrow>
+        <mo>&#x2212;</mo>
+        <mi>b</mi>
+        <mo>&#xB1;</mo>
+        <msqrt>
+          <mrow>
+            <msup>
+              <mi>b</mi>
+              <mn>2</mn>
+            </msup>
+            <mo>&#x2212;</mo>
+            <mn>4</mn>
+            <mi>a</mi>
+            <mi>c</mi>
+          </mrow>
+        </msqrt>
+      </mrow>
+      <mrow>
+        <mn>2</mn>
+        <mi>a</mi>
+      </mrow>
+    </mfrac>
+  </mrow>
+</math>
+```
+
+# Summary
+
+This plugin extracts a representative image (i.e, featured image) from the article's summary or article's content. The image can be access at `article.featured_image`. 
+
+The plugin also remove any images from the summary after extraction to avoid duplication. 
+
+It allows the flexibility on where and how to display the featured image of an article together with its summary in a template page. For example, the article metadata can be displayed in thumbnail format, in which there is a short summary and an image. The layout of the summary and the image can be varied for aesthetical purpose. It doesn't have to depend on article's content format. 
+
+
+Share Post
+==========
+
+A Pelican plugin to create share URLs of article
+
+Copyright (c) Talha Mansoor
+
+Author          | Talha Mansoor
+----------------|-----
+Author Email    | talha131@gmail.com
+Author Homepage | http://onCrashReboot.com
+Github Account  | https://github.com/talha131
+
+Why do you need it?
+===================
+
+Almost all website have share widgets to let readers share posts on social
+networks. Most of these widgets are used by vendors for online tracking. These
+widgets are also visual which quite often become a distraction and negatively
+affect readers attention.
+
+`share_post` creates old school URLs for some popular sites which your theme
+can use. These links do not have the ability to track the users. They can also
+be unobtrusive depending on how Pelican theme uses them.
+
+Requirements
+============
+
+`share_post` requires BeautifulSoup
+
+```bash
+pip install beautifulsoup4
+```
+
+How to Use
+==========
+
+`share_post` adds a dictionary attribute to `article` which can be accessed via
+`article.share_post`. Keys of the dictionary are as follows,
+
+1. `facebook`
+1. `google-plus`
+1. `email`
+1. `twitter`
+
+Template Example
+================
+
+```python
+{% if article.share_post and article.status != 'draft' %}
+<section>
+    <p id="post-share-links">
+        Share on:
+        <a href="{{article.share_post['twitter']}}" target="_blank" title="Share on Twitter">Twitter</a>
+        ❄
+        <a href="{{article.share_post['facebook']}}" target="_blank" title="Share on Facebook">Facebook</a>
+        ❄
+        <a href="{{article.share_post['google-plus']}}" target="_blank" title="Share on Google Plus">Google+</a>
+        ❄
+        <a href="{{article.share_post['email']}}" target="_blank" title="Share via Email">Email</a>
+    </p>
+</section>
+{% endif %}
+```
+
+
+Simple Footnotes
+================
+
+A Pelican plugin to add footnotes to blog posts.
+
+When writing a post or page, add a footnote like this:
+
+    Here's my written text[ref]and here is a footnote[/ref].
+
+This will appear as, roughly:
+
+Here's my written text<sup>1</sup>
+
+ 1. and here is a footnote ↩
+
+Inspired by Andrew Nacin's [Simple Footnotes WordPress plugin](http://wordpress.org/plugins/simple-footnotes/).
+
+Requirements
+============
+
+Needs html5lib, so you'll want to `pip install html5lib` before running.
+
+Should work with any content format (ReST, Markdown, whatever), because
+it looks for the `[ref]` and `[/ref]` once the conversion to HTML has happened.
+
+Stuart Langridge, http://www.kryogenix.org/, February 2014.
+
+Sitemap
+-------
+
+The sitemap plugin generates plain-text or XML sitemaps. You can use the
+``SITEMAP`` variable in your settings file to configure the behavior of the
+plugin.
+
+The ``SITEMAP`` variable must be a Python dictionary and can contain three keys:
+
+- ``format``, which sets the output format of the plugin (``xml`` or ``txt``)
+
+- ``priorities``, which is a dictionary with three keys:
+
+  - ``articles``, the priority for the URLs of the articles and their
+    translations
+
+  - ``pages``, the priority for the URLs of the static pages
+
+  - ``indexes``, the priority for the URLs of the index pages, such as tags,
+     author pages, categories indexes, archives, etc...
+
+  All the values of this dictionary must be decimal numbers between ``0`` and ``1``.
+
+- ``changefreqs``, which is a dictionary with three items:
+
+  - ``articles``, the update frequency of the articles
+
+  - ``pages``, the update frequency of the pages
+
+  - ``indexes``, the update frequency of the index pages
+
+  Valid frequency values are ``always``, ``hourly``, ``daily``, ``weekly``, ``monthly``,
+  ``yearly`` and ``never``.
+
+If a key is missing or a value is incorrect, it will be replaced with the
+default value.
+
+The sitemap is saved in ``<output_path>/sitemap.<format>``.
+
+.. note::
+   ``priorities`` and ``changefreqs`` are information for search engines.
+   They are only used in the XML sitemaps.
+   For more information: <http://www.sitemaps.org/protocol.html#xmlTagDefinitions>
+
+**Example**
+
+Here is an example configuration (it's also the default settings):
+
+.. code-block:: python
+
+    PLUGINS=['pelican.plugins.sitemap',]
+
+    SITEMAP = {
+        'format': 'xml',
+        'priorities': {
+            'articles': 0.5,
+            'indexes': 0.5,
+            'pages': 0.5
+        },
+        'changefreqs': {
+            'articles': 'monthly',
+            'indexes': 'daily',
+            'pages': 'monthly'
+        }
+    }
+
+Static comments
+---------------
+
+This plugin allows you to add static comments to an article. By default the
+plugin looks for the comments of each article in a local file named
+``comments/{slug}.md``, where ``{slug}`` is the value of the slug tag for the
+article. The comments file should be formatted using markdown.
+
+Set the ``STATIC_COMMENTS`` parameter to True to enable the plugin. Default is
+False.
+
+Set the ``STATIC_COMMENTS_DIR`` parameter to the directory where the comments
+are located. Default is ``comments``.
+
+On the template side, you just have to add a section for the comments to your
+``article.html``, as in this example::
+
+    {% if STATIC_COMMENTS %}
+    <section id="comments" class="body">
+    <h2>Comments!</h2>
+    {{ article.metadata.static_comments }}
+    </section>
+    {% endif %}
+
+Here is an example of usage:
+<http://jesrui.sdf-eu.org/pelican-static-comments.html>
+
+#Subcategory Plugin#
+
+This plugin adds support for subcategories in addition to article categories.
+
+Subcategories are hierarchical. Each subcategory has a parent, which is either a
+regular category or another subcategory.
+
+Feeds can be generated for each subcategory, just like categories and tags.
+
+##Usage##
+
+Subcategories are an extension to categories. Add subcategories to an article's
+category metadata using a `/` like this:
+
+    Category: Regular Category/Sub-Category/Sub-Sub-category
+
+Then create a `subcategory.html` template in your theme, similar to the
+`category.html` or `tag.html` templates.
+
+In your templates, `article.category` continues to act the same way. Your
+subcategories are stored in the `articles.subcategories` list. To create
+breadcrumb-style navigation you might try something like this:
+
+    <nav class="breadcrumb">
+    <ol>
+        <li>
+            <a href="{{ SITEURL }}/{{ article.category.url }}">{{ article.category}}</a>
+        </li>
+    {% for subcategory in article.subcategories %}
+        <li>
+            <a href="{{ SITEURL }}/{{ subcategory.url }}">{{ subcategory.shortname }}</a>
+        </li>
+    {% endfor %}
+    </ol>
+    </nav>
+
+##Subcategory Names##
+
+Each subcategory's full name is a `/`-separated list of it parents and itself.
+This is necessary to keep each subcategory unique. It means you can have
+`Category 1/Foo` and `Category 2/Foo` and they won't interfere with each other.
+Each subcategory has an attribute `shortname` which is just the name without
+its parents associated. For example if you had…
+
+    Category/Sub Category1/Sub Category2
+
+… the full name for Sub Category2 would be `Category/Sub Category1/Sub Category2` and
+the "short name" would be `Sub Category2`.
+
+If you need to use the slug, it is generated from the short name — not the full
+name.
+
+##Settings##
+
+Consistent with the default settings for Tags and Categories, the default
+settings for subcategories are:
+
+    'SUBCATEGORY_SAVE_AS' = os.path.join('subcategory', '{savepath}.html')
+    'SUBCATEGORY_URL' = 'subcategory/(fullurl).html'
+
+`savepath` and `fullurl` are generated recursively, using slugs. So the full
+URL would be:
+
+    category-slug/sub-category-slug/sub-sub-category-slug
+
+… with `savepath` being similar but joined using `os.path.join`.
+
+Similarly, you can save subcategory feeds by adding one of the following
+to your Pelican configuration file:
+
+    SUBCATEGORY_FEED_ATOM = 'feeds/%s.atom.xml'
+    SUBCATEGORY_FEED_RSS = 'feeds/%s.rss.xml'
+
+… and this will create a feed with `fullurl` of the subcategory. For example:
+
+    feeds/category/subcategory.atom.xml
+
+Summary
+-------
+
+This plugin allows easy, variable length summaries directly embedded into the 
+body of your articles. It introduces two new settings: ``SUMMARY_BEGIN_MARKER``
+and ``SUMMARY_END_MARKER``: strings which can be placed directly into an article
+to mark the beginning and end of a summary. When found, the standard 
+``SUMMARY_MAX_LENGTH`` setting will be ignored. The markers themselves will also
+be removed from your articles before they are published. The default values
+are ``<!-- PELICAN_BEGIN_SUMMARY -->`` and ``<!-- PELICAN_END_SUMMARY -->``.
+For example::
+
+    Title: My super title
+    Date: 2010-12-03 10:20
+    Tags: thats, awesome
+    Category: yeah
+    Slug: my-super-post
+    Author: Alexis Metaireau
+    
+    This is the content of my super blog post.
+    <!-- PELICAN_END_SUMMARY -->
+    and this content occurs after the summary.
+
+Here, the summary is taken to be the first line of the post. Because no
+beginning marker was found, it starts at the top of the body. It is possible
+to leave out the end marker instead, in which case the summary will start at the
+beginning marker and continue to the end of the body.
+
+Title: A markdown powered article
+Date: 2011-04-20
+
+You're mutually oblivious.
+
+[a root-relative link to unbelievable](|filename|/unbelievable.rst)
+[a file-relative link to unbelievable](|filename|../unbelievable.rst)
+
+Test Data
+---------
+
+Place tests for your plugin here. ``test_data`` folder contains following
+common data for your tests, if you need them. 
+
+===============   ===========================
+File/Folder       Description
+===============   ===========================
+content           A sample content folder
+themes            Default themes from Pelican
+pelican.conf.py   A sample settings file
+===============   ===========================
+
+Thumbnail Creation of images
+============================
+
+This plugin creates thumbnails for all of the images found under a specific directory, in various thumbnail sizes
+It requires PIL to function properly since PIL is used to resize the images, and will only rebuild a thumbnail if it
+doesn't already exists (to save processing time)
+
+Installation
+-------------
+
+Setup up like a normal plugin by setting PLUGIN_PATH, and adding "thumbnailer" to the PLUGINS list
+
+Configuration
+-------------
+
+* IMAGE_PATH is the path to the image directory.  It should reside under content, and defaults to "pictures"
+* THUMBNAIL_DIR is the path to the output sub directory where the thumbnails are generated
+* THUMBNAIL_SIZES is a dictionary mapping name of size to size specifications.
+  The generated filename will be originalname_thumbnailname.ext unless THUMBNAIL_KEEP_NAME is set.
+* THUMBNAIL_KEEP_NAME is a boolean which if set puts the file with the original name in a thumbnailname folder.
+
+Sizes can be specified using any of the following formats:
+
+* wxh will resize to exactly wxh cropping as necessary to get that size
+* wx? will resize so that the width is the specified size, and the height will scale to retain aspect ratio
+* ?xh same as wx? but will height being a set size
+* s is a shorthand for wxh where w=h
+Tipue Search
+============
+
+A Pelican plugin to serialize generated HTML to JSON that can be used by jQuery plugin - Tipue Search.
+
+Copyright (c) Talha Mansoor
+
+Author          | Talha Mansoor
+----------------|-----
+Author Email    | talha131@gmail.com 
+Author Homepage | http://onCrashReboot.com 
+Github Account  | https://github.com/talha131 
+
+Why do you need it?
+===================
+
+Static sites do not offer search feature out of the box. [Tipue Search](http://www.tipue.com/search/)
+is a jQuery plugin that search the static site without using any third party service, like DuckDuckGo or Google.
+
+Tipue Search offers 4 search modes. Its [JSON search mode](http://www.tipue.com/search/docs/json/) is the best search mode
+especially for large sites.
+
+Tipue's JSON search mode requires the textual content of site in JSON format.
+
+Requirements
+============
+
+Tipue Search requires BeautifulSoup.
+
+```bash
+pip install beautifulsoup4
+```
+
+How Tipue Search works
+=========================
+
+Tipue Search serializes the generated HTML into JSON. Format of JSON is as follows
+
+```python
+{
+    "pages": [
+        { 
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Integer nec odio. Praesent libero. Sed cursus ante dapibus diam. Sed nisi. Nulla quis sem at nibh elementum imperdiet. Duis sagittis ipsum. Praesent mauris. Fusce nec tellus sed augue semper porta. Mauris massa. Vestibulum lacinia arcu eget nulla. Class aptent taciti sociosqu ad litora torquent per conubia nostra, per inceptos himenaeos. Curabitur sodales ligula in libero.",
+            "tags": "Example Category",
+            "loc" : "http://oncrashreboot.com/plugin-example.html",
+            "title": "Everything you want to know about Lorem Ipsum"
+        },
+        { 
+            "text": "Sed dignissim lacinia nunc. Curabitur tortor. Pellentesque nibh. Aenean quam. In scelerisque sem at dolor. Maecenas mattis. Sed convallis tristique sem. Proin ut ligula vel nunc egestas porttitor. Morbi lectus risus, iaculis vel, suscipit quis, luctus non, massa. Fusce ac turpis quis ligula lacinia aliquet. Mauris ipsum. Nulla metus metus, ullamcorper vel, tincidunt sed, euismod in, nibh.",
+            "tags": "Example Category",
+            "loc" : "http://oncrashreboot.com/plugin-example-2.html",
+            "title": "Review of the book Lorem Ipsum"
+        }
+    ]
+}
+```
+
+JSON is written to file `tipuesearch_content.json` which is created in the root of `output` directory.
+
+How to use
+==========
+
+To utilize JSON Search mode, your theme needs to have Tipue Search properly configured in it. [Official documentation](http://www.tipue.com/search/docs/json/) has the required details.
+
+Pelican [Elegant Theme](https://github.com/talha131/pelican-elegant) has Tipue Search configured. You can view its code to understand the configuration. 
+
+Twitter Bootstrap Directive for restructured text
+-------------------------------------------------
+
+This plugin defines some rst directive that enable a clean usage of the twitter bootstrap CSS and Javascript components.
+
+Directives
+----------
+
+Implemented directives:
+
+    label,
+    alert,
+    panel,
+    media
+
+Implemented roles:
+
+    glyph,
+    code,
+    kbd
+
+Usage
+-----
+
+For more informations about the usage of each directive, read the corresponding class description.
+Or checkout this demo page.
+
+Dependencies
+------------
+
+In order to use this plugin, you need to use a template that supports bootstrap 3.1.1 with the glyph font setup
+correctly. Usually you should have this structure::
+
+    static
+    ├──  css
+    |     └──  bootstrap.min.css
+    ├──  font
+    |     └──  glyphicons-halflings-regular.ttf
+    └──  js
+          └──     
+
+Warning
+-------
+
+In order to support some unique features and avoid conflicts with bootstrap, this plugin will use a custom html writer which
+is modifying the traditional docutils output.
+# w3c_validate plugin
+
+This is a plugin for Pelican that submits generated HTML content to the
+[W3C Markup Validation Service](http://validator.w3.org/).
+
+After all content is generated, the output folder is traversed for HTML files,
+and the content is submitted to the W3C validator, after which the results
+are displayed. For example:
+
+    -> writing /tmp/_output/sitemap.xml
+    -> Validating: /tmp/_output/archives.html
+    ERROR: line: 2; col: 52; message: Bad value http://www.w3.org/1999/html for the attribute xmlns (only http://www.w3.
+    -> Validating: /tmp/_output/categories.html
+    ERROR: line: 2; col: 52; message: Bad value http://www.w3.org/1999/html for the attribute xmlns (only http://www.w3.
+
+**Note**: The above output assumes you have called Pelican with the ``--debug``
+flag. Otherwise, you will see errors (if any) but not the file currently being
+validated.
+
+## Dependencies
+
+* [py_w3c](https://pypi.python.org/pypi/py_w3c/0.1.0), which can be installed with pip:
+
+    $ pip install py_w3c
+
+## TODO
+
+[ ] - add tests
+
+

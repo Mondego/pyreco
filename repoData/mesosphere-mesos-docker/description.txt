@@ -1,0 +1,165 @@
+# Mesos / Docker Integration
+
+NOTE: This is a proof of concept for running Dockers on Mesos via Marathon. It
+has a number of limitations and is not recommended for production use.
+First class Docker support is coming up in Mesos 0.19 via [Deimos](https://github.com/mesosphere/deimos).
+
+## Summary
+
+Docker containers provide a consistent, compact and flexible means of packaging application builds. Delivering applications with Docker on Mesos promises a truly elastic, efficient and consistent platform for delivering a range of applications on premises or in the cloud.
+This repository combines Docker with the [Mesos](http://mesos.apache.org) cluster scheduler and [Marathon](https://github.com/mesosphere/marathon) but could also be used with other Mesos frameworks such as [Chronos](https://github.com/airbnb/chronos).
+
+## Getting Started
+
+This [tutorial](https://github.com/mesosphere/mesos-docker/blob/master/tutorial.md) shows you how you can get started with Mesos / Docker. 
+
+## Help
+
+If you have questions, please post on the [Marathon Framework Group](https://groups.google.com/forum/?hl=en#!forum/marathon-framework) email list.
+You can find Mesos support in the `#mesos` channel on [freenode][freenode] (IRC).
+The team at [Mesosphere](http://mesosphere.io) is also happy to answer any questions.
+
+## Authors
+
+* [Jason Dusek](https://github.com/solidsnack)
+
+## Requirements
+
+* [Mesos][Mesos] 0.14+
+
+[Mesos]: http://incubator.apache.org/mesos/ "Apache Mesos"
+[freenode]: http://freenode.net/ "IRC channels"
+
+## How Mesos-Docker Integration Works
+
+A Mesos cluster comprises a few masters and many slaves. As work is farmed out
+to them, Mesos slaves delegate to _executors_ for the setup and teardown of
+individual tasks. It is the executor that manages communication between the
+slave and the Docker daemon. The Docker daemon manages caching and launch of
+Docker images, which can be pulled from the global Docker index or a local
+registry.
+
+![Marathon can launch and monitor service containers from one or more Docker registries using the Docker executor for Mesos.](tutorial/mesos-docker.1.png)
+
+When a Docker container is started as a Mesos task, it runs beneath the Docker
+daemon on a slave server. Although the Docker container does not run as a true
+child process of the executor, as it would have under the old Docker
+standalone mode, the executor is able to manage translation of resource
+limits, signals and Mesos process control messages to appropriate calls of the
+`docker` tool. Fine-grained resource monitoring, forthcoming in mainline Mesos
+and part of some service management tools, is hard to do right if the
+container does not run directly under the executor -- so this architecture may
+be revised in the future.
+
+![The executor, monitored by the Mesos slave, delegates to the local Docker daemon for image discovery and management. The executor communicates with Marathon via the Mesos master and ensures that Docker enfores the specified resource limitations.](tutorial/mesos-docker.2.png)
+
+When a user requests a Docker container with Marathon, using the web UI or the
+HTTP API as in the examples above, the request is ultimately delegated to the
+LXC tools, by way of Mesos and Docker.
+
+* Marathon makes a resource request from the Mesos master and then waits to
+  accept an appropriate offer.
+
+* Once an offer is accepted, the Mesos master sends the task's specification
+  to the slave.
+
+* On the slave server, the Mesos slave daemon calls the Mesos-Docker executor
+  which in turn calls the `docker` command line tool.
+
+* The `docker` command line tool talks to the local Docker daemon, which
+  manages interactions with the cache of images and the LXC tools.
+
+* If the image is cached, it will be run from the cache. Otherwise, the Docker
+  daemon contacts a Docker registry to retrieve it.
+
+* The Docker daemon runs the container under the LXC tools.
+
+
+
+
+Docker containers provide a consistent, compact and flexible means of
+packaging application builds. Delivering applications with Docker on Mesos
+promises a truly elastic, efficient and consistent platform for delivering a
+range of applications on premises or in the cloud.
+
+## Service Launch and Discovery
+
+Let's launch a service in a Docker container and use Marathon's discovery
+features to find and connect to it from another Docker container. In this
+example, we'll launch Redis within a Docker container and then connect to it
+using the Redis CLI.
+
+Launching Docker containers with Marathon is a matter of assigning the
+"executor" parameter to point to a Docker executor and making the container
+name the first word of the command.
+
+    :;  http POST http://localhost:8080/v1/apps/start \
+                  id=multidis instances=2 mem=512 cpus=1 \
+                  executor=/var/lib/mesos/executors/docker \
+                  cmd='johncosta/redis'
+
+    >>
+
+    HTTP/1.1 204 No Content
+    Content-Type: application/json
+    Server: Jetty(8.y.z-SNAPSHOT)
+
+Once we have two Redis instances running, we can query Marathon to find them
+and connect to them.
+
+    :;  http GET http://localhost:8080/v1/endpoints
+
+    >>
+
+    HTTP/1.1 200 OK
+    Content-Type: text/plain
+    Server: Jetty(8.y.z-SNAPSHOT)
+    Transfer-Encoding: chunked
+
+    multidis 10445 ip-10-184-7-73.ec2.internal:31001 ip-10-184-7-73.ec2.internal:31000
+
+Using one of the `ip:port` pairs above, we can connect to one of our Redis
+instances, using the same Docker image, to get access to a working Redis CLI:
+
+    :;  sudo docker run -i -t johncosta/redis \
+             redis-cli -h ip-10-184-7-73.ec2.internal -p 31001
+
+    redis ip-10-184-7-73.ec2.internal:31001> SET x 7
+    OK
+    redis ip-10-184-7-73.ec2.internal:31001> GET x
+    "7"
+
+There's no need to install Redis or its supporting libraries on your Mesos
+hosts.
+
+## Reproducing This Example
+
+Installation of the many components used here is straightforward. Mesos and
+the Python bindings for Mesos are available as packages:
+
+* [Ubuntu 13.04 Package](http://downloads.mesosphere.io/master/ubuntu/13.04/mesos_0.14.0_amd64.deb)
+* [Python Mesos Bindings](http://downloads.mesosphere.io/master/ubuntu/13.04/mesos-0.14.0-py2.7-linux-x86_64.egg)
+
+Marathon, a Scala program, can be run from a standalone Jar. We've made an
+Upstart script for it, too.
+
+* [Marathon Executable Jar](http://downloads.mesosphere.io/marathon/marathon-0.0.6-SNAPSHOT-jar-with-dependencies.jar)
+* [Marathon Upstart Script](http://downloads.mesosphere.io/marathon/marathon.conf)
+
+With Mesos and Marathon, you have everything you need to start running
+reliable services across your cluster.
+
+The Docker project provides [Ubuntu 13.04 installation instructions](http://docs.docker.io/en/latest/installation/ubuntulinux/#ubuntu-raring).
+
+To follow along with the examples above, install the Docker executor as
+`/var/lib/mesos/executors/docker`.
+
+  [Docker Executor for Mesos](https://github.com/mesosphere/mesos-docker/blob/master/bin/mesos-docker)
+
+For a standalone installation, we've put together a script that installs all
+the needed components and configures them on Ubuntu 13.04. Just pipe it to a
+shell running under `sudo` and you're all set:
+
+    curl -fL https://raw.github.com/mesosphere/mesos-docker/master/bin/mesos-docker-setup | sudo bash
+
+

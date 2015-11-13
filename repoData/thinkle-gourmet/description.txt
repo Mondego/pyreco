@@ -1,0 +1,817 @@
+Getting Started
+===============
+Make sure you have all the dependencies as listed in [INSTALL.md](INSTALL.md)
+installed.
+
+Before you start coding, you should first build localized *.mo and
+*.gourmet-plugin files within a build/ subdirectory of the source tree by
+running
+
+    python setup.py build_i18n -m
+
+Afterwards, you can just launch `bin/gourmet` from the source directory to
+test the program and see how changes to the source code affect it.
+
+Style
+=====
+The style used in Gourmet can be rather varied. However, new code
+should adhere to style guidelines, and old code should be updated to meet
+them. Generally, we try to follow the python style guidelines set out
+by Mr. Guido Van Russom, as formalized by
+[PEP 8](http://www.python.org/dev/peps/pep-0008/).
+
+The following conventions are not strictly followed in Gourmet, but
+I'd like to follow them from here on out for greater consistency.
+
+* Class names are capitalized, using CamelCase.
+* method names begin with verbs and use underscores for multiple words
+* attributes should be lower cased and use camel caps for multiple words.
+
+Development tools
+=================
+If you want to work from within an IDE, you might want to use [Eclipse](http://www.eclipse.org) with some useful plugins, which you install by entering their download locations into Eclipse's Help > Install new Software... dialog:
+
+* EGit and GitHub Mylyn Connector
+ * are for working with Git repositories, and GitHub issues integration into Eclipse, see http://eclipse.github.com; download locations: http://download.eclipse.org/egit/updates and http://download.eclipse.org/egit/github/updates
+* PyDev
+ * is for Python development; its download location is http://pydev.org/updates
+
+With EGit installed, go to File > Import... > Git > Git repository and enter the URI found in the "Getting the Source" section. The rest of the importing process should be fairly intuitive.
+
+As a supplement or an alternative to Eclipse and the plugins listed above,
+we can recommend [GitHub for Windows](http://windows.github.com/) as the
+Windows Git client; it features both command-line tools (and a dedicated prompt
+called Git Shell) and a nifty GUI.
+
+Getting the Source
+==================
+
+Gourmet's source code is hosted at [GitHub](https://github.com/thinkle/gourmet).
+You can clone it by opening a command prompt and typing
+```
+git clone https://github.com/thinkle/gourmet.git
+```
+
+If you don't have any previous experience with Git, you might want to take a
+look at the [official Git tutorial](http://www.kernel.org/pub/software/scm/git/docs/gittutorial.html),
+or the [GitHub Help pages](http://help.github.com/).
+
+Installation
+===========
+We'll assume you're reading this document because you want to install Gourmet manually. 
+
+ * Please note that for *Windows*, we provide an up-to-date installer at our [Releases](https://github.com/thinkle/gourmet/releases) web page which allows you to install Gourmet much easier than described below. 
+ * Also, if you're using a *Linux* distribution, chances are that there is a Gourmet package available in your system's software repository that lets you install Gourmet easily.
+ * For *Mac OS X*, you can use [MacPorts](https://www.macports.org/) or [Fink](http://www.finkproject.org/index.php?phpLang=en) which provide up-to-date packages to automatically install Gourmet.
+ 
+If you're still sure about installing Gourmet manually anyway, keep reading.
+
+Required Packages
+===============
+Linux
+-----
+Fortunately for Linux users, at least most of the software Gourmet requires comes packaged with most Linux distributions. The table at the bottom of this document lists the dependencies, and the corresponding packages' names for some of the more popular distros.
+
+To install Gourmet from source -- i.e. from the tarball found at our [Releases](https://github.com/thinkle/gourmet/releases) web page -- just uncompress that tarball, cd into the resulting directory, and run `sudo python setup.py install`, which will
+install gourmet to your current python environment's default location (i.e. subdirectories of `/usr/local` for most Linux distributions. For information on how to customize these locations, run
+`sudo python setup.py --help`).
+
+That should be all you need, and will create an entry in your launcher menu.
+Alternatively, you can now run gourmet by issuing
+
+`gourmet`
+
+from the command line.
+
+Gourmet also has command line options, most of which should not be
+needed by an average user. Issuing `gourmet --help` will get you help
+for those options.
+
+Mac OS X
+--------
+### Using MacPorts
+
+To build gourmet from source, install the required dependencies as listed in the MacPorts column of the table below by running `sudo port install <dependencies>`. 
+
+Then, get gourmet's source, `cd` to its directory, and run
+
+    sudo /opt/local/bin/python setup.py install
+    sudo ln -s /opt/local/Library/Frameworks/Python.framework/Versions/2.7/share/gourmet/ gourmet
+
+You should then be able to launch gourmet by running
+
+    /opt/local/Library/Frameworks/Python.framework/Versions/2.7/bin/gourmet
+
+### Using Fink
+
+The following instructions all assume you have fink installed and that you have a terminal set up with the proper paths to run executables in the fink directories (/sw/bin/, etc.).
+
+To create the fink package, you need a gourmet.info file. As a starting point, you can download the current one from the fink repository at http://pdb.finkproject.org/pdb/package.php/gourmet
+
+You then want to save that file to `/sw/fink/dists/local/main/finkinfo/gourmet.info`.
+
+Now, you can run:
+
+    $ fink validate
+    $ fink fetch gourmet
+    ...
+    $ fink -m --build-as-nobody rebuild gourmet
+    ...
+    Reading Package Lists... Done
+    Building Dependency Tree... Done
+    $
+
+Now you can install gourmet and run it to make sure it worked!
+
+    $ fink install gourmet
+    ...
+    Setting up gourmet (0.15.9-1) ...
+    $ gourmet
+    No gnome player
+    No windows player
+    Player is  gourmet.sound.Player
+    ...
+
+Further resources:
+* http://finkproject.org/doc/packaging/index.php
+* http://finkproject.org/doc/quick-start-pkg/index.php
+
+Windows
+-------
+To run Gourmet from source on Windows takes a bit of doing, since Windows does not come with a lot of development tools by default. So first, you will need to download and install a few open-source development packages. Most of them are just usual *.msi or *.exe installers which should be easy to install; if multiple options are given, make sure to download the one that matches your architecture (32 vs 64 bits) and Python version.
+
+In the more complicated cases, you need to download a .zip, .gz or .tar.gz file, which you will then have to extract.
+If you have trouble extracting .gz or .tar.gz files (which may not be supported by e.g. WinZip), get [7-Zip](http://sourceforge.net/projects/sevenzip/) - an excellent open source compression utility that supports multiple formats.
+Once extracted, open a command prompt (on Windows Vista and later: with administrator privileges, i.e. by right-clicking on the command prompt icon and picking "Run as Administrator"). Change into the directory you just extracted and run
+```
+python setup.py install
+```
+
+After installing all dependencies, open a (non-administrator) command prompt, cd to the directory to which you extracted (or git-cloned) Gourmet's source code,
+and run gourmet by entering
+```
+python bin/gourmet
+```
+
+You might also want to build loccalization files as described in the CODING file so you can run Gourmet in your language.
+
+Finally, you can freeze Gourmet for deployment by running
+```
+python setup.py bdist_msi
+```
+which will create an .msi installer file in the dist/ subdirectory of Gourmet's source code folder.
+
+If you intend to put your installer online for others to download, you should sign it. To that end, you need to have Microsoft's [SignTool.exe](http://msdn.microsoft.com/en-us/library/8s9b9yaz.aspx) program installed (which comes as part of their Windows platform SDKs) and have a code signing certificate.
+For instance, polish certification authority certum.eu offers [free code signing certificates](http://www.certum.eu/certum/cert,offer_en_open_source_cs.xml) to open source developers (limited to one year).
+To sign your installer, run
+
+```& 'C:\path\to\signtool.exe' sign /f C:\path\to\your\certificate.p12 /p yourpassword /t http://time.certum.pl /d "Gourmet Recipe Manager" '.\dist\Gourmet-x.y.z-win32.msi'```
+
+from the source directory.
+
+Requirements                               |Debian                |MacPorts            |Windows
+-------------------------------------------|----------------------|--------------------|---------------
+Python 2.7                                 |python                |python27            |http://www.python.org/
+PyGTK                                      |python-gtk2           |py27-gtk            |[all-in-one installer](http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/). Make sure to install PyGTK, PyGObject, PyCairo, and intltool.
+SQLAlchemy                                 |python-sqlalchemy     |py27-sqlalchemy     |http://www.sqlalchemy.org/download.html
+Pillow 2.x (Python Imaging Library Fork)   |python-imaging        |py27-Pillow         |https://pypi.python.org/pypi/Pillow/
+elib.intl                                  |python-elib.intl      |py27-elib.intl      |http://github.com/dieterv/elib.intl/zipball/master
+*Build Requirements*                       |                      |                    |
+setuptools (*Windows only!*)               |                      |                    |
+intltool                                   |intltool              |intltool            |*included in PyGTK installer*
+python-distutils-extra                     |python-distutils-extra|py27-distutils-extra|https://launchpad.net/python-distutils-extra/
+*Extra Requirements*                       |                      |
+Python Reportlab (for printing/PDF export) |python-reportlab      |py27-reportlab      |http://www.reportlab.com/ftp/
+pypoppler (for printing and PDF export)    |python-poppler        |py27-poppler        |
+PyGTKSpell (for the spell checking plugin) |python-gtkspell       |py27-gtkspell       |(N/A)
+python-gst0.10 (for sound)                 |python-gst0.10        |py27-gst-python     |*not required*
+BeautifulSoup (for the Web import plugin)  |python-beautifulsoup  |py27-beautifulsoup  |http://www.crummy.com/software/BeautifulSoup/#Download
+IPython 0.12.1 (interactive shell plugin)  |ipython               |py27-ipython        |https://pypi.python.org/pypi/ipython/0.12.1#downloads
+*Windows only*                             |                      |                    |
+Perl (needed to run intltool)              |                      |                    |http://strawberryperl.com/
+cx_Freeze (only needed to build installer) |                      |                    |http://cx-freeze.sourceforge.net/
+
+
+Gourmet Recipe Manager
+===================
+Try it. It's good!
+----------------
+
+Introduction
+============
+
+Gourmet Recipe Manager is a manager, editor, and organizer for
+recipes. It has a plugin architecture which allows you to enable
+extensions to Gourmet's base functionality. For example, there is a
+nutritional plugin that allows Gourmet to help you calculate
+nutritional information for any recipe. There are also a wide variety
+of import and export plugins that let Gourmet read and write recipes
+in various formats.
+
+This program aspires to meet the GNOME Human Interface
+Guidelines. Please let me know if you see any ways the interface could
+become more GNOME HIG compliant (or just improve in general).
+
+Requirements and Installation
+=============================
+
+See [INSTALL.md](INSTALL.md).
+
+Warning
+=======
+
+No warantee, etc. Please inform me of bugs/problems/feature
+requests and I'll respond as quickly as I can. I can be reached
+at Thomas_Hinkle@alumni.brown.edu
+
+----
+
+If you find this program useful, or have any comments or questions,
+please e-mail to let me know at Thomas_Hinkle@alumni.brown.edu
+
+TODO
+====
+
+ * Look into drag-n-drop in shopgui
+ * Implement menu-planner plugin
+ * Fix Batch Editor to work with plugin system
+ * Finalize proper editor for nutrition values
+ * Add support for images/icons for categories/cuisines/sources/etc.
+ * Add support for importing/exporting nutritional information
+   Add support for importing/exporting nutritional information into
+   the gourmet XML fileformat import and export
+ * Import GNOME Cookbook recipes
+
+This directory contains a catalog with some custom widgets needed to use Gourmet's gtkbuilder *.ui files in glade.
+
+Note that as long as we're using Gtk 2 (not 3), you need Glade 3.8 (not 3.10). 
+In Ubuntu, Glade 3.8 is in the glade-gtk2 package, so you need to install that. 
+
+Then, from the root source directory do:
+
+GLADE_CATALOG_PATH=ui/catalog/ glade-gtk2
+
+<?xml version="1.0"?>
+<interface domain="gourmet">
+  <object class="GtkAdjustment" id="adjustment1">
+    <property name="upper">5000</property>
+    <property name="lower">0</property>
+    <property name="page_increment">10</property>
+    <property name="step_increment">1</property>
+    <property name="page_size">0</property>
+    <property name="value">0</property>
+  </object>
+  <object class="GtkListStore" id="model1">
+    <columns>
+      <column type="gchararray"/>
+    </columns>
+    <data>
+      <row>
+        <col id="0" translatable="yes">servings</col>
+      </row>
+    </data>
+  </object>
+  <!-- interface-requires gtk+ 2.16 -->
+  <!-- interface-naming-policy toplevel-contextual -->
+  <object class="GtkWindow" id="descriptionEditor">
+    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+    <child>
+      <object class="GtkScrolledWindow" id="descriptionMainWidget">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hscrollbar_policy">automatic</property>
+        <property name="vscrollbar_policy">automatic</property>
+        <child>
+          <object class="GtkViewport" id="viewport5">
+            <property name="visible">True</property>
+            <child>
+              <object class="GtkVBox" id="vbox26">
+                <property name="visible">True</property>
+                <child>
+                  <object class="GtkHBox" id="hbox24">
+                    <property name="visible">True</property>
+                    <property name="border_width">16</property>
+                    <child>
+                      <object class="GtkTable" id="table2">
+                        <property name="visible">True</property>
+                        <property name="n_rows">11</property>
+                        <property name="n_columns">2</property>
+                        <property name="column_spacing">6</property>
+                        <property name="row_spacing">6</property>
+                        <child>
+                          <object class="GtkEntry" id="linkBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="has_focus">True</property>
+                            <property name="can_default">True</property>
+                            <property name="has_default">True</property>
+                            <property name="width_chars">40</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">8</property>
+                            <property name="bottom_attach">9</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="linkLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">_Webpage:</property>
+                            <property name="use_underline">True</property>
+                            <property name="justify">right</property>
+                            <property name="mnemonic_widget">sourceBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">8</property>
+                            <property name="bottom_attach">9</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkHBox" id="imageBox">
+                            <property name="visible">True</property>
+                            <child>
+                              <object class="GtkImage" id="recImage">
+                                <property name="visible">True</property>
+                                <property name="xalign">0</property>
+                                <property name="stock">gtk-missing-image</property>
+                              </object>
+                              <packing>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkButton" id="addImage">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="can_default">True</property>
+                                <property name="receives_default">False</property>
+                                <signal handler="setRecImage" name="clicked"/>
+                                <child>
+                                  <object class="GtkAlignment" id="alignment17">
+                                    <property name="visible">True</property>
+                                    <property name="xscale">0</property>
+                                    <property name="yscale">0</property>
+                                    <child>
+                                      <object class="GtkHBox" id="hbox25">
+                                        <property name="visible">True</property>
+                                        <property name="spacing">2</property>
+                                        <child>
+                                          <object class="GtkImage" id="image102">
+                                            <property name="visible">True</property>
+                                            <property name="stock">gtk-add</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label68">
+                                            <property name="visible">True</property>
+                                            <property name="label" translatable="yes">_Add Image</property>
+                                            <property name="use_underline">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">9</property>
+                            <property name="bottom_attach">10</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="label67">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Image:</property>
+                            <property name="use_underline">True</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">9</property>
+                            <property name="bottom_attach">10</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkHButtonBox" id="hbuttonbox2">
+                            <property name="visible">True</property>
+                            <property name="layout_style">start</property>
+                            <child>
+                              <object class="GtkButton" id="delImageButton">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="can_default">True</property>
+                                <property name="receives_default">False</property>
+                                <signal handler="delRecImage" name="clicked"/>
+                                <child>
+                                  <object class="GtkAlignment" id="alignment18">
+                                    <property name="visible">True</property>
+                                    <property name="xscale">0</property>
+                                    <property name="yscale">0</property>
+                                    <child>
+                                      <object class="GtkHBox" id="hbox26">
+                                        <property name="visible">True</property>
+                                        <property name="spacing">2</property>
+                                        <child>
+                                          <object class="GtkImage" id="image103">
+                                            <property name="visible">True</property>
+                                            <property name="stock">gtk-delete</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">0</property>
+                                          </packing>
+                                        </child>
+                                        <child>
+                                          <object class="GtkLabel" id="label69">
+                                            <property name="visible">True</property>
+                                            <property name="label" translatable="yes">_Remove Image</property>
+                                            <property name="use_underline">True</property>
+                                          </object>
+                                          <packing>
+                                            <property name="expand">False</property>
+                                            <property name="fill">False</property>
+                                            <property name="position">1</property>
+                                          </packing>
+                                        </child>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="fill">False</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">10</property>
+                            <property name="bottom_attach">11</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkEntry" id="titleBox">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="has_focus">True</property>
+                            <property name="can_default">True</property>
+                            <property name="has_default">True</property>
+                            <property name="width_chars">40</property>
+                            <accessibility>
+                              
+                            </accessibility>
+                            <child internal-child="accessible">
+                              <object class="AtkObject" id="a11y-titleBox1">
+                                <property name="AtkObject::accessible-name" translatable="yes">Title</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="x_options"/>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="recipeLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">_Title:</property>
+                            <property name="use_underline">True</property>
+                            <property name="mnemonic_widget">titleBox</property>
+                          </object>
+                          <packing>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="yieldLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="yalign">0.46000000834465027</property>
+                            <property name="label" translatable="yes">_Yield:</property>
+                            <property name="use_underline">True</property>
+                            <property name="mnemonic_widget">yieldsBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="categoryLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">_Category:</property>
+                            <property name="use_underline">True</property>
+                            <property name="mnemonic_widget">categoryBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="preptimeLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Pre_paration Time:</property>
+                            <property name="use_underline">True</property>
+                            <property name="mnemonic_widget">preptimeBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="cooktimeLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Coo_king Time:</property>
+                            <property name="use_underline">True</property>
+                            <property name="mnemonic_widget">cooktimeBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">4</property>
+                            <property name="bottom_attach">5</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="cuisineLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">C_uisine:</property>
+                            <property name="use_underline">True</property>
+                            <property name="justify">right</property>
+                            <property name="mnemonic_widget">cuisineBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">5</property>
+                            <property name="bottom_attach">6</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="ratingLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">_Rating:</property>
+                            <property name="use_underline">True</property>
+                            <property name="justify">right</property>
+                            <property name="mnemonic_widget">ratingBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkLabel" id="sourceLabel">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">S_ource:</property>
+                            <property name="use_underline">True</property>
+                            <property name="justify">right</property>
+                            <property name="mnemonic_widget">sourceBox</property>
+                          </object>
+                          <packing>
+                            <property name="top_attach">7</property>
+                            <property name="bottom_attach">8</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxEntry" id="sourceBox">
+                            <property name="visible">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">7</property>
+                            <property name="bottom_attach">8</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxEntry" id="cuisineBox">
+                            <property name="visible">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">5</property>
+                            <property name="bottom_attach">6</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="TimeEntry" id="cooktimeBox">
+                            <property name="visible">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">4</property>
+                            <property name="bottom_attach">5</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="TimeEntry" id="preptimeBox">
+                            <property name="visible">True</property>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkComboBoxEntry" id="categoryBox">
+                            <property name="visible">True</property>
+                            <accessibility>
+                              
+                            </accessibility>
+                            <child internal-child="accessible">
+                              <object class="AtkObject" id="a11y-categoryBox1">
+                                <property name="AtkObject::accessible-name" translatable="yes">category</property>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkAlignment" id="alignment27">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <child>
+                              <object class="GtkHBox" id="hbox30">
+                                <property name="visible">True</property>
+                                <child>
+                                  <object class="StarButton" id="ratingBox">
+                                    <property name="visible">True</property>
+                                    <accessibility>
+                                      
+                                    </accessibility>
+                                    <child internal-child="accessible">
+                                      <object class="AtkObject" id="a11y-ratingBox1">
+                                        <property name="AtkObject::accessible-name" translatable="yes">rating</property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                              </object>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"/>
+                          </packing>
+                        </child>
+                        <child>
+                          <object class="GtkHBox" id="hbox1">
+                            <property name="visible">True</property>
+                            <child>
+                              <object class="GtkSpinButton" id="yieldsBox">
+                                <property name="visible">True</property>
+                                <property name="can_focus">True</property>
+                                <property name="digits">2</property>
+                                <property name="adjustment">adjustment1</property>
+                                <property name="climb_rate">1</property>
+                                <accessibility>
+                                  
+                                </accessibility>
+                                <child internal-child="accessible">
+                                  <object class="AtkObject" id="a11y-yieldsBox1">
+                                    <property name="AtkObject::accessible-name" translatable="yes">Yield</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="expand">False</property>
+                                <property name="position">0</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <object class="GtkComboBoxEntry" id="yield_unitBox">
+                                <property name="visible">True</property>
+                                <property name="focus_on_click">False</property>
+                                <accessibility>
+                                  
+                                </accessibility>
+                                <property name="model">model1</property>
+                                <child>
+                                  <object class="GtkCellRendererText" id="renderer1"/>
+                                  <attributes>
+                                    <attribute name="text">0</attribute>
+                                  </attributes>
+                                </child>
+                                <child internal-child="accessible">
+                                  <object class="AtkObject" id="a11y-yield_unitBox1">
+                                    <property name="AtkObject::accessible-name" translatable="yes">Yield Unit</property>
+                                  </object>
+                                </child>
+                              </object>
+                              <packing>
+                                <property name="position">1</property>
+                              </packing>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_EXPAND | GTK_SHRINK | GTK_FILL</property>
+                            <property name="y_options">GTK_SHRINK | GTK_FILL</property>
+                          </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </object>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="padding">6</property>
+                        <property name="position">0</property>
+                      </packing>
+                    </child>
+                  </object>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </object>
+</interface>
+

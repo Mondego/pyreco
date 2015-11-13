@@ -1,0 +1,451 @@
+MMO-ish demo
+============
+
+This demo creates a large field of objects (5000 rectangles), randomly distributed.
+It then spawns 1000 threads, each representing a 'non-player character', a small colored circle, that wanders drunkenly around the space.
+
+Each browser has its own independent viewport to the field, 1024x1024 pixels.
+
+Quadtrees are used to manage the display of the background objects (rectangles), the moving objects (the circles), and the browser viewports.
+
+The display is done via an html5 2d canvas support, and has been tested on Chrome, Firefox, Safari.  It also works on iOS.  [I've tested it on my iPhone over 3G as well].
+
+Changes to each 'viewport' are sent via websocket.
+
+Quadtree
+========
+
+The original quadtree implementation (some really old code of mine) was able to handle the 1000 objects, but the CPU load was rather high (80% @ 2.3GHz), so I've pushed that code into Cython.
+
+So in order to run this you'll need to build the Cython extension thus::
+
+ $ python setup.py build_ext --inplace
+
+
+
+This is a very simple demo using websockets to provide access to a
+python prompt on a server via a browser.  The back door interface is
+usually provided via a socket (usually a unix socket for security
+reasons), but this approach will work in a pinch.  Back door
+interfaces are invaluable during development/debugging.
+
+I recommend this code be run over a 'wss' socket (i.e., websocket+TLS)
+for obvious reasons.
+
+The 'terminal' aspect of the javascript is rather clunky, and could
+use some improvement - donations from javascript jockeys are
+appreciated!
+
+In the console/terminal:
+
+  $ python term.py
+
+In your browser, bring up 'term.html':
+
+  https://localhost:9001/term.html
+
+Note: you may want to use your own x509 cert rather than the test cert
+distributed with Shrapnel.
+
+
+Note: This SSH implementation was written by Eric Huss, probably around 2005-2006.
+It has been modified so as to integrate it into the shrapnel/coro package directly.
+
+python implementation of SSH2
+
+Eric's Python SSH Library
+=========================
+
+Introduction
+------------
+This is a python implementation of the SSH2 protocol.  No effort was made to support SSH1.
+It uses Andrew Kuchling's pycrypto library (version 1.9a6).
+
+This implementation is based on the following revisions of the IETF drafts.  Future revisions may change certain parts of the protocol, but that is unlikely.
+
+---------- draft -------------------------          --- became RFC ---
+
+draft-ietf-secsh-architecture-15.txt                     RFC 4251
+draft-ietf-secsh-assignednumbers-05.txt                  RFC 4250
+draft-ietf-secsh-auth-kbdinteract-05.txt                 RFC 4256
+draft-ietf-secsh-connect-18.txt                          RFC 4254
+draft-ietf-secsh-dh-group-exchange-04.txt                RFC 4419
+draft-ietf-secsh-filexfer-04.txt                        [draft 13]
+draft-ietf-secsh-fingerprint-01.txt                          ?
+draft-ietf-secsh-gsskeyex-07.txt                         RFC 4462
+draft-ietf-secsh-newmodes-00.txt                         RFC 4344
+draft-ietf-secsh-publickeyfile-04.txt                    RFC 4716
+draft-ietf-secsh-transport-17.txt                        RFC 4253
+draft-ietf-secsh-userauth-18.txt                         RFC 4252
+
+Overview
+--------
+This is a very simple overview of the SSH protocol and how it maps to this library's source tree.  The IETF secsh architecture document describes the basic architecture of the protocol.
+
+The base-level protocol is called the "transport".  You will find its implementation in ssh/transport/transport.py.  A subclass of the transport is made to implement either a server or a client (currently only the client is implemented).
+
+The transport is responsible for protocol negotiation, key exchange, encryption, compression, and message authenticity.
+
+The transport may use any type of low-level transmission transports as long as they guarantee in-order delivery.  TCP is a perfect example.  To support different types of transmission types, the functionality is abstracted in the l4_transport directory (L4 meaning the 4th layer of the OSI network model).  You may then use different socket libraries (select vs. poll) or even transmit over other media such as a serial cable (though serial does not offer guaranteed transmission, so it may be a poor choice).
+
+The transport-layer features are abstracted in their respective directories:
+cipher - Implements encryption/decryption.
+compression - Implements compression.
+keys - Formatting and handling of various key types.
+key_exchange - The key exchange algorithm (only diffie-hellman).
+mac - Message authentication codes.
+
+Services
+--------
+The SSH transport layer supports different "services".  Currently there are two services, "userauth" and "connection".  Userauth provides the mechanism to authenticate a user.  Connection is the service through which most data transfer is done.  On the transport layer you send a message to ask if it is ok to use a service, and if so go ahead.
+
+Userauth
+--------
+Userauth is a generic mechanism for authentication.  It supports various different authentication mechanisms.  Currently this library supports publickey and password.  Host-based authentication could be trivially added if needed.
+
+Connection
+----------
+The connection layer is a generic mechanism to have various different "channels".  You can multiplex multiple channels over a single connection.  The connection layer is also flow-controlled with finite sized windows.
+
+Currently the only channel written is the interactive session channel.  It executes the user's shell on the remote end.
+
+Debugging
+---------
+There is a debugging facility to capture messages and selectively display them to the user.  A transport instance has 1 instance of the debug class.  The debug class receives messages and determines if the user wants to see them.  You can subclass the debug class and change how the information is presented.
+
+Naming Convention
+-----------------
+Any method that is used to handle incoming packets has the prefix 'msg_'.
+
+All modules and methods are in lowercase_with_underscores.
+
+All classes are in Capitalized_Words_With_Underscores.   This is not a standard naming convention, and actually labelled as "ugly!" in the Python style guide.  However, I've never liked CapitalizedWords without underscores because it is hard to read.  Java style mixedCase has the exact same problem.  I like using capitalized words because it is distinguished.  I have never done this before, so this is an experiment with this library.
+
+
+Setup: 
+
+   Before starting the follwoing procedure, you need to set SSLEAY_CONFIG
+   variable.  E.g.:
+
+      export SSLEAY_CONFIG=-config /usr/home/cslater/Head/godspeed/coroutine/coro_ssl_data/openssl.cnf
+
+To create self-signed certificate: 
+---------------------------------
+
+Use the following command:
+
+openssl req -new -x509 -newkey rsa:1024 -keyout demo-key.txt -out demo-cert.txt -sha1 -nodes -days 3653
+
+This creates self-signed certificate in demo-cert.pem file and the corresponsing private key
+in demo-key.pem file which are imported as default keys by coro_ssl module.
+
+To create a Root CA certificate and then sign new certificates with it:
+-----------------------------------------------------------------------
+
+Steps for creating new demo certificate and key:
+
+1.  ./CA.pl -newca
+2.  cd demoCA
+3.  ../CA.pl -newreq
+4.  ../CA.pl -sign
+5.  new certficate is in ./newcerts  (demoCA/newcerts)
+6.  Remove decoded text from certificate (above "-----BEGIN CERTIFICATE-----")
+7.  remove rsa encryption from key (openssl rsa < newreq.pem > demo-key.txt)
+
+# -*- Mode: text -*-
+# $Header$
+
+ [Note: this is the README for the 1999 eGroups coroutine library, from
+  which some of the files in this directory are derived]
+
+The main coroutine code in python. Also includes many coro-specific modules.
+The core coroutine code is located in python_modules/_coromodule.c and 
+python_modules/coro/*
+
+Excerpt from The Art of Computer Programming by D. E. Knuth:
+
+  "Subroutines are special cases of more general program
+   components, called coroutines.  In contrast to the unsymmetric
+   relationship between a main routine and a subroutine, there is
+   complete symmetry between coroutines, which call on each other."
+
+Coroutines can be used to implement 'cooperative multitasking' (as
+opposed to 'preemptive multitasking').  Coroutines are very
+lightweight (on Win32, they are called 'fibers'), and when combined
+with an I/O-based scheduling system, they can be used to build highly
+scalable network servers.
+
+Coroutines give you the best of both worlds: the efficiency of
+asynchronous state-machine programming, with the simplicity of
+threaded programming; straight-line, readable code.  And they don't
+have the overhead of preemptive threads - nearly everything happens in
+user-space.  Also, complexity is lower because you don't have to worry
+about locking access to shared state.
+
+At eGroups, we have been using coroutines to build several
+infrastructure components; including database, http, rpc proxies and
+servers; most of these servers are designed to be able to handle
+thousands of concurrent tcp connections efficiently.  [our bsd3
+machines are configured with kern.maxfilesperproc=16384]
+
+We are currently using a coroutine library for x86-unix written by
+Edgar Toernig:
+
+   http://lecker.essen.de/~froese/
+
+[Note: this library is under the LGPL]
+
+We have tested it on Linux, FreeBSD2, and FreeBSD3.  Since Win32
+provides a native coroutine system, it should be possible to port the
+C module without too much trouble.
+
+Using a coroutine library written in assembly is inherently
+non-portable, and so there is no chance that it will ever become a
+part of standard Python.  Another difficulty with this coroutine
+implementation is that each coroutine requires its own stack (just
+like any multi-threaded system), which can be very wasteful and limits
+scalability.  For example, if each coroutine is given a 64KB stack
+(small by C standards), then 10,000 coroutines will require 625MB of
+memory, just for the stacks.  And with such a small stack, overflow is
+always a danger.
+
+A better solution is to implement coroutines in the VM, by separating
+the VM stack and the C stacks... such a VM would add no wasted
+overhead for coroutines because all frames would be heap-allocated.
+Christian Tismer has already tackled this problem with 'stackless
+Python':
+
+  http://www.stackless.com/
+
+Our hope is that this code will encourage others to experiment with
+coroutines, and help create a demand for them in a possible future
+Python implementation.
+
+The main advantage to this low-level implementation is that it can be
+used with an unmodified Python; we build the extension module as a dll
+on our systems.  Try before you buy!
+
+-------------------------------------------------------------------
+
+Files Overview:
+--------------
+
+coroutinemodule.c
+  Python interface to the 'coro' library.
+
+coro.py
+  Scheduler, socket wrapper, utilities.
+  Implements the socket I/O scheduling system, a Thread class that
+  should be compatible with the one in the standard library, and a
+  few utility functions.  Hides the ugly details of the low-level
+  coroutine module as much as possible.
+    
+fringe.py
+  Very simple demonstration of the low-level coroutine module, this
+  is a solution to the 'same-fringe' problem: how to compare two
+  differently-structured trees efficiently, leaf-by-leaf.
+
+corodns.py
+  An interface to the Python/Demo/dns library that puts a synchronous
+  face on an asynchronous resolver using coroutines.
+
+backdoor.py
+  A simple Python interpreter accessible via 'telnet'.  This can be
+  used to examine, control, and debug long-running servers.
+
+corourl.py
+  Fetch an http url with a coroutine.
+
+coromysql.py
+  implementation of the MySQL protocol.  some emulation of the
+  canonical MySQL module.
+
+coro_ehttpd.py
+  medusa-ish web server
+
+crawler.py
+  A coroutine-based web crawler.  A good way to increase the
+  peak-bandwidth bill from your ISP.
+
+  Features:
+  1) uses a pool of 'worker threads'.
+  2) async dns
+  3) filter function to decide what links to follow
+     [I used it to crawl a huge interconnected set of web
+      sites by comparing SOA records]
+  Bug:
+  1) knows nothing about the 'robots' system.
+
+Coming Attractions
+------------------
+We're hoping to release our RPC system, and a C implementation
+of the select/poll guts of coro.py that eliminates lots of busy-work
+from the main event loop.
+
+Mailing List
+------------
+[you saw this one coming, didn't you]
+Join the eGroup.  Get in on the Ground Floor!
+
+    http://www.egroups.com/group/python-coro/
+
+Shameless HeadHunting
+---------------------
+Want to work at an exciting young company on the bleeding edge of
+hosted applications and communication?  How fast can you get to San
+Francisco?
+
+    http://www.egroups.com/info/jobs.html
+
+-------------------------------------------------------------------
+Authors: Sam Rushing, Libor Michalek, and Brandon Long.
+Conditions: Pythonish. See Copyrights in files.
+Status: In Flux.  Subject to Change, Rearrangement, Reimplementation, etc..
+Documentation: None.  The man pages for the coro library are good, though.
+
+-Sam
+
+# -*- Mode: Text -*-
+
+Lots of stuff going on here, trying to support lots of different
+configurations.
+
+The Variables Are:
+
+  1) OS event model
+     coro_orig.py:
+       This is the version of coro.py
+       distributed with the original 'eGroups coroutine' package.
+       it supports select() and poll().
+
+       Note: the support for poll() is now outdated; Python-2.0
+       supports poll() in the *select* module.  The function poll_with_poll()
+       needs to be reworked.  Check out the version of asyncore.py from
+       python cvs (i.e., it should be in 2.1) for an example of how to translate
+       it
+
+     coro_kqueue.py:
+       Somewhat simplified version of coro_orig.py, plus support for
+       kqueue via the kqsyscall module.  [see kqsyscallmodule.c]
+
+     coro_poll.py:
+       This version implements most of the data structure twiddling and
+       dispatch/scheduling in C (using poll(2)), it should be faster.
+
+     coro_rtsig_scheduler.py:
+       Yet another version.  I think this was an attempt to work with
+       Linux's real-time signal stuff.  Don't know if it ever worked.
+
+     At this point it's fairly obvious that we need to separate out
+     event dispatch/scheduling into a separate module.  I will probably
+     turn 'coro.py' into 'coro_thread.py', 'coro_socket.py', and 'coro_event.py',
+     or something like that.
+
+  2) coroutine implementation
+
+     coroutinemodule.c:
+       This interfaces to the x86 'libcoro'.
+
+     coroutine.py:
+       An emulation of the above for Stackless Python.
+
+-Sam
+
+This directory contains a collection of generic Pyrex include files.
+Do not put any pyrex modules in here.
+
+Note: early in Shrapnel's history, we built our own 'libc.pxd' and 'python.pxi' files
+that eventually made their way into the Pyrex/Cython distribution, and have since been
+split into separate 'packages' (e.g., libc.string.memcpy).  What remains here should
+truly be either platform or shrapnel-specific.
+
+
+The idea here is that the pxd files distributed with Cython are
+missing some things.  Since we expect/hope that they'll eventually
+make it into the distribution, we want to ease the transition as much
+as possible.  To that end, 'xlibc.time' should eventually be fixed as
+'libc.time'.
+
+This Python library was evolved at IronPort Systems and has been provided
+as open source by Cisco Systems under an MIT license.
+
+Intro
+=====
+
+Shrapnel is a library for high-performance concurrency.  It uses
+coroutines to implement user threads on top of either kqueue (FreeBSD,
+OS X) or /dev/epoll (linux), and is written mostly in Pyrex/Cython,
+supporting both 32-bit and 64-bit platforms.  It is the culmination of
+about 8 years of work at IronPort Systems, a provider of high-speed
+mail appliances.  It was open-sourced by Cisco Systems in late 2011.
+
+Status
+======
+
+Apr 18, 2013: I've recently merged in a long chain of branches for several
+important features:
+
+ * Support for pure-cython servers (branch 'pxdfix')
+ * Full DNS resolver implementation (branch 'dns-cache')
+ * Updated postgres support (branch 'postgres')
+ * Included OpenSSL support
+
+
+Features
+========
+
+ * Lightweight threads, event-driven scheduler.
+ * Underneath: non-blocking operations on descriptors, like sockets and pipes.
+ * On top, synchronous API for straight-line, simple code.
+ * Highly scalable - tens or hundreds of thousands of connections/threads.
+ * Thread synchronization primitives, like mutexes, semaphores, etc...
+ * with_timeout(): wrap any funcall with a timeout.
+ * Wait on kqueue events like file/directory changes, signals, processes, etc... [kqueue only]
+ * DNS resolver and cache
+ * HTTP server and client (plus WebSocket, RFC6455 & hixie-76)
+ * Support for TLS via tlslite and openssl (plus NPN for both)
+ * other protocols/codecs: ldap, asn1, ftp, mysql, postgres, AMQP_.
+ * `MIT License`_.
+ 
+Advantages
+==========
+
+Compared to other concurrency packages available for Python,
+Shrapnel gives you:
+
+ * Speed and Efficiency: the entire scheduler, poller, socket layer,
+   synchronization objects, etc... are written in Cython, with an
+   emphasis on performance and low memory usage.
+ * Stock Python: Shrapnel works with out-of-the-box CPython [2.X].  No
+   special variants of Python are needed, it will even work with your
+   OS's OEM python installation. So you can use all the external
+   libraries/modules you've come to rely on.
+ * No Callbacks: no need to cuisinart your application into a thousand
+   callbacks.  No need to decompose every action into a state
+   machine.  Write simple, performant code now without having to send
+   your programmers to class.
+ * Drop to Cython for speed: all the capabilities of the system are
+   available from Cython, so you can e.g. write a server entirely in
+   Cython for speed.  You can interface with external libraries, and
+   do thread switches from Cython or C.  It's even possible to have
+   external C code call back into shrapnel.  This makes it easy to
+   prototype your application in Python, and then push only the hot
+   spots into Cython.
+ * Timeouts: Shrapnel provides a general timeout mechanism that can be
+   used to wrap any function call with a timeout.
+ * Profiler: Thread-aware profiler generates HTML reports.
+
+
+Tutorial
+========
+
+See http://ironport.github.com/shrapnel/tutorial.html
+
+API Documentation
+=================
+
+See http://ironport.github.com/shrapnel/
+
+.. _MIT License: http://www.opensource.org/licenses/mit-license.html
+.. _AMQP: https://github.com/samrushing/amqp-shrapnel
+

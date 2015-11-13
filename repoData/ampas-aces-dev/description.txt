@@ -1,0 +1,668 @@
+**Version 0.7.1 (February 26, 2014):**
+  * Bug fixes:
+    * Corrects the value for a constant in the F65-F55 10-bit IDTs
+    * Corrects the forward Rec2020 ODTs which were applying the inverse tonescale
+
+**Version 0.7 (January 31, 2014):**
+  * Updates RRT (forward and inverse):
+    * Removal of rendering primaries to address a bug which can occur during exposure grading. Tone scale application is performed directly on ACES RGB.
+    * Replacement of the red chroma scaling step with an alternate algorithm to modify reds. This algorithm darkens red colors instead of reducing chroma.
+    * Addition of a "glow module", which provides a modest lightening and saturation boost in colored shadow regions.
+  * Updates ODTs (forwards and inverses):
+    * Removal of rendering primaries to address a bug which can occur during exposure grading. Tone scale application is performed directly on OCES RGB.
+    * New math in the ODT tone scale application to preserve more highlight saturation. 
+    * Device code value clamping added at 1.0, followed by a hue-restore step. 
+    * Change in clipping behavior for the Rec709 and rgbMonitor ODTs to produce a closer visual approximation to image appearance on a digital cinema projector.
+  * Major refactoring of the code to centralize functions common to more than one transform. This removes redundancy and makes the differences between various transforms easier to identify for implementers.  
+  * Updates IDTs:
+    * ARRI Alexa - Updates sensor-RGB-to-ACES matrices for nitpickers. ACES diff ~0.00x; LAB diff after RRT + rgbMonitor ODT ~0.0000x.
+    * Sony - Updates the Sony IDTs. F35 ODTs updated to use the piecewise S-Log1 function. F65/F55 IDTs are now included for daylight and tungsten.
+  * Fixes a typo in ACES-to-ACESproxy10 transform.
+
+**Version 0.2.2 (October 15, 2013):**
+  * Restores DCDM ODT with bug fixes
+  * Adds a variant of the DCDM ODT that limits X'Y'Z' values to P3D60 gamut
+  * Relabels "dcsim" ODTs as "d60sim"
+  * Modifies highlight handling of "d60sim" ODTs to avoid chromaticity shifts in highlights
+  * Refactors ODTs for consistency and improved readability
+  * Fixes a bug in RRT that could occur when ACES triplets had a negative valued mean
+
+**Version 0.2.1 (August 9, 2013):**
+  * Temporarily removes DCDM ODT
+  * Renames RGB monitor ODT transforms to clarify intended usage (dcsim)
+
+**Version 0.2 (August 2, 2013):**
+  * Updates RRT
+  * Updates ODTs
+  * Adds ODTs for display devices which conform to ITU-R BT.2020
+  * ODTs renamed to better reflect their intended usage
+  * Adds Inverse RRT and ODT transforms
+  * Adds ACESlog and ACESproxy documentation, reference implementations, and images  
+  * ctlrender removed - now part of CTL
+  * Documents binaries removed and replaced with links
+  * New distribution links for golden reference images
+
+**Version 0.1.1 (June 25, 2012):**
+  * Adds dw ratio preserving ODT tone curve
+  * Fixes possible underflow conditions in RRT and ODT CTL transforms
+  * Bug fix in ctlrender to avoid streaks in output images
+  * Adds reverse RRT and RDT splines
+  * Modifies RDT spline coefficients to tweak shadow reproduction
+
+**Version 0.1 (March 1, 2012):**
+  * Initial Release
+  * Transforms including RRT
+  * Test Images
+  * ctlrender sample application for processing images through CTL transforms
+  * ACES, ADX, and CTL documentation
+## IMPORTANT ##
+ 
+ACES related documents can be downloaded from:
+https://www.dropbox.com/sh/nt9z9m6utzvkc5m/ebopy8K7Y6
+
+#### Documents Superseded by International Standards ####
+ 
+In some cases the linked documents have been superseded by various international standards. In those cases the information and data included in the standards documents take precedent. 
+
+The following lists Academy documents that have an international standards counterpart:
+
+* __ACES_1.0.1.pdf__
+	* SMPTE ST 2065-1:2012 - Academy Color Encoding Specification (ACES)
+	
+* __APD-ADX_v1.1.pdf__
+	* SMPTE ST 2065-2:2012 - Academy Printing Density (APD) — Spectral 
+	Responsivities, Reference Measurement Device and Spectral Calculation 
+	* SMPTE ST 2065-3:2012 - Academy Density Exchange Encoding (ADX) — Encoding 
+	Academy Printing Density (APD) Values
+
+#### International Standards ####
+ 
+Some ACES related documents are _only_ available as international standards and
+so can not be distributed via the link above. The following is a list of such documents:
+
+* SMPTE ST 2065-4:2013 - ACES Image Container File Layout
+## Reference Images ##
+
+Reference, or "golden", images have been provided in order to help you verify 
+your implementation of the reference color transformations. Each provided file 
+is the output of one of the transforms included with the system. One pictorial, 
+one synthetically generated test chart, and one file representative of a film 
+scan have been provided.
+
+The reference images can be downloaded individually or as a zip file from: 
+<https://www.dropbox.com/sh/bwfrqgyt20gz4dp/XShJffwvXR>
+
+
+### Confirmation ###
+To confirm your implementation of each transform:
+
+  1. Use your implementation to process the "input" reference image appropriate to the transform being tested
+  2. Compare the output from your implementation to the provided corresponding "output" reference image
+
+### Directory Structure ###
+  * **camOrig/**
+    * *DigitalLAD.2048x1556.dpx* - original file representative of a film scan
+    * *SonyF35.StillLife.dpx* - pictorial camera original file
+  * **aces/**
+    * *DigitalLAD.2048x1556.exr* - `adx10_to_aces.ctl` applied to *DigitalLAD.2048x1556.dpx*
+    * *SonyF35.StillLife.exr* - `idt-SonyF35-10i.ctl` applied to *SonyF35.StillLife.dpx*
+    * *syntheticChart.01.exr* - synthetic ACES image
+  * **oces/**
+    * *SonyF35.StillLife_oces.exr* - `rrt.ctl` applied to *SonyF35.StillLife.exr*
+    * *syntheticChart.01_oces.exr* - `rrt.ctl` applied to *syntheticChart.01.exr*
+  * **odt/**
+    * *SonyF35.StillLife_dcdm_p3d60.tiff* - `odt_dcdm_p3d60.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_dcdm.tiff* - `odt_dcdm.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_p3d60.tiff* - `odt_p3d60.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_p3dci.tiff* - `odt_p3dci.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec709_d60sim_full_100nits.tiff* - `odt_rec709_d60sim_full_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec709_d60sim_smpte_100nits.tiff* - `odt_rec709_d60sim_smpte_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec709_full_100nits.tiff* - `odt_rec709_full_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec709_smpte_100nits.tiff* - `odt_rec709_smpte_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec2020_d60sim_full_100nits.tiff* - `odt_rec2020_d60sim_full_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec2020_d60sim_smpte_100nits.tiff* - `odt_rec2020_d60sim_smpte_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec2020_full_100nits.tiff* - `odt_rec2020_full_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rec2020_smpte_100nits.tiff* - `odt_rec2020_smpte_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *SonyF35.StillLife_rgbMonitor_d60sim_100nits.tiff* - `odt_rgbMonitor_d60sim_100nits.ctl` applied to *SonyF35.StillLife_oces.exr*
+    * *syntheticChart.01_dcdm_p3d60.tiff* - `odt_dcdm_p3d60.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_dcdm.tiff* - `odt_dcdm.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_p3d60.tiff* - `odt_p3d60.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_p3dci.tiff* - `odt_p3dci.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec709_d60sim_full_100nits.tiff* - `odt_rec709_d60sim_full_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec709_d60sim_smpte_100nits.tiff* - `odt_rec709_d60sim_smpte_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec709_full_100nits.tiff* - `odt_rec709_full_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec709_smpte_100nits.tiff* - `odt_rec709_smpte_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec2020_d60sim_full_100nits.tiff* - `odt_rec2020_d60sim_full_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec2020_d60sim_smpte_100nits.tiff* - `odt_rec2020_d60sim_smpte_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec2020_full_100nits.tiff* - `odt_rec2020_full_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rec2020_smpte_100nits.tiff* - `odt_rec2020_smpte_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+    * *syntheticChart.01_rgbMonitor_d60sim_100nits.tiff* - `odt_rgbMonitor_d60sim_100nits.ctl` applied to *syntheticChart.01_oces.exr*
+  * **aces_inv/**
+    * *SonyF35.StillLife_aces_from_rrt_inv.exr* - `rrt_inv.ctl` applied to `SonyF35.StillLife_oces.exr`
+    * *SonyF35.StillLife_aces_from_acesProxy10.exr* - `acesProxy10_to_aces.ctl` applied to *SonyF35.StillLife_acesProxy10.tiff*
+    * *SonyF35.StillLife_aces_from_acesProxy12.exr* - `acesProxy12_to_aces.ctl` applied to *SonyF35.StillLife_acesProxy12.tiff*
+    * *SonyF35.StillLife_aces_from_acesLog16i.exr* - `acesLog_to_aces.ctl` applied to *SonyF35.StillLife_acesLog16i.tiff*
+    * *SonyF35.StillLife_aces_from_acesLog32f.exr* - `acesLog_to_aces.ctl` applied to *SonyF35.StillLife_acesLog32f.tiff*
+    * *syntheticChart.01_aces_from_rrt_inv.exr* - `rrt_inv.ctl` applied to `syntheticChart.01_oces.exr`
+    * *syntheticChart.01_aces_from_acesProxy10.exr* - `acesProxy10_to_aces.ctl` applied to *syntheticChart.01_acesProxy10.tiff*
+    * *syntheticChart.01_aces_from_acesProxy12.exr* - `acesProxy12_to_aces.ctl` applied to *syntheticChart.01_acesProxy12.tiff*
+    * *syntheticChart.01_aces_from_acesLog16i.exr* - `acesLog_to_aces.ctl` applied to *syntheticChart.01_acesLog16i.tiff*
+    * *syntheticChart.01_aces_from_acesLog32f.exr* - `acesLog_to_aces.ctl` applied to *syntheticChart.01_acesLog32f.tiff*
+  * **oces_inv/**
+    * *SonyF35.StillLife_oces_from_dcdm_inv.tiff* - `odt_dcdm_inv.ctl` applied to *SonyF35.StillLife_dcdm.exr*
+    * *SonyF35.StillLife_oces_from_dcdm_p3d60_inv.tiff* - `odt_dcdm_inv.ctl` applied to *SonyF35.StillLife_dcdm_p3d60.exr*
+    * *SonyF35.StillLife_oces_from_p3d60_inv.exr* - `odt_p3d60_inv.ctl` applied to *SonyF35.StillLife_p3d60.tiff*
+    * *SonyF35.StillLife_oces_from_p3dci_inv.exr* - `odt_p3dci_inv.ctl` applied to *SonyF35.StillLife_p3dci.tiff*
+    * *SonyF35.StillLife_oces_from_rec709_d60sim_full_100nits_inv.exr* - `odt_rec709_d60sim_full_100nits_inv.ctl` applied to *SonyF35.StillLife_rec709_d60sim_full_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec709_d60sim_smpte_100nits_inv.exr* - `odt_rec709_d60sim_smpte_100nits_inv.ctl` applied to *SonyF35.StillLife_rec709_smpte_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec709_full_100nits.exr_inv* - `odt_rec709_full_100nits_inv.ctl` applied to *SonyF35.StillLife_rec709_full_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec709_smpte_100nits.exr_inv* - `odt_rec709_smpte_100nits_inv.ctl` applied to *SonyF35.StillLife_rec709_smpte_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec2020_d60sim_full_100nits_inv.exr* - `odt_rec2020_d60sim_full_100nits_inv.ctl` applied to *SonyF35.StillLife_rec2020_d60sim_full_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec2020_d60sim_smpte_100nits_inv.exr* - `odt_rec2020_d60sim_smpte_100nits_inv.ctl` applied to *SonyF35.StillLife_rec2020_d60sim_smpte_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec2020_full_100nits_inv.exr* - `odt_rec2020_full_100nits_inv.ctl` applied to *SonyF35.StillLife_rec2020_full_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rec2020_smpte_100nits_inv.exr* - `odt_rec2020_smpte_100nits_inv.ctl` applied to *SonyF35.StillLife_rec2020_smpte_100nits.tiff*
+    * *SonyF35.StillLife_oces_from_rgbMonitor_d60sim_100nits_inv.exr* - `odt_rgbMonitor_d60sim_100nits_inv.ctl` applied to *SonyF35.StillLife_rgbMonitor_d60sim_100nits.tiff*   
+    * *syntheticChart.01_oces_from_dcdm.tiff* - `odt_dcdm_inv.ctl` applied to *syntheticChart.01_dcdm.exr*
+    * *syntheticChart.01_oces_from_dcdm_p3d60.tiff* - `odt_dcdm_inv.ctl` applied to *syntheticChart.01_dcdm_p3d60.exr*
+    * *syntheticChart.01_oces_from_p3d60_inv.exr* - `odt_p3d60_inv.ctl` applied to *syntheticChart.01_p3d60.tiff*
+    * *syntheticChart.01_oces_from_p3dci_inv.exr* - `odt_p3dci_inv.ctl` applied to *syntheticChart.01_p3dci.tiff*
+    * *syntheticChart.01_oces_from_rec709_d60sim_full_100nits_inv.exr* - `odt_rec709_d60sim_full_100nits_inv.ctl` applied to *syntheticChart.01_rec709_d60sim_full_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec709_d60sim_smpte_100nits_inv.exr* - `odt_rec709_d60sim_smpte_100nits_inv.ctl` applied to *syntheticChart.01_rec709_d60sim_smpte_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec709_full_100nits_inv.exr* - `odt_rec709_full_100nits_inv.ctl` applied to *syntheticChart.01_rec709_full_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec709_smpte_100nits_inv.exr* - `odt_rec709_smpte_100nits_inv.ctl` applied to *syntheticChart.01_rec709_smpte_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec2020_d60sim_full_100nits_inv.exr* - `odt_rec2020_d60sim_full_100nits_inv.ctl` applied to *syntheticChart.01_rec2020_d60sim_full_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec2020_d60sim_smpte_100nits_inv.exr* - `odt_rec2020_d60sim_smpte_100nits_inv.ctl` applied to *syntheticChart.01_rec2020_d60sim_smpte_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec2020_full_100nits_inv.exr* - `odt_rec2020_full_100nits_inv.ctl` applied to *syntheticChart.01_rec2020_full_100nits.tiff*
+    * *syntheticChart.01_oces_from_rec2020_smpte_100nits_inv.exr* - `odt_rec2020_smpte_100nits_inv.ctl` applied to *syntheticChart.01_rec2020_smpte_100nits.tiff*
+    * *syntheticChart.01_oces_from_rgbMonitor_d60sim_100nits_inv.exr* - `odt_rgbMonitor_d60sim_100nits_inv.ctl` applied to *syntheticChart.01_rgbMonitor_d60sim_100nits.tiff*
+  * **lmt/**
+    * *SonyF35.StillLife_lmt_aces_v0.1.1.exr* - `lmt_aces_v0.1.1.ctl` applied to *SonyF35.StillLife.exr*
+    * *SonyF35.StillLife_lmt_aces_v0.2.2.exr* - `lmt_aces_v0.2.2.ctl` applied to *SonyF35.StillLife.exr*
+    * *SonyF35.StillLife_lmt_lowContrast.exr* - `lmt_lowContrast.ctl` applied to *SonyF35.StillLife.exr*
+    * *syntheticChart.01_lmt_aces_v0.1.1.exr* - `lmt_aces_v0.1.1.ctl` applied to *syntheticChart.01.exr*
+    * *syntheticChart.01_lmt_aces_v0.2.2.exr* - `lmt_aces_v0.2.2.ctl` applied to *syntheticChart.01.exr*
+    * *syntheticChart.01_lmt_lowContrast.exr* - `lmt_lowContrast.ctl` applied to *syntheticChart.01.exr*
+
+**NOTE**: The following image files are included for the confirmation of transform implementations only.  
+ACESlog and ACESproxy image data is **NOT** intended to be written out to image files. See the ACESlog and ACESproxy documentation for more information.
+
+  * **acesLog/**
+    * *SonyF35.StillLife_acesLog16i.tiff* - `aces_to_acesLog16i.ctl` applied to *SonyF35.StillLife.exr*
+    * *SonyF35.StillLife_acesLog32f.tiff* - `aces_to_acesLog32f.ctl` applied to *SonyF35.StillLife.exr*
+    * *syntheticChart.01_acesLog16i.tiff* - `aces_to_acesLog16i.ctl` applied to *syntheticChart.01.exr*
+    * *syntheticChart.01_acesLog32f.tiff* - `aces_to_acesLog32f.ctl` applied to *syntheticChart.01.exr*
+  * **acesProxy/**
+    * *SonyF35.StillLife_acesProxy10.tiff* - `aces_to_acesProxy10.ctl` applied to *SonyF35.StillLife.exr*
+    * *SonyF35.StillLife_acesProxy12.tiff* - `aces_to_acesProxy12.ctl` applied to *SonyF35.StillLife.exr*
+    * *syntheticChart.01_acesProxy10.tiff* - `aces_to_acesProxy10.ctl` applied to *syntheticChart.01.exr*
+    * *syntheticChart.01_acesProxy12.tiff* - `aces_to_acesProxy12.ctl` applied to *syntheticChart.01.exr*
+
+# License Terms for Academy Color Encoding System Components #
+
+Academy Color Encoding System (ACES) software and tools are provided by the
+Academy under the following terms and conditions: A worldwide, royalty-free,
+non-exclusive right to copy, modify, create derivatives, and use, in source and
+binary forms, is hereby granted, subject to acceptance of this license.
+
+Copyright © 2013 Academy of Motion Picture Arts and Sciences (A.M.P.A.S.).
+Portions contributed by others as indicated. All rights reserved.
+
+Performance of any of the aforementioned acts indicates acceptance to be bound
+by the following terms and conditions:
+
+* Copies of source code, in whole or in part, must retain the above copyright
+notice, this list of conditions and the Disclaimer of Warranty.
+
+* Use in binary form must retain the above copyright notice, this list of
+conditions and the Disclaimer of Warranty in the documentation and/or other
+materials provided with the distribution.
+
+* Nothing in this license shall be deemed to grant any rights to trademarks,
+copyrights, patents, trade secrets or any other intellectual property of
+A.M.P.A.S. or any contributors, except as expressly stated herein.
+
+* Neither the name "A.M.P.A.S." nor the name of any other contributors to this
+software may be used to endorse or promote products derivative of or based on
+this software without express prior written permission of A.M.P.A.S. or the
+contributors, as appropriate.
+
+This license shall be construed pursuant to the laws of the State of
+California, and any disputes related thereto shall be subject to the
+jurisdiction of the courts therein.
+
+Disclaimer of Warranty: THIS SOFTWARE IS PROVIDED BY A.M.P.A.S. AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT ARE DISCLAIMED. IN NO EVENT SHALL A.M.P.A.S., OR ANY
+CONTRIBUTORS OR DISTRIBUTORS, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, RESITUTIONARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, THE ACADEMY SPECIFICALLY
+DISCLAIMS ANY REPRESENTATIONS OR WARRANTIES WHATSOEVER RELATED TO PATENT OR
+OTHER INTELLECTUAL PROPERTY RIGHTS IN THE ACADEMY COLOR ENCODING SYSTEM, OR
+APPLICATIONS THEREOF, HELD BY PARTIES OTHER THAN A.M.P.A.S.,WHETHER DISCLOSED OR
+UNDISCLOSED.
+## Academy Color Encoding System Developer Resources ##
+
+The Academy Color Encoding System (ACES) is a set of components that facilitates
+a wide range of motion picture workflows while eliminating the ambiguity of
+today's file formats. The framework is designed to support both all digital and
+hybrid film-digital motion picture workflows.
+
+The basic ACES components are:
+
+* Color encoding and metric specifications, file format specifications, color
+transformations, and an open source reference implementation. 
+* A set of reference images and calibration targets for film scanners and
+recorders 
+* Documentation on the architecture and software tools
+
+This toolkit is intended to serve as a distribution mechanism for key components
+of the framework including the reference implementation transforms, reference
+images, and documentation.
+
+### Package Contents ###
+ 
+* [`documents/`](./documents) - ACES related documents 
+* [`images/`](./images) - "golden" images created using the reference implementation transforms
+* [`transforms/`](./transforms) - ACES reference implementation transforms
+
+### Changes from Previous Releases ###
+
+**v0.7**
+*  Updates forward and inverse RRT
+*  Updates forward and inverse ODTs
+*  Updates the ARRI Alexa and Sony IDTs
+*  Fixes a typo in the ACES-to-ACESproxy10 transform
+
+**v0.7.1**
+* Bug fixes
+
+For a detailed list of changes see the [CHANGELOG](./CHANGELOG.md).
+
+### Versioning ###
+ 
+The links to the current and all past versions of the ACES Developer Resources
+can be found at [https://github.com/ampas/aces-dev/releases](https://github.com/ampas/aces-dev/releases).  
+
+Source code is version controlled using the [git version control system](http://git-scm.com/) and hosted on Github at [https://github.com/ampas/aces-dev/](https://github.com/ampas/aces-dev/).
+
+### Branch Structure ###
+
+__Master Branch__
+ 
+The current release version of ACES can always be found at the HEAD of the
+master branch.  Previous release versions are tagged and are also commits on the
+master.  The master branch contains no intermediate commits so all commits on
+the master branch are tagged and represent a release of ACES.
+
+__Dev Branch__
+ 
+All commits between releases will be on the dev branch. Commits on the dev
+branch will be included in the next release version. Commits staged on the dev
+branch, but not yet merged into the master, should be considered non-critical. 
+All intermediate commits for a release will be staged on the dev branch before
+being merged into the master and tagged.
+
+__Hotfixes Branch__
+ 
+In some cases it may be necessary to create a hotfixes branch.  The hotfixes
+branch will include important, but not fully tested, fixes for bugs found in a
+particular release.
+Hotfixes should only be implemented by developers if the bug they are intended
+to correct is encountered in the course of production and is deemed to be a
+barrier to using a particular ACES release.  Hotfixes, once fully tested, will
+be merged into dev branch, and ultimately the master.    
+
+## Prerequisites ##
+
+### Color Transformation Language ###
+
+Color Transformation Language (CTL) can be downloaded from
+https://github.com/ampas/CTL
+
+## License Terms for Academy Color Encoding System Components ##
+
+Academy Color Encoding System (ACES) software and tools are provided by the
+Academy under the following terms and conditions: A worldwide, royalty-free,
+non-exclusive right to copy, modify, create derivatives, and use, in source and
+binary forms, is hereby granted, subject to acceptance of this license.
+
+Copyright © 2013 Academy of Motion Picture Arts and Sciences (A.M.P.A.S.).
+Portions contributed by others as indicated. All rights reserved.
+
+Performance of any of the aforementioned acts indicates acceptance to be bound
+by the following terms and conditions:
+
+* Copies of source code, in whole or in part, must retain the above copyright
+notice, this list of conditions and the Disclaimer of Warranty.
+
+* Use in binary form must retain the above copyright notice, this list of
+conditions and the Disclaimer of Warranty in the documentation and/or other
+materials provided with the distribution.
+
+* Nothing in this license shall be deemed to grant any rights to trademarks,
+copyrights, patents, trade secrets or any other intellectual property of
+A.M.P.A.S. or any contributors, except as expressly stated herein.
+
+* Neither the name "A.M.P.A.S." nor the name of any other contributors to this
+software may be used to endorse or promote products derivative of or based on
+this software without express prior written permission of A.M.P.A.S. or the
+contributors, as appropriate.
+
+This license shall be construed pursuant to the laws of the State of
+California, and any disputes related thereto shall be subject to the
+jurisdiction of the courts therein.
+
+Disclaimer of Warranty: THIS SOFTWARE IS PROVIDED BY A.M.P.A.S. AND CONTRIBUTORS
+"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+THE IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+NON-INFRINGEMENT ARE DISCLAIMED. IN NO EVENT SHALL A.M.P.A.S., OR ANY
+CONTRIBUTORS OR DISTRIBUTORS, BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+SPECIAL, EXEMPLARY, RESITUTIONARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
+LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR
+PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
+OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+
+WITHOUT LIMITING THE GENERALITY OF THE FOREGOING, THE ACADEMY SPECIFICALLY
+DISCLAIMS ANY REPRESENTATIONS OR WARRANTIES WHATSOEVER RELATED TO PATENT OR
+OTHER INTELLECTUAL PROPERTY RIGHTS IN THE ACADEMY COLOR ENCODING SYSTEM, OR
+APPLICATIONS THEREOF, HELD BY PARTIES OTHER THAN A.M.P.A.S.,WHETHER DISCLOSED OR
+UNDISCLOSED.
+
+The IDT maker package for the ARRI ALEXA camera includes the following files:
+    README (this file)
+    v2_IDT_maker.py
+    v3_IDT_maker.py
+    AlexaParameters-2013-Nov-13
+      Alexa_aces_matrix.txt
+      Alexa-st-nd-aces_matrix.txt
+    idt_maker_script.csh
+
+v2_IDT_maker.py generates IDTs appropriate for imagery produced with SUP 2.0 firmware loaded.
+v3_IDT_maker.py generates IDTs appropriate for imagery produced with SUP 3.0 or later firmware loaded.
+The 'raw' v3 IDTs include a variant to handle the different colorimetry produced as a side effect of using the internal ALEXA Studio ND 1.3 filter; it is assumed that somewhere upstream, the corresponding ND 1.3-specific channel gains were used before the deBayer processing.
+
+Both scripts depend on the open-source NumPy library. If running Mac OS X 10.6 or higher, numpy is pre-installed. Users of linux systems, Windows systems, or older Mac OS X systems can find the NumPy package at
+     http://sourceforge.net/projects/numpy/files/
+     
+idt_maker_script.csh was used to generate the files in the subdirectories v2 and v3.
+These directories contain a series of .ctl idts created using v2_IDT_maker.py and v3_IDT_maker.py and exist as a convenience rather than running v2_IDT_maker.py and v2_IDT_maker.py.  If any additional IDTs are required or if the validity of an CTL file in these subdirectories is in question v2_IDT_maker.py and v3_IDT_maker.py should be used.
+Canon Input Device Transform (IDT) files are published on the following website.http://usa.canon.com/cusa/professional/standard_display/aces
+## Important note to users ##
+The transforms in this directory have been supplied by, or developed in
+conjunction with, the manufacturer. They are provided as part of this repository
+for your convenience only. You should not assume the IDTs provided in this
+directory are the latest developed by the manufacturer. Every effort is made to
+keep these IDTs up-to-date, but users should *always* contact the manufacturer
+directly to confirm they have the latest IDTs for their camera.
+
+## Note to camera manufacturers ##
+If you would like IDTs for your cameras included in this repository, or would
+like to update IDTs currently in the repository, please open a pull request. You
+may also contact aces-dev@oscars.org for assistance with IDT creation,
+IDT submission, or to include links to IDTs hosted on your site.
+
+
+RED supplied IDTs can be applied to R3D files by using the "Use ACES" export option in REDCINE-X PRO:
+
+REDCINE-X PRO is can be downloaded from:
+https://www.red.com/downloads
+
+
+## Look Modification Transforms (LMTs) ##
+
+### Introduction to LMTs ###
+
+Look Modification Transforms (LMTs) provide a means to apply a variety of looks 
+to ACES images. LMTs can be used to change the look from the default associated 
+with the RRT to a custom look that one might want to use. The range of looks 
+achievable via LMTs are only limited by the transformation used in the LMT 
+itself.
+
+LMTs are always ACES to ACES transformations. In the example below the resulting 
+ACES data after the application of an LMT is designated ACES'. ACES' data is 
+then viewed through the RRT and an ODT as illustrated in the diagram below.  
+
+                |--------|           |-------|          |-------|
+                |        |           |       |          |       |
+      ACES ---->|  LMT   |---ACES'-->|  RRT  |---OCES-->|  ODT  |--> code values
+                |        |           |       |          |       |
+                |--------|           |-------|          |-------| 
+
+### Building LMTS ###
+
+The most direct way to create an LMT is to interactively modify the ACES data 
+via an LMT algorithm while viewing the results through the RRT and ODT. An 
+example of an LMT created using this method is the "low contrast" LMT included 
+with this package. ( see [`lmt_lowContrast.ctl`](./lmt_lowContrast.ctl) )
+
+A second method to create an LMT is to use the inverse RRT and ODT transforms. 
+This method can be used to create a match to an existing look such as a Print 
+Film Emulation or a custom look that was created outside of the ACES system. An 
+example of an LMT created using this method is the ACESv0.1.1 LMT included
+with this package. ( see [`lmt_aces_v0.1.1.ctl`](./lmt_aces_v0.1.1.ctl) )
+
+The ACESv0.1.1 LMT was created to provide a means to recreate the look of the
+RRT/ODT system that shipped with v0.1.1 of the ACES system.  To create that LMT 
+a series of ACES values were processed through the v0.1.1 RRT and the v0.1.1 
+P3D60 ODT. The resulting P3 code values were then transformed through the 
+inverse v0.7.1 P3D60 ODT and v0.7.1 RRT to yield a corresponding set of ACES' 
+values. The original ACES values and the ACES' values were used to build a 3DLUT 
+mapping which serves as the ACESv0.1.1 LMT.  The following diagram illustrates 
+the process.
+
+Generation of the LMT to ACESv0.1.1:
+
+                  |--------|          |--------|
+    :- - - :      | RRT    |          | P3D60  |
+    : ACES :----->| v0.1.1 |---OCES-->|  ODT   |---- P3 code values
+    :  ||  :      |        |          | v0.1.1 |          |
+    :  ||  :      |--------|          |--------|          |
+    : 3DLUT:                                              |
+    :mapping                                              |
+    :  ||  :      |--------|          |-------|           |
+    :  \/  :      | Inverse|          |Inverse|           |
+    : ACES':<-----| RRT    |<--OCES---| P3D60 |<----------| 
+    : - - -:      | v0.7.1 |          |  ODT  |   
+       ::         |--------|          |-------|        
+       ::
+       ::
+       :: = = = = = ::
+                    ::
+                    ::
+                    \/
+                |--------|           |------|          |------|
+                | LMT to |           | RRT  |          | ODT  |
+      ACES ---->|  ACES  |---ACES'-->|v0.7.1|---OCES-->|v0.7.1|--> code values
+                | v0.1.1 |           |------|          |------|
+                |--------|
+
+
+### Application of LMTs to ACES data ###
+                
+Care should be taken when using LMTs as the LMT transform can inadvertently 
+limit the dynamic range of the ACES' data. This is particularly true when using 
+LMTs created using the inverse ODT and inverse RRT method. This is due to the
+inherent dynamic range limitation associated with the transformation of ACES
+data to a set of display code values. ACES' data created using an LMT such as
+the ACESv0.1.1 LMT will not contain the additional dynamic range usually 
+associated with ACES data.
+
+ACES' data created using an algorithmic LMT such as the low contrast LMT may not
+have this limitation. If the algorithm does not limit the dynamic range during
+the transformation from ACES to ACES', then the LMT may preserve the dynamic 
+range associated with the original ACES data.
+## Matrix Algebra in CTL ##
+
+### Summary of Differences ###
+
+In CTL, the order of operands in vector-times-matrix functions is swapped from "textbook" convention. Textbooks often use “matrix-times-column vector” notation, but CTL functions expect “row vector-times-matrix” syntax. 
+
+(See page 40-41 of [CtlManual.pdf](https://github.com/ampas/CTL/tree/master/doc/CtlManual.pdf) for more information )
+
+To convert textbook notation to row vector-times-matrix notation requires transposing all matrices and swapping the left and right operands of multiplications.
+
+#### Textbook notation ####
+
+Textbooks write the operation of a matrix times a vector as:
+
+    [A][B] = [C]
+
+    where A is a '3 row by 3 column' matrix (3x3)
+          B is a '3 row by 1 column' vector (3x1)
+          C is a '3 row by 1 column' vector (3x1)
+
+With example values provided for `[A]`, and in the context of RGB color vectors for `[B]` and `[C]`, this becomes:
+
+     _         _   _      _     _       _
+    |  1  2  3  | |  R_in  |   |  R_out  |
+    |  4  5  6  | |  G_in  | = |  G_out  |
+    |_ 7  8  9 _| |_ B_in _|   |_ B_out _|
+
+which, when written out fully is equivalent to:
+
+    R_out =  1 * R_in +  2 * G_in +  3 * B_in;
+    G_out =  4 * R_in +  5 * G_in +  6 * B_in;
+    B_out =  7 * R_in +  8 * G_in +  9 * B_in;
+
+#### CTL notation ####
+In CTL, the same operation would be:
+
+    const float A[3][3] =                 // This is a 3 row by 3 column vector (3x3)
+    {                                     // * Note that it is transposed from 
+      { 1,  4,  7},                       //   the textbook representation.
+      { 2,  5,  8},
+      { 3,  6,  9}
+    };  
+    
+    float B[3] = { R_in, G_in, B_in };    // This is a 1 row by 3 column vector (1x3)
+    
+    float C[3] = mult_f3_f33( B, A);      // Results in a 1 row by 3 column vector (1x3)
+    
+    float R_out = C[0];
+    float G_out = C[1];
+    float B_out = C[2];
+
+
+
+### Values for ACES Transforms ###
+In the ACES tranforms, built-in CTL functions are used for vector/matrix operations. 
+
+For absolute clarity of the math being performed, the name of a matrix as it appears in the CTL transforms is listed below, followed by the explicit math that would calculate the same result as the built in functions when using that matrix as the operator.
+
+Note that the values of the matrix coefficients are rounded to 10 decimal places, but in actual implementations, indexing into stored variables at full precision of the specific implementation is preferred.
+
+
+
+#### OCES-to-XYZ Matrix ####
+In the code, matrix is created by:
+
+    const float OCES_PRI_2_XYZ_MAT[4][4] = RGBtoXYZ(OCES_PRI,1.0);
+
+and the operator would be:
+  
+    const float RGB_out[3] = mult_f3_f44( RGB_in, OCES_PRI_2_XYZ_MAT);
+
+Equivalent math:
+
+    R_out =  0.9525523959 * R_in +  0.0000000000 * G_in +  0.0000936786 * B_in;
+    G_out =  0.3439664498 * R_in +  0.7281660966 * G_in + -0.0721325464 * B_in;
+    B_out =  0.0000000000 * R_in +  0.0000000000 * G_in +  1.0088251844 * B_in;
+
+#### XYZ-to-P3D60 Primaries Matrix ####
+In the code, matrix is created by:
+
+    const float XYZ_2_P3D60_PRI_MAT[4][4] = XYZtoRGB(P3D60_PRI,1.0);
+
+and the operator would be:
+  
+    const float RGB_out[3] = mult_f3_f44( RGB_in, XYZ_2_P3D60_PRI_MAT);
+
+Equivalent math:
+
+    R_out =  2.4027414142 * R_in + -0.8974841639 * G_in + -0.3880533700 * B_in;
+    G_out = -0.8325796487 * R_in +  1.7692317536 * G_in +  0.0237127115 * B_in;
+    B_out =  0.0388233815 * R_in + -0.0824996856 * G_in +  1.0363685997 * B_in;
+
+#### P3D60-to-XYZ Matrix ####
+In the code, matrix is created by:
+
+    const float P3D60_2_XYZ_MAT[4][4] = RGBtoXYZ(P3D60_PRI,1.0);
+
+and the operator would be:
+  
+    const float XYZ_out[3] = mult_f3_f44( RGB_in, P3D60_2_XYZ_PRI_MAT);
+
+Equivalent math:
+
+	X_out =  0.5049495342 * R_in +  0.2646814889 * G_in +  0.1830150515 * B_in;
+	Y_out =  0.2376233102 * R_in +  0.6891706692 * G_in +  0.0732060206 * B_in;
+	Z_out =  0.0000000000 * R_in +  0.0449459132 * G_in +  0.9638792711 * B_in;
+
+#### XYZ-to-P3DCI Primaries Matrix ####
+In the code, matrix is created by:
+
+    const float XYZ_2_P3DCI_PRI_MAT[4][4] = XYZtoRGB(P3DCI_PRI,1.0);
+
+and the operator would be:
+  
+    const float RGB_out[3] = mult_f3_f44( RGB_in, XYZ_2_P3DCI_PRI_MAT);
+
+Equivalent math:
+
+    R_out =  2.7253940305 * R_in + -1.0180030062 * G_in + -0.4401631952 * B_in;
+    G_out = -0.7951680258 * R_in +  1.6897320548 * G_in +  0.0226471906 * B_in;
+    B_out =  0.0412418914 * R_in + -0.0876390192 * G_in +  1.1009293786 * B_in;
+
+#### XYZ-to-REC709 Primaries Matrix ####
+In the code, matrix is created by:
+
+    const float XYZ_2_REC709_PRI_MAT[4][4] = XYZtoRGB(REC709_PRI,1.0);
+
+and the operator would be:
+  
+    const float RGB_out[3] = mult_f3_f44( RGB_in, XYZ_2_REC709_PRI_MAT);
+
+Equivalent math:
+
+    R_out =  3.2409699419 * R_in + -1.5373831776 * G_in + -0.4986107603 * B_in;
+    G_out = -0.9692436363 * R_in +  1.8759675015 * G_in +  0.0415550574 * B_in;
+    B_out =  0.0556300797 * R_in + -0.2039769589 * G_in +  1.0569715142 * B_in;
+
+#### XYZ-to-REC2020 Primaries Matrix ####
+In the code, matrix is created by:
+
+    const float XYZ_2_REC2020_PRI_MAT[4][4] = XYZtoRGB(REC2020_PRI,1.0);
+
+and the operator would be:
+  
+    const float RGB_out[3] = mult_f3_f44( RGB_in, XYZ_2_REC2020_PRI_MAT);
+
+Equivalent math:
+
+    R_out =  1.7166511880 * R_in + -0.3556707838 * G_in + -0.2533662814 * B_in;
+    G_out = -0.6666843518 * R_in +  1.6164812366 * G_in +  0.0157685458 * B_in;
+    B_out =  0.0176398574 * R_in + -0.0427706133 * G_in +  0.9421031212 * B_in;
+
+#### Bradford Chromatic Adaptation Matrix from D60 to D65 ####
+In the code, matrix is created by:
+
+    const float CAT_MAT[3][3] = calculate_cat_matrix( ACES_PRI.white, REC709_PRI.white);
+
+and the operator would be:
+  
+    const float XYZ_out[3] = mult_f3_f44( XYZ_in, CAT_MAT);
+
+Equivalent math:
+
+    X_out =  0.987224   * X_in + -0.00611327 * Y_in +  0.0159533  * Z_in;
+    Y_out = -0.00759836 * X_in +  1.00186    * Y_in +  0.00533002 * Z_in;
+    Z_out =  0.00307257 * X_in + -0.00509595 * Y_in +  1.08168    * Z_in;

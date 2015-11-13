@@ -1,0 +1,831 @@
+= DESCRIPTION:
+
+Manages Perl installation and provides cpan_module, to install modules 
+from... CPAN.
+
+= REQUIREMENTS:
+
+This cookbook requires at least Ohai 0.3.0 to get the Perl language data:
+
+{
+  "perl": {
+    "version": "5.10.0",
+    "archname": "x86_64-linux-gnu-thread-multi"
+  }
+}
+
+Tested with Perl 5.8.8 and 5.10.0.
+
+= USAGE:
+
+To install a module from CPAN:
+
+  cpan_module "App::Munchies"
+
+Optionally, installation can forced with the 'force' parameter.
+
+  cpan_module "App::Munchies"
+    force true
+  end
+
+= LICENSE and AUTHOR:
+
+Author:: Joshua Timberman (<joshua@opscode.com>)
+Copyright:: 2009, Opscode, Inc.
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+
+redis-py
+========
+
+This is the Python interface to the Redis key-value store.
+
+
+Usage
+-----
+
+    >>> import redis
+    >>> r = redis.Redis(host='localhost', port=6379, db=0)
+    >>> r.set('foo', 'bar')   # or r['foo'] = 'bar'
+    True
+    >>> r.get('foo')   # or r['foo']
+    'bar'
+
+For a complete list of commands, check out the list of Redis commands here:
+http://code.google.com/p/redis/wiki/CommandReference
+
+Installation
+------------
+
+    $ sudo easy-install redis
+
+alternatively:
+
+    $ sudo pip install redis
+
+From sources:
+
+    $ sudo python setup.py install
+
+Versioning scheme
+-----------------
+
+redis-py is versioned after Redis. So, for example, redis-py 2.0.0 should 
+support all the commands available in Redis 2.0.0. 
+
+API Reference
+-------------
+
+### append(self, key, value)
+  Appends the string _value_ to the value at _key_. If _key_
+  doesn't already exist, create it with a value of _value_.
+  Returns the new length of the value at _key_.
+
+### bgrewriteaof(self)
+  Tell the Redis server to rewrite the AOF file from data in memory.
+
+### bgsave(self)
+  Tell the Redis server to save its data to disk.  Unlike save(),
+  this method is asynchronous and returns immediately.
+
+### blpop(self, keys, timeout=0)
+  LPOP a value off of the first non-empty list
+  named in the _keys_ list.
+  
+  If none of the lists in _keys_ has a value to LPOP, then block
+  for _timeout_ seconds, or until a value gets pushed on to one
+  of the lists.
+  
+  If timeout is 0, then block indefinitely.
+
+### brpop(self, keys, timeout=0)
+  RPOP a value off of the first non-empty list
+  named in the _keys_ list.
+  
+  If none of the lists in _keys_ has a value to LPOP, then block
+  for _timeout_ seconds, or until a value gets pushed on to one
+  of the lists.
+  
+  If timeout is 0, then block indefinitely.
+
+### dbsize(self)
+  Returns the number of keys in the current database
+
+### decr(self, name, amount=1)
+  Decrements the value of _key_ by _amount_.  If no key exists,
+  the value will be initialized as 0 - _amount_
+
+### delete(self, *names)
+  Delete one or more keys specified by _names_
+
+### encode(self, value)
+  Encode _value_ using the instance's charset
+
+### execute_command(self, *args, **options)
+  Sends the command to the redis server and returns it's response
+
+### exists(self, name)
+  Returns a boolean indicating whether key _name_ exists
+
+### expire(self, name, time)
+  Set an expire flag on key _name_ for _time_ seconds
+
+### expireat(self, name, when)
+  Set an expire flag on key _name_. _when_ can be represented
+  as an integer indicating unix time or a Python datetime object.
+
+### flush(self, all_dbs=False)
+
+### flushall(self)
+  Delete all keys in all databases on the current host
+
+### flushdb(self)
+  Delete all keys in the current database
+
+### get(self, name)
+  Return the value at key _name_, or None of the key doesn't exist
+
+### get_connection(self, host, port, db, password, socket_timeout)
+  Returns a connection object
+
+### getset(self, name, value)
+  Set the value at key _name_ to _value_ if key doesn't exist
+  Return the value at key _name_ atomically
+
+### hdel(self, name, key)
+  Delete _key_ from hash _name_
+
+### hexists(self, name, key)
+  Returns a boolean indicating if _key_ exists within hash _name_
+
+### hget(self, name, key)
+  Return the value of _key_ within the hash _name_
+
+### hgetall(self, name)
+  Return a Python dict of the hash's name/value pairs
+
+### hincrby(self, name, key, amount=1)
+  Increment the value of _key_ in hash _name_ by _amount_
+
+### hkeys(self, name)
+  Return the list of keys within hash _name_
+
+### hlen(self, name)
+  Return the number of elements in hash _name_
+
+### hmget(self, name, keys)
+  Returns a list of values ordered identically to _keys_
+
+### hmset(self, name, mapping)
+  Sets each key in the _mapping_ dict to its corresponding value
+  in the hash _name_
+
+### hset(self, name, key, value)
+  Set _key_ to _value_ within hash _name_
+  Returns 1 if HSET created a new field, otherwise 0
+
+### hsetnx(self, name, key, value)
+  Set _key_ to _value_ within hash _name_ if _key_ does not
+  exist.  Returns 1 if HSETNX created a field, otherwise 0.
+
+### hvals(self, name)
+  Return the list of values within hash _name_
+
+### incr(self, name, amount=1)
+  Increments the value of _key_ by _amount_.  If no key exists,
+  the value will be initialized as _amount_
+
+### info(self)
+  Returns a dictionary containing information about the Redis server
+
+### keys(self, pattern='*')
+  Returns a list of keys matching _pattern_
+
+### lastsave(self)
+  Return a Python datetime object representing the last time the
+  Redis database was saved to disk
+
+### lindex(self, name, index)
+  Return the item from list _name_ at position _index_
+  
+  Negative indexes are supported and will return an item at the
+  end of the list
+
+### listen(self)
+  Listen for messages on channels this client has been subscribed to
+
+### llen(self, name)
+  Return the length of the list _name_
+
+###lock(self, name, timeout=None, sleep=0.10000000000000001)
+  Return a new Lock object using key _name_ that mimics
+  the behavior of threading.Lock.
+  
+  If specified, _timeout_ indicates a maximum life for the lock.
+  By default, it will remain locked until release() is called.
+  
+  _sleep_ indicates the amount of time to sleep per loop iteration
+  when the lock is in blocking mode and another client is currently
+  holding the lock.
+
+### lpop(self, name)
+  Remove and return the first item of the list _name_
+
+### lpush(self, name, value)
+  Push _value_ onto the head of the list _name_
+
+### lrange(self, name, start, end)
+  Return a slice of the list _name_ between
+  position _start_ and _end_
+  
+  _start_ and _end_ can be negative numbers just like
+  Python slicing notation
+
+### lrem(self, name, value, num=0)
+  Remove the first _num_ occurrences of _value_ from list _name_
+  
+  If _num_ is 0, then all occurrences will be removed
+
+### lset(self, name, index, value)
+  Set _position_ of list _name_ to _value_
+
+### ltrim(self, name, start, end)
+  Trim the list _name_, removing all values not within the slice
+  between _start_ and _end_
+  
+  _start_ and _end_ can be negative numbers just like
+  Python slicing notation
+
+### mget(self, keys, *args)
+  Returns a list of values ordered identically to _keys_
+  
+  * Passing *args to this method has been deprecated *
+
+### move(self, name, db)
+  Moves the key _name_ to a different Redis database _db_
+
+### mset(self, mapping)
+  Sets each key in the _mapping_ dict to its corresponding value
+
+### msetnx(self, mapping)
+  Sets each key in the _mapping_ dict to its corresponding value if
+  none of the keys are already set
+
+### parse_response(self, command_name, catch_errors=False, **options)
+  Parses a response from the Redis server
+
+### ping(self)
+  Ping the Redis server
+
+### pipeline(self, transaction=True)
+  Return a new pipeline object that can queue multiple commands for
+  later execution. _transaction_ indicates whether all commands
+  should be executed atomically. Apart from multiple atomic operations,
+  pipelines are useful for batch loading of data as they reduce the
+  number of back and forth network operations between client and server.
+
+### pop(self, name, tail=False)
+  Pop and return the first or last element of list _name_
+  
+  This method has been deprecated, use _Redis.lpop_ or _Redis.rpop_ instead.
+
+### psubscribe(self, patterns)
+  Subscribe to all channels matching any pattern in _patterns_
+
+### publish(self, channel, message)
+  Publish _message_ on _channel_.
+  Returns the number of subscribers the message was delivered to.
+
+### punsubscribe(self, patterns=[])
+  Unsubscribe from any channel matching any pattern in _patterns_.
+  If empty, unsubscribe from all channels.
+
+### push(self, name, value, head=False)
+  Push _value_ onto list _name_.
+  
+  This method has been deprecated, use __Redis.lpush__ or __Redis.rpush__ instead.
+
+### randomkey(self)
+  Returns the name of a random key
+
+### rename(self, src, dst, **kwargs)
+  Rename key _src_ to _dst_
+  
+  * The following flags have been deprecated *
+  If _preserve_ is True, rename the key only if the destination name
+      doesn't already exist
+
+### renamenx(self, src, dst)
+  Rename key _src_ to _dst_ if _dst_ doesn't already exist
+
+### rpop(self, name)
+  Remove and return the last item of the list _name_
+
+### rpoplpush(self, src, dst)
+  RPOP a value off of the _src_ list and atomically LPUSH it
+  on to the _dst_ list.  Returns the value.
+
+### rpush(self, name, value)
+  Push _value_ onto the tail of the list _name_
+
+### sadd(self, name, value)
+  Add _value_ to set _name_
+
+### save(self)
+  Tell the Redis server to save its data to disk,
+  blocking until the save is complete
+
+### scard(self, name)
+  Return the number of elements in set _name_
+
+### sdiff(self, keys, *args)
+  Return the difference of sets specified by _keys_
+
+### sdiffstore(self, dest, keys, *args)
+  Store the difference of sets specified by _keys_ into a new
+  set named _dest_.  Returns the number of keys in the new set.
+
+### select(self, db, host=None, port=None, password=None, socket_timeout=None)
+  Switch to a different Redis connection.
+  
+  If the host and port aren't provided and there's an existing
+  connection, use the existing connection's host and port instead.
+  
+  Note this method actually replaces the underlying connection object
+  prior to issuing the SELECT command.  This makes sure we protect
+  the thread-safe connections
+
+### set(self, name, value, **kwargs)
+  Set the value at key _name_ to _value_
+  
+  * The following flags have been deprecated *
+  If _preserve_ is True, set the value only if key doesn't already
+  exist
+  If _getset_ is True, set the value only if key doesn't already exist
+  and return the resulting value of key
+
+### setex(self, name, value, time)
+  Set the value of key _name_ to _value_
+  that expires in _time_ seconds
+
+### setnx(self, name, value)
+  Set the value of key _name_ to _value_ if key doesn't exist
+
+### sinter(self, keys, *args)
+  Return the intersection of sets specified by _keys_
+
+### sinterstore(self, dest, keys, *args)
+  Store the intersection of sets specified by _keys_ into a new
+  set named _dest_.  Returns the number of keys in the new set.
+
+### sismember(self, name, value)
+  Return a boolean indicating if _value_ is a member of set _name_
+
+### smembers(self, name)
+  Return all members of the set _name_
+
+### smove(self, src, dst, value)
+  Move _value_ from set _src_ to set _dst_ atomically
+
+### sort(self, name, start=None, num=None, by=None, get=None, desc=False, alpha=False, store=None)
+  Sort and return the list, set or sorted set at _name_.
+  
+  _start_ and _num_ allow for paging through the sorted data
+  
+  _by_ allows using an external key to weight and sort the items.
+  Use an "*" to indicate where in the key the item value is located
+  
+  _get_ allows for returning items from external keys rather than the
+  sorted data itself.  Use an "*" to indicate where int he key
+  the item value is located
+  
+  _desc_ allows for reversing the sort
+  
+  _alpha_ allows for sorting lexicographically rather than numerically
+  
+  _store_ allows for storing the result of the sort into
+  the key _store_
+
+### spop(self, name)
+  Remove and return a random member of set _name_
+
+### srandmember(self, name)
+  Return a random member of set _name_
+
+### srem(self, name, value)
+  Remove _value_ from set _name_
+
+### subscribe(self, channels)
+  Subscribe to _channels_, waiting for messages to be published
+
+### substr(self, name, start, end=-1)
+  Return a substring of the string at key _name_. _start_ and _end_
+  are 0-based integers specifying the portion of the string to return.
+
+### sunion(self, keys, *args)
+  Return the union of sets specifiued by _keys_
+
+### sunionstore(self, dest, keys, *args)
+  Store the union of sets specified by _keys_ into a new
+  set named _dest_.  Returns the number of keys in the new set.
+
+### ttl(self, name)
+  Returns the number of seconds until the key _name_ will expire
+
+### type(self, name)
+  Returns the type of key _name_
+
+### unsubscribe(self, channels=[])
+  Unsubscribe from _channels_. If empty, unsubscribe
+  from all channels
+
+### zadd(self, name, value, score)
+  Add member _value_ with score _score_ to sorted set _name_
+
+### zcard(self, name)
+  Return the number of elements in the sorted set _name_
+
+### zincr(self, key, member, value=1)
+  This has been deprecated, use zincrby instead
+
+### zincrby(self, name, value, amount=1)
+  Increment the score of _value_ in sorted set _name_ by _amount_
+
+### zinter(self, dest, keys, aggregate=None)
+
+###zinterstore(self, dest, keys, aggregate=None)
+  Intersect multiple sorted sets specified by _keys_ into
+  a new sorted set, _dest_. Scores in the destination will be
+  aggregated based on the _aggregate_, or SUM if none is provided.
+
+### zrange(self, name, start, end, desc=False, withscores=False)
+  Return a range of values from sorted set _name_ between
+  _start_ and _end_ sorted in ascending order.
+  
+  _start_ and _end_ can be negative, indicating the end of the range.
+  
+  _desc_ indicates to sort in descending order.
+  
+  _withscores_ indicates to return the scores along with the values.
+   The return type is a list of (value, score) pairs
+
+### zrangebyscore(self, name, min, max, start=None, num=None, withscores=False)
+  Return a range of values from the sorted set _name_ with scores
+  between _min_ and _max_.
+  
+  If _start_ and _num_ are specified, then return a slice of the range.
+  
+  _withscores_ indicates to return the scores along with the values.
+  The return type is a list of (value, score) pairs
+
+### zrank(self, name, value)
+  Returns a 0-based value indicating the rank of _value_ in sorted set
+  _name_
+
+### zrem(self, name, value)
+  Remove member _value_ from sorted set _name_
+
+### zremrangebyrank(self, name, min, max)
+  Remove all elements in the sorted set _name_ with ranks between
+  _min_ and _max_. Values are 0-based, ordered from smallest score
+  to largest. Values can be negative indicating the highest scores.
+  Returns the number of elements removed
+
+### zremrangebyscore(self, name, min, max)
+  Remove all elements in the sorted set _name_ with scores
+  between _min_ and _max_. Returns the number of elements removed.
+
+### zrevrange(self, name, start, num, withscores=False)
+  Return a range of values from sorted set _name_ between
+  _start_ and _num_ sorted in descending order.
+  
+  _start_ and _num_ can be negative, indicating the end of the range.
+  
+  _withscores_ indicates to return the scores along with the values
+  as a dictionary of value => score
+
+### zrevrank(self, name, value)
+  Returns a 0-based value indicating the descending rank of
+  _value_ in sorted set _name_
+
+### zscore(self, name, value)
+  Return the score of element _value_ in sorted set _name_
+
+### zunion(self, dest, keys, aggregate=None)
+
+### zunionstore(self, dest, keys, aggregate=None)
+  Union multiple sorted sets specified by _keys_ into
+  a new sorted set, _dest_. Scores in the destination will be
+  aggregated based on the _aggregate_, or SUM if none is provided.
+
+Author
+------
+
+redis-py is developed and maintained by Andy McCurdy (sedrik@gmail.com).
+It can be found here: http://github.com/andymccurdy/redis-py
+
+Special thanks to:
+
+* Ludovico Magnocavallo, author of the original Python Redis client, from
+  which some of the socket code is still used.
+* Alexander Solovyov for ideas on the generic response callback system.
+* Paul Hubbard for initial packaging support.
+
+
+# Spacelog
+
+This is the source code for [Spacelog](http://spacelog.org/), a website for experiencing space missions through radio transcripts and photography.
+
+With the exception of the font and some icons (credited on the mission about page), everything outside the `missions` directory is released under the [CC-0](http://creativecommons.org/publicdomain/zero/1.0/) license. Mission images are credited in the mission's `_meta` file.
+
+We hope you have fun with this -- we have!
+
+[The Spacelog team](mail:spacelog@googlegroups.com)
+
+
+
+# Getting involved without technical knowledge
+
+## Correcting minor errors
+
+For small errors (whether transcription errors, or something like spelling mistakes on the rest of the site), it's probably easiest to just email them through to us at [spacelog@googlegroups.com](mail:spacelog@googlegroups.com).
+
+## Helping transcribe a new mission
+
+If you [download the PDFs from NASA](http://www.jsc.nasa.gov/history/mission_trans/mission_transcripts.htm) for a mission you want to add, you'll discover that you can select text in them and copy it out into a text editor, or something like OpenOffice Writer, Apple's Pages or Microsoft Word. You'll see lots of lines that look like this:
+
+    02 07 55 20 CMP I believe we've had a problem here.
+
+However some of the lines will have errors (from the small, such as `O` instead of `0`, to the large such as entire lines being completely garbled). If you go back to the PDF, you can usually quite easily figure out what was originally typed out but which the automatic OCR didn't get right.
+
+There are also some non-dialogue lines. These should all be indented by a single tab; the most important ones are:
+
+        TAPE 2/1
+        PAGE 9
+
+which happen at the start of a new page of the PDF. In this case they mean that it's the first page of the transcript of tape 2, and is page 9 of the complete transcript. We particularly need the page number so we can link back to the original typescript in the site.
+
+If you clean up the text version like this, and send it through to us, we can do the rest (although it may take us a bit of time). Since some of the missions are quite long (hundreds of pages of transcript), you may want to share the load between a group. Whether you do that or decide to go it alone, it'd be great if you could let us know at at [spacelog@googlegroups.com](mail:spacelog@googlegroups.com) what you're working on, so we can help you out, and make sure you don't duplicate others' effort.
+
+### A quick note about multiple transcripts
+
+For Mercury-Atlas 6, there is only one transcript available, that of the air-to-ground radio communications (John Glenn's mike was hot through the entire mission). For Apollo 13, there is a second transcript from the Command Module recording, but it cuts out very early into the mission, so we didn't consider it worth including.
+
+However for many other missions there are multiple transcripts. If you're adding missions to Spacelog, please keep these transcripts in different files. We don't yet have support to identify them distinctly, but if you move them all into one big file it'll be impossible for us ever to work on that!
+
+# Getting involved with technical knowledge
+
+## Getting set up
+
+### Source code
+
+Clone the repository from git:
+
+    $ git clone git://github.com/Spacelog/Spacelog.git
+
+However for any changes you make (fixed, new missions, or even new website features), you will want to issue a pull request to us from another [github](http://github.com/) repository). In order to do that, you'll need to set up a github account, and while logged in go to [our repository there](http://github.com/Spacelog/Spacelog) and hit the "fork" button (top right, near the search box). This will create a copy of Spacelog under your github user; you can then grab the SSH URL (which will look like `git@github.com:<your user>/Spacelog.git`) and use for git clone, as:
+    
+    $ git clone <github SSH URL>
+
+You can then make changes, commit them to your local copy (`git commit`), push them up to your github copy (`git push`) and finally send us a pull request (which you do via the github website). Github has some great guides to getting started with git and github linked from their homepage once you're signed in, in particular [their description of forking a repository](http://help.github.com/fork-a-repo/).
+
+### Software to install
+
+ * python (and pip)
+ * redis (often packages as `python-redis`; we need Redis 2.0 or later)
+ * Xapian and its python bindings (the search engine library we use; often packaged as `python-xapian`)
+ * `CSS::Prepare` (a perl library for managing CSS; `sudo cpanm -f CSS::Prepare`; if you don't have `cpanm` there are [straightforward installation instructions](http://search.cpan.org/~miyagawa/App-cpanminus-1.1004/lib/App/cpanminus.pm#INSTALLATION) available)
+ * various python modules (run `pip install -r requirements.txt`)
+ * imagemagick and optipng (for building the stats images on the phase pages; this is optional)
+
+The easiest way to grab the python modules may be to build a `virtualenv` in the Spacelog checkout:
+
+	virtualenv ENV
+	ENV/bin/pip install -r requirements.txt
+
+then use `ENV/bin/python` where normally you'd use just `python`. (If it's recent enough, `virtualenv` may install a script to "activate" its copy of python in your shell, which you run as `source ENV/bin/activate`, or `ENV/Scripts/activate.bat` on Windows.)
+
+#### A word of caution
+
+We are currently locked to a specific version of Django, because we use 1.3 features but the release itself has a bug which prevents us from using it in development. Once there's a stable release of Django without this problem we'll move off this.
+
+## Running the code
+
+If you have `screen` installed and are using a virtualenv as above, you should be able to just run `make screen` to get everything running for you. You also need to run `make reindex` to load all the details of the missions. Then you can point your web browser at [http://dev.spacelog.org:8001/](http://dev.spacelog.org:8001/) and the global homepage should come up; from there you can navigate to other missions, which will appear at URLs such as [http://apollo11.dev.spacelog.org:8000/](http://apollo11.dev.spacelog.org:8000). The DNS is managed by us, and providing you're online everything will just work.
+
+`make screen` fires up an instance of `screen`, which is an easy way of running multiple programs on one terminal. Currently it leaves you looking at the development server log for the global homepage, but you can switch to a blank terminal by typing `^A 0`, ie: holding down the `ctrl` key, pressing `A`, releasing `ctrl` and then pressing `0`. This is a good place to run `make reindex` from.
+
+All our `make` commands will take care of the virtualenv for you; if you're not using one, you can use `PYTHON=python make <whatever>` instead.
+
+### The details
+
+If you can't use `make screen`, or simply if you wish to know how it all fits together under the skin, then here's the details. It's also helpful in case you're developing the code directly, since under certain circumstances the Django development server can crash, and will need restarting. Similarly if you add a new CSS file, you will currently have to restart the appropriate devcss server.
+
+We use redis for storage, so you need to have `redis-server` running before you run `make reindex` in the checkout directory, which will import all the mission data into redis. You may also want to do `make statsporn` to build the graphs for the phases page of how much was said at different times (and, in case we've added more graphs but haven't updated this, *other things* :-).
+
+You then need to have some other servers running on top of redis:
+
+ * `make devcss` will run `CSS::Prepare` in development mode, so changes to CSS files will be reflected automatically
+ * `make devcss_global` will run `CSS::Prepare` for the project homepage
+ * `make devserver` will run the mission-specific websites; if not using a `virtualenv`, `PYTHON=python make devserver` should do the trick
+ * `make devserver_global` will run the project homepage; if not using a `virtualenv`, `PYTHON=python make devserver_global` should do the trick
+
+### Hosts setup for offline use
+
+If you're not online, you can't use our development DNS, so you'll need edit `/etc/hosts` to include an alias `dev.spacelog.org`, plus aliases of the form `<mission>.dev.spacelog.org`, such as `apollo13.dev.spacelog.org` and `mercury6.dev.spacelog.org`; these all need to point to `localhost` (or to your virtual machine, if that's how you develop things). For instance, here's an `/etc/hosts` entry using `localhost` (put this in addition to the `localhost` line already in there):
+  
+    127.0.0.1		apollo13.dev.spacelog.org mercury6.dev.spacelog.org dev.spacelog.org
+
+and here's one for a virtual machine (you'll need to change the dotted quad at the start of the line):
+  
+    192.168.56.101	apollo13.dev.spacelog.org mercury6.dev.spacelog.org dev.spacelog.org
+
+### Reindexing
+
+Whenever you edit information about a mission, or add a new one, you need to run `make reindex` again. If you get errors you may find the `lognag.pl` script in `mcshred/src` useful: just give it some transcript files and it'll tell you where it finds possible errors or weirdnesses. (For new missions, you'll probably have to add things into the valid speakers list at line 71.)
+
+Note that a full `make reindex` can take a while, so you can index just a single mission by doing `ENV/bin/python -m backend.indexer ma6` or similar (or just `python -m backend.indexer ma6` if you aren't using a virtualenv.
+
+## External Source Images
+
+We make use of external source images (which we haven't created ourselves) in the form of:
+
+* .pngs of transcript PDF pages
+* Original NASA photographs
+
+For reasons of size these aren't stored in git, they're stored in the spacelog Amazon S3 bucket (served by Cloudfront on http://media.spacelog.org). By default, our settings point you to this host. If you want to test adding your own images, you can change the MISSIONS\_IMAGE\_URL in `website/configs/settings.py` to serve them locally. File a github ticket if you need images uploaded to S3.
+
+## Adding a new mission
+
+You'll need to create a directory in `missions`. For Mercury-Redstone missions these should start `mr`, for Mercury-Atlas `ma`, for Gemini they start just `g` and for Apollo `a`. If anyone wants to do non-NASA missions, or Shuttle missions, then get in touch and we'll figure out a naming convention.
+
+Look in `transcript-file-format` for a description of how we lay out files. If you're transcribing a mission we don't have, you will find the example `_meta` and `TEC` files useful, since they are the main two files you'll need to create (if you're going to include more than just the air-to-ground transcription, you'll want to put that in `TEC`, the command module transcript in `CM`, and so on). If you can make them in that format (or get as close as you can), and send them through to us along with a link to the original transcript PDFs you used, we'll do the rest. (If you are gifted in design, the source files for all the artwork we've created is available, although we haven't yet put it online -- yell if you need it as a basis for making things like orbital diagrams.)
+
+### Multiple transcripts
+
+As noted above in the information for non-technical folk, if you clean up multiple different transcripts for a single mission (for instance you might do not only the TEC ("technical" ground-to-air) recording but also the CM and/or LM recordings), then please keep them in separate files rather than merging them.
+
+## Technical glossary
+
+Within the system, there are a number of terms that describe pieces of the system but do not necessarily match what is shown on the websites.
+
+ * TRANSCRIPT FILE -- our textual representation of the original transcript; see `transcript-file-format/TEC` for a commented example
+ * TIMESTAMP -- four colon-separated numbers that represent the GET (Ground Elapsed Time), the time since launch within the mission; the four numbers are days, hours, minutes, seconds, so ignition is 00:00:00:00; these are used in the transcript files, and also in URLs
+ * LOG LINE -- smallest linkable chunk, identified by timestamp and transcript file
+ * RANGE -- a range between two timestamps (can be the same two)
+ * LABEL -- a keyword applied to a range within a specific stream (note that labels are not currently used)
+ * META FILE -- a per-mission file called `_meta` that contains information such as glossary items, pull quotes for the homepage, and acts (see `transcript-file-format/_meta` for a commented example
+ * CHARACTER -- a speaker who appears in a transcript file; additional information about them appears in the meta file
+ * SHIFT -- a range where one "role" character (such as CAPCOM or the flight director) can be identified with a "real" character (such as Charlie Duke or Deke Slayton); ranges are defined in the meta file
+
+From this we generate a number of higher-level pieces which are used in the website.
+
+ * ACT -- an editorially defined range that represents a segment of the mission, which may for instance reference orbital mechanics (in the websites these are referred to as phases)
+ * KEY SCENE -- an editorially defined point in the transcript where an important event or exchange starts
+ * STREAM -- a collection of related content arranged on a timeline
+
+## Characters
+
+Characters are defined in a _meta key `characters`, which is a dictionary with keys the character identifiers in the transcript and values a further dictionary of information about that character. For instance:
+
+    {
+        "characters": {
+            "P": {
+                "role": "astronaut",
+                "name": "Virgil Ivan Grissom",
+                "short_name": "Gus Grissom",
+                "mission_position": "Pilot",
+                "bio": "A few sentence biography",
+                "photo": "grissom.jpg",
+                "photo_width": 190,
+                "photo_height": 205,
+                "avatar": "grissom.jpg"
+            }
+        }
+    }
+
+This defines the character P. `bio`, `photo` (stored in the mission's `images/people` directory; `photo_width` / `photo_height` should be set appropriately) are used on the people page.
+
+`role` is based on initial usage, and so can be a little confusing. It should be one of astronaut, mission-ops, mission-ops-title or other (defaulting to other). Astronaut means a full-size, prominent place on the main people page (190x205 image with biography as above, and also support for stats and a quote); mission-ops-title will get a less prominent position on the main people page (190x205 with biography); mission-ops go on a second page (linked as "View Mission Control Team" from the main people page), where they get a 190x155 photo and brief biography.
+
+The people pages show the full name (the `name` key) and the mission position from the character definition. The short name is shown within the transcript, with the avatar (48x48, stored in the mission's `images/avatars` directory; astronauts get a yellow hue to differentiate them from those not in space during the mission) alongside.
+
+### Character stats and quotes
+
+Characters with a role of "astronaut" can optionally have statistics and quotes, as shown below:
+
+    {
+        "characters": {
+            "CDR": {
+              "role": "astronaut",
+              "name": "James A. (Jim) Lovell, Jr.",
+              "short_name": "Jim Lovell (CDR)",
+              "mission_position": "Commander",
+              "bio": "...",
+              "photo": "lovell.png",
+              "photo_width": 190,
+              "photo_height": 205,
+              "avatar": "jim_lovell.jpg",
+              "stats": [
+                {
+                    "value": 715,
+                    "text": "hours in space"
+                },
+                {
+                    "value": 4,
+                    "text": "missions"
+                },
+                {
+                    "value": 42,
+                    "text": "age at launch"
+                }
+              ],
+              "quotable_log_line_id": "TEC:05:18:04:46"
+            }
+        }
+    }
+
+The quote must be in the transcript, and is given as the transcript name followed by the GET of the logline. (This means you can't use loglines that have multiple speakers.)
+
+There should be three stats, and you will likely have to juggle things around in order to make them fit the layout. We haven't used stats on all missions; it isn't always possible to find suitable figures for the astronauts involved.
+
+### The shift system
+
+On longer missions, generic positions such as CAPCOM or F (flight director) are shared between several people operating in shifts. This is done by having a character dictionary key of `shifts`, whose value is a list of two element lists:
+
+    {
+        "characters": {
+            "STONY": {
+              "role": "other",
+              "name": "Blockhouse Comm",
+              "short_name": "Stony",
+              "shifts": [
+                [ "DEKE_SLAYTON", "00:00:00:00" ]
+              ]
+            }
+        }
+    }
+
+This means that the first shift is taken by the character with identifier DEKE_SLAYTON, at GET 00:00:00:00. Since identifying shifts at this remove from the event isn't always straightforward, there will often be a third element in the list giving an annotation, justification or source:
+
+    {
+        "characters": {
+            "CC": {
+                "role": "mission-ops-title",
+                "name": "Capsule Communicator",
+                "short_name": "CapCom",
+                "bio": "...",
+                "photo": "capcom.jpg",
+                "photo_width": 190,
+                "photo_height": 205,
+                "avatar": "capcom_generic.png",
+                "shifts": [
+                  ["JOE_KERWIN", "-00:01:00:00", "strictly, only Kerwin, Brand and Lousma were taking shifts (AFAICT), however other astronauts come on as CAPCOM in the original transcript, and we use the shift mechanism to display that properly"],
+                  ["JOHN_YOUNG", "00:04:39:01", "identified by PAO transcript"],
+                  ["JOE_KERWIN", "00:04:50:45"],
+                  ["VANCE_BRAND", "00:07:09:09"],
+                  ["JACK_LOUSMA", "00:16:00:00", "uncertain (and moot) since he doesn't appear in the transcript at this point"]
+                ]
+            }
+        }
+    }
+
+We also (as in the first example above, from Gus Grissom's Mercury-Redstone 4 flight) use the shift system to "delegate" a generic character (such as STONY, the callsign for an astronaut communicator in the blockhouse during Mercury launches) to a specific character (in this case Deke Slayton) who served in that role for the mission in question.
+
+
+## Code layout
+
+The main code is two Django projects and a python library for managing transcript files into a redis data store. There is also a directory full of per-mission information (transcript files, images and so on), and some other tools directories.
+
+ * `website/` runs the per-mission websites (Django project)
+ * `global/` runs the project global homepage (Django project)
+ * `backend/` (python library to load transcript files into redis/xappy, generate stats images, and provide an API for accessing streams and other information)
+ * `transcript-file-format/` (documentation of the transcript file format)
+ * `missions/` contains the per-mission data, particularly the transcript files and meta file, but also images and so forth
+ * `tools/` (standalone python tools)
+ * `mcshred/` (python and perl programs for dealing with OCR data from NASA PDFs)
+ * `ext/` (historical mechanism used during development because `pip` doesn't work in forts)
+
+This is documentation for/a sample of the Transcript File format.
+
+The best file to look at, initially, is TEC, which describes the format of
+the Transcript Files.
+
+Other files of note:
+
+- MEDIA: a sample ‘media stream’ Transcript File, detailing a wholly
+  non-textual stream
+- _meta: A file describing non-stream specific (but limited to the
+  mission) metadata, such as acts, key scenes, and glossary.
+

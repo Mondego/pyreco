@@ -1,0 +1,518 @@
+How to run your own Electrum server
+===================================
+
+Abstract
+--------
+
+This document is an easy to follow guide to installing and running your own
+Electrum server on Linux. It is structured as a series of steps you need to
+follow, ordered in the most logical way. The next two sections describe some
+conventions we use in this document and hardware, software and expertise
+requirements.
+
+The most up-to date version of this document is available at:
+
+    https://github.com/spesmilo/electrum-server/blob/master/HOWTO.md
+
+Conventions
+-----------
+
+In this document, lines starting with a hash sign (#) or a dollar sign ($)
+contain commands. Commands starting with a hash should be run as root,
+commands starting with a dollar should be run as a normal user (in this
+document, we assume that user is called 'bitcoin'). We also assume the
+bitcoin user has sudo rights, so we use '$ sudo command' when we need to.
+
+Strings that are surrounded by "lower than" and "greater than" ( < and > )
+should be replaced by the user with something appropriate. For example,
+<password> should be replaced by a user chosen password. Do not confuse this
+notation with shell redirection ('command < file' or 'command > file')!
+
+Lines that lack hash or dollar signs are pastes from config files. They
+should be copied verbatim or adapted, without the indentation tab.
+
+apt-get install commands are suggestions for required dependencies.
+They conform to an Ubuntu 13.10 system but may well work with Debian
+or earlier and later versions of Ubuntu.
+
+Prerequisites
+-------------
+
+**Expertise.** You should be familiar with Linux command line and
+standard Linux commands. You should have basic understanding of git,
+Python packages. You should have knowledge about how to install and
+configure software on your Linux distribution. You should be able to
+add commands to your distribution's startup scripts. If one of the
+commands included in this document is not available or does not
+perform the operation described here, you are expected to fix the
+issue so you can continue following this howto.
+
+**Software.** A recent Linux 64-bit distribution with the following software
+installed: `python`, `easy_install`, `git`, standard C/C++
+build chain. You will need root access in order to install other software or
+Python libraries. 
+
+**Hardware.** The lightest setup is a pruning server with diskspace 
+requirements of about 10 GB for the electrum database. However note that 
+you also need to run bitcoind and keep a copy of the full blockchain, 
+which is roughly 20 GB in April 2014. If you have less than 2 GB of RAM 
+make sure you limit bitcoind to 8 concurrent connections. If you have more 
+ressources to  spare you can run the server with a higher limit of historic 
+transactions per address. CPU speed is important, mostly for the initial block 
+chain import, but also if you plan to run a public Electrum server, which 
+could serve tens of concurrent requests. Any multi-core x86 CPU ~2009 or
+newer other than Atom should do for good performance. An ideal setup
+has enough RAM to hold and procss the leveldb database in tmpfs (e.g. /dev/shm).
+
+Instructions
+------------
+
+### Step 1. Create a user for running bitcoind and Electrum server
+
+This step is optional, but for better security and resource separation I
+suggest you create a separate user just for running `bitcoind` and Electrum.
+We will also use the `~/bin` directory to keep locally installed files
+(others might want to use `/usr/local/bin` instead). We will download source
+code files to the `~/src` directory.
+
+    $ sudo adduser bitcoin --disabled-password
+    $ sudo apt-get install git
+    # su - bitcoin
+    $ mkdir ~/bin ~/src
+    $ echo $PATH
+
+If you don't see `/home/bitcoin/bin` in the output, you should add this line
+to your `.bashrc`, `.profile` or `.bash_profile`, then logout and relogin:
+
+    PATH="$HOME/bin:$PATH"
+
+### Step 2. Download and install Electrum
+
+We will download the latest git snapshot for Electrum and 'install' it in
+our ~/bin directory:
+
+    $ mkdir -p ~/electrum-server
+    $ git clone https://github.com/spesmilo/electrum-server.git
+
+### Step 3. Download bitcoind
+
+Older versions of Electrum used to require a patched version of bitcoind. 
+This is not the case anymore since bitcoind supports the 'txindex' option.
+We currently recommend bitcoind 0.9.1 stable.
+
+If your package manager does not supply a recent bitcoind and prefer to compile
+here are some pointers for Ubuntu:
+
+    # apt-get install make g++ python-leveldb libboost-all-dev libssl-dev libdb++-dev pkg-config
+    # su - bitcoin
+    $ cd ~/src && wget https://bitcoin.org/bin/0.9.1/bitcoin-0.9.1-linux.tar.gz
+    $ sha256sum bitcoin-0.9.1-linux.tar.gz | grep 3fabc1c629007b465a278525883663d41a2ba62699f2773536a8bf59ca210425
+    $ tar xfz bitcoin-0.9.1-linux.tar.gz
+    $ cd bitcoin-0.9.1-linux/src
+    $ tar xfz bitcoin-0.9.1.tar.gz
+    $ cd bitcoin-0.9.1
+    $ ./configure --disable-wallet --without-miniupnpc
+    $ make
+    $ strip ~/src/bitcoin-0.9.1-linux/src/bitcoin-0.9.1/src/bitcoind
+    $ cp -a ~/src/bitcoin-0.9.1-linux/src/bitcoin-0.9.1/src/bitcoind ~/bin/bitcoind
+
+### Step 4. Configure and start bitcoind
+
+In order to allow Electrum to "talk" to `bitcoind`, we need to set up a RPC
+username and password for `bitcoind`. We will then start `bitcoind` and
+wait for it to complete downloading the blockchain.
+
+    $ mkdir ~/.bitcoin
+    $ $EDITOR ~/.bitcoin/bitcoin.conf
+
+Write this in `bitcoin.conf`:
+
+    rpcuser=<rpc-username>
+    rpcpassword=<rpc-password>
+    daemon=1
+    txindex=1
+
+
+If you have an existing installation of bitcoind and have not previously
+set txindex=1 you need to reindex the blockchain by running
+
+    $ bitcoind -reindex
+
+If you have a fresh copy of bitcoind start `bitcoind`:
+
+    $ bitcoind
+
+Allow some time to pass, so `bitcoind` connects to the network and starts
+downloading blocks. You can check its progress by running:
+
+    $ bitcoind getinfo
+
+Before starting electrum server your bitcoind should have processed all 
+blockes and caught up to the current height of the network.
+You should also set up your system to automatically start bitcoind at boot
+time, running as the 'bitcoin' user. Check your system documentation to
+find out the best way to do this.
+
+### Step 5. Install Electrum dependencies
+
+Electrum server depends on various standard Python libraries. These will be
+already installed on your distribution, or can be installed with your
+package manager. Electrum also depends on two Python libraries which we will
+need to install "by hand": `JSONRPClib`.
+
+    $ sudo apt-get install python-setuptools python-openssl
+    $ sudo easy_install jsonrpclib
+
+### Step 6. Install leveldb and plyvel
+
+    $ sudo apt-get install python-leveldb libleveldb-dev
+    $ sudo easy_install plyvel
+ 
+See the steps in README.leveldb for further details, especially if your system
+doesn't have the python-leveldb package or if plyvel installation fails.
+
+leveldb should be at least version 1.1.9. Earlier version are believed to be buggy.
+
+### Step 7. Select your limit
+
+Electrum server uses leveldb to store transactions. You can choose
+how many spent transactions per address you want to store on the server.
+The default is 100, but there are also servers with 1000 or even 10000.
+Few addresses have more than 10000 transactions. A limit this high
+can be considered to be equivalent to a "full" server. Full servers previously
+used abe to store the blockchain. The use of abe for electrum servers is now
+deprecated.
+
+The pruning server uses leveldb and keeps a smaller and
+faster database by pruning spent transactions. It's a lot quicker to get up
+and running and requires less maintenance and diskspace than abe.
+
+The section in the electrum server configuration file (see step 10) looks like this:
+
+     [leveldb]
+     path_fulltree = /path/to/your/database
+     # for each address, history will be pruned if it is longer than this limit
+     pruning_limit = 100
+
+### Step 8. Import blockchain into the database or download it
+
+It's recommended to fetch a pre-processed leveldb from the net
+
+You can fetch recent copies of electrum leveldb databases and further instructions 
+from the Electrum full archival server foundry at:
+http://foundry.electrum.org/ 
+
+Alternatively if you have the time and nerve you can import the blockchain yourself.
+
+As of April 2014 it takes between two days and over a week to import 300k of blocks, depending
+on CPU speed, I/O speed and selected pruning limit.
+
+It's considerably faster and strongly recommended to index in memory. You can use /dev/shm or
+or create a tmpfs which will also use swap if you run out of memory:
+
+    $ sudo mount -t tmpfs -o rw,nodev,nosuid,noatime,size=15000M,mode=0777 none /tmpfs
+
+If you use tmpfs make sure you have enough RAM and swap to cover the size. If you only have 4 gigs of
+RAM but add 15 gigs of swap from a file that's fine too. tmpfs is rather smart to swap out the least
+used parts. It's fine to use a file on a SSD for swap in thise case. 
+
+It's not recommended to do initial indexing of the database on a SSD because the indexing process
+does at least 20 TB (!) of disk writes and puts considerable wear-and-tear on a SSD. It's a lot better
+to use tmpfs and just swap out to disk when necessary.   
+
+Databases have grown to roughly 8 GB in April 2014, give or take a gigabyte between pruning limits 
+100 and 10000. Leveldb prunes the database from time to time, so it's not uncommon to see databases
+~50% larger at times when it's writing a lot especially when indexing from the beginning.
+
+
+### Step 9. Create a self-signed SSL cert
+
+To run SSL / HTTPS you need to generate a self-signed certificate
+using openssl. You could just comment out the SSL / HTTPS ports in the config and run 
+without, but this is not recommended.
+
+Use the sample code below to create a self-signed cert with a recommended validity 
+of 5 years. You may supply any information for your sign request to identify your server.
+They are not currently checked by the client except for the validity date.
+When asked for a challenge password just leave it empty and press enter.
+
+    $ openssl genrsa -des3 -passout pass:x -out server.pass.key 2048
+    $ openssl rsa -passin pass:x -in server.pass.key -out server.key
+    writing RSA key
+    $ rm server.pass.key
+    $ openssl req -new -key server.key -out server.csr
+    ...
+    Country Name (2 letter code) [AU]:US
+    State or Province Name (full name) [Some-State]:California
+    Common Name (eg, YOUR name) []: electrum-server.tld
+    ...
+    A challenge password []:
+    ...
+
+    $ openssl x509 -req -days 730 -in server.csr -signkey server.key -out server.crt
+
+The server.crt file is your certificate suitable for the ssl_certfile= parameter and
+server.key corresponds to ssl_keyfile= in your electrum server config
+
+Starting with Electrum 1.9 the client will learn and locally cache the SSL certificate 
+for your server upon the first request to prevent man-in-the middle attacks for all
+further connections.
+
+If your certificate is lost or expires on the server side you currently need to run
+your server with a different server name along with a new certificate for this server.
+Therefore it's a good idea to make an offline backup copy of your certificate and key
+in case you need to restore it.
+
+### Step 10. Configure Electrum server
+
+Electrum reads a config file (/etc/electrum.conf) when starting up. This
+file includes the database setup, bitcoind RPC setup, and a few other
+options.
+
+    $ sudo cp ~/src/electrum/server/electrum.conf.sample /etc/electrum.conf
+    $ sudo $EDITOR /etc/electrum.conf
+
+Go through the sample config options and set them to your liking.
+If you intend to run the server publicly have a look at README-IRC.md 
+
+### Step 11. Tweak your system for running electrum
+
+Electrum server currently needs quite a few file handles to use leveldb. It also requires
+file handles for each connection made to the server. It's good practice to increase the
+open files limit to 16k. This is most easily achived by sticking the value in .bashrc of the
+root user who usually passes this value to all unprivileged user sessions too.
+
+    $ sudo sed -i '$a ulimit -n 16384' /root/.bashrc
+
+Also make sure the bitcoin user can actually increase the ulimit by allowing it accordingly in
+/etc/security/limits.conf
+
+While most bugs are fixed in this regard electrum server may leak some memory and it's good practice to
+to restart the server once in a while from cron (preferred) or to at least monitor 
+it for crashes and then restart the server. Monthly restarts should be fine for most setups.
+
+Two more things for you to consider:
+
+1. To increase security you may want to close bitcoind for incoming connections and connect outbound only
+
+2. Consider restarting bitcoind (together with electrum-server) on a weekly basis to clear out unconfirmed
+   transactions from the local the memory pool which did not propagate over the network
+
+### Step 12. (Finally!) Run Electrum server
+
+The magic moment has come: you can now start your Electrum server:
+
+    $ cd ~/electrum-server
+    $ ./start
+
+You should see this in the log file:
+
+    starting Electrum server
+
+If you want to stop Electrum server, use the 'stop' script:
+
+    $ cd ~/electrum-server
+    $ ./stop
+
+
+### Step 13. Test the Electrum server
+
+We will assume you have a working Electrum client, a wallet and some
+transactions history. You should start the client and click on the green
+checkmark (last button on the right of the status bar) to open the Server
+selection window. If your server is public, you should see it in the list
+and you can select it. If you server is private, you need to enter its IP
+or hostname and the port. Press Ok, the client will disconnect from the
+current server and connect to your new Electrum server. You should see your
+addresses and transactions history. You can see the number of blocks and
+response time in the Server selection window. You should send/receive some
+bitcoins to confirm that everything is working properly.
+
+### Step 14. Join us on IRC, subscribe to the server thread
+
+Say hi to the dev crew, other server operators and fans on 
+irc.freenode.net #electrum and we'll try to congratulate you
+on supporting the community by running an Electrum node
+
+If you're operating a public Electrum server please subscribe
+to or regulary check the following thread:
+https://bitcointalk.org/index.php?topic=85475.0
+It'll contain announcements about important updates to Electrum
+server required for a smooth user experience.
+
+IRC is used by Electrum server to find 'peers' - other Electrum servers. The
+current list can be seen by running:
+
+    ./server.py peers
+
+The following config file options are used by the IRC part of Electrum server:
+
+    [server]
+    irc = yes
+    host = fqdn.host.name.tld
+    #report_host = fqdn.host.name.tld
+    irc_nick = server nickname
+    #report_stratum_http_port = 80
+
+`irc` is used to determine whether the IRC thread will be started or the 
+Electrum server will run in private mode (default). In private mode, 
+`./server.py peers` will always return an empty list.
+
+`host` is a fully-qualified domain name (FQDN) of your Electrum server. It is
+used both when binding the listener for incoming client connections and as part
+of the realname field in IRC (see below).
+
+`report_host` is a an optional fully-qualified domain name (FQDN) of your Electrum server 
+instead of `host`. It is used as part of the name field in IRC for incoming client connections.
+This is useful in a NAT setup where you bind to a private IP locally but have an external IP
+set up at your router and external DNS.
+
+`report_stratum_tcp_port`, `report_stratum_http_port`, `report_stratum_tcp_ssl_port`, 
+`report_stratum_http_ssl_port` are optional settings for a port number to be reported in the
+IRC name field without actually binding this port locally. This is useful in a NAT setup
+where you might want to bind to a high port locally but DNAT a different possibly privileged
+port for inbound connections
+
+`irc_nick` is a nick name that will be appended to the E_ suffix when 
+composing the IRC nickname to identify your server on #electrum.
+
+Please note the IRC name field can only contain 50 chars and will be composed
+of `host` + protocol version number + Port numbers for the various protocols.
+Please check whether port numbers are cut off at the end   
+
+
+How to run a pruning node with leveldb
+
+Pruning nodes use a lightweight database to store address histories.
+Only unspent coins are kept in that database; spent outputs are
+pruned.
+
+As of November 2013 all public servers operate this way.
+Please see HOWTO.md for more detailled information. The following is a 
+short outline:
+__________________________________________________________
+1. Run bitcoind.
+
+Install version 0.8.5 or higher.
+There is no need to patch bitcoind anymore.
+You need to run it with the config option txindex=1 .
+If you have not previously done so, you may need to reindex the bitcoind blockchain
+
+Note: Even though Electrum's database uses pruning, you cannot use it
+with a ultra-pruning bitcoind (forthcoming in 0.9 or later).
+A full bitcoin node is required in order to know for each address 
+if it has been used. Pruning occurs only at the level of the Electrum database.
+
+__________________________________________________________
+
+2. Install python-leveldb: 
+
+Starting at Ubuntu 12.10 you can use apt to install leveldb. If you 
+rather stay on 12.04 LTS you can use the backport and add 
+"deb http://archive.ubuntu.com/ubuntu precise-backports main restricted universe"
+to your sources file. Install the package with: 
+
+sudo apt-get install python-leveldb
+
+alternatively build yourself, see
+http://code.google.com/p/py-leveldb/ 
+and
+http://peter-hoffmann.com/2011/installation-leveldb-ubuntu-python.html
+make sure you have libtool, automake and pkg-config
+
+__________________________________________________________
+
+3. edit /etc/electrum.conf : 
+
+[server]
+backend = leveldb
+
+[leveldb]
+path = /path/to/your/database
+pruning_limit = 10
+
+______________________________________________________________
+
+4. catch up with the blockchain.
+
+In order to speed up the initial catch_up phase, it is recommended to
+locate your database in shared memory:
+
+ path = /run/shm/electrum_db
+
+Once your server has finished catching up, copy your database to disk
+and update the path in /etc/electrum.conf
+
+During the catch_up phase, you can interrupt the server with Ctrl-C;
+it will safely write the current status in the database and exit.
+
+_________________________________
+
+5. enjoy!
+
+Once the server is synchronized, it will listen to ports, and the
+normal way to stop it is to use the 'stop' script. This script will
+wait until the database is closed.
+
+Other commands are available: 
+
+./server info   : view connections
+./server load   : view the size of the queue
+
+
+______________________
+Troubleshooting:
+
+* if your server or bitcoind is killed because is uses too much
+memory, configure bitcoind to limit the number of connections
+
+* if you see "Too many open files" errors, you may need to increase
+your user's File Descriptors limit. For this, see
+http://www.cyberciti.biz/faq/linux-increase-the-maximum-number-of-open-files/
+
+
+Electrum-server for the Electrum client
+=========================================
+
+  * Author: Thomas Voegtlin (ThomasV on the bitcointalk forum)
+  * Language: Python
+
+Features
+--------
+
+  * The server indexes UTXOs by address, in a Patricia tree structure
+    described by Alan Reiner (see the 'ultimate blockchain
+    compression' thread in the Bitcointalk forum)
+
+  * Te server requires bitcoind, leveldb and plyvel
+
+  * The server code is open source. Anyone can run a server, removing
+    single points of failure concerns.
+
+  * The server knows which set of Bitcoin addresses belong to the same
+    wallet, which might raise concerns about anonymity. However, it
+    should be possible to write clients capable of using several
+    servers.
+
+Installation
+------------
+
+  1. To install and run a server, see README.leveldb. For greater
+     detail on the installation process, see HOWTO.md.
+
+  2. To start the server, use the 'start' script. If you do not have a
+     database, it will propose you o download it from the Electrum
+     foundry.
+
+  3. To stop the server, use the 'stop' script. It will shutdown the
+     database cleanly.
+
+
+
+License
+-------
+
+Electrum-server is made available under the terms of the [GNU Affero General
+Public License](http://www.gnu.org/licenses/agpl.html), version 3. See the 
+included `LICENSE` for more details.
+

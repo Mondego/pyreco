@@ -1,0 +1,844 @@
+__FILENAME__ = globalhook
+# -*- coding: utf-8 -*-
+import ctypes
+from os.path import join, dirname, abspath
+
+INVALID_VALUE = 0xffff
+
+WM_IMESUPPORT_SET_INLINE_POSITION = -1
+imesupport_dll = None
+
+
+def setup(arch_x64, dll_dir=dirname(dirname(abspath(__file__)))):
+    # Default DLL location: ../imesupport_hook_xxx.dll
+    global imesupport_dll
+    global WM_IMESUPPORT_SET_INLINE_POSITION
+    if imesupport_dll is not None:
+        return True
+
+    imesupport_dll = ctypes.cdll.LoadLibrary(
+        join(dll_dir,
+            'imesupport_hook_x64.dll' if arch_x64 else
+            'imesupport_hook_x86.dll'
+            ))
+    WM_IMESUPPORT_SET_INLINE_POSITION = imesupport_dll.GetMessageId()
+    return imesupport_dll.StartHook()
+
+
+def term():
+    global imesupport_dll
+    if imesupport_dll is not None:
+        imesupport_dll.EndHook()
+        del imesupport_dll
+        imesupport_dll = None
+
+
+def set_inline_position(hwnd, x, y, font_face, font_height):
+    # TODO Use font_face
+    if imesupport_dll is not None:
+        ctypes.windll.user32.PostMessageW(
+            hwnd, WM_IMESUPPORT_SET_INLINE_POSITION, x << 16 | y, font_height)
+
+
+def clear_inline_position(hwnd):
+    if imesupport_dll is not None:
+        ctypes.windll.user32.PostMessageW(
+            hwnd, WM_IMESUPPORT_SET_INLINE_POSITION, INVALID_VALUE, INVALID_VALUE)
+
+
+def main():
+    import time
+    from multiprocessing import Process
+    p = Process(target=window_process)
+    p.start()
+    time.sleep(1)
+    test()
+    p.join()
+
+
+TEST_CLASSNAME = 'test_win32gui_1'
+
+
+def test():
+    x = 100
+    y = 100
+    font_height = 40
+
+    import platform
+
+    assert setup(platform.machine() == 'AMD64')
+    hwnd = ctypes.windll.user32.FindWindowW(TEST_CLASSNAME, 0)
+    assert hwnd != 0
+    set_inline_position(hwnd, x, y, 'font', font_height)
+
+
+def window_process():
+    # Required pywin32
+    import win32gui
+    import win32con
+    import time
+
+    # Original: http://kb.worldviz.com/articles/791
+    def OnKeyDown(hwnd, msg, wp, lp):
+        print('Original OnKeyDown')
+
+    def OnClose(hwnd, msg, wparam, lparam):
+        """Destroy window when it is closed by user"""
+        win32gui.DestroyWindow(hwnd)
+
+    def OnDestroy(hwnd, msg, wparam, lparam):
+        """Quit application when window is destroyed"""
+        win32gui.PostQuitMessage(0)
+
+    #Define message map for window
+    wndproc = {
+            win32con.WM_KEYDOWN: OnKeyDown,
+            win32con.WM_CLOSE: OnClose,
+            win32con.WM_DESTROY: OnDestroy
+            }
+
+    def CreateWindow(title, message_map, location):
+        """Create a window with defined title, message map, and rectangle"""
+        l, t, r, b = location
+        wc = win32gui.WNDCLASS()
+        wc.lpszClassName = TEST_CLASSNAME
+        wc.style = win32con.CS_GLOBALCLASS | win32con.CS_VREDRAW | win32con.CS_HREDRAW
+        wc.hbrBackground = win32con.COLOR_WINDOW + 1
+        wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        wc.lpfnWndProc = message_map
+        win32gui.RegisterClass(wc)
+        win32gui.CreateWindow(wc.lpszClassName,
+            title,
+            win32con.WS_CAPTION | win32con.WS_VISIBLE | win32con.WS_SYSMENU,
+            l, t, r, b, 0, 0, 0, None)
+
+        while win32gui.PumpWaitingMessages() == 0:
+            time.sleep(0.01)
+        win32gui.UnregisterClass(wc.lpszClassName, None)
+
+    #Display sample window
+    CreateWindow('Pywin32 sample', wndproc, (100, 100, 500, 200))
+
+
+if __name__ == '__main__':
+    main()
+
+########NEW FILE########
+__FILENAME__ = messagehook
+# -*- coding: utf-8 -*-
+import ctypes
+from ctypes.wintypes import WPARAM, LPARAM, MSG
+
+
+WH_GETMESSAGE = 3
+
+hook_handle = None
+hook_callback = None
+
+
+def message_hook_func(code, wParam, lParam):
+    if hook_callback is not None:
+        msg = ctypes.cast(lParam, ctypes.POINTER(MSG))
+        hook_callback(msg[0].hWnd, msg[0].message, msg[0].wParam, msg[0].lParam)
+    return ctypes.windll.user32.CallNextHookEx(hook_handle, code, wParam, lParam)
+
+
+prototype = ctypes.WINFUNCTYPE(ctypes.c_long, ctypes.c_long, WPARAM, LPARAM)
+proc_obj = prototype(message_hook_func)
+
+
+def setup(callback):
+    global hook_handle
+    global hook_callback
+
+    if hook_handle is not None:
+        term()
+
+    hook_handle = ctypes.windll.user32.SetWindowsHookExW(
+        WH_GETMESSAGE, proc_obj, 0,
+        ctypes.windll.Kernel32.GetCurrentThreadId())
+    if hook_handle == 0:
+        hook_handle = None
+        raise Exception('IMESupport: SetWindowsHookExW failed.')
+
+    hook_callback = callback
+
+
+def term():
+    global hook_handle
+    global hook_callback
+    hook_callback = None
+    if hook_handle is not None:
+        ctypes.windll.user32.UnhookWindowsHookEx(hook_handle)
+        hook_handle = None
+
+
+def test():
+    # Required pywin32
+    import win32gui
+    import win32con
+    import time
+
+    def on_create(hwnd):
+        def test_callback(hwnd, msg, wParam, lParam):
+            if msg == win32con.WM_KEYDOWN:
+                print('Subclased OnKeyDown')
+                return 0
+            return None
+
+        setup(test_callback)
+
+    # Original: http://kb.worldviz.com/articles/791
+    def OnKeyDown(hwnd, msg, wp, lp):
+        print('Original OnKeyDown')
+
+    def OnClose(hwnd, msg, wparam, lparam):
+        """Destroy window when it is closed by user"""
+        win32gui.DestroyWindow(hwnd)
+
+    def OnDestroy(hwnd, msg, wparam, lparam):
+        """Quit application when window is destroyed"""
+        win32gui.PostQuitMessage(0)
+
+    #Define message map for window
+    wndproc = {
+            win32con.WM_KEYDOWN: OnKeyDown,
+            win32con.WM_CLOSE: OnClose,
+            win32con.WM_DESTROY: OnDestroy
+            }
+
+    def CreateWindow(title, message_map, location):
+        """Create a window with defined title, message map, and rectangle"""
+        l, t, r, b = location
+        wc = win32gui.WNDCLASS()
+        wc.lpszClassName = 'test_win32gui_1'
+        wc.style = win32con.CS_GLOBALCLASS | win32con.CS_VREDRAW | win32con.CS_HREDRAW
+        wc.hbrBackground = win32con.COLOR_WINDOW + 1
+        wc.hCursor = win32gui.LoadCursor(0, win32con.IDC_ARROW)
+        wc.lpfnWndProc = message_map
+        win32gui.RegisterClass(wc)
+        hwnd = win32gui.CreateWindow(wc.lpszClassName,
+            title,
+            win32con.WS_CAPTION | win32con.WS_VISIBLE | win32con.WS_SYSMENU,
+            l, t, r, b, 0, 0, 0, None)
+
+        on_create(hwnd)
+
+        while win32gui.PumpWaitingMessages() == 0:
+            time.sleep(0.01)
+        win32gui.UnregisterClass(wc.lpszClassName, None)
+
+    #Display sample window
+    CreateWindow('Pywin32 sample', wndproc, (100, 100, 500, 200))
+
+
+if __name__ == '__main__':
+    test()
+
+########NEW FILE########
+__FILENAME__ = sublime_utility
+import sublime
+
+
+def fix_cloned_view(f):
+    """ Workaround for clone view bug. """
+    def _f(self, view, *args, **kwargs):
+        # It may be wrong view that given as view argument.
+        window = view.window()
+        if window is None:
+            window = sublime.active_window()
+        if window is not None:
+            if window.active_view() is not None:
+                view = window.active_view()
+        f(self, view, *args, **kwargs)
+    return _f
+
+########NEW FILE########
+__FILENAME__ = imesupportplugin
+# -*- coding: utf-8 -*-
+import sublime
+import sublime_plugin
+import math
+
+try:
+    from imesupport.sublime_utility import fix_cloned_view
+except ImportError:
+    from .imesupport.sublime_utility import fix_cloned_view
+
+import ctypes
+from ctypes import windll, byref
+from ctypes import Structure, c_ulong
+from ctypes.wintypes import RECT, POINT
+from ctypes.wintypes import BYTE, LONG
+
+WM_IME_STARTCOMPOSITION = 269
+WM_IME_ENDCOMPOSITION = 270
+WM_IME_COMPOSITION = 271
+
+GWL_STYLE = (-16)
+
+WS_OVERLAPPED = 0
+WS_POPUP = -2147483648
+WS_CHILD = 1073741824
+WS_MINIMIZE = 536870912
+WS_VISIBLE = 268435456
+WS_DISABLED = 134217728
+WS_CLIPSIBLINGS = 67108864
+WS_CLIPCHILDREN = 33554432
+WS_MAXIMIZE = 16777216
+WS_CAPTION = 12582912
+WS_BORDER = 8388608
+WS_DLGFRAME = 4194304
+WS_VSCROLL = 2097152
+WS_HSCROLL = 1048576
+WS_SYSMENU = 524288
+WS_THICKFRAME = 262144
+WS_GROUP = 131072
+WS_TABSTOP = 65536
+WS_MINIMIZEBOX = 131072
+WS_MAXIMIZEBOX = 65536
+
+
+def add(a, b):
+    return (a[0] + b[0], a[1] + b[1])
+
+
+def sub(a, b):
+    return (a[0] - b[0], a[1] - b[1])
+
+
+def mul(a, b):
+    return (a[0] * b[0], a[1] * b[1])
+
+
+class COMPOSITIONFORM(Structure):
+    _fields_ = [
+        ('dwStyle', c_ulong),
+        ('ptCurrentPos', POINT),
+        ('rcArea', RECT),
+    ]
+
+
+# from http://d.hatena.ne.jp/pipehead/20071210
+import sys
+
+(major, platform) = sys.getwindowsversion()[0:4:3]
+winNT5OrLater = (platform == 2) and (major >= 5)
+LF_FACESIZE = 32
+
+
+class c_tchar(ctypes._SimpleCData):
+    if winNT5OrLater:
+        _type_ = 'u'  # c_wchar
+    else:
+        _type_ = 'c'  # c_char
+
+
+class LOGFONT(Structure):
+    _fields_ = [
+        ('lfHeight',         LONG),
+        ('lfWidth',          LONG),
+        ('lfEscapement',     LONG),
+        ('lfOrientation',    LONG),
+        ('lfWeight',         LONG),
+        ('lfItalic',         BYTE),
+        ('lfUnderline',      BYTE),
+        ('lfStrikeOut',      BYTE),
+        ('lfCharSet',        BYTE),
+        ('lfOutPrecision',   BYTE),
+        ('lfClipPrecision',  BYTE),
+        ('lfQuality',        BYTE),
+        ('lfPitchAndFamily', BYTE),
+        ('lfFaceName',       c_tchar * LF_FACESIZE)
+    ]
+
+
+window_style_bits = {
+    'WS_POPUP':        WS_POPUP,
+    'WS_CHILD':        WS_CHILD,
+    'WS_MINIMIZE':     WS_MINIMIZE,
+    'WS_VISIBLE':      WS_VISIBLE,
+    'WS_DISABLED':     WS_DISABLED,
+    'WS_CLIPSIBLINGS': WS_CLIPSIBLINGS,
+    'WS_CLIPCHILDREN': WS_CLIPCHILDREN,
+    'WS_MAXIMIZE':     WS_MAXIMIZE,
+    'WS_CAPTION':      WS_CAPTION,
+    'WS_BORDER':       WS_BORDER,
+    'WS_DLGFRAME':     WS_DLGFRAME,
+    'WS_VSCROLL':      WS_VSCROLL,
+    'WS_HSCROLL':      WS_HSCROLL,
+    'WS_SYSMENU':      WS_SYSMENU,
+    'WS_THICKFRAME':   WS_THICKFRAME,
+    'WS_GROUP':        WS_GROUP,
+    'WS_TABSTOP':      WS_TABSTOP,
+    'WS_MINIMIZEBOX':  WS_MINIMIZEBOX,
+    'WS_MAXIMIZEBOX':  WS_MAXIMIZEBOX,
+    }
+
+
+def get_window_style(hwnd):
+    style = ctypes.windll.user32.GetWindowLongW(hwnd, GWL_STYLE)
+    ret = []
+    for name, bit in window_style_bits.items():
+        if (style & bit) != 0:
+            ret.append(name)
+    return ret
+
+
+def is_fullscreen(hwnd):
+    style = get_window_style(hwnd)
+    return 'WS_BORDER' not in style
+
+
+def is_ime_opened(hwnd, status):
+    hIMC = ctypes.windll.imm32.ImmGetContext(hwnd)
+    try:
+        return bool(ctypes.windll.imm32.ImmGetOpenStatus(hIMC))
+    finally:
+        ctypes.windll.imm32.ImmReleaseContext(hwnd, hIMC)
+
+
+def set_ime_status(hwnd, status):
+    hIMC = ctypes.windll.imm32.ImmGetContext(hwnd)
+    try:
+        if status == True:  # IME on
+            ctypes.windll.imm32.ImmSetOpenStatus(hIMC, 0)
+        elif status == False:  # IME off
+            ctypes.windll.imm32.ImmSetOpenStatus(hIMC, 1)
+        elif status == 'toggle':  # IME toggle
+            status = ctypes.windll.imm32.ImmGetOpenStatus(hIMC)
+            ctypes.windll.imm32.ImmSetOpenStatus(hIMC, 0 if status else 1)
+    finally:
+        ctypes.windll.imm32.ImmReleaseContext(hwnd, hIMC)
+
+
+def set_inline_position(hwnd, x, y, font_face, font_height):
+    # borrowed from http://d.hatena.ne.jp/doloopwhile/20090627/1275176169
+    hIMC = windll.imm32.ImmGetContext(hwnd)
+    status = windll.imm32.ImmGetOpenStatus(hIMC)
+    if not status:
+        # Enable IME temporary.
+        ctypes.windll.imm32.ImmSetOpenStatus(hIMC, 1)
+
+    pt = POINT(x, y)
+    cf = COMPOSITIONFORM()
+    cf.dwStyle = 2      # CFS_POINT
+    cf.ptCurrentPos = pt
+
+    # Supporting Weasel IME
+    # For more detail see also WeaselIME.cpp@WeaselIME::_SetCompositionWindow
+    cf.rcArea.left = x
+    cf.rcArea.top = y
+    if x == 0:
+        cf.rcArea.left = 1
+    if y == 0:
+        cf.rcArea.top = 1
+    cf.rcArea.right = cf.rcArea.left
+    cf.rcArea.bottom = cf.rcArea.top
+
+    windll.imm32.ImmSetCompositionWindow(hIMC, byref(cf))
+
+    lf = LOGFONT()
+    lf.lfHeight = font_height
+    lf.lfFaceName = font_face
+    windll.imm32.ImmSetCompositionFontW(hIMC, byref(lf))
+
+    if not status:
+        ctypes.windll.imm32.ImmSetOpenStatus(hIMC, 0)
+    windll.imm32.ImmReleaseContext(hwnd, hIMC)
+
+
+class WindowLayout(object):
+    def __init__(self, window):
+        self.window = window
+        self.last_extents = None
+        self.settings = sublime.load_settings('IMESupport.sublime-settings')
+
+    def calc_cursor_position(self, view, cursor):
+        abspoint = view.text_to_layout(cursor)
+        offset = view.viewport_position()
+        p = sub(abspoint, offset)
+
+        offset = self.calc_offset(self.window, view)
+
+        if self.side_bar['visible']:
+            offset[0].append(self.side_bar['width'])
+
+        offset[0].append(self.get_setting('imesupport_offset_x'))
+        offset[1].append(self.get_setting('imesupport_offset_y'))
+        p = add(p, (sum(offset[0]), sum(offset[1])))
+
+        if self.get_setting('imesupport_debug'):
+            sublime.status_message('IMESupport: ' + str(p) + repr(offset))
+
+        font_face, font_height = self.get_font_info(view)
+        return (int(p[0]), int(p[1]), font_face, font_height)
+
+    def get_widget_cursor_position(self, view, cursor):
+        font_face, font_height = self.get_font_info(view)
+        # FIXME Is there a way to get cursor position of widget view?
+        return (0, 0, font_face, font_height)
+
+    @staticmethod
+    def get_font_info(view):
+        font_face = view.settings().get('font_face', '')
+        font_height = int(view.line_height())
+        font_height -= (view.settings().get("line_padding_top", 0)
+            + view.settings().get("line_padding_bottom", 0))
+        return (font_face, font_height)
+
+    def update_status(self, view=None):
+        extents = self.get_extent_list(self.window)
+        if extents == self.last_extents:
+            return  # layout is not changed.
+        self.last_extents = extents
+
+        # Get status.
+        self.get_status(view)
+
+    def get_status(self, view=None):
+        window = self.window
+        if view is None:
+            view = window.active_view()
+            if view is None:
+                return None
+
+        self.tabs = self.tabs_status(window, view)
+        self.distraction_free = self.distraction_free_status(window)
+        self.split_group = self.split_group_status(window)
+
+        # Requires distraction_free
+        line_numbers = self.line_numbers_status(view)
+        hscroll_bar = self.hscroll_bar_status(view)
+
+        # Requires minimap
+        self.side_bar = self.side_bar_status(window, view)
+
+        return {
+            'em_width': view.em_width(),
+            'tabs': self.tabs,
+            'distraction_free': self.distraction_free,
+            'split_group': self.split_group,
+            'line_numbers': line_numbers,
+            'hscroll_bar': hscroll_bar,
+            'side_bar': self.side_bar,
+            }
+
+    def get_setting(self, key, default=None):
+        return self.settings.get(key, default)
+
+    def calc_offset(self, window, view):
+        group, _ = window.get_view_index(view)
+        layout = window.get_layout()
+        _, c = self.get_layout_rowcol(layout)
+
+        g2d = self.make_list2d(self.get_group_list(window), c)
+        row, col = self.get_group_rowcol(layout, group)
+
+        offset = [[], []]
+        offset[0] += self.calc_group_offset_width(g2d, col)
+        offset[1] += self.calc_group_offset_height(g2d, row)
+        offset[0] += self.calc_view_width_offset(view)
+        offset[1] += self.calc_view_height_offset(view)
+        return offset
+
+    def split_group_status(self, window):
+        layout = window.get_layout()
+        _, c = self.get_layout_rowcol(layout)
+        views = self.get_group_list(window)
+
+        non_view = {'visible': False, 'width': 0}
+        minimaps = [
+            self.minimap_status(window, view) if view is not None else non_view
+            for view in views]
+        groups = [{'minimap': minimap} for minimap in minimaps]
+        return self.make_list2d(groups, c)
+
+    def side_bar_status(self, window, view):
+        layout = window.get_layout()
+        _, c = self.get_layout_rowcol(layout)
+
+        g2d = self.make_list2d(self.get_group_list(window), c)
+        all_views_width = sum(self.calc_group_offset_width(g2d, c))
+
+        rect = RECT()
+        windll.user32.GetClientRect(c_ulong(window.hwnd()), byref(rect))
+        width = rect.right - all_views_width
+        if width < 0:
+            width = 0
+        return {'visible': width > 0, 'width': width}
+
+    def calc_group_offset_width(self, g2d, group_col):
+        r = len(g2d)
+        ret = []
+        for x in range(group_col):
+            for y in range(r):
+                if g2d[y][x] is not None:
+                    ret += self.calc_view_width(g2d[y][x], y, x)
+                    break
+            else:
+                if self.get_setting('imesupport_debug'):
+                    print('WindowLayout.calc_group_offset_width: there is empty view.')
+        return ret
+
+    def calc_group_offset_height(self, g2d, group_row):
+        c = len(g2d[0])
+        ret = []
+        for y in range(group_row):
+            for x in range(c):
+                if g2d[y][x] is not None:
+                    ret += self.calc_view_height(g2d[y][x])
+                    break
+            else:
+                if self.get_setting('imesupport_debug'):
+                    print('WindowLayout.calc_group_offset_height: there is empty view.')
+        return ret
+
+    def calc_view_width_offset(self, view):
+        if self.distraction_free['status']:
+            extent = view.viewport_extent()
+            layout = view.layout_extent()
+            min_width = self.get_setting('imesupport_view_left_distraction_free_width')
+            left_width = max(extent[0] - layout[0], min_width) / 2
+            left_width += 4
+        else:
+            left_width = self.get_setting('imesupport_view_left_icon_width')
+        line_numbers = self.line_numbers_status(view)
+        return [
+            left_width,
+            (line_numbers['width'] if line_numbers['visible'] else 0)
+            ]
+
+    def calc_view_width(self, view, row, col):
+        minimap = self.split_group[row][col]['minimap']
+        return self.calc_view_width_offset(view) + [
+            view.viewport_extent()[0],
+            (minimap['width'] if minimap['visible'] else 0),
+            self.get_setting('imesupport_view_right_vscroll_width')
+            ]
+
+    def calc_view_height_offset(self, view):
+        return [self.tabs['height'] if self.tabs['visible'] else 0]
+
+    def calc_view_height(self, view):
+        hscroll_bar = self.hscroll_bar_status(view)
+        return self.calc_view_height_offset(view) + [
+            view.viewport_extent()[1],
+            (hscroll_bar['height'] if hscroll_bar['visible'] else 0)
+            ]
+
+    def line_numbers_status(self, view):
+        # NOTE line numbers is always hidden on Distraction Free Mode.
+        if self.distraction_free['status']:
+            # print(imesupportplugin.WindowLayout.line_numbers_status(window.active_view_in_group(0)))
+            return {'visible': False, 'width': 0, 'mode': 'distraction_free'}
+        else:
+            visible = view.settings().get('line_numbers')
+            width = (WindowLayout.calc_line_numbers_width(view) + 3
+                if visible else 0)
+            return {'visible': visible, 'width': width, 'mode': 'calc'}
+
+    def hscroll_bar_status(self, view):
+        word_wrap = view.settings().get('word_wrap')
+        extent = view.viewport_extent()
+        layout = view.layout_extent()
+        diff = layout[0] - extent[0]
+        return {
+            'visible': diff > 0 and word_wrap != True,
+            'height': self.get_setting('imesupport_view_bottom_hscroll_height'),
+            # 'diff': self.hscroll_bar_diff(view),
+            }
+
+    @staticmethod
+    def get_group_list(window):
+        return [window.active_view_in_group(g) for g in range(window.num_groups())]
+
+    @staticmethod
+    def get_extent_list(window):
+        view_groups = [window.active_view_in_group(g) for g in range(window.num_groups())]
+        return [None if v is None else v.viewport_extent() for v in view_groups]
+
+    @staticmethod
+    def tabs_status(window, view):
+        extent1 = view.viewport_extent()
+        window.run_command('toggle_tabs')
+        extent2 = view.viewport_extent()
+        window.run_command('toggle_tabs')
+        diff = extent2[1] - extent1[1]
+        return {'visible': diff > 0, 'height': abs(diff)}
+
+    @staticmethod
+    def minimap_status(window, view):
+        extent1 = view.viewport_extent()
+        window.run_command('toggle_minimap')
+        extent2 = view.viewport_extent()
+        window.run_command('toggle_minimap')
+        diff = extent2[0] - extent1[0]
+        return {'visible': diff > 0, 'width': abs(diff)}
+
+    @staticmethod
+    def is_side_bar_visible(window, view):
+        extent1 = view.viewport_extent()
+        window.run_command('toggle_side_bar')
+        extent2 = view.viewport_extent()
+        window.run_command('toggle_side_bar')
+        diff = extent2[0] - extent1[0]
+        # NOTE Cannot use diff for side_bar width.
+        return {'visible': diff > 0}
+
+    @staticmethod
+    def distraction_free_status(window):
+        """ Detecte Distraction Free Mode. """
+        return {'status': is_fullscreen(window.hwnd())}
+
+    @staticmethod
+    def line_numbers_diff(view):
+        # FIXME Cannot get with non-active group.
+        visible = view.settings().get('line_numbers')
+        extent1 = view.viewport_extent()
+        view.settings().set('line_numbers', not visible)
+        extent2 = view.viewport_extent()
+        view.settings().set('line_numbers', visible)
+        return extent2[0] - extent1[0]
+
+    @staticmethod
+    def hscroll_bar_diff(view):
+        # FIXME Cannot get with non-active group.
+        word_wrap = view.settings().get('word_wrap')
+        # Make hscroll bar visible if line is longer than viewport.
+        view.settings().set('word_wrap', False)
+        extent1 = view.viewport_extent()
+        # Hide hscroll bar.
+        view.settings().set('word_wrap', True)
+        extent2 = view.viewport_extent()
+        view.settings().set('word_wrap', word_wrap)
+        diff = extent2[1] - extent1[1]
+        return {'visible': diff > 0, 'height': abs(diff)}
+
+    @staticmethod
+    def get_layout_rowcol(layout):
+        c = len(layout['cols']) - 1
+        r = len(layout['rows']) - 1
+        return (r, c)
+
+    @staticmethod
+    def get_group_rowcol(layout, group):
+        c = len(layout['cols']) - 1
+        return (group // c, group % c)
+
+    @staticmethod
+    def make_list2d(lst, cols):
+        assert (len(lst) % cols) == 0
+        return [lst[i * cols:(i + 1) * cols] for i in range(len(lst) // cols)]
+
+    @staticmethod
+    def get_number_column(n):
+        return int(math.log10(n)) + 1
+
+    @staticmethod
+    def calc_line_numbers_width(view):
+        lines, _ = view.rowcol(view.size())
+        c = WindowLayout.get_number_column(lines + 1)
+        return c * view.em_width()
+
+
+class ImeSupportEventListener(sublime_plugin.EventListener):
+    def __init__(self):
+        self.layouts = {}
+        self.initialized = False
+
+    def on_activated(self, view):
+        self.update(view)
+
+    @fix_cloned_view
+    def on_selection_modified(self, view):
+        self.update(view)
+
+    def update(self, view):
+        if not self.initialized:
+            setup()
+            self.initialized = True
+
+        if view is None:
+            return
+        window = view.window()
+        if window is None:
+            return
+
+        id = window.id()
+        if id not in self.layouts:
+            self.layouts[id] = WindowLayout(window)
+
+        if view.settings().get('is_widget'):
+            pos = self.layouts[id].get_widget_cursor_position(view, view.sel()[0].a)
+        else:
+            self.layouts[id].update_status(view)
+            pos = self.layouts[id].calc_cursor_position(view, view.sel()[0].a)
+
+        set_pos(window.hwnd(), pos)
+
+
+class ImeSupportGetMeasureCommand(sublime_plugin.WindowCommand):
+    def run(self):
+        self.test(self.window, self.window.active_view())
+
+    @staticmethod
+    def test(window, view):
+        print('ImeSupportGetMeasureCommand:')
+        for k, v in WindowLayout(window).get_status().items():
+            print(k + ': ' + str(v))
+
+
+if sublime.load_settings('IMESupport.sublime-settings').get('imesupport_debug'):
+    class _WindowLayoutTestEventListener(sublime_plugin.EventListener):
+        def __init__(self):
+            window = sublime.active_window()
+            if window is None:
+                return
+            view = window.active_view()
+            if view is None:
+                return
+            ImeSupportGetMeasureCommand.test(window, view)
+
+
+class ImeSupportSetImeStatusCommand(sublime_plugin.TextCommand):
+    def run(self, edit, status):
+        set_ime_status(self.view.window().hwnd(), status)
+
+
+try:
+    from imesupport import globalhook
+except ImportError:
+    from .imesupport import globalhook
+
+
+# def unload_handler():
+#     print('ImeSupport: unload')
+#     globalhook.term()
+
+
+def setup():
+    if int(sublime.version()) < 3000:
+        # Sublime Text 2 & Python 2.6
+        pass
+    else:
+        # Sublime Text 3 & Python 3.3
+        globalhook.setup(sublime.arch() == 'x64')
+
+
+def set_pos(hwnd, pos):
+    if int(sublime.version()) < 3000:
+        set_pos_st2(hwnd, pos)
+    else:
+        set_pos_st3(hwnd, pos)
+
+
+def set_pos_st2(hwnd, pos):
+    # set position directly here. (Not handle IME messages.)
+    set_inline_position(hwnd, *pos)
+
+
+def set_pos_st3(hwnd, pos):
+    globalhook.set_inline_position(hwnd, *pos)
+
+########NEW FILE########

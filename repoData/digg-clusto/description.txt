@@ -1,0 +1,152 @@
+
+subversion test
+
+=== A lot of this stuff has changed I'll have to update it ===
+
+Things seem to fall into 3 general categories:
+
+1. Equipment - Things like servers, switches, racks, routers, etc.
+
+2. Parts - Things like NICS, ports, U (rack space), etc.
+
+3. Resources - IP ranges/network blocks, space (U, datacenter space), etc.
+
+These are loose categories 
+
+
+Kinds of matching:
+
+1. the given key value pairs exist in Thing
+2. for the given keys the values match exactly in the Thing
+3. the given key/values exactly match attributes of Thing
+
+
+Questions I'd like to be able to answer questions like:
+
+* get 4 servers in datacenter Z with status == unallocated 
+  each in a different rack
+
+servers = []
+d = clusto.getByName('datacenterZ')
+racks = d.getConnectedMatching(AttributeDict(Racks.allMetaAttrs()))
+for r in racks:
+    s = r.getConnectedMatching(Servers.allMetaAttrs() + [('status', 'unallocated')])
+    servers.append(s.pop())
+
+
+* get console for server X
+* add service W on server X to loadbalancer vip Y
+
+clusto expressions (maybe)
+-----------------------
+
+driver:Console connected to name:server2
+ - return the console connected to 'server2'
+
+driver:Server
+ - return all serves
+
+driver:Server connected to name:rack002
+ - return servers in rack002
+
+attr:foo,12 and driver:Server
+ - return servers with attr foo,12
+
+pattern
+-------
+alphanumeric
+* glob supported ? 
+* regex supported ?
+
+pattern types
+----------
+name:<somename> 
+driver:<driver>
+attr:<key,val>
+
+operators
+---------
+not, or, and, 
+
+functions
+---------
+haskey
+connected to
+
+
+clusto categorization ideas
+===========================
+
+Class, Role, Service
+
+Class is similar to the class concept from fai.  The classes of a server, for
+example, might include information about what software is installed on that
+machine or how much ram the machine has or how many disks.
+
+Role is a description of the job of a Thing.  So a server could have the roles
+of Production, LiveWebserver, and Mail.  These roles are generally more
+abstract and don't refer to specific software or hardware properties
+themselves.  The can however require that the server be a member of certain
+Classes.  So the Blog role might require that the server be connected to the
+Webserver class while the LiveSite role would require the server be connected
+to the Apache and BigMem classes.
+
+A Service is an instance of a role. So you can have dbslave14... (not sure of
+the value of this)
+
+A Pool is just a grouping of Things.  For example you could have many Servers
+with a 'dbslave' role but with some in a 'production' pool and others in a
+'development' pool.  
+
+(how do you put two db roles on one machine?)
+  ( up to sysadmins.  might use VMs, might use vservers (like openvz), might
+    put things on separate ports)
+
+
+clusto command line ideas
+=========================
+
+clusto connect foo1 foo2
+ - connect foo1 and foo2
+
+clusto power off server1
+ 
+clusto locate server1
+ - should return:
+ server1 -> connected to port 4 on switch2a
+ server1 -> connected to RU13 in rack101
+ 
+clusto console server1
+ - connect to console on server1
+
+clusto attr del <key> [<value>]
+clusto attr add <key> <value> [<value>] [<value>] ...
+clusto attr get <key>
+clusto attr set <key> <value> [<value>] [<value>] ...
+ - modify Thing attributes
+
+clusto network setvlan server1 eth1 vlan203
+  - put eth1 on server1 onto vlan203
+
+clusto rebuild server1
+ - reinstall operating system onto server1
+
+Reserverd Attrs
+===============
+
+_ip
+_in
+
+
+What is Clusto?
+---------------
+
+Clusto is a cluster management tool.  It helps you keep track of your
+inventory, where it is, how it's connected, and provides an abstracted
+interface for interacting with the elements of the infrastructure.
+
+Some docs are available under docs/ and there are more code examples in the
+unit tests in src/clusto/test/.
+
+
+

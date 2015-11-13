@@ -1,0 +1,629 @@
+
+KeySync - One key for all of your chat apps
+===========================================
+
+There are many chat apps that support OTR encryption for verifying messages.
+Many of us use multiple chat apps, including one for desktop and another for
+mobile, or one for Mac OS X and another for GNU/Linux or Windows.  The trust
+relationships are only stored locally in the app in a format that is specific
+to that app.  Switching between all of them means that you have to manage your
+trust relationships for each app that you use.
+
+KeySync addresses this problem by allowing you to sync your OTR identity and
+trust relationships between multiple apps, which eliminates the need to
+re-establish those relationships on each new client/device. It currently works
+with ChatSecure on Android, and Pidgin, Adium, and Jitsi on desktop.
+
+Please note: KeySync does not make it easier to have simultaneous encrypted
+chats with the same account logged into multiple clients or devices.  There
+are limitations in the OTR protocol that make this impossible.
+
+
+How to sync
+-----------
+
+To sync between ChatSecure and your desktop apps, plug in your phone or device
+via USB and run the sync.  Or you can manually copy the `otr_keystore.ofcaes`
+file over to your device's SD Card, where ChatSecure looks for it.  Using
+ChatSecure, you will need to scan the QRCode that KeySync shows you in order
+to complete the sync.  The `otr_keystore.ofcaes` file is encrypted to prevent
+your private information from leaking out.  That QRCode is the password to
+your keystore, so do not share it with anyone.
+
+If you have multiple chat apps that you use, or you are switching from one to
+another, you can use KeySync to sync up the trust relationships between
+multiple desktop apps.  Here's how:
+
+1. quit all of the chat apps that you want to
+2. select whichever apps you want to sync
+3. then run the sync
+
+Now, open your chat apps and you should have synced trust!  In case of
+problems, it saved your original OTR files in place.  They are named using a
+long string of numbers that represent the time when they were backed up.
+
+This is beta software, do not rely on it for strong identity verification.  It
+is unlikely to mess up so bad as to produce compromised private keys, but
+anything is possible.  Also, keep in mind that program is handling your
+private OTR keys, so make sure that you don't copy, send or email the
+`otr_keystore.ofcaes` file somewhere unsafe.  All that said, testing
+and feedback is greatly appreciated, so we can get it to the point where we
+can trust it.
+
+
+Adding apps to KeySync
+----------------------
+
+This project has libraries for converting the various OTR file formats between
+each other.  We have focused on the two major versions: libotr format and otr4j,
+and then a few variants of those major formats.  All OTR implementations can
+be supported as long as they can be read and parsed by Python.
+
+KeySync has preliminary support for Gajim and IRSSI, and it has a modular
+architecture to allow for expansion.  If you want to add an app that is not
+already included, you just need to make a single python file that converts
+between that app's OTR data format and the KeySync internal format (documented
+below).
+
+
+Reporting bugs
+--------------
+
+We appreciate all feedback, be it bug reports, patches, pull requests, feature
+requests, etc.  Please add your bugs and requests to our issue tracker:
+
+https://dev.guardianproject.info/projects/keysync/issues
+
+Email us at support@guardianproject.info with questions, problems, etc., or
+just to let us know that you are using KeySync and find it useful.
+
+
+INSTALL
+=======
+
+KeySync uses lots of Python modules to achieve a smooth syncing
+experience.  To see a complete list of python modules used on your
+platform, see the `dependencies` list in setup.py.  Here are some of
+the key libraries:
+
+* BeautifulSoup 3 - http://www.crummy.com/software/BeautifulSoup
+* psutil - https://code.google.com/p/psutil
+* pure-python-otr - https://github.com/afflux/pure-python-otr
+* pyasn1 - http://pyasn1.sourceforge.net/
+* pycrypto - https://www.dlitz.net/software/pycrypto
+* pyjavaproperties - http://pypi.python.org/pypi/pyjavaproperties
+* pymtp - https://github.com/eighthave/pymtp
+* pyparsing - http://pyparsing.wikispaces.com
+* python-pgpdump - https://pypi.python.org/pypi/pgpdump
+* Python Imaging Library - http://www.pythonware.com/products/pil
+* qrcode - https://github.com/lincolnloop/python-qrcode
+* Tkinter - https://wiki.python.org/moin/TkInter
+
+
+Debian/Ubuntu/Mint/etc
+----------------------
+
+We're working to get all packages into official Debian/Ubuntu/etc. releases,
+in the meantime you can install KeySync by adding our PPA (fingerprint
+F50EADDD2234F563):
+
+    sudo add-apt-repository ppa:guardianproject/ppa
+    sudo apt-get update
+    sudo apt-get install keysync
+
+PPA URL: https://launchpad.net/~guardianproject/+archive/ppa
+
+If you want to install the dependencies because you're going to develop
+KeySync, then install them manually with:
+
+    sudo apt-get install python-pyparsing python-pyasn1 python-potr python-pymtp \
+      python-pyjavaproperties python-beautifulsoup python-qrcode libmtp-dev \
+      python-pgpdump python-crypto python-psutil python-tk python-imaging-tk
+
+For Debian, you can try using the Ubuntu PPA, with something like oneiric for
+wheezy, and natty for squeeze:
+
+  deb http://ppa.launchpad.net/guardianproject/ppa/ubuntu oneiric main
+
+
+Mac OS X
+--------
+
+For Mac OS X, you can download the binary app from our website:
+https://guardianproject.info
+
+You use Brew, Fink, or MacPorts to install pip and virtualenv, then
+use those tools to install KeySync (see the *pip+virtualenv install*
+section):
+
+    fink install pip-systempython26 virtualenv-systempython26
+    sudo port install py27-pip py27-virtualenv
+
+For homebrew, see: https://gist.github.com/pithyless/1208841
+
+Once you have pip and virtualenv, then you can start to build the
+whole thing.  First follow the pip+virtualenv instructions below.
+Then come back here and do the following in your virtualenv:
+
+    rm -rf build dist
+    pip install py2app
+    python setup.py py2app
+    ls dist/
+
+If you are using py2app older than 0.7.4 on Mac OS X 10.6, then you
+need to patch py2app to make it work with python2.6:
+
+    pip install --upgrade py2app
+    patch env/lib/python2.6/site-packages/py2app/build_app.py py2app-python2.6.patch
+
+
+Windows
+-------
+
+For Windows, you can download the binary app from our website:
+https://guardianproject.info
+
+Build instructions for Windows are in win32/README.md in the source folder.
+
+Fedora/Redhat/RPMs
+------------------
+
+Install these build dependencies locally, then follow the instructions for
+pip+virtualenv below:
+
+    sudo yum install gmp-devel tk tkinter python-pillow python-pillow-tk
+
+
+pip+virtualenv install
+------------------
+
+Activate your virtual python environment then run pip to install the dependencies:
+
+    virtualenv ./env
+    . env/bin/activate
+    pip install -e .
+    ./keysync
+
+For a nice step-by-step HOWTO, see:
+http://exyr.org/2011/virtualenv-HOWTO/slides.html
+
+*Note*: Doesn't work on Windows! See win32/README.md
+
+
+=====
+USAGE
+=====
+
+Currently, the code allows for reading multiple file formats into a python
+dictionary form.  The only export method currently activated is for ChatSecure
+format in a file called otr_keystore.ofcaes.  To use, point the `keysync`
+script the app that you want to read OTR info from, and it will generate
+`otr_keystore` to send to ChatSecure on your Android device (run
+`keysync --help` to see all currently available options).
+
+  keysync --input pidgin
+
+
+=======
+FORMATS
+=======
+
+libotr
+------
+
+Adium:
+  ~/Library/Application Support/Adium 2.0/Users/Default/otr.private_key
+  ~/Library/Application Support/Adium 2.0/Users/Default/otr.fingerprints
+  ~/Library/Application Support/Adium 2.0/Users/Default/Accounts.plist
+
+  Uses the standard libotr files and overall file format for
+  otr.private_key and otr.fingerprints.  Account ID is stored as an
+  integer which must be referenced from the Accounts.plist to get the
+  actuall XMPP account name (e.g. me@jabber.org). Uses full word
+  descriptive tags for the various protocols, e.g. libpurple-oscar-AIM,
+  libpurple-Jabber, etc.
+
+Pidgin
+ GNU/Linux
+  ~/.purple/otr.private_key
+  ~/.purple/otr.fingerprints
+ Windows
+  %APPDATA%\.purple\otr.private_key
+  %APPDATA%\.purple\otr.fingerprints
+
+  Uses the standard libotr files and overall file format for
+  otr.private_key and otr.fingerprints. Account IDs are used directly
+  in the libotr files. XMPP/Jabber Account IDs include the "Resource"
+  e.g. me@jabber.org/Resource or me@jabber.org/Pidgin.
+
+irssi
+  ~/.irssi/otr/otr.key
+  ~/.irssi/otr/otr.fp
+
+  Uses the standard libotr file format and files, but names the files
+  differently, basically abbreviated versions of the libotr names.
+  Account IDs are used directly in the libotr files.
+
+xchat
+  ~/.xchat2/otr/otr.key
+  ~/.xchat2/otr/otr.fp
+
+  Same as irssi
+
+otr4j
+-----
+
+ChatSecure:
+  /data/data/info.guardianproject.otr.app.im/files/otr_keystore
+
+  All OTR information is stored in a single Java .properties
+  file. Private keys, public key fingerprints, and verification status
+  are each individual properties.  This format also includes the
+  storage of the remote public keys, unlike libotr.  otr4j
+  implementations load the remote public key from the store rather
+  than always getting it from the OTR session.
+
+Jitsi:
+ GNU/Linux
+  ~/.jitsi/sip-communicator.properties
+  ~/.jitsi/contactlist.xml
+ Mac OS X
+  ~/Library/Application Support/Jitsi/sip-communicator.properties
+  ~/Library/Application Support/Jitsi/contactlist.xml
+ Windows
+  ~/Application Data/Jitsi/sip-communicator.properties
+  ~/Application Data/Jitsi/contactlist.xml
+
+  All app settings are stored in a single Java .properties file,
+  including OTR information. Private keys, public key fingerprints,
+  and verification status are each individual properties.
+
+
+pure-python-otr
+---------------
+
+pure-python-otr is pure python implementation of the OTR spec.  It
+includes newer features like Socialist Millionaire's Protocol.  The
+private key is stored in a separate file per-account.  The
+fingerprints are stored in the same tab-separated-value format as
+libotr but with a fingerprint file per-account.
+
+Gajim:
+  GNU/Linux:
+    ~/.local/share/gajim/_SERVERNAME_.key3
+    ~/.local/share/gajim/_SERVERNAME_.fpr
+    ~/.config/gajim/config
+  Windows:
+    ~/Application Data/Gajim/
+
+The private key is serialized in a custom format: p, q, g, y, x, written
+consecutively to a file as MPIs. See
+[potr/compatcrypto/pycrypto.py](https://github.com/afflux/pure-python-otr/blob/master/src/potr/compatcrypto/pycrypto.py).
+
+
+keyczar
+-------
+
+KeyCzar stores keys in JSON files with two different formats: 0.5b and
+0.6b.  It uses a special base64 encoding with a URL-safe alphabet:
+  - replaces +
+  _ replaces /
+
+http://code.google.com/p/keyczar/wiki/DsaPrivateKey
+http://code.google.com/p/keyczar/wiki/DsaPublicKey
+
+ 0.6b
+  public:
+    "q": The DSA subprime
+    "p": The DSA prime
+    "g": The DSA base
+    "y": The DSA public key exponent
+    "size" : The size of the modulus in bits
+  private:
+    "publicKey": The JSON representation of the corresponding DsaPublicKey
+    "x": The secret exponent of this private key
+    "size" : The size of the modulus in bits
+
+ 0.5b
+  public:
+     "x509": A WebSafeBase64 encoded X509 representation
+  private:
+     "pkcs8": A WebSafeBase64 encoded PKCS#8 representation of the private key
+     "publicKey": A WebSafeBase64 encoding of the key's corresponding DsaPublicKey
+
+
+ZRTP
+----
+
+A ZID record stores (caches) ZID (ZRTP ID) specific data that helps
+ZRTP to achives its key continuity feature. Please refer to the ZRTP
+specification to get detailed information about the ZID.
+
+ ZRTP key types:
+  2048 bit Diffie-Helman values
+  3072 bit Diffie-Helman values
+  256 bit Diffie-Helman elliptic curve
+  384 bit Diffie-Helman elliptic curve
+
+
+
+IMPLEMENTATION
+==============
+
+Here are some notes on how things are implemented in KeySync.
+
+Internal key storage
+--------------------
+
+The key idea in the implementation is to get everything into a common format
+internally.  That common format can then be handed to any class for a given
+program, which knows how to output it to the correct file format.  The current
+internal data format is a dict of dicts representing a key, called 'keydict'.
+So first, you have a dict representing a given account with a given key
+associated with it.  This account name is used as the unique ID.  Then the
+whole collection of keys, both local private keys and remote public keys, are
+collected in meta dict with the account name as the key and the whole dict as
+the value. This format allows for easy merging, which enables syncing between
+files.
+
+Sample structure in python dict notation:
+
+    keydict = {
+        'userid': {
+                    'fingerprint': 'ff66e8c909c4deb51cbd4a02b9e6af4d6af215f8',
+                    'name': 'userid',
+                    'protocol': 'IRC',
+                    'resource': 'laptop', # the XMPP "resource"
+                    'verification': 'verified', # or 'smp' for Socialist Millionares
+                    'p': '<p value>', # public part of the DSA key
+                    'q': '<q value>', # public part of the DSA key
+                    'g': '<g value>', # public part of the DSA key
+                    'x': '<x value>', # core of private DSA key
+                    'y': '<y value>', # core of public DSA key
+                },
+        'userid2' : { ... },
+        ...
+        'useridn' : { ... }
+    }
+
+
+Protocol IDs
+------------
+
+Unfortunately each app has its own string IDs to represent the different IM
+protocols.  KeySync uses the Pidgin IDs internally.  KeySync is currently
+focused on the widely deployed common standards of XMPP and IRC. We welcome
+contributions for working with the other protocols. These are the IDs that are
+currently working throughout:
+
+prpl-bonjour  XMPP Bonjour (serverless XMPP with mDNS discovery)
+prpl-irc      IRC (Internet Relay Chat)
+prpl-jabber   XMPP (Jabber)
+
+Here is the full list of IDs from Pidgin:
+https://developer.pidgin.im/wiki/prpl_id
+
+# Building On Windows
+
+Either a Windows machine or a Linux box with wine installed will do to produce a w32 binary.
+
+![](w32-screenshot.png)
+
+## Download Prerequisites 
+
+**Automatic Download** (Recommended) 
+
+1. Execute the`fetch-and-verify.sh` script
+3. Copy all the files to your windows computer
+4. Download the [VS 2008 redistributable][vsredist]
+
+**Manual Download**
+
+* [Git][git]
+* [Python 2.7][py27] ([sig][pysig])
+* [Python Windows 32 Bindings][pywin32]
+* [PyInstaller Development Version][pyinst]
+* [Setuptools Bootstrap][setuptools]
+* [MingW Installer][mingw]
+* [OpenSSL-Win32][openssl]
+* [MS VS 2008 redistributable][vsredist]
+* [PyCrypto Source][pycrypto] ([sig][pycryptosig])
+* [Pure Python OTR Source][potr]
+* [Pidgin][pidgin] ([sig][pidginsig])
+* [Pidgin OTR Plugin][pidgin-otr] ([sig][pidgin-otrsig])
+
+**Builds on Linux**
+
+Install wine:
+
+* Debian/Ubuntu: `sudo apt-get install wine`
+* Fedora: `sudo yum install wine`
+
+
+## Install Prerequisites
+
+### MingW
+
+1. Execute the installer
+2. Follow the wizard
+3. When prompted in the installer choose this options:
+
+```
+    C compiler
+    C++ compiler
+    Msys basic system
+    MinGW Developer Toolkit
+```
+
+### Git
+
+1. Execute the installer
+2. Choose to add git to the PATH
+
+### OpenSSL
+
+1. Execute the vcredist_x86.exe package
+2. Install it completely
+3. Execute the OpenSSL installer
+4. When prompted choose "Copy OpenSSL DLLs to:  The OpenSSL binaries (/bin) directory"
+
+### Python
+
+1. Execute the Python installer, use default options
+    * Linux+Wine: you must use `msiexec /i python-2.7.5.msi`
+
+## Post Python Install Configuration
+
+**Configure the PATH environment variable**
+
+Windows:
+
+1. Right-click on My Computer and select properties
+2. Go to the 'Advanced' section and select 'Environment variables'
+3. Select 'Path' from the 'System Variables' and click the 'Edit button'
+4. Append the following to your PATH variable:
+
+    ```
+    C:\MinGW\bin;C:\MinGW\msys\1.0\bin;C:\Python27;C:\Python27\Scripts;C:\OpenSSL-Win32\bin;
+    ```
+
+Linux+Wine:
+
+1. Open regedit using the `regedit` command
+2. Edit `HKEY_CURRENT_USER/Environment`
+3. Add a new String value called `PATH` using the value above
+
+**Set Python to use MinGW**
+
+1. Create the following file: C:\Python27\Lib\distutils\distutils.cfg
+2. Append:
+
+```
+    [build]
+    compiler=mingw32
+```
+3. Save and close
+
+**Fix -mno-cygwin error**
+
+To prevent the following error when building Python modules, we must edit a distutils file.
+
+    gcc: error: unrecognized command line option '-mno-cygwin'
+
+1. Edit the file `C:\Python27\Lib\distutils\cygwinccompiler.py`
+2. Look for the class: `Mingw32CCompiler` around line 297
+3. Find the block that beings with 'self.set_executables('
+4. Delete all the '-mno-cygwin' flags
+5. Save and close
+
+
+## Install Python Dependencies
+
+Note: your $HOME when using MinGW shell is in C:\MinGW\msys\1.0\home\USERNAME
+
+### setuptools
+
+1. Open your MinGW Shell
+    * Windows: Start -> MinGW -> MinGW Shell
+    * Linux+Wine: `wine cmd.exe /C C:\MinGW/msys/1.0/msys.bat`
+2. cd to where you downloaded [ez_setup.py][setuptools]
+    * Windows: Access the normal windows FS using the /c/ path (i.e., /c/ corresponds to C:\)
+    * Linux+Wine: Access your native root fs with /z/
+3. Execute:
+
+```bash
+    python ez_setup.py
+```
+
+### Python W32 Bindings
+
+1. Execute the Python installer, use default options
+
+*Note*: If using a virtual environment (virtualenv), then you must open a
+command shell that has your virtualenv activated and execute:
+
+    easy_install /c/path/to/pywin32-218.win32-py2.7.exe
+
+Otherwise pywin32 will be installed into the system site-packages dir, and not
+be available to your virtualenv.
+
+
+### PyCrypto
+
+For some reason we must install PyCrypto this way, instead of relying on it to
+be installed via setup.py along with the rest of the dependencies.
+
+1. cd to your extracted pycrypto dir: `cd pycrypto-2.6`
+2. `python seutp.py install`
+
+
+### KeySync
+
+1. `cd keysync`
+2. `python setup.py install`
+
+This will download, compile, and install all the remaining python modules.
+
+## Verify Everything Works
+
+At this point, all the dependencies for keysync should be installed
+and functioning, so keysync should work. You can test it by running keysync-gui:
+
+You'll probably want to install Pidgin, pidgin-otr, and configure an account
+before running keysync.
+
+```bash
+cd keysync
+python keysync-gui
+```
+Do not proceed unless the GUI pops up and the app functions as expected.
+
+## Create Windows Executable with PyInstaller
+
+Note: Due to [bug 651](http://www.pyinstaller.org/ticket/651) the development
+version of PyInstaller must be used.
+
+KeySync's setup.py script automatically installs pyinstaller, so all you need
+to do is execute pyinstaller and point it at the script you want to turn into
+an EXE.  Build the package:
+
+```bash
+pyinstaller --onefile keysync-gui.spec
+```
+
+You can omit the `--onefile` parameter, see the [PyInstaller
+Manual](http://htmlpreview.github.io/?https://github.com/pyinstaller/pyinstaller/blob/develop/doc/Manual.html)
+for what exactly the consequences of both modes are.
+
+If the process succeeds, then check the `dist/` directory
+inside the pyinstaller directory.
+
+# Security Considerations
+
+Unfortunately most of the dependencies and toolchain used above are not
+available to download over HTTPS nor do they have signatures to verify. Even
+MinGW lacks any sort of secure download, so securely building the dependencies from
+source may not be possible.
+
+Also, according to [this ticket](http://sourceforge.net/p/pywin32/bugs/519/)
+the Python Win32 bindings are not easily buildable with MinGW.
+
+[git]: http://git-scm.com/download/win
+[py27]: http://www.python.org/ftp/python/2.7.5/python-2.7.5.msi
+[pysig]: http://www.python.org/ftp/python/2.7.5/python-2.7.5.msi.asc
+[pywin32]: http://downloads.sourceforge.net/project/pywin32/pywin32/Build%20218/pywin32-218.win32-py2.7.exe?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fpyw#
+[pyinst]: https://github.com/pyinstaller/pyinstaller/tarball/develop
+[setuptools]: https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py
+[mingw]: http://downloads.sourceforge.net/project/mingw/Installer/mingw-get-inst/mingw-get-inst-20120426/mingw-get-inst-20120426.exe?r=&use_mirror=superb#
+[openssl]: https://slproweb.com/download/Win32OpenSSL-1_0_1e.exe
+[vsredist]: http://www.microsoft.com/en-us/download/details.aspx?id=29
+[pycrypto]: https://pypi.python.org/packages/source/p/pycrypto/pycrypto-2.6.tar.gz#md5=88dad0a270d1fe83a39e0467a66a22bb
+[pycryptosig]: https://pypi.python.org/packages/source/p/pycrypto/pycrypto-2.6.tar.gz.asc
+[potr]: https://github.com/afflux/pure-python-otr/archive/1.0.0beta6.zip
+[pidgin]: http://downloads.sourceforge.net/project/pidgin/Pidgin/2.10.7/pidgin-2.10.7-offline.exe?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fpidgin%2Ffil#
+[pidginsig]: http://downloads.sourceforge.net/project/pidgin/Pidgin/2.10.7/pidgin-2.10.7-offline.exe.asc?r=http%3A%2F%2Fsourceforge.net%2Fprojects%2Fpidgin%2#
+[pidgin-otr]: http://www.cypherpunks.ca/otr/binaries/windows/pidgin-otr-4.0.0-1.exe
+[pidgin-otrsig]: http://www.cypherpunks.ca/otr/binaries/windows/pidgin-otr-4.0.0-1.exe.asc
+
+
+

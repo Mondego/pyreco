@@ -1,0 +1,342 @@
+phonenumbers Python Library
+===========================
+
+This is a Python port of libphonenumber, originally from
+[http://code.google.com/p/libphonenumber/](http://code.google.com/p/libphonenumber/).
+It supports Python 2.5-2.7 and Python 3.x (in the same codebase, with no
+[2to3](http://docs.python.org/2/library/2to3.html) conversion needed).
+
+Original Java code is Copyright (C) 2009-2013 The Libphonenumber Authors
+
+Example Usage
+-------------
+
+The main object that the library deals with is a `PhoneNumber` object.  You can create this from a string
+representing a phone number using the `parse` function, but you also need to specify the country
+that the phone number is being dialled from (unless the number is in E.164 format, which is globally
+unique).
+
+```pycon
+>>> import phonenumbers
+>>> x = phonenumbers.parse("+442083661177", None)
+>>> print x
+Country Code: 44 National Number: 2083661177 Leading Zero: False
+>>> type(x)
+<class 'phonenumbers.phonenumber.PhoneNumber'>
+>>> y = phonenumbers.parse("020 8366 1177", "GB")
+>>> print y
+Country Code: 44 National Number: 2083661177 Leading Zero: False
+>>> x == y
+True
+>>> z = phonenumbers.parse("00 1 650 253 2222", "GB")  # as dialled from GB, not a GB number
+>>> print z
+Country Code: 1 National Number: 6502532222 Leading Zero(s): False
+```
+
+The `PhoneNumber` object that `parse` produces typically still needs to be validated, to check whether
+it's a *possible* number (e.g. it has the right number of digits) or a *valid* number (e.g. it's
+in an assigned exchange).
+
+```pycon
+>>> z = phonenumbers.parse("+120012301", None)
+>>> print z
+Country Code: 1 National Number: 20012301 Leading Zero: False
+>>> phonenumbers.is_possible_number(z)  # too few digits for USA
+False
+>>> phonenumbers.is_valid_number(z)
+False
+>>> z = phonenumbers.parse("+12001230101", None)
+>>> print z
+Country Code: 1 National Number: 2001230101 Leading Zero: False
+>>> phonenumbers.is_possible_number(z)
+True
+>>> phonenumbers.is_valid_number(z)  # NPA 200 not used
+False
+```
+
+The `parse` function will also fail completely (with a `NumberParseException`) on inputs that cannot
+be uniquely parsed, or that  can't possibly be phone numbers.
+
+```pycon
+>>> z = phonenumbers.parse("02081234567", None)  # no region, no + => unparseable
+Traceback (most recent call last):
+  File "phonenumbers/phonenumberutil.py", line 2350, in parse
+    "Missing or invalid default region.")
+phonenumbers.phonenumberutil.NumberParseException: (0) Missing or invalid default region.
+>>> z = phonenumbers.parse("gibberish", None)
+Traceback (most recent call last):
+  File "phonenumbers/phonenumberutil.py", line 2344, in parse
+    "The string supplied did not seem to be a phone number.")
+phonenumbers.phonenumberutil.NumberParseException: (1) The string supplied did not seem to be a phone number.
+```
+
+Once you've got a phone number, a common task is to format it in a standardized format.  There are a few
+formats available (under `PhoneNumberFormat`), and the `format_number` function does the formatting.
+
+```pycon
+>>> phonenumbers.format_number(x, phonenumbers.PhoneNumberFormat.NATIONAL)
+u'020 8366 1177'
+>>> phonenumbers.format_number(x, phonenumbers.PhoneNumberFormat.INTERNATIONAL)
+u'+44 20 8366 1177'
+>>> phonenumbers.format_number(x, phonenumbers.PhoneNumberFormat.E164)
+u'+442083661177'
+```
+
+If your application has a UI that allows the user to type in a phone number, it's nice to get the formatting
+applied as the user types.   The `AsYouTypeFormatter` object allows this.
+
+```pycon
+>>> formatter = phonenumbers.AsYouTypeFormatter("US")
+>>> print formatter.input_digit("6")
+6
+>>> print formatter.input_digit("5")
+65
+>>> print formatter.input_digit("0")
+(650
+>>> print formatter.input_digit("2")
+(650) 2
+>>> print formatter.input_digit("5")
+(650) 25
+>>> print formatter.input_digit("3")
+(650) 253
+>>> print formatter.input_digit("2")
+650-2532
+>>> print formatter.input_digit("2")
+(650) 253-22
+>>> print formatter.input_digit("2")
+(650) 253-222
+>>> print formatter.input_digit("2")
+(650) 253-2222
+```
+
+Sometimes, you've got a larger block of text that may or may not have some phone numbers inside it.  For this,
+the `PhoneNumberMatcher` object provides the relevant functionality; you can iterate over it to retrieve a
+sequence of `PhoneNumberMatch` objects.  Each of these match objects holds a `PhoneNumber` object together
+with information about where the match occurred in the original string.
+
+```pycon
+>>> text = "Call me at 510-748-8230 if it's before 9:30, or on 703-4800500 after 10am."
+>>> for match in phonenumbers.PhoneNumberMatcher(text, "US"):
+...     print match
+...
+PhoneNumberMatch [11,23) 510-748-8230
+PhoneNumberMatch [51,62) 703-4800500
+>>> for match in phonenumbers.PhoneNumberMatcher(text, "US"):
+...     print phonenumbers.format_number(match.number, phonenumbers.PhoneNumberFormat.E164)
+...
++15107488230
++17034800500
+```
+
+You might want to get some information about the location that corresponds to a phone number.  The
+`geocoder.area_description_for_number` does this, when possible.
+
+```pycon
+>>> from phonenumbers import geocoder
+>>> ch_number = phonenumbers.parse("0431234567", "CH")
+>>> print repr(geocoder.description_for_number(ch_number, "de"))
+u'Z\\xfcrich'
+>>> print repr(geocoder.description_for_number(ch_number, "en"))
+u'Zurich'
+>>> print repr(geocoder.description_for_number(ch_number, "fr"))
+u'Zurich'
+>>> print repr(geocoder.description_for_number(ch_number, "it"))
+u'Zurigo'
+```
+
+For mobile numbers in some countries, you can also find out information about which carrier
+originally owned a phone number.
+
+```pycon
+>>> from phonenumbers import carrier
+>>> ro_number = phonenumbers.parse("+40721234567", "RO")
+>>> print repr(carrier.name_for_number(ro_number, "en"))
+u'Vodafone'
+```
+
+You might also be able to retrieve a list of time zone names that the number potentially
+belongs to.
+
+```pycon
+>>> from phonenumbers import timezone
+>>> gb_number = phonenumbers.parse("+447986123456", "GB")
+>>> str(time_zones_for_number(gb_number))
+"(u'Atlantic/Reykjavik', u'Europe/London')"
+```
+
+For more information about the other functionality available from the library, look in the unit tests or in the original
+[libphonenumber project](http://code.google.com/p/libphonenumber/).
+
+Memory Usage
+------------
+
+The library includes a lot of metadata, giving a significant memory overhead.  This metadata is loaded on-demand so that
+the memory footprint of applications that only use a subset of the library functionality is not adversely affected.
+
+In particular:
+
+* The geocoding metadata (which is over 100 megabytes) is only loaded on the first use of
+  one of the geocoding functions (`geocoder.description_for_number`, `geocoder.description_for_valid_number`
+  or `geocoder.country_name_for_number`).
+* The carrier metadata is only loaded on the first use of one of the mapping functions (`carrier.name_for_number`
+  or `carrier.name_for_valid_number`).
+* The timezone metadata is only loaded on the first use of one of the timezone functions (`time_zones_for_number`
+  or `time_zones_for_geographical_number`).
+* The normal metadata for each region is only loaded on the first time that metadata for that region is needed.
+
+If you need to ensure that the metadata memory use is accounted for at start of day (i.e. that a subsequent on-demand
+load of metadata will not cause a pause or memory exhaustion):
+
+* Force-load the geocoding metadata by invoking `import phonenumbers.geocoder`.
+* Force-load the carrier metadata by invoking `import phonenumbers.carrier`.
+* Force-load the timezone metadata by invoking `import phonenumbers.timezone`.
+* Force-load the normal metadata by calling `phonenumbers.PhoneMetadata.load_all()`.
+
+The `phonenumberslite` version of the package does not include the geocoding, carrier and timezone metadata,
+which can be useful if you have problems installing the main `phonenumbers` package due to space/memory limitations.
+
+Project Layout
+--------------
+* The `python/` directory holds the Python code.
+* The `resources/` directory is a copy of the `resources/`
+  directory from
+  [libphonenumber](http://code.google.com/p/libphonenumber/source/browse/#svn%2Ftrunk%2Fresources).
+  This is not needed to run the Python code, but is needed when upstream
+  changes to the master metadata need to be incorporated.
+* The `tools/` directory holds the tools that are used to process upstream
+  changes to the master metadata.
+
+Unless otherwise specified the data is based on Wikipedia and communication with carriers.
+(http://en.wikipedia.org/wiki/Mobile_Network_Code)
+
+phonenumbers Python Library
+
+This is a Python port of libphonenumber, originally from:
+  http://code.google.com/p/libphonenumber/.
+
+Original Java code is Copyright (C) 2009-2012 The Libphonenumber Authors
+
+===========================
+phonenumbers Installation
+===========================
+
+Install using setup.py:
+  $ tar xfz phonenumbers-<version>.tar.gz
+  $ cd phonenumbers-<version>
+  $ python setup.py build
+  $ sudo python setup.py install  # or su first
+
+
+===========================
+Running Tests
+===========================
+
+With phonenumbers on the Python path, run:
+  $ python -m testwrapper
+
+
+===========================
+Auto-Generating Python Code
+===========================
+
+Several subdirectories under python/phonenumbers are automatically generated
+from the master metadata under resources/:
+ - python/phonenumbers/data is generated from resources/PhoneNumberMetadata.xml.
+ - python/phonenumbers/shortdata is generated from resources/ShortNumberMetadata.xml.
+ - python/phonenumbers/geodata is generated from files under resources/geocoding/.
+ - python/phonenumbers/carrierdata is generated from files under resources/carrier/.
+ - python/phonenumbers/tzdata is generated from files under resources/timezones/.
+
+The script tools/buildmetadatafromxml.py performs the first pair of autogenerations.
+The script tools/buildprefixdata.py performs the latter 3 sets of autogenerations.
+
+This approach results in a large set of Python files, but makes it easy
+to apply local fixes to the formatting metadata.
+
+The phonenumberslite version of the package does not include the prefix-based
+metadata (in order to reduce package size), so phonenumbers.geodata,
+phonenumbers.carrierdata and phonenumbers.tzdata are all unavailable with this
+version.
+
+
+===========================
+Library Developer Internals
+===========================
+
+The Python code is derived from the original Java code, and
+mostly sticks to the structure of that code to make it easier
+to include future changes to the upstream code.
+
+However, there are a number of differences:
+ - Naming conventions are converted to Python standards; in
+   particular, method names are connected_with_underscores
+   rather than beingInCamelCase.
+ - The PhoneNumber and PhoneMetadata classes are written by hand
+   based on the Java code and the protocol buffer definitions,
+   rather than by using the the Python protocol buffer library.
+   This makes the mapping to the Java code easier to follow, and
+   allows for the custom modifications that have been made to
+   the base protocol buffer.  Attribute values of None are used
+   to indicate that a particular (optional) attribute is not
+   present (instead of hasAttribute() methods).
+ - The Java PhoneNumberUtil class was a singleton, and so its
+   contents are included at the top level in phonenumberutil.py.
+   Static methods from the PhoneNumberUtil class thus become
+   functions in phonenumberutil.py; private and package methods
+   get a leading underscore in their name.
+ - Accessor functions (setAttribute() and getAttribute() are
+   avoided, and direct access to attributes is used instead.
+ - Methods named get_something_from(object) are typically renamed
+   to something_from(object).
+ - The format() methods in PhoneNumberUtil were renamed to
+   format_number() to avoid clashing with the Python built-in
+   format().
+ - The internals of phonenumberutil.py do not have logging.
+ - The Python version is less concerned with speed and size
+   optimization than the Java version (as Python code is more likely
+   to run on a server platform, and less likely to run on an
+   embedded/smartphone platform).
+
+Much of the functionality of this library depends on regular
+expressions, so it's worth highlighting the translation between
+Java and Python regexps:
+ - Java replacement group references are "$1 $2" etc, Python's are
+   "\1 \2" etc.
+ - Java Matcher(x).lookingAt() translates to Python re_obj.match(x)
+ - Java Matcher(x).find() translates to Python m = re.search(x).
+ - Java Matcher(x).matches() translates to Python m = re_obj.match(x)
+   together with a check that m.end() == len(x).
+The last of these is encapsulated in the fullmatch() function in
+re_util.py.
+
+
+===========================
+Release Procedure
+===========================
+
+ - Ensure that python/HISTORY file is up-to-date, and includes
+   descriptions of changes in this version (adapted from the
+   upstream debian/changelog, skipping the metadata changes
+   chunks).
+ - Set the __version__ field in python/phonenumbers/__init__.py
+ - Check that the list of symbols in python/phonenumbers/__init__.py __all__ is
+   up to date.  The tools/python/allcheck.py script helps with this.
+ - Optionally, force metadata regeneration:
+     cd tools/python && make metaclean alldata
+ - Check that the unit tests all run successfully:
+     cd tools/python && make test
+ - Optionally, check that metadata regeneration works in Py3k:
+     cd tools/python && make PYTHON=python3 metaclean alldata
+ - Check that the unit tests all run successfully in Py3k:
+     cd tools/python && make PYTHON=python3 test
+ - Check that Python 2.5 is still supported:
+     cd tools/python && make PYTHON=python2.5 test
+ - Create a release-<version> branch and shift to it with:
+     git checkout -b release-<version>
+ - Push the branch to Github with:
+     git push <github-remote> release-<version>
+ - Push the package to PyPI with:
+     cd python && setup.py sdist upload
+ - Push the lite package to PyPI with:
+     cd python && setup.py lite sdist upload
+

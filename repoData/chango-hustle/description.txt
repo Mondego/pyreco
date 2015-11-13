@@ -1,0 +1,136 @@
+Requires:
+=======
+ - liblmdb
+ - Python 2.7 (that is all I have tested with)
+ - Cython
+
+Install:
+=======
+```
+    $ sudo python setup.py install
+```
+
+Usage
+=====
+
+Using Writer and Reader
+-----------------------
+
+    >>> import mdb
+    >>> writer = mdb.Writer('/tmp/mdbtest')
+    >>> writer.put('foo', 'bar')
+    >>> writer.mput({"key": "value", "egg": "spam"})
+    >>> writer.close()
+    >>> reader = mdb.Reader('/tmp/mdbtest')
+    >>> reader.get('foo')
+    >>> for key, value in reader.iteritems():
+    ...   print key, value
+    >>> reader.close()
+
+Using Integer Key
+-----------------
+    >>> writer = mdb.Writer('/tmp/mdbtest', dup=True, int_key=True)
+    >>> writer = writer.put(1, 'foo')
+    >>> writer = writer.put(1, 'bar')  # append a duplicate key
+    >>> writer.close()
+    >>> reader = mdb.DupReader('/tmp/mdbtest', int_key=True)
+    >>> for v in reader.get(1):
+    ...   print v
+    >>> reader.close()
+    
+Using Low-level Stuff
+---------------------
+    >>> env = mdb.Env('/tmp/mdbtest')
+    >>> txn = env.begin_txn()
+    >>> db = env.open_db(txn)
+    >>> db.put(txn, 'hi', 'assinine')
+    >>> txn.commit()
+    >>> txn = env.begin_txn()
+    >>> print '"%s"' % db.get(txn, 'hi')  # --> assinine
+    >>> txn.close()
+    >>> db.close()
+    >>> env.close()
+
+Make sure you have Disco (0.5 or later) running locally.
+
+Make sure you've installed the ../deps correctly.
+
+Make sure you run setup.py to create all of the tables the tests will need.
+
+Run the test from within this directory using nose.
+
+Good luck, and please let us know if you are having problems or have feedback!
+
+tspurway AT gmail D0T com
+
+
+![Hustle](doc/_static/hustle.png)
+
+A column oriented, embarrassingly distributed, relational event database.
+
+Features
+--------
+
+* column oriented - super fast queries
+* events - write only semantics
+* distributed insert - designed for petabyte scale distributed datasets with massive write loads
+* compressed - bitmap indexes, lz4, and prefix trie compression
+* relational - join gigantic data sets
+* partitioned - smart shards
+* embarrassingly distributed ([based on Disco](http://discoproject.org/))
+* embarrassingly fast ([uses LMDB](http://symas.com/mdb/))
+* NoSQL - Python DSL
+* bulk append only semantics
+* highly available, horizontally scalable
+* REPL/CLI query interface
+
+Example Query
+-------------
+
+```
+select(impressions.ad_id, impressions.date, h_sum(pix.amount), h_count(),
+       where=((impressions.date < '2014-01-13') & (impressions.ad_id == 30010),
+               pix.date < '2014-01-13'),
+       join=(impressions.site_id, pix.site_id),
+       order_by=impressions.date)
+```
+
+
+Installation
+------------
+
+After cloning this repo, here are some considerations:
+
+* you will need Python 2.7 or higher - note that it *probably* won't work on 2.6 (has to do with pickling lambdas...)
+* you need to install Disco 0.5 and its dependencies - get that working first
+* you need to install Hustle and its 'deps' thusly:
+
+```
+cd hustle
+sudo ./bootstrap.sh
+```
+
+Please refer to the [Installation Guide](http://chango.github.io/hustle/start/install.html) for more details
+
+Documentation
+-------------
+
+[Hustle User Guide](http://chango.github.io/hustle/)
+
+[Hustle Mailing List](http://groups.google.com/group/hustle-users)
+
+[Hustle HipChat Hangout (Live Help!)](https://www.hipchat.com/gBd7RjnPv)
+
+Credits
+-------
+
+Special thanks to following open-source projects:
+
+* [EWAHBoolArray](https://github.com/lemire/EWAHBoolArray)
+* [disco](http://discoproject.org/)
+* [liblmdb](http://symas.com/mdb/)
+* [lz4](https://code.google.com/p/lz4/)
+* [ultrajson](https://github.com/esnme/ultrajson)
+
+Build Status: [Travis-CI](http://travis-ci.org/chango/hustle) :: ![Travis-CI](https://secure.travis-ci.org/chango/hustle.png)
+

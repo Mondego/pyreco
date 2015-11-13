@@ -1,0 +1,105 @@
+Phoneme
+
+A (very) simple script to encrypt all existing email in a gmail account with your gpg keys. The intent is that Phoneme is simple enough that even a layperson ought to be able to tell that there's nothing suspicious going on with the code and it does what it says on the tin.
+
+Phoneme goes through your email, encrypts it with your public key as the recipient, **DELETES THE PLAINTEXT UNENCRYPTED ORIGINAL** and appends it back to the folder it originally was in with the from and date information intact. It does not however remove the plaintext original from your trash folder, so when the full encryption process has finished you may want to check your trash folder and make sure everything is ok before you hit 'delete forever' 
+
+Special thanks go to https://github.com/mannkind who gave me a primer on how this works by demonstration in the IMAPEncrypt source.
+
+Phoneme goes through all your folders but only hits messages without "BEGIN PGP MESSAGE" in the body, so running it continuously will not result in constant re-encrypting of existing encrypted messages, and it also won't re-encrypt already encrypted messages from your peers that are using PGP to contact you.
+
+Frequently Asked Questions:
+
+1) Mass surveillance is pervasive, recent revelations have made it clear that our communications are tapped in various obtrusive ways, does this really actually gain a user any privacy? 
+
+Firstly, recent revelations have not made it clear to the precise extent that various state bodies engaged in surveillance programs have access to your email. What we do know is that they have the legal power to make requests to a secret court for data from various providers and those requests are almost without exception granted.
+
+It makes sense that in light of the fact that these requests are actually made that the surveillance apparatus does not have direct access to the entirety of all gmail account content instantly as it arrives, if that were the case we would not expect that they would need to make individual requests for information; Why ask for something you already have? Further, they have made allusions to loosening of surveillance standards after a 180 day period, lending more weight to the possibility that encrypting your email after it has arrived is not a completely lost cause.
+
+That being the case, there is utility in a post-hoc encryption process such as that which Phoneme uses even though it admittedly is not perfect.
+
+2) Doesn't this compromise on the goal of full end to end encryption and leave a gap open for entities engaged in surveillance to acquire your emails in plaintext?
+
+It is definitely no perfect substitute for a full PGP encrypted peer to peer email channel, but the question to my mind is not to compare it to an ideal which is almost entirely absent, but the practical realities of today.
+
+I hope that extensions to the underlying infrastructure of gmail such as Phoneme, mailvelope, and others of the same nature can contribute to the understanding and widespread adoption of end to end PGP amongst all users of email as a default. For a long time there has been a chicken and egg problem with the deployment of PGP where those that go to the trouble of bothering to setup keys and the appropriate software to correspond with others are mostly left corresponding 95% of the time or greater in plaintext despite the technical capacity for more.
+
+If in future solutions like Phoneme see widespread adoption, it becomes a simple matter to establish the conventional full peer to peer PGP chain after the fact.
+
+3) Doesn't this miss the point of persuading the governments of the world that they should not intrude on the private affairs of their people through legislative or judicial avenues?
+
+Personally I have zero faith in the institution of government in the world today, and believe strongly that rights left to the mercy of the self-restraint of governments are in fact no rights at all. But regardless of this, there is nothing to stop action on both fronts at once, for those who believe in legislative and judicial avenues to pursue those avenues, and those who do not to pursue other avenues.
+
+4) Doesn't Google keep permanent copies of your deleted forever emails, thus negating the usefulness of this process after the fact by leaving a route for plaintext interception without compromising the encryption directly?
+
+According to various statements from Google, this is not the case.
+
+http://www.smartplanet.com/blog/thinking-tech/does-8220delete-forever-8221-in-gmail-really-mean-it/2149
+
+http://productforums.google.com/forum/#!topic/gmail/QZh2Ce752QE
+
+Note especially; Unfortunately, once you have permanently deleted a message from Trash or Spam using "Delete forever," it cannot be recovered. Google complies with data privacy legislation. As a result, our systems are configured in a way that it is infeasible to restore user-deleted data.
+
+It's my position that it is not in the business interests of Google to act in enabling the state to engage in mass surveillance of their user base. They seem to fight to the extent that they are able, but the state can compel them to act in ways which are not in their rational self interest, and then gag them about it, such is the nature of the beast. 
+
+However, on the subject of deletion, they are not silent but actively state that delete forever really means delete forever.
+
+With this avenue of interception, as well as any other theoretical avenue of interception circumventing the cryptography and using a backdoor to obtain the plaintext, I acknowledge it's possible that there are threat models which negate the usefulness of Phoneme, but there are also threat models within which it functions as designed, and in my view there's a good chance the reality of the situation we find ourselves in fits within that set. 
+
+In addition to this if you can see threat models to which Phoneme exposes users that could be fixed with a pull request, I encourage you to assist with the project. All outside improvements are welcome. 
+
+In all of these threat models, leaving your emails in plaintext results in your privacy being violated, but employing cryptography at least has a good chance of protecting you.
+
+Further, if Phoneme works as intended as a lever to promote the adoption of PGP on a broader basis, the set of threat models from which the user is protected increases greatly. This is my long term goal.
+
+Why:
+
+If you don't have time to setup and run your own mail infrastructure, but you still value your privacy. 
+
+For the record I both like and trust Google, this is not intended as an attack on them.
+
+Requires:
+
+1) Setup GPG with your public key imported so you can encrypt to yourself.
+2) python gnupg (pip install python-gnupg)
+3) A gmail account, if you have two factor auth enabled you will need an application specific password for your gmail account.
+
+Usage:
+
+Run python crypt_gmail.py
+Enter username
+Enter password
+
+You will see a report for each mail that is encrypted
+
+See Also:
+
+IMAPEncrypt:
+
+Functions similarly to phoneme except instead of encrypting all your existing un-encrypted email, connects to gmail and maintains a connection via IMAP IDLE and auto-encrypts all new unencrypted incoming messages instantly.
+
+Mailvelope, allows you to view  your PGP encrypted messages via the traditional gmail web interface without messing around with a client side enigmail setup, using both Phoneme and Mailvelope it's possible to run a fully encrypted webmail service using gmail's infrastructure for storage / sending etc.
+
+http://www.mailvelope.com/
+
+Android privacy guard, allows you to view your encrypted messages on yor phone;
+
+http://www.thialfihar.org/projects/apg/
+
+TODO:
+
+Open to suggestions.
+
+Gotchas:
+
+You need to "delete forever" the final result when all the mail has been encrypted, the delete function however is fixed now and works properly.
+
+License:
+
+http://www.apache.org/licenses/LICENSE-2.0.html
+
+Author: 
+
+Eric Bennett <eric@umbralservices.com>
+http://pgp.mit.edu:11371/pks/lookup?op=get&search=0xF0B9534AC9A175B1
+
