@@ -93,7 +93,7 @@ class ASTParser(ast.NodeVisitor):
         if isinstance(node.value, ast.Call):
             src_func_name = self.get_node_value(node.value.func)
             for target in node.targets:
-                tgt=target
+                tgt=[target]
                 if isinstance(target, ast.Tuple):
                     tgt=target.elts
                 t_value=[]
