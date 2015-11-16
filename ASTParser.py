@@ -121,10 +121,9 @@ class ASTParser(ast.NodeVisitor):
             for i in range(1,len(attr_func_name)):
                 if ".".join(attr_func_name[:i]) in self.obj_list:
                     self.df_graph.append(
-                        GraphNode(".".join(attr_func_name[:i]),
+                        GraphNode(".".join(attr_func_name[:-1]),
                                   '--calls--',
-                                  ".".join(attr_func_name[i:])))
+                                  attr_func_name[-1]))
                     break
 
         return self.generic_visit(node)
-    
