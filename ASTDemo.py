@@ -3,7 +3,7 @@ from os.path import join
 from ASTBuilder import ASTBuilder
 import sys
 
-src_path="sourcefiles/"
+src_path="srcfiles/"
 flist=[f for f in listdir(src_path) if f.endswith(".py")]
 for f in flist:
     try:
