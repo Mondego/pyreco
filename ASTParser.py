@@ -58,6 +58,9 @@ class ASTParser(ast.NodeVisitor):
                 break
         return node_val
 
+    def visit_FunctionDef(self, node):
+        self.obj_list=[]
+        return self.generic_visit(node)
 
 
     def visit_ImportFrom(self, node):
@@ -115,11 +118,13 @@ class ASTParser(ast.NodeVisitor):
     def visit_Attribute(self, node):
         attr_func_name = self.get_node_value(node)
         if len(attr_func_name) != 0:
-            if ".".join(attr_func_name[:-1]) in self.obj_list:
-                self.df_graph.append(
-                    GraphNode(".".join(attr_func_name[:-1]),
-                              '--calls--',
-                              attr_func_name[-1]))
+            for i in range(1,len(attr_func_name)):
+                if ".".join(attr_func_name[:i]) in self.obj_list:
+                    self.df_graph.append(
+                        GraphNode(".".join(attr_func_name[:i]),
+                                  '--calls--',
+                                  ".".join(attr_func_name[i:])))
+                    break
 
         return self.generic_visit(node)
     
