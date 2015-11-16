@@ -107,7 +107,8 @@ class ASTParser(ast.NodeVisitor):
                             GraphNode(func_name,
                                       '--becomes--',
                                       ','.join(t_value)))
-                    self.obj_list.append(t_value)
+                    for t in t_value:
+                        self.obj_list.append(t)
 
         return self.generic_visit(node)
 
