@@ -1,5 +1,6 @@
 import _ast
 from ASTParser import ASTParser
+from ASTFunctionVisitor import ASTFunctionVisitor
 import sys
 
 class ASTBuilder:
@@ -9,7 +10,8 @@ class ASTBuilder:
 	def build_AST(self):
 			try:
 				astTree=compile(self.src, "<string>", "exec", _ast.PyCF_ONLY_AST)
-				astVisitor=ASTParser()
+                                functionVisitor=ASTFunctionVisitor()
+				astVisitor=ASTParser(func_list=functionVisitor.func_list)
 				astVisitor.visit(astTree)
 #				for node in astVisitor.df_graph:
 #					print(node)
