@@ -24,7 +24,7 @@ class ASTParser(ast.NodeVisitor):
                     else:
                         self.imports[member].append(lib_name + '.' + member)
         except ImportError as e:
-            print e
+#            print e
             pass
 
     def get_source_list(self, source_fn_list, suffix="", result=None):

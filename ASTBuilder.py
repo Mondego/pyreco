@@ -8,8 +8,13 @@ class ASTBuilder:
 		self.src=src
 		
 	def build_AST(self):
+			f = open('Builder error.txt', 'w')
+			astTree = None
 			try:
 				astTree=compile(self.src, "<string>", "exec", _ast.PyCF_ONLY_AST)
+			except:
+				return 
+			try:
 				functionVisitor=ASTFunctionVisitor()
 				astVisitor=ASTParser(func_list=functionVisitor.func_list)
 				astVisitor.visit(astTree)
@@ -18,6 +23,7 @@ class ASTBuilder:
 #				print("-"*20)
 				return astVisitor.df_graph
 			except:
-#				print "Unexpected error:",sys.exc_info()[0]
-				pass
+				print "Unexpected error:",sys.exc_info()[0]
+				raise
 
+			
