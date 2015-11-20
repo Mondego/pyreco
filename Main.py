@@ -1,16 +1,15 @@
 from ASTBuilder import ASTBuilder
 import urllib2
 import os
-import io
+import sys
 
 
 def read_source(srcfile):
 	return open(srcfile).read()
 	
-init_attr = dir(urllib2)
+init_attr = dir(sys)
 for i in range(len(init_attr)):
-	init_attr[i] = 'urllib2.'+init_attr[i]
-	
+	init_attr[i] = 'sys.'+init_attr[i]
 	
 def find_caller(graph):
 	callers = {}
@@ -41,10 +40,10 @@ def compute_frequency(callers):
 
 		
 
-'''	
+
 i = 0
 for subdir in os.listdir('repoData'):
-#	if i>100:
+#	if i>1000:
 #		break;
 	print('Foldername: ' + subdir)
 	filename = 'repoData/' + subdir + '/allPythonContent.py'
@@ -73,5 +72,6 @@ callers = find_caller(graph)
 for item in graph:
 	print item
 compute_frequency(callers)
-#for key, freq in frequency.items():
-#	print key, freq
+for key, freq in frequency.items():
+	print key, freq
+'''
