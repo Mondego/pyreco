@@ -91,7 +91,9 @@ class ASTParser(ast.NodeVisitor):
         for name in node.names:
             if name.asname is not None:
                 alias = name.asname
-                if alias not in self.imports.keys():
+                if lib is None:
+                    pass
+                elif alias not in self.imports.keys():
                     self.imports[alias] = [lib + '.' + name.name]
                 else:
                     if '.'.join([lib,name.name]) not in self.imports[alias]:
