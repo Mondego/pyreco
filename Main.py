@@ -7,7 +7,11 @@ import io
 def read_source(srcfile):
 	return open(srcfile).read()
 	
-init_attr = dir(io)
+init_attr = dir(urllib2)
+for i in range(len(init_attr)):
+	init_attr[i] = 'urllib2.'+init_attr[i]
+	
+	
 def find_caller(graph):
 	callers = {}
 	for attr in init_attr:
@@ -37,7 +41,7 @@ def compute_frequency(callers):
 
 		
 
-
+'''	
 i = 0
 for subdir in os.listdir('repoData'):
 #	if i>100:
@@ -55,7 +59,7 @@ for subdir in os.listdir('repoData'):
 				compute_frequency(callers)
 
 
-	
+
 print ('There are ' + str(i) + ' parsable files in total.')
 f_freq = open('frequency.txt', 'w')
 for key, freq in frequency.items():
@@ -66,7 +70,8 @@ f_freq.close()
 file = read_source('srcfiles/Fetcher.py')
 graph =  ASTBuilder(file).build_AST()
 callers = find_caller(graph)	
+for item in graph:
+	print item
 compute_frequency(callers)
-for key, freq in frequency.items():
-	print key, freq
-'''
+#for key, freq in frequency.items():
+#	print key, freq
