@@ -2,13 +2,16 @@ import ast
 import re
 from GraphNode import GraphNode
 
+
 class ASTParser(ast.NodeVisitor):
     def __init__(self, func_list):
         super(ASTParser, self).__init__()
         self.df_graph = []
-        self.obj_list = []
+        self.scope=""
+        self.obj_list = {}
         self.func_list = func_list
         self.imports = {}
+
 
     def add_lib_objects(self, lib_name):
         try:
@@ -47,6 +50,12 @@ class ASTParser(ast.NodeVisitor):
             if isinstance(node, ast.Name):
                 node_val = [node.id] + node_val
                 break
+            elif isinstance(node, ast.Tuple):
+                t_val=[]
+                for t in node.elts:
+                    t_val.append('.'.join(self.get_node_value(t)))
+                node_val=[','.join(t_val)]+node_val
+                break
             elif isinstance(node, ast.Attribute):
                 node_val = [node.attr] + node_val
                 node = node.value
@@ -58,10 +67,24 @@ class ASTParser(ast.NodeVisitor):
                 break
         return node_val
 
-    def visit_FunctionDef(self, node):
-        self.obj_list=[]
-        return self.generic_visit(node)
+    def clear_obj_list(self,scope):
+        if scope in self.obj_list.keys():
+            del self.obj_list[scope]
+        self.scope="module"
 
+    def visit_Module(self, node):
+        scope="module"
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.generic_visit(node)
+        self.clear_obj_list(scope)
+
+    def visit_FunctionDef(self,node):
+        scope='_'.join(['function',node.name])
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.generic_visit(node)
+        self.clear_obj_list(scope)
 
     def visit_ImportFrom(self, node):
         lib = node.module
@@ -94,32 +117,36 @@ class ASTParser(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         if isinstance(node.value, ast.Call):
+            isTuple=False
             src_func_name = self.get_node_value(node.value.func)
             for target in node.targets:
                 tgt=[target]
                 if isinstance(target, ast.Tuple):
+                    isTuple=True
                     tgt=target.elts
                 t_value=[]
                 for t in tgt:
                     t_value.append(".".join(self.get_node_value(t)))
                 fn_name = ".".join(src_func_name)
                 if fn_name not in self.func_list:
-                    srclist = self.get_source_list(src_func_name, "", [])
+                    srclist = self.get_source_list(src_func_name)
                     for func_name in srclist:
                         self.df_graph.append(
                             GraphNode(func_name,
                                       '--becomes--',
                                       ','.join(t_value)))
                     for t in t_value:
-                        self.obj_list.append(t)
-
+                        self.obj_list[self.scope].append(t)
+                    if(isTuple):
+                        self.obj_list[self.scope].append(','.join(t_value))
         return self.generic_visit(node)
 
     def visit_Attribute(self, node):
         attr_func_name = self.get_node_value(node)
         if len(attr_func_name) != 0:
             for i in range(1,len(attr_func_name)):
-                if ".".join(attr_func_name[:i]) in self.obj_list:
+                obj_list=[obj for values in self.obj_list.values() for obj in values]
+                if ".".join(attr_func_name[:i]) in obj_list:
                     self.df_graph.append(
                         GraphNode(".".join(attr_func_name[:-1]),
                                   '--calls--',
@@ -127,3 +154,19 @@ class ASTParser(ast.NodeVisitor):
                     break
 
         return self.generic_visit(node)
+
+    def visit_With(self, node):
+        with_expr=".".join(self.get_node_value(node.context_expr))
+        scope="_".join(['with',with_expr])
+        self.scope=scope
+        self.obj_list[self.scope]=[]
+        if isinstance(node.context_expr, ast.Call):
+            target = ".".join(self.get_node_value(node.optional_vars))
+            if len(target) != 0:
+                self.df_graph.append(
+                    GraphNode(with_expr,
+                              '--becomes--',
+                              target))
+                self.obj_list[self.scope].append(target)
+        self.generic_visit(node)
+        self.clear_obj_list(scope)
