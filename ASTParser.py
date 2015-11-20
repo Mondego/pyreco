@@ -86,30 +86,31 @@ class ASTParser(ast.NodeVisitor):
         self.generic_visit(node)
         self.clear_obj_list(scope)
 
-    def visit_ImportFrom(self, node):
-        lib = node.module
-        for name in node.names:
-            if name.asname is not None:
-                alias = name.asname
-                if lib is None:
-                    pass
-                elif alias not in self.imports.keys():
-                    self.imports[alias] = [lib + '.' + name.name]
-                else:
-                    if '.'.join([lib,name.name]) not in self.imports[alias]:
-                        self.imports[alias].append('.'.join([lib,name.name]))
-            else:
-                module = name.name
-                if lib is None:
-                    pass
-                elif '*' == module:
-                    self.add_lib_objects(lib)
-                elif module not in self.imports.keys():
-                    self.imports[module] = [lib + '.' + module]
-                else:
-                    if '.'.join([lib,module]) not in self.imports[module]:
-                        self.imports[module].append('.'.join([lib,module]))
-        return self.generic_visit(node)
+	def visit_ImportFrom(self, node):
+		lib = node.module
+		for name in node.names:
+			if name.asname is not None:
+				alias = name.asname
+				if lib is None:
+					pass
+				elif alias not in self.imports.keys():
+					self.imports[alias] = [lib + '.' + name.name]
+				else:
+					if '.'.join([lib,name.name]) not in self.imports[alias]:
+						self.imports[alias].append('.'.join([lib,name.name]))
+			else:
+				module = name.name
+				if lib is None:
+					pass
+				elif '*' == module:
+					self.add_lib_objects(lib)
+				elif module not in self.imports.keys():
+					self.imports[module] = [lib + '.' + module]
+				else:
+					if '.'.join([lib,module]) not in self.imports[module]:
+						self.imports[module].append('.'.join([lib,module]))
+		return self.generic_visit(node)
+
 
     def visit_Import(self, node):
         for name in node.names:
