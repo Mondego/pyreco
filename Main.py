@@ -7,9 +7,10 @@ import sys
 def read_source(srcfile):
 	return open(srcfile).read()
 	
-init_attr = dir(urllib2)
+module = 'urllib2'
+init_attr = dir(module)
 for i in range(len(init_attr)):
-	init_attr[i] = 'urllib2.'+init_attr[i]
+	init_attr[i] = module + '.' + init_attr[i]
 	
 def find_caller(graph):
 	callers = {}
@@ -44,7 +45,7 @@ def compute_frequency(callers):
 
 '''
 i = 0
-f_graph = open('graph-sys.txt', 'w')
+f_graph = open('graph-' + module + '.txt', 'w')
 for subdir in os.listdir('repoData'):
 #	if i>100:
 #		break;
@@ -68,7 +69,7 @@ f_graph.close()
 
 
 print ('There are ' + str(i) + ' parsable files in total.')
-f_freq = open('frequency-sys.txt', 'w')
+f_freq = open('frequency-' + module + '.txt', 'w')
 for key, freq in frequency.items():
 #	print key, freq
 	f_freq.write(key+'\t'+str(freq)+'\n')
