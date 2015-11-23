@@ -16,7 +16,7 @@ class ASTParser(ast.NodeVisitor):
     def add_lib_objects(self, lib_name):
         try:
             lib = __import__(lib_name)
-            pattern = re.compile('__\\w+__|_\\w+')
+            pattern = re.compile('__\\w+__')
             for member in dir(lib):
                 if pattern.match(member) is None:
                     if member not in self.imports.keys():
@@ -86,7 +86,7 @@ class ASTParser(ast.NodeVisitor):
         self.generic_visit(node)
         self.clear_obj_list(scope)
 
-	def visit_ImportFrom(self, node):
+    def visit_ImportFrom(self, node):
 		lib = node.module
 		for name in node.names:
 			if name.asname is not None:
