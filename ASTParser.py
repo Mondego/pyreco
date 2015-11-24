@@ -69,6 +69,11 @@ class ASTParser(ast.NodeVisitor):
 
     def clear_obj_list(self,scope):
         if scope in self.obj_list.keys():
+            for obj in self.obj_list[scope]:
+                self.df_graph.append(
+                    GraphNode(obj,
+                              '--dies--',
+                              ''))
             del self.obj_list[scope]
         self.scope="module"
 
@@ -120,12 +125,10 @@ class ASTParser(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         if isinstance(node.value, ast.Call):
-            isTuple=False
             src_func_name = self.get_node_value(node.value.func)
             for target in node.targets:
                 tgt=[target]
                 if isinstance(target, ast.Tuple):
-                    isTuple=True
                     tgt=target.elts
                 t_value=[]
                 for t in tgt:
@@ -133,15 +136,21 @@ class ASTParser(ast.NodeVisitor):
                 fn_name = ".".join(src_func_name)
                 if fn_name not in self.func_list:
                     srclist = self.get_source_list(src_func_name)
+                    target=','.join(t_value)
+
+                    if target not in self.obj_list[self.scope]:
+                        self.obj_list[self.scope].append(target)
+                    else:
+                        self.df_graph.append(
+                            GraphNode(target,
+                                      '--dies--',
+                                      ''))
+
                     for func_name in srclist:
                         self.df_graph.append(
                             GraphNode(func_name,
                                       '--becomes--',
-                                      ','.join(t_value)))
-                    for t in t_value:
-                        self.obj_list[self.scope].append(t)
-                    if(isTuple):
-                        self.obj_list[self.scope].append(','.join(t_value))
+                                      target))
         return self.generic_visit(node)
 
     def visit_Attribute(self, node):
