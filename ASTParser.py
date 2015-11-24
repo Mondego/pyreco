@@ -1,6 +1,7 @@
 import ast
 import re
 from GraphNode import GraphNode
+from ASTUtils import get_node_value
 
 
 class ASTParser(ast.NodeVisitor):
@@ -23,8 +24,7 @@ class ASTParser(ast.NodeVisitor):
                         self.imports[member] = [lib_name + '.' + member]
                     else:
                         self.imports[member].append(lib_name + '.' + member)
-        except ImportError as e:
-#            print e
+        except ImportError:
             pass
 
     def get_source_list(self, source_fn_list, suffix="", result=None):
@@ -43,29 +43,6 @@ class ASTParser(ast.NodeVisitor):
             return self.get_source_list(source_fn_list[:-1],
                                         "." + source_fn_list[-1]
                                         + suffix, result)
-
-    def get_node_value(self, node):
-        node_val = []
-        while node != "":
-            if isinstance(node, ast.Name):
-                node_val = [node.id] + node_val
-                break
-            elif isinstance(node, ast.Tuple):
-                t_val=[]
-                for t in node.elts:
-                    t_val.append('.'.join(self.get_node_value(t)))
-                node_val=[','.join(t_val)]+node_val
-                break
-            elif isinstance(node, ast.Attribute):
-                node_val = [node.attr] + node_val
-                node = node.value
-            elif isinstance(node, ast.Call):
-                node = node.func
-            elif isinstance(node, ast.Subscript):
-                node = node.value
-            else:
-                break
-        return node_val
 
     def clear_obj_list(self,scope):
         if scope in self.obj_list.keys():
@@ -125,14 +102,14 @@ class ASTParser(ast.NodeVisitor):
 
     def visit_Assign(self, node):
         if isinstance(node.value, ast.Call):
-            src_func_name = self.get_node_value(node.value.func)
+            src_func_name = get_node_value(node.value.func)
             for target in node.targets:
                 tgt=[target]
                 if isinstance(target, ast.Tuple):
                     tgt=target.elts
                 t_value=[]
                 for t in tgt:
-                    t_value.append(".".join(self.get_node_value(t)))
+                    t_value.append(".".join(get_node_value(t)))
                 fn_name = ".".join(src_func_name)
                 if fn_name not in self.func_list:
                     srclist = self.get_source_list(src_func_name)
@@ -154,7 +131,7 @@ class ASTParser(ast.NodeVisitor):
         return self.generic_visit(node)
 
     def visit_Attribute(self, node):
-        attr_func_name = self.get_node_value(node)
+        attr_func_name = get_node_value(node)
         if len(attr_func_name) != 0:
             for i in range(1,len(attr_func_name)):
                 obj_list=[obj for values in self.obj_list.values() for obj in values]
@@ -168,12 +145,12 @@ class ASTParser(ast.NodeVisitor):
         return self.generic_visit(node)
 
     def visit_With(self, node):
-        with_expr=".".join(self.get_node_value(node.context_expr))
+        with_expr=".".join(get_node_value(node.context_expr))
         scope="_".join(['with',with_expr])
         self.scope=scope
         self.obj_list[self.scope]=[]
         if isinstance(node.context_expr, ast.Call):
-            target = ".".join(self.get_node_value(node.optional_vars))
+            target = ".".join(get_node_value(node.optional_vars))
             if len(target) != 0:
                 self.df_graph.append(
                     GraphNode(with_expr,
