@@ -1,5 +1,5 @@
 import ast
-
+from ASTUtils import get_node_value
 
 class ASTFunctionVisitor(ast.NodeVisitor):
     def __init__(self):
@@ -7,8 +7,8 @@ class ASTFunctionVisitor(ast.NodeVisitor):
         self.func_list = []
 
     def visit_FunctionDef(self, node):
-        fname=node.name
-        if 'self' in [arg.id for arg in node.args.args]:
-            fname='self.'+fname
-        self.func_list.append(fname)
+        for arg in node.args.args:
+            if '.'.join(get_node_value(arg))=='self':
+                self.func_list.append('self.'+node.name)
+                break
         return self.generic_visit(node)
