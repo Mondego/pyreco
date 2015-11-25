@@ -17,8 +17,6 @@ def get_node_value(node):
             node = node.value
         elif isinstance(node, ast.Call):
             node = node.func
-        elif isinstance(node, ast.Subscript):
-            node = node.value
         else:
             break
     return node_val

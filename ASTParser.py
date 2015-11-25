@@ -13,7 +13,6 @@ class ASTParser(ast.NodeVisitor):
         self.func_list = func_list
         self.imports = {}
 
-
     def add_lib_objects(self, lib_name):
         try:
             lib = __import__(lib_name)
@@ -24,7 +23,7 @@ class ASTParser(ast.NodeVisitor):
                         self.imports[member] = [lib_name + '.' + member]
                     else:
                         self.imports[member].append(lib_name + '.' + member)
-        except ImportError:
+        except:
             pass
 
     def get_source_list(self, source_fn_list, suffix="", result=None):
@@ -48,9 +47,7 @@ class ASTParser(ast.NodeVisitor):
         if scope in self.obj_list.keys():
             for obj in self.obj_list[scope]:
                 self.df_graph.append(
-                    GraphNode(obj,
-                              '--dies--',
-                              ''))
+                    GraphNode(obj, '--dies--', ''))
             del self.obj_list[scope]
         self.scope="module"
 
@@ -101,33 +98,37 @@ class ASTParser(ast.NodeVisitor):
         return self.generic_visit(node)
 
     def visit_Assign(self, node):
-        if isinstance(node.value, ast.Call):
-            src_func_name = get_node_value(node.value.func)
-            for target in node.targets:
-                tgt=[target]
-                if isinstance(target, ast.Tuple):
-                    tgt=target.elts
-                t_value=[]
-                for t in tgt:
-                    t_value.append(".".join(get_node_value(t)))
+        object_list=self.obj_list[self.scope]
+        for target in node.targets:
+            tgt=[target]
+            if isinstance(target, ast.Tuple):
+                tgt=target.elts
+            t_value=[]
+            for t in tgt:
+                t_value.append(".".join(get_node_value(t)))
+            target=','.join(t_value)
+            if target not in object_list:
+                for t in t_value:
+                    if t in object_list:
+                        self.df_graph.append(
+                            GraphNode(t, '--dies--', ''))
+                        self.obj_list[self.scope].remove(t)
+
+            else:
+                self.df_graph.append(
+                    GraphNode(target, '--dies--', ''))
+                self.obj_list[self.scope].remove(target)
+
+            if isinstance(node.value, ast.Call):
+                src_func_name = get_node_value(node.value.func)
                 fn_name = ".".join(src_func_name)
                 if fn_name not in self.func_list:
                     srclist = self.get_source_list(src_func_name)
-                    target=','.join(t_value)
-
-                    if target not in self.obj_list[self.scope]:
-                        self.obj_list[self.scope].append(target)
-                    else:
-                        self.df_graph.append(
-                            GraphNode(target,
-                                      '--dies--',
-                                      ''))
-
                     for func_name in srclist:
                         self.df_graph.append(
-                            GraphNode(func_name,
-                                      '--becomes--',
-                                      target))
+                            GraphNode(func_name,'--becomes--', target))
+                    self.obj_list[self.scope].append(target)
+
         return self.generic_visit(node)
 
     def visit_Attribute(self, node):
@@ -137,9 +138,7 @@ class ASTParser(ast.NodeVisitor):
                 obj_list=[obj for values in self.obj_list.values() for obj in values]
                 if ".".join(attr_func_name[:i]) in obj_list:
                     self.df_graph.append(
-                        GraphNode(".".join(attr_func_name[:-1]),
-                                  '--calls--',
-                                  attr_func_name[-1]))
+                        GraphNode(".".join(attr_func_name[:-1]), '--calls--', attr_func_name[-1]))
                     break
 
         return self.generic_visit(node)
@@ -153,9 +152,7 @@ class ASTParser(ast.NodeVisitor):
             target = ".".join(get_node_value(node.optional_vars))
             if len(target) != 0:
                 self.df_graph.append(
-                    GraphNode(with_expr,
-                              '--becomes--',
-                              target))
+                    GraphNode(with_expr,'--becomes--', target))
                 self.obj_list[self.scope].append(target)
         self.generic_visit(node)
         self.clear_obj_list(scope)
