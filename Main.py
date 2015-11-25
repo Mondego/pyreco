@@ -7,11 +7,12 @@ import sys
 def read_source(srcfile):
 	return open(srcfile).read()
 	
-module = 'urllib2'
+module = sys
+module_str = 'sys'
 init_attr = dir(module)
 for i in range(len(init_attr)):
-	init_attr[i] = module + '.' + init_attr[i]
-	
+	init_attr[i] = module_str + '.' + init_attr[i]
+
 def find_caller(graph):
 	callers = {}
 	for attr in init_attr:
@@ -19,8 +20,8 @@ def find_caller(graph):
 		for node in graph:
 			if attr == node.src and node.op == '--becomes--':
 				callees.append(node.tgt)
-			if node.op == '--becomes--' and node.tgt in callees and node.src != attr:
-				callees.remove(node.tgt)
+			if node.op == '--dies--' and node.src in callees:
+				callees.remove(node.src)
 			if node.src in callees and node.op == '--calls--':
 				if attr in callers:
 					callers[attr].append(node.tgt)
@@ -43,9 +44,9 @@ def compute_frequency(callers):
 
 		
 
-'''
+
 i = 0
-f_graph = open('graph-' + module + '.txt', 'w')
+f_graph = open('graph-' + module_str + '.txt', 'w')
 for subdir in os.listdir('repoData'):
 #	if i>100:
 #		break;
@@ -59,7 +60,7 @@ for subdir in os.listdir('repoData'):
 		piece_name = piece.split('\n')[0]	
 		graph = ASTBuilder(piece).build_AST()			
 		if graph:
-			f_graph.write('\n' + piece_name)
+			f_graph.write('\n' + piece_name + '\n')
 			for node in graph:
 				f_graph.write(str(node) + '\n')
 			i += 1
@@ -69,7 +70,7 @@ f_graph.close()
 
 
 print ('There are ' + str(i) + ' parsable files in total.')
-f_freq = open('frequency-' + module + '.txt', 'w')
+f_freq = open('frequency-' + module_str + '.txt', 'w')
 for key, freq in frequency.items():
 #	print key, freq
 	f_freq.write(key+'\t'+str(freq)+'\n')
@@ -80,6 +81,8 @@ graph =  ASTBuilder(file).build_AST()
 for item in graph:
 	print item
 callers = find_caller(graph)	
+
 compute_frequency(callers)
 for key, freq in frequency.items():
 	print key, freq
+'''
