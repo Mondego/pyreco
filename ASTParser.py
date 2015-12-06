@@ -107,6 +107,9 @@ class ASTParser(ast.NodeVisitor):
             for t in tgt:
                 t_value.append(".".join(get_node_value(t)))
             target=','.join(t_value)
+            if self.scope == "module":
+                target="glob:"+target
+
             if target not in object_list:
                 for t in t_value:
                     if t in object_list:
@@ -128,11 +131,12 @@ class ASTParser(ast.NodeVisitor):
                         self.df_graph.append(
                             GraphNode(func_name,'--becomes--', target))
                     self.obj_list[self.scope].append(target)
-
         return self.generic_visit(node)
 
     def visit_Attribute(self, node):
         attr_func_name = get_node_value(node)
+        glob_attr_func_name = attr_func_name
+        glob_attr_func_name[0]="glob:"+glob_attr_func_name[0]
         if len(attr_func_name) != 0:
             for i in range(1,len(attr_func_name)):
                 obj_list=[obj for values in self.obj_list.values() for obj in values]
@@ -140,8 +144,18 @@ class ASTParser(ast.NodeVisitor):
                     self.df_graph.append(
                         GraphNode(".".join(attr_func_name[:-1]), '--calls--', attr_func_name[-1]))
                     break
+                elif ".".join(attr_func_name[:i]) in obj_list:
+                    self.df_graph.append(
+                        GraphNode(".".join(glob_attr_func_name[:-1]), '--calls--', glob_attr_func_name[-1]))
+                    break
 
         return self.generic_visit(node)
+
+    def visit_Subscript(self, node):
+        """dummy function to prevent visiting the nodes if subscripts are present"""
+
+    def visit_For(self,node):
+         """dummy function to prevent visiting the nodes if for loops are present"""
 
     def visit_With(self, node):
         with_expr=".".join(get_node_value(node.context_expr))
