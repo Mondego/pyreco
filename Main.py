@@ -15,21 +15,18 @@ for i in range(len(init_attr)):
 
 def find_caller(graph):
 	callers = {}
-	for attr in init_attr:
-		callees = [attr]
-		for node in graph:
-			if attr == node.src and node.op == '--becomes--':
-				callees.append(node.tgt)
-			if node.op == '--dies--' and node.src in callees:
-				callees.remove(node.src)
-			if node.src in callees and node.op == '--calls--':
-				if attr in callers:
-					callers[attr].append(node.tgt)
-				else:
-					callers[attr] = [node.tgt]
-
-	return callers		
-				
+	callees = {}
+	for node in graph:
+		if node.src in init_attr and node.op == '--becomes--':
+			callees[node.tgt]=node.src
+		if node.op == '--dies--' and node.src in callees.keys():
+			del callees[node.src]
+		if node.src in callees.keys() and node.op == '--calls--':
+			if callees[node.src] in callers.keys():
+				callers[callees[node.src]].append(node.tgt)
+			else:
+				callers[callees[node.src]] = [node.tgt]
+	return callers
 
 frequency = {}	
 def compute_frequency(callers):
@@ -40,10 +37,6 @@ def compute_frequency(callers):
 				frequency[key] += 1
 			else:
 				frequency[key] = 1
-				
-
-		
-
 
 i = 0
 f_graph = open('graph-' + module_str + '.txt', 'w')
@@ -76,12 +69,12 @@ for key, freq in frequency.items():
 	f_freq.write(key+'\t'+str(freq)+'\n')
 f_freq.close()
 '''
-file = read_source('srcfiles/Fetcher.py')
+file = read_source('srcfiles/test_src.py')
 graph =  ASTBuilder(file).build_AST()
 for item in graph:
 	print item
 callers = find_caller(graph)	
-
+print('-'*20)
 compute_frequency(callers)
 for key, freq in frequency.items():
 	print key, freq
