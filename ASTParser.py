@@ -62,6 +62,12 @@ class ASTParser(ast.NodeVisitor):
         scope='_'.join(['function',node.name])
         self.obj_list[scope]=[]
         self.scope=scope
+        for arg in node.args.args:
+            if isinstance(arg, ast.Name):
+                self.obj_list[scope].append("arg:"+arg.id)
+            elif isinstance(arg, ast.Tuple):
+                for var in arg.elts:
+                    self.obj_list[scope].append("arg:"+var.id)
         self.generic_visit(node)
         self.clear_obj_list(scope)
 
@@ -110,17 +116,20 @@ class ASTParser(ast.NodeVisitor):
             if self.scope == "module":
                 target="glob:"+target
 
-            if target not in object_list:
+            if target in object_list:
+                self.df_graph.append(
+                    GraphNode(target, '--dies--', ''))
+                self.obj_list[self.scope].remove(target)
+            elif "arg:"+target in object_list:
+                self.df_graph.append(
+                    GraphNode("arg:"+target, '--dies--', ''))
+                self.obj_list[self.scope].remove("arg:"+target)
+            else:
                 for t in t_value:
                     if t in object_list:
                         self.df_graph.append(
                             GraphNode(t, '--dies--', ''))
                         self.obj_list[self.scope].remove(t)
-
-            else:
-                self.df_graph.append(
-                    GraphNode(target, '--dies--', ''))
-                self.obj_list[self.scope].remove(target)
 
             if isinstance(node.value, ast.Call):
                 src_func_name = get_node_value(node.value.func)
@@ -135,18 +144,22 @@ class ASTParser(ast.NodeVisitor):
 
     def visit_Attribute(self, node):
         attr_func_name = get_node_value(node)
-        glob_attr_func_name = attr_func_name[:]
-        glob_attr_func_name[0]="glob:"+glob_attr_func_name[0]
+
+        obj_list=[obj for values in self.obj_list.values() for obj in values]
         if len(attr_func_name) != 0:
             for i in range(1,len(attr_func_name)):
-                obj_list=[obj for values in self.obj_list.values() for obj in values]
-                if ".".join(attr_func_name[:i]) in obj_list:
+                attr_val=".".join(attr_func_name[:i])
+                if attr_val in obj_list:
                     self.df_graph.append(
-                        GraphNode(".".join(attr_func_name[:-1]), '--calls--', attr_func_name[-1]))
+                        GraphNode(".".join(attr_func_name[:-1]),
+                                  '--calls--', attr_func_name[-1]))
                     break
-                elif ".".join(glob_attr_func_name[:i]) in obj_list:
+                elif "arg:"+attr_val in obj_list:
+                    break
+                elif "glob:"+attr_val in obj_list:
                     self.df_graph.append(
-                        GraphNode(".".join(glob_attr_func_name[:-1]), '--calls--', glob_attr_func_name[-1]))
+                        GraphNode("glob:"+".".join(attr_func_name[:-1]),
+                                  '--calls--', attr_func_name[-1]))
                     break
 
 
