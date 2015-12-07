@@ -65,9 +65,6 @@ class ASTParser(ast.NodeVisitor):
         for arg in node.args.args:
             if isinstance(arg, ast.Name):
                 self.obj_list[scope].append("arg:"+arg.id)
-            elif isinstance(arg, ast.Tuple):
-                for var in arg.elts:
-                    self.obj_list[scope].append("arg:"+var.id)
         self.generic_visit(node)
         self.clear_obj_list(scope)
 
