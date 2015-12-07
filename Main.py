@@ -74,18 +74,8 @@ file = read_source('srcfiles/test_src.py')
 graph =  ASTBuilder(file).build_AST()
 for item in graph:
 	print item
-<<<<<<< HEAD
-callers = find_caller(graph)	
-print('-'*20)
-=======
 callers = find_caller(graph)
-
->>>>>>> 08a96bb310aacedf09cd0e7c6124d28ceaf1edd6
 compute_frequency(callers)
 for key, freq in frequency.items():
 	print key, freq
 '''
-<<<<<<< HEAD
-=======
-
->>>>>>> 08a96bb310aacedf09cd0e7c6124d28ceaf1edd6
