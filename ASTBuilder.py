@@ -18,10 +18,12 @@ class ASTBuilder:
 				functionVisitor.visit(astTree)
 				astVisitor=ASTParser(func_list=functionVisitor.func_list)
 				astVisitor.visit(astTree)
-				# for node in astVisitor.df_graph:
-				#  	print(node)
+				# for df_graph in astVisitor.df_graph.values():
+				# 	for node in df_graph:
+				# 		print(node)
+				# 	print("-"*10)
 				# print("-"*20)
-				return astVisitor.df_graph
+				return astVisitor.df_graph.values()
 			except:
 				print "Unexpected error:",sys.exc_info()[0]
 				raise

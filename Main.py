@@ -42,8 +42,8 @@ def compute_frequency(callers):
 i = 0
 f_graph = open('graph-' + module_str + '.txt', 'w')
 for subdir in os.listdir('repoData'):
-#	if i>100:
-#		break;
+	# if i>100:
+	# 	break;
 	print('Foldername: ' + subdir)
 	f_graph.write('\n' + 'Foldername:' + subdir)
 	filename = 'repoData/' + subdir + '/allPythonContent.py'
@@ -52,13 +52,15 @@ for subdir in os.listdir('repoData'):
 	for piece in file_splits:
 		piece = piece.strip()
 		piece_name = piece.split('\n')[0]	
-		graph = ASTBuilder(piece).build_AST()			
-		if graph:
+		df_graphs = ASTBuilder(piece).build_AST()
+		if len(df_graphs)!=0:
 			f_graph.write('\n' + piece_name + '\n')
-			for node in graph:
-				f_graph.write(str(node) + '\n')
-			i += 1
-			callers = find_caller(graph)
+			for graph in df_graphs:
+				for node in graph:
+					f_graph.write(str(node) + '\n')
+				i += 1
+				callers = find_caller(graph)
+				f_graph.write('-'*20)
 			compute_frequency(callers)
 f_graph.close()
 

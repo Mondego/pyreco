@@ -8,11 +8,21 @@ from ASTUtils import get_node_value, GLOBAL_PREFIX, ARG_PREFIX
 class ASTParser(ast.NodeVisitor):
     def __init__(self, func_list):
         super(ASTParser, self).__init__()
-        self.df_graph = []
-        self.scope=""
+        self.df_graph = {}
+        self.parent_scope = ""
+        self.scope = ""
+        self.branch_no = 0
         self.obj_list = {}
         self.func_list = func_list
         self.imports = {}
+
+    def visit_Module(self, node):
+        scope="module"
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.generic_visit(node)
+        self.clear_obj_list(scope)
+        self.del_nodes_from_graph("main")
 
     def visit_FunctionDef(self,node):
         scope='_'.join(['function',node.name])
@@ -80,7 +90,7 @@ class ASTParser(ast.NodeVisitor):
                 if fn_name not in self.func_list:
                     srclist = self.get_source_list(src_func_name)
                     for func_name in srclist:
-                        self.df_graph.append(
+                        self.add_node_to_graph(
                             GraphNode(func_name,'--becomes--', target))
                     self.obj_list[self.scope].append(target)
         return self.generic_visit(node)
@@ -91,7 +101,7 @@ class ASTParser(ast.NodeVisitor):
         if len(attr_func_name) != 0:
             if ARG_PREFIX not in attr_func_name[0] \
                     and attr_func_name[0] in obj_list:
-                self.df_graph.append(
+                self.add_node_to_graph(
                     GraphNode(".".join(attr_func_name[:-1]),
                               '--calls--', attr_func_name[-1]))
         return self.generic_visit(node)
@@ -103,6 +113,7 @@ class ASTParser(ast.NodeVisitor):
          """dummy function to prevent visiting the nodes if for loops are present"""
 
     def visit_With(self, node):
+
         with_expr=".".join(get_node_value(node.context_expr))
         scope="_".join(['with',with_expr])
         self.scope=scope
@@ -110,12 +121,99 @@ class ASTParser(ast.NodeVisitor):
         if isinstance(node.context_expr, ast.Call):
             target = ".".join(get_node_value(node.optional_vars))
             if len(target) != 0:
-                self.df_graph.append(
+                self.add_node_to_graph(
                     GraphNode(with_expr,'--becomes--', target))
                 self.obj_list[self.scope].append(target)
         self.generic_visit(node)
         self.clear_obj_list(scope)
 
+    def visit_If(self, node):
+        parent=self.scope
+        self.parent_scope=parent
+        self.branch_no+=1
+        scope='_'.join(['if',str(self.branch_no)])
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.visit(node.test)
+        for obj in node.body:
+            self.visit(obj)
+        self.clear_obj_list(scope)
+
+        scope='_'.join(['else',str(self.branch_no)])
+        self.parent_scope=parent
+        self.obj_list[scope]=[]
+        self.scope=scope
+        for obj in node.orelse:
+            self.visit(obj)
+        self.clear_obj_list(scope)
+        self.del_nodes_from_graph(parent)
+
+
+    def visit_IfExp(self, node):
+        parent=self.scope
+        self.parent_scope=parent
+        self.branch_no+=1
+        scope='_'.join(['if',str(self.branch_no)])
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.visit(node.test)
+        self.visit(node.body)
+        self.clear_obj_list(scope)
+
+        scope='_'.join(['else',str(self.branch_no)])
+        self.parent_scope=parent
+        self.obj_list[scope]=[]
+        self.scope=scope
+        self.visit(node.orelse)
+        self.clear_obj_list(scope)
+        self.del_nodes_from_graph(parent)
+
+
+
+    def visit_TryExcept(self, node):
+        parent=self.scope
+        self.parent_scope=parent
+        self.branch_no+=1
+        scope='_'.join(['try',str(self.branch_no)])
+        self.obj_list[scope]=[]
+        self.scope=scope
+        for obj in node.body:
+            self.visit(obj)
+        self.clear_obj_list(scope)
+        self.parent_scope=parent
+        for obj in node.handlers:
+            self.visit(obj)
+        self.del_nodes_from_graph(parent)
+
+
+    def visit_ExceptHandler(self, node):
+        self.branch_no+=1
+        scope='_'.join(['except',str(self.branch_no)])
+        self.obj_list[scope]=[]
+        self.scope=scope
+        for obj in node.body:
+            self.visit(obj)
+        self.clear_obj_list(scope)
+        self.branch_no+=1
+
+    def add_node_to_graph(self, node):
+        scope_type=self.scope.split("_")[0]
+        if "main" not in self.df_graph.keys():
+            self.df_graph["main"]=[]
+        if scope_type in ["if","else","try","except"]:
+            if self.scope not in self.df_graph.keys():
+                if self.parent_scope in self.df_graph.keys():
+                    self.df_graph[self.scope]=self.df_graph[self.parent_scope][:]
+                else:
+                    self.df_graph[self.scope]=self.df_graph["main"][:]
+            self.df_graph[self.scope].append(node)
+        else:
+            for key in self.df_graph.keys():
+                self.df_graph[key].append(node)
+
+    def del_nodes_from_graph(self,scope):
+        if scope in self.df_graph.keys():
+            del self.df_graph[scope]
 
     def add_lib_objects(self, lib_name):
         try:
@@ -150,34 +248,30 @@ class ASTParser(ast.NodeVisitor):
     def clear_obj_list(self,scope):
         if scope in self.obj_list.keys():
             for obj in self.obj_list[scope]:
-                self.df_graph.append(
+                self.add_node_to_graph(
                     GraphNode(obj, '--dies--', ''))
             del self.obj_list[scope]
         self.scope="module"
 
-    def kill_obj_after_reassignment(self,target):
+    def kill_obj_after_reassignment(self, target):
         object_list=self.obj_list[self.scope]
         if target in object_list:
-                self.df_graph.append(
+                self.add_node_to_graph(
                     GraphNode(target, '--dies--', ''))
                 self.obj_list[self.scope].remove(target)
         elif ARG_PREFIX +target in object_list:
-            self.df_graph.append(
+            self.add_node_to_graph(
                 GraphNode(ARG_PREFIX +target, '--dies--', ''))
             self.obj_list[self.scope].remove(ARG_PREFIX +target)
         else:
             for t in target.split(","):
                 if t in object_list:
-                    self.df_graph.append(
+                    self.add_node_to_graph(
                         GraphNode(t, '--dies--', ''))
                     self.obj_list[self.scope].remove(t)
 
-    def visit_Module(self, node):
-        scope="module"
-        self.obj_list[scope]=[]
-        self.scope=scope
-        self.generic_visit(node)
-        self.clear_obj_list(scope)
+
+
 
 
 
