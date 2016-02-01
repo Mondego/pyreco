@@ -3,7 +3,7 @@ import ast
 GLOBAL_PREFIX="glob:"
 ARG_PREFIX="arg:"
 
-def get_node_value(node, obj_list=[]):
+def get_node_value(node, obj_list=[], prefix=''):
     node_val = []
     while node != "":
         if isinstance(node, ast.Name):
@@ -23,17 +23,20 @@ def get_node_value(node, obj_list=[]):
         else:
             break
 
-    for i in range(1,len(node_val)):
-        obj_val=".".join(node_val[:i])
-        if obj_val in obj_list:
-            node_val=[obj_val]+node_val[i:]
-            break
-        elif ARG_PREFIX+obj_val in obj_list:
-            node_val=[ARG_PREFIX+obj_val]+node_val[i:]
-            break
-        elif GLOBAL_PREFIX+obj_val in obj_list:
-            node_val=[GLOBAL_PREFIX+obj_val]+node_val[i:]
-            break
+    if prefix=='':
+        for i in range(1,len(node_val)):
+            obj_val=".".join(node_val[:i])
+            if obj_val in obj_list:
+                node_val=[obj_val]+node_val[i:]
+                break
+            elif ARG_PREFIX+obj_val in obj_list:
+                node_val=[ARG_PREFIX+obj_val]+node_val[i:]
+                break
+            elif GLOBAL_PREFIX+obj_val in obj_list:
+                node_val=[GLOBAL_PREFIX+obj_val]+node_val[i:]
+                break
+    else:
+        node_val=[prefix+node_val[0]]+node_val[1:]
 
     return node_val
 
