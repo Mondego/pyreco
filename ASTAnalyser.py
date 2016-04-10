@@ -617,20 +617,6 @@ class ASTAnalyser(ast.NodeVisitor):
 
             self.obj_list[scope].pop(obj)
         self.obj_list.pop(scope)
-        """
-        live_obj_list=[]
-        for key in self.obj_list.keys():
-            if key!=scope:
-                live_obj_list.extend(
-                    self.obj_list[key].keys())
-
-        if scope in key_list:
-            for obj in self.obj_list[scope].keys():
-                if obj not in live_obj_list:
-                    self.add_node_to_graph(
-                        DeadNode(obj))
-                del self.obj_list[scope][obj]
-        """
 
     def clear_ignore_list(self, scope):
         if DEBUG:

@@ -8,13 +8,14 @@ import multiprocessing
 
 src_path="srcfiles/"
 #flist=[f for f in listdir(src_path) if f.endswith(".py")]
-flist=['test1.py']
+flist=['test.py']
 for f in flist:
     try:
         fname=join(src_path,f)
         print("FILENAME:"+f)
 
         df_graph=ASTBuilder(open(fname).read()).build_AST()
+
         if DEBUG:
             print "in ASTDemo"
             print pprint.pprint(df_graph)

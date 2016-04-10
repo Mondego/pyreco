@@ -25,11 +25,6 @@ class ASTBuilder:
             functionVisitor.visit(astTree)
             astVisitor = ASTAnalyser(func_list=functionVisitor.func_list)
             astVisitor.visit(astTree)
-            #print astVisitor.df_graph.serialize()
-            #for key,node in astVisitor.df_graph.graph_dict.items():
-            #print key, node.__dict__
-            #pprint.pprint(astVisitor.df_graph.serialize())
-
             return astVisitor.df_graph.serialize()
         except:
             print "Unexpected error:", sys.exc_info()[0]
@@ -39,7 +34,7 @@ def read_source(srcfile):
     return open(srcfile).read()
 
 
-f_graph = open('graphs/graph-new.txt', 'w')
+f_graph = open('graphs/graph.txt', 'w')
 i=0
 for subdir in os.listdir('repoData'):
     print('Foldername: ' + subdir)
@@ -67,8 +62,6 @@ for subdir in os.listdir('repoData'):
             f_test.close()
             raise
     i+=1
-    if i==1000:
-        break
 
 f_graph.close()
-print ('There are ' + str(i) + ' parsable files in total.')
+print ('There are ' + str(i) + ' parsable projects in total.')

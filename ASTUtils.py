@@ -1,10 +1,7 @@
 import ast
-"""
-GLOBAL_PREFIX="glob:"
-CLASS_PREFIX="cls:"
-ARG_PREFIX="arg:"
-"""
+
 DEBUG=0
+#flag to switch on for debug msgs
 
 def get_node_value(node):
     node_val = []
@@ -26,32 +23,6 @@ def get_node_value(node):
             node = node.func
         else:
             break
-    """
-    if prefix=='':
-        for i in range(1,len(node_val)):
-            obj_val=".".join(node_val[:i])
-            if obj_val in ignore_list:
-                node_val=[]
-                break
-            elif obj_val in obj_list:
-                node_val=[obj_val]+node_val[i:]
-                break
-            elif ARG_PREFIX+obj_val in obj_list:
-                node_val=[ARG_PREFIX+obj_val]+node_val[i:]
-                break
-            elif CLASS_PREFIX+obj_val in obj_list:
-                node_val=[CLASS_PREFIX+obj_val]+node_val[i:]
-                break
-            elif GLOBAL_PREFIX+obj_val in obj_list:
-                node_val=[GLOBAL_PREFIX+obj_val]+node_val[i:]
-                break
-
-    else:
-        if prefix+node_val[0] not in ignore_list:
-            node_val=[prefix+node_val[0]]+node_val[1:]
-        else:
-            node_val=[]
-    """
     return node_val
 
 class GraphNode():
@@ -141,7 +112,7 @@ class DFGraph():
 
     def add_node(self, graphNode, parent):
         if DEBUG:
-            print "add_node beg", graphNode, parent
+            print 'add_node beg', graphNode, parent
 
         self.count += 1
         node = str(self.count)
@@ -165,7 +136,6 @@ class DFGraph():
                         for value in values:
                             if value not in graphNode.val[key]:
                                 graphNode.val[key].append(value)
-                        #graphNode.val[key] = graphNode.val[key].union(value)
                     else:
                         graphNode.val[key] = values[:]
 
@@ -221,10 +191,12 @@ class DFGraph():
                                path)
         return result
 
+    """To find all paths from start to leaf node in the graph"""
     def find_all_paths(self):
         res=self.find_paths(self.start_vertex)
         return res
 
+    """To convert DF_Graph to JSON"""
     def serialize(self):
         if DEBUG:
             print "in serialize"
