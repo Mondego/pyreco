@@ -19,12 +19,16 @@ for i in range(len(init_attr)):
 
 api_freq = {}
 
-def add_to_api_freq(prev,curr):
+def add_to_api_freq(source, prev,curr):
 	key=prev+'->'+curr
-	if key in api_freq.keys():
-		api_freq[key]+=1
+	if source in api_freq.keys():
+		if key in api_freq[source].keys():
+			api_freq[source][key]=api_freq[source][key]+1
+		else:
+			api_freq[source][key]=1
 	else:
-		api_freq[key]=1
+			api_freq[source]={}
+			api_freq[source][key]=1
 
 def find_caller(graph):
 	callers = {}
@@ -38,12 +42,15 @@ def find_caller(graph):
 			if callees[node.src] in callers.keys():
 				callers[callees[node.src]].append(node.tgt)
 				add_to_api_freq(
+					callees[node.src],
 					module_str + '.' + callers[callees[node.src]][-2],
 					module_str + '.' + node.tgt)
 			else:
 				callers[callees[node.src]] = [node.tgt]
-				add_to_api_freq(callees[node.src],
-								module_str + '.' + node.tgt)
+				add_to_api_freq(
+					callees[node.src],
+					callees[node.src],
+					module_str + '.' + node.tgt)
 	return callers
 
 frequency = {}
@@ -87,6 +94,9 @@ f_freq.close()
 f_api_freq = open('frequency-api-' + module_str + '.txt', 'w')
 sorted_freq = sorted(api_freq.items(), key=itemgetter(0))
 
-for key, freq in sorted_freq:
-	f_api_freq.write(key + '\t' + str(freq) + '\n')
+for source, freqdict in sorted_freq:
+	f_api_freq.write(source+'\n')
+	for key, value in sorted(freqdict.items(), key=itemgetter(1), reverse=True):
+		f_api_freq.write(key + '\t' + str(freq) + '\n')
+	f_api_freq.write('\n')
 f_api_freq.close()

@@ -10,6 +10,7 @@ class ASTParser(ast.NodeVisitor):
         self.df_graph = {}
         self.parent_scope = ""
         self.scope = ""
+        self.parent_scope= ""
         self.branch_no = 0
         self.obj_list = {}
         self.func_list = func_list
@@ -19,6 +20,7 @@ class ASTParser(ast.NodeVisitor):
         scope = "module"
         self.obj_list[scope] = []
         self.scope = scope
+        self.parent_scope=scope
         self.generic_visit(node)
         self.clear_obj_list(scope)
         self.del_nodes_from_graph("main")
@@ -93,7 +95,8 @@ class ASTParser(ast.NodeVisitor):
                         srclist = self.get_source_list(src_func_name)
                         for func_name in srclist:
                             self.add_node_to_graph(
-                                GraphNode(func_name, '--becomes--', target))
+                                GraphNode(func_name, '--becomes--', target,
+                                          node.lineno, node.col_offset))
                         self.obj_list[self.scope].append(target)
         return self.generic_visit(node)
 
@@ -105,11 +108,12 @@ class ASTParser(ast.NodeVisitor):
                     and attr_func_name[0] in obj_list:
                 self.add_node_to_graph(
                     GraphNode(".".join(attr_func_name[:-1]),
-                              '--calls--', attr_func_name[-1]))
+                              '--calls--', attr_func_name[-1],
+                              node.lineno, node.col_offset))
         return self.generic_visit(node)
 
     def visit_Subscript(self, node):
-        """dummy function to prevent visiting the nodes if subscripts are present"""
+        """dummy function to ievent visiting the nodes if subscripts are present"""
 
     def visit_For(self, node):
         """dummy function to prevent visiting the nodes if for loops are present"""
@@ -123,7 +127,8 @@ class ASTParser(ast.NodeVisitor):
             target = ".".join(get_node_value(node.optional_vars))
             if len(target) != 0:
                 self.add_node_to_graph(
-                    GraphNode(with_expr, '--becomes--', target))
+                    GraphNode(with_expr, '--becomes--', target,
+                              node.lineno, node.col_offset))
                 self.obj_list[self.scope].append(target)
         self.generic_visit(node)
         self.clear_obj_list(scope)
