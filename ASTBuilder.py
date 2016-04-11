@@ -2,12 +2,9 @@ import _ast
 from ASTAnalyser import ASTAnalyser
 from ASTFunctionVisitor import ASTFunctionVisitor
 import sys
-import multiprocessing
-from ASTUtils import DEBUG
 import os
-import ast
 import json
-import pprint
+import multiprocessing as mp
 
 class ASTBuilder:
     def __init__(self, src):
@@ -30,38 +27,67 @@ class ASTBuilder:
             print "Unexpected error:", sys.exc_info()[0]
             raise
 
-def read_source(srcfile):
-    return open(srcfile).read()
-
-
-f_graph = open('graphs/graph.txt', 'w')
-i=0
-for subdir in os.listdir('repoData'):
-    print('Foldername: ' + subdir)
-    filename = 'repoData/' + subdir + '/allPythonContent.py'
-    fullfile = read_source(filename)
+def worker(folder, q):
+    filename = 'repoData/' + folder + '/allPythonContent.py'
+    fullfile = open(filename).read()
     file_splits = fullfile.split('########NEW FILE########')
     for piece in file_splits:
         piece = piece.strip()
         piece_name = piece.split('\n')[0]
         try:
-            print piece_name
+            print "Foldername:"+folder, "Filename:"+piece_name
             df_graph = ASTBuilder(piece).build_AST()
-            if df_graph:
+            if int(df_graph['count'])>1:
                 prog_info={
-                    'folder':subdir,
+                    'folder':folder,
                     'file':piece_name,
                     'graph':df_graph}
-                json.dump(prog_info, f_graph, indent=4, ensure_ascii=False)
-                f_graph.write('\n'+'-' * 20 + '\n')
-
+                q.put(prog_info)
         except:
-            print sys.exc_info()
+            print "Unexpected error in worker:", sys.exc_info()[0]
             f_test=open('srcfiles/test.py', 'w')
             f_test.write(piece)
             f_test.close()
-            raise
-    i+=1
 
-f_graph.close()
-print ('There are ' + str(i) + ' parsable projects in total.')
+            q.put('kill')
+            raise
+    filename.close()
+
+
+
+def listener(q):
+    f=open('graphs/graph-json.txt', 'w')
+    while 1:
+        msg=q.get()
+        if msg == 'kill':
+            print 'Parsing done!'
+            break
+        json.dump(msg, f, indent=4, ensure_ascii=False)
+        f.write('\n'+'-' * 20 + '\n')
+        f.flush()
+    f.close()
+
+def main():
+    manager = mp.Manager()
+    q = manager.Queue()
+    pool = mp.Pool(mp.cpu_count())
+
+    watcher = pool.apply_async(listener, (q,))
+
+    jobs = []
+    for proj in os.listdir('repoData'):
+        job = pool.apply_async(worker, (proj, q))
+        jobs.append(job)
+
+    for job in jobs:
+        try:
+            job.get()
+        except:
+            continue
+
+    q.put('kill')
+    pool.close()
+    pool.join()
+
+if __name__=="__main__":
+    main()
