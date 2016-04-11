@@ -36,22 +36,24 @@ def worker(folder, q):
     file_splits = fullfile.split('########NEW FILE########')
     for piece in file_splits:
         piece = piece.strip()
-        piece_name = piece.split('\n')[0]
-        try:
-            print "Foldername:"+folder, "Filename:"+piece_name
-            df_graph = ASTBuilder(piece).build_AST()
-            if df_graph is not None:
-                if int(df_graph['count'])>1:
-                    prog_info={
-                        'folder':folder,
-                        'file':piece_name,
-                        'graph':df_graph}
-                    q.put(prog_info)
-        except:
-            print "Unexpected error in worker:", sys.exc_info()[0]
-            f_test=open('srcfiles/test.py', 'w')
-            f_test.write(piece)
-            f_test.close()
+        piece_name = piece.split('\n')[0].strip()
+        if len(piece_name.split())==3:
+            file_name = piece_name.split()[2]
+            try:
+                print "Foldername:"+folder, "Filename:"+file_name
+                df_graph = ASTBuilder(piece).build_AST()
+                if df_graph is not None:
+                    if int(df_graph['count'])>1:
+                        prog_info={
+                            'folder':folder,
+                            'file':file_name,
+                            'graph':df_graph}
+                        q.put(prog_info)
+            except:
+                print "Unexpected error in worker:", sys.exc_info()[0]
+                f_test=open('srcfiles/test.py', 'w')
+                f_test.write(piece)
+                f_test.close()
 
             q.put('kill')
             raise
