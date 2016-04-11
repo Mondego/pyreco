@@ -11,6 +11,7 @@ class ASTBuilder:
         self.src = src
 
     def build_AST(self):
+        dfgraph=None
         astTree = None
         try:
             astTree = compile(self.src, "<string>", "exec", _ast.PyCF_ONLY_AST)
@@ -22,10 +23,12 @@ class ASTBuilder:
             functionVisitor.visit(astTree)
             astVisitor = ASTAnalyser(func_list=functionVisitor.func_list)
             astVisitor.visit(astTree)
-            return astVisitor.df_graph.serialize()
+            dfgraph=astVisitor.df_graph.serialize()
         except:
             print "Unexpected error:", sys.exc_info()[0]
-            raise
+            #raise
+        return dfgraph
+
 
 def worker(folder, q):
     filename = 'repoData/' + folder + '/allPythonContent.py'
@@ -37,12 +40,13 @@ def worker(folder, q):
         try:
             print "Foldername:"+folder, "Filename:"+piece_name
             df_graph = ASTBuilder(piece).build_AST()
-            if int(df_graph['count'])>1:
-                prog_info={
-                    'folder':folder,
-                    'file':piece_name,
-                    'graph':df_graph}
-                q.put(prog_info)
+            if df_graph is not None:
+                if int(df_graph['count'])>1:
+                    prog_info={
+                        'folder':folder,
+                        'file':piece_name,
+                        'graph':df_graph}
+                    q.put(prog_info)
         except:
             print "Unexpected error in worker:", sys.exc_info()[0]
             f_test=open('srcfiles/test.py', 'w')
@@ -52,8 +56,6 @@ def worker(folder, q):
             q.put('kill')
             raise
     filename.close()
-
-
 
 def listener(q):
     f=open('graphs/graph-json.txt', 'w')
