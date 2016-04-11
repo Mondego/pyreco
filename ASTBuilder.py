@@ -54,9 +54,7 @@ def worker(folder, q):
                 f_test=open('srcfiles/test.py', 'w')
                 f_test.write(piece)
                 f_test.close()
-
-            q.put('kill')
-            raise
+                q.put('kill')
     filename.close()
 
 def listener(q):
