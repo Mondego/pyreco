@@ -208,12 +208,6 @@ class ASTAnalyser(ast.NodeVisitor):
                     if target in ignore_list:
                         self.ignore_list[self.scope].remove(target)
 
-                    """
-                    if self.scope == "module":
-                        target = GLOBAL_PREFIX + target
-                    elif self.scope.startswith("class"):
-                        target = CLASS_PREFIX + target
-                    """
                     if isinstance(node.value, ast.Call):
                         src_func_name = get_node_value(node.value.func)
                         fn_name = ".".join(src_func_name)
@@ -233,7 +227,8 @@ class ASTAnalyser(ast.NodeVisitor):
                             """
                             self.add_node_to_graph(
                                 AssignmentNode(srclist, target,
-                                               node.lineno, node.col_offset))
+                                               node.lineno, node.col_offset,
+                                               get_context(node.value)))
 
                             self.obj_list[self.scope][target]=srclist
                     else:

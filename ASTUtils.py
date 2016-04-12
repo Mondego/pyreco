@@ -1,4 +1,5 @@
 import ast
+from collections import defaultdict
 
 DEBUG=0
 #flag to switch on for debug msgs
@@ -25,6 +26,78 @@ def get_node_value(node):
             break
     return node_val
 
+def get_arg_value(node):
+    node_val=[]
+    join=False
+    while node !="":
+        if isinstance(node, ast.Name):
+            node_val=[node.id]+node_val
+            node=""
+            join=True
+        elif isinstance(node, ast.Str):
+            node_val=[node.s]+node_val
+            node=""
+            join=True
+        elif isinstance(node, ast.Attribute):
+            node_val = [node.attr] + node_val
+            node = node.value
+            join=True
+        elif isinstance(node, ast.Tuple):
+            t_val=[]
+            for t in node.elts:
+                t_val.append(get_arg_value(t))
+            node_val=tuple(t_val)
+            node=""
+        elif isinstance(node, ast.List):
+            for l in node.elts:
+                node_val.append(get_arg_value(l))
+            node=""
+        elif isinstance(node, ast.Call):
+            node = node.func
+            join=True
+        elif isinstance(node, ast.Num):
+            node_val=[node.n]
+            node=""
+        elif isinstance(node,ast.Dict):
+            d_val=[]
+            for key, val in zip(node.keys,node.values):
+                k_val=get_arg_value(key)
+                v_val=get_arg_value(val)
+                if k_val and v_val:
+                    d_val.append((k_val,v_val))
+            node_val=d_val
+            node=""
+        else:
+            #args of the following types are ignored currently
+            # BinOp, Subscript, GeneratorExp, Lambda, UnaryOp
+            #print "get_arg_value", ast.dump(node)
+            break
+    if join:
+        node_val='.'.join(node_val)
+
+    return node_val
+
+
+def get_context(node):
+    context=defaultdict(list)
+    if hasattr(node, 'args'):
+        if node.args:
+            for arg in node.args:
+                arg_value=get_arg_value(arg)
+                if arg_value:
+                    context['args'].append(
+                        get_arg_value(arg))
+    if hasattr(node, 'keywords'):
+        if node.keywords:
+            for keyword in node.keywords:
+
+                context['keywords'].append(
+                    (keyword.arg,
+                    get_arg_value(keyword.value))
+                )
+    return context
+
+
 class GraphNode():
     def __init__(self, src, op, tgt,
                  adjList='', val=''):
@@ -43,7 +116,7 @@ class GraphNode():
 class AssignmentNode(GraphNode):
     def __init__(self, src, tgt,
                  lineNum = "", colOffset = "",
-                 context={}):
+                 context= ""):
         GraphNode.__init__(self,
                            src, "--becomes--", tgt)
         self.lineNum=lineNum
