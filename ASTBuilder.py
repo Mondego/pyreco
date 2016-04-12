@@ -30,10 +30,14 @@ class ASTBuilder:
         return dfgraph
 
 
-def worker(folder, q):
+def worker(folder):
+    proc_name=mp.current_process().name
     filename = 'repoData/' + folder + '/allPythonContent.py'
     fullfile = open(filename).read()
     file_splits = fullfile.split('########NEW FILE########')
+    df_graphs={
+        'folder':folder,
+        'files':[]}
     for piece in file_splits:
         piece = piece.strip()
         piece_name = piece.split('\n')[0].strip()
@@ -45,40 +49,25 @@ def worker(folder, q):
                 if df_graph is not None:
                     if int(df_graph['count'])>1:
                         prog_info={
-                            'folder':folder,
                             'file':file_name,
                             'graph':df_graph}
-                        q.put(prog_info)
+                        df_graphs['files'].append(prog_info)
             except:
                 print "Unexpected error in worker:", sys.exc_info()[0]
                 f_test=open('srcfiles/test.py', 'w')
                 f_test.write(piece)
                 f_test.close()
-                q.put('kill')
-    filename.close()
-
-def listener(q):
-    f=open('graphs/graph-json.txt', 'w')
-    while 1:
-        msg=q.get()
-        if msg == 'kill':
-            print 'Parsing done!'
-            break
-        json.dump(msg, f, indent=4, ensure_ascii=False)
+    if df_graphs['files']:
+        f=open('graphs/graph-'+proc_name+'.txt','a')
+        json.dump(df_graphs, f, indent=4, ensure_ascii=False)
         f.write('\n'+'-' * 20 + '\n')
-        f.flush()
-    f.close()
+        f.close()
 
 def main():
-    manager = mp.Manager()
-    q = manager.Queue()
     pool = mp.Pool(mp.cpu_count())
-
-    watcher = pool.apply_async(listener, (q,))
-
     jobs = []
     for proj in os.listdir('repoData'):
-        job = pool.apply_async(worker, (proj, q))
+        job = pool.apply_async(worker, (proj,))
         jobs.append(job)
 
     for job in jobs:
@@ -86,8 +75,6 @@ def main():
             job.get()
         except:
             continue
-
-    q.put('kill')
     pool.close()
     pool.join()
 
