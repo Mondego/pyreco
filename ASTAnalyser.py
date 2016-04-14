@@ -177,7 +177,7 @@ class ASTAnalyser(ast.NodeVisitor):
         if node.names:
             for name in node.names:
                 if name.asname is not None:
-                    self.imports[name.name] = [name.asname]
+                    self.imports[name.asname] = [name.name]
 
     """Assign(expr* targets, expr value)"""
     def visit_Assign(self, node):
