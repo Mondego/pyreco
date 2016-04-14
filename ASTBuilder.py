@@ -26,12 +26,10 @@ class ASTBuilder:
             dfgraph=astVisitor.df_graph.serialize()
         except:
             print "Unexpected error:", sys.exc_info()[0]
-            #raise
         return dfgraph
 
 
 def worker(folder):
-    proc_name=mp.current_process().name
     filename = 'repoData/' + folder + '/allPythonContent.py'
     fullfile = open(filename).read()
     file_splits = fullfile.split('########NEW FILE########')
@@ -57,9 +55,11 @@ def worker(folder):
                 f_test=open('srcfiles/test.py', 'w')
                 f_test.write(piece)
                 f_test.close()
+
+    proc_name=str(os.getpid())
     if df_graphs['files']:
         f=open('graphs/graph-'+proc_name+'.txt','a')
-        json.dump(df_graphs, f, indent=4, ensure_ascii=False)
+        f.write(json.dumps(df_graphs))
         f.write('\n'+'-' * 20 + '\n')
         f.close()
 

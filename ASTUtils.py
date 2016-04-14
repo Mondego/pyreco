@@ -100,12 +100,21 @@ def get_context(node):
 
 class GraphNode():
     def __init__(self, src, op, tgt,
-                 adjList='', val=''):
+                 adjList=None, val=None):
         self.src=src
         self.op=op
         self.tgt=tgt
-        self.adjList=adjList
-        self.val=val
+
+        if adjList:
+            self.adjList=adjList
+        else:
+            self.adjList=list()
+
+        if val:
+            self.val=val
+        else:
+            self.val=dict()
+
 
     def __str__(self):
         return "{0} {1} {2} {3} {4}".format(self.src,
@@ -116,12 +125,16 @@ class GraphNode():
 class AssignmentNode(GraphNode):
     def __init__(self, src, tgt,
                  lineNum = "", colOffset = "",
-                 context= ""):
+                 context= None, adjList=None, val=None,):
         GraphNode.__init__(self,
-                           src, "--becomes--", tgt)
+                           src, "--becomes--", tgt,
+                           adjList, val)
         self.lineNum=lineNum
         self.colOffset=colOffset
-        self.context=context
+        if context:
+            self.context=context
+        else:
+            self.context=dict()
 
     def __str__(self):
         return "{0} {1} {2} {3} {4} {5} {6} {7}".format(
@@ -136,9 +149,11 @@ class AssignmentNode(GraphNode):
 
 class CallNode(GraphNode):
     def __init__(self, src, tgt,
-                 lineNum = "", colOffset = ""):
+                 lineNum = "", colOffset = "",
+                 adjList=None, val=None):
         GraphNode.__init__(self,
-                           src, "--calls--", tgt)
+                           src, "--calls--", tgt,
+                           adjList, val)
         self.lineNum=lineNum
         self.colOffset=colOffset
 
@@ -153,9 +168,10 @@ class CallNode(GraphNode):
             self.colOffset)
 
 class DeadNode(GraphNode):
-    def __init__(self, src):
+    def __init__(self, src, adjList=None, val=None):
         GraphNode.__init__(self,
-                           src, "--dies--", "")
+                           src, "--dies--", "",
+                           adjList, val)
 
     def __str__(self):
         return "{0} {1} {2} {3}".format(
@@ -165,9 +181,10 @@ class DeadNode(GraphNode):
             self.val)
 
 class DummyNode(GraphNode):
-    def __init__(self):
+    def __init__(self, adjList=None, val=None):
         GraphNode.__init__(self,
-                           "", "", "")
+                           "", "", "",
+                           adjList, val)
 
     def __str__(self):
         return "{0}".format(
@@ -175,13 +192,16 @@ class DummyNode(GraphNode):
         )
 
 class DFGraph():
-    def __init__(self, graph_dict=None, start_vertex=''):
+    def __init__(self, graph_dict=None, start_vertex='', count=''):
         if graph_dict is None:
             self.graph_dict={}
         else:
             self.graph_dict=graph_dict
         self.start_vertex=start_vertex
-        self.count=len(self.graph_dict.keys())
+        if not count:
+            self.count=len(self.graph_dict.keys())
+        else:
+            self.count=count
 
     def add_node(self, graphNode, parent):
         if DEBUG:
@@ -199,6 +219,7 @@ class DFGraph():
             """Add in parent's adjacency List"""
             if not p_node.adjList:
                 p_node.adjList = []
+
             p_node.adjList.append(node)
 
             """Compute the values of live objects"""
@@ -208,7 +229,9 @@ class DFGraph():
                     if key in graphNode.val.keys():
                         for value in values:
                             if value not in graphNode.val[key]:
+
                                 graphNode.val[key].append(value)
+
                     else:
                         graphNode.val[key] = values[:]
 
@@ -219,6 +242,7 @@ class DFGraph():
             graphNode.val.pop(graphNode.src)
 
         self.graph_dict[node] = graphNode
+
         if DEBUG:
             print node, self.graph_dict[node]
         return node
@@ -284,3 +308,43 @@ class DFGraph():
             result['graph_dict']=graph
         return result
 
+    @staticmethod
+    def deserialize(graph_json):
+        if DEBUG:
+            print "in deserialize"
+
+        df_graph=DFGraph(start_vertex=graph_json['start_vertex'],
+                         count=int(graph_json['count']))
+        graph={}
+        for node, node_val in graph_json['graph_dict'].items():
+            node_type=node_val['type']
+            if node_type=='AssignmentNode':
+                graph[node]=\
+                    AssignmentNode(node_val['src'],
+                                   node_val['tgt'],
+                                   node_val['adjList'],
+                                   node_val['val'],
+                                   node_val['lineNum'],
+                                   node_val['colOffset'],
+                                   node_val['context'])
+
+            elif node_type=='CallNode':
+                graph[node]=\
+                    CallNode(node_val['src'],
+                             node_val['tgt'],
+                             node_val['adjList'],
+                             node_val['val'],
+                             node_val['lineNum'],
+                             node_val['colOffset'])
+            elif node_type=='DeadNode':
+                graph[node]=\
+                    DeadNode(node_val['src'],
+                             node_val['adjList'],
+                             node_val['val'])
+            elif node_type=='DummyNode':
+                graph[node]=\
+                    DummyNode(node_val['adjList'],
+                              node_val['val'])
+
+        df_graph.graph_dict=graph
+        return df_graph
