@@ -184,6 +184,7 @@ class ASTAnalyser(ast.NodeVisitor):
         if DEBUG:
             print "visit_Assign"
 
+        self.generic_visit(node)
         obj_list = [obj for values in self.obj_list.values() for obj in values.keys()]
 
         if node.targets:
@@ -235,11 +236,14 @@ class ASTAnalyser(ast.NodeVisitor):
                         if target in obj_list:
                             self.kill_obj_after_reassignment(target)
 
+
     """Attribute(expr value, identifier attr, expr_context ctx)"""
     def visit_Attribute(self, node):
+
         if DEBUG:
             print "visit_Attribute"
 
+        self.generic_visit(node)
         obj_list = [obj for values in self.obj_list.values() for obj in values.keys()]
         ignore_list = self.ignore_list[self.scope]
 

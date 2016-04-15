@@ -11,7 +11,8 @@ Script to get the most frequently used modules
 
 def find_libs(df_graph, q):
     lib_count=Counter()
-    for node in df_graph.dfs():
+    for node_num in df_graph.dfs():
+        node=df_graph[node_num]
         if isinstance(node,AssignmentNode):
             for src in node.src:
                 pos=src.find('.')

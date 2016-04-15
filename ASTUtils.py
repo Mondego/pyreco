@@ -263,7 +263,7 @@ class DFGraph():
         results=[]
         while stack:
             vertex = stack.pop()
-            results.append(self.graph_dict[vertex])
+            results.append(vertex)
             if vertex not in visited:
                 visited.add(vertex)
                 stack.extend(
@@ -292,6 +292,40 @@ class DFGraph():
     def find_all_paths(self):
         res=self.find_paths(self.start_vertex)
         return res
+
+    def find_calls(self, assign_node, assign_val):
+        var_name=self.graph_dict[assign_node].tgt
+        def find_calls_in_graph(c_node, visited=None, result=None):
+            current_node=self.graph_dict[c_node]
+
+            if result is None:
+                result=list()
+
+            if visited is None:
+                visited=set()
+
+            if c_node in visited:
+                return result
+            else:
+                visited.add(c_node)
+
+            if isinstance(current_node, CallNode) and \
+                            current_node.src==var_name:
+                if assign_val in current_node.val[var_name]:
+                    result.append(current_node)
+                else:
+                    return result
+
+            if isinstance(c_node, DeadNode) and \
+                    c_node.src==var_name:
+                return result
+
+            if current_node.adjList:
+                for adj_node_num in current_node.adjList:
+                    find_calls_in_graph(adj_node_num, visited, result)
+                return result
+
+        return find_calls_in_graph(assign_node)
 
     """To convert DF_Graph to JSON"""
     def serialize(self):
@@ -322,20 +356,20 @@ class DFGraph():
                 graph[node]=\
                     AssignmentNode(node_val['src'],
                                    node_val['tgt'],
-                                   node_val['adjList'],
-                                   node_val['val'],
                                    node_val['lineNum'],
                                    node_val['colOffset'],
-                                   node_val['context'])
+                                   node_val['context'],
+                                   node_val['adjList'],
+                                   node_val['val'],)
 
             elif node_type=='CallNode':
                 graph[node]=\
                     CallNode(node_val['src'],
                              node_val['tgt'],
-                             node_val['adjList'],
-                             node_val['val'],
                              node_val['lineNum'],
-                             node_val['colOffset'])
+                             node_val['colOffset'],
+                             node_val['adjList'],
+                             node_val['val'])
             elif node_type=='DeadNode':
                 graph[node]=\
                     DeadNode(node_val['src'],
@@ -348,3 +382,4 @@ class DFGraph():
 
         df_graph.graph_dict=graph
         return df_graph
+
