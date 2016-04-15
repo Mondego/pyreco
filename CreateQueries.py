@@ -21,6 +21,7 @@ def get_queries(df_graph):
                             query={
                                 'type':src,
                                 'line':calls[0].lineNum,
+                                'call':calls[0].tgt,
                                 'col':calls[0].colOffset,
                                 'results':[]
                             }
@@ -40,8 +41,6 @@ def create_queries(df_graphs, queue):
     for g in df_graphs['files']:
         print 'Folder:'+df_graphs['folder'],"File:"+g['file']
         df_graph=DFGraph.deserialize(g['graph'])
-        #df_graph=DFGraph.deserialize(json.load(open("check-json.txt")))
-        #df_graph=json.load(open("check-json.txt"))
         queries=get_queries(df_graph)
         if queries:
             q_file={
