@@ -16,6 +16,7 @@ def get_queries(df_graph):
                 if dot_pos!=-1:
                     lib=src[:dot_pos]
                     if lib==Q_LIB:
+                        ctxt=src.context
                         calls=df_graph.find_calls(node, src)
                         if calls:
                             query={
@@ -23,7 +24,8 @@ def get_queries(df_graph):
                                 'line':calls[0].lineNum,
                                 'call':calls[0].tgt,
                                 'col':calls[0].colOffset,
-                                'results':[]
+                                'results':[],
+                                'context':ctxt
                             }
                             for call in calls:
                                 query['results'].append(
