@@ -105,8 +105,6 @@ def main():
                     jobs.append(job)
                     query=""
                     count+=1
-                    if count>10:
-                        break
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
