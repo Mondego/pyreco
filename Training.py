@@ -20,8 +20,10 @@ def run_queries_for_prj(fold_no, query_text):
         for query in file_queries["queries"]:
             results=','.join(query['results'])
             train_set.append((query['type'],results))
-    c.executemany("INSERT INTO TRAINSET_{fold}(obj_type,obj_calls) VALUES (?, ?)".format(
-        fold=str(fold_no)),train_set)
+    for fold in range(1,FOLDS+1):
+        if fold!=fold_no:
+            c.executemany("INSERT INTO TRAINSET_{fold}(obj_type,obj_calls) VALUES (?, ?)".format(
+            fold=str(fold)),train_set)
     conn.commit()
     conn.close()
 
@@ -29,10 +31,10 @@ def run_queries_for_prj(fold_no, query_text):
 def main():
     conn=sqlite3.connect(DB_CONN)
     c=conn.cursor()
-    for fold in range(FOLDS):
-        c.execute('''DROP TABLE IF EXISTS TRAINSET_{fold_num}'''.format(fold_num=str(fold+1)))
+    for fold in range(1,FOLDS+1):
+        c.execute('''DROP TABLE IF EXISTS TRAINSET_{fold_num}'''.format(fold_num=str(fold)))
         c.execute('''CREATE TABLE TRAINSET_{fold_num} (obj_type text, obj_calls text)'''
-                     .format(fold_num=str(fold+1)))
+                     .format(fold_num=str(fold)))
 
     conn.close()
 
@@ -50,7 +52,6 @@ def main():
                     jobs.append(job)
                     query=""
                     count+=1
-
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
