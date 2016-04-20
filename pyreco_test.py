@@ -36,7 +36,7 @@ def run_queries_for_prj(fold_no, query_text, q):
                 query_lines[-1]=query_lines[-1][:dot_index]
                 results = get_recommendations('\n'.join(query_lines),fold_no)
                 p,r=compute_precision_and_recall(results, query_info["results"])
-                q.put((fold_no, results, query_info["results"], p, r))
+                q.put((fold_no-1, results, query_info["results"], p, r))
 
     for file_queries in prj_queries["q_list"]:
         folder=prj_queries["folder"]
@@ -61,25 +61,24 @@ def listener(q):
         msg=q.get()
         if isinstance(msg,tuple):
             n, compl_results, relevant_results, p, r=msg
-            f[n-1].write("Completion results:"+str(compl_results)+"\n")
-            f[n-1].write("Relevant results:"+str(relevant_results)+"\n")
-            f[n-1].write("Precision:"+str(p*100)+"\n")
-            f[n-1].write("Recall:"+str(r*100)+"\n")
-            f[n-1].write('-' * 20 + '\n')
-            f[n-1].flush()
-            sum_prec[n-1]+=p
-            sum_recall[n-1]+=r
-            count[n-1]+=1
+            f[n].write("Completion results:"+str(compl_results)+"\n")
+            f[n].write("Relevant results:"+str(relevant_results)+"\n")
+            f[n].write("Precision:"+str(p*100)+"\n")
+            f[n].write("Recall:"+str(r*100)+"\n")
+            f[n].write('-' * 20 + '\n')
+            f[n].flush()
+            sum_prec[n]+=p
+            sum_recall[n]+=r
+            count[n]+=1
 
         else:
             f_summary=open('results-pyreco/results-summary.txt','w')
-            for i in range(1,FOLDS+1):
-
+            for i in range(FOLDS):
                 f[i].close()
-                f_summary.write("Fold:"+str(i)+"\n")
-                f_summary.write("Num_queries:"+str(count[i-1])+"\n")
-                f_summary.write("Avg Precision:"+str((sum_prec[i-1]/count[i-1])*100)+"\n")
-                f_summary.write("Avg Recall:"+str((sum_recall[i-1]/count[i-1])*100)+"\n")
+                f_summary.write("Fold:"+str(i+1)+"\n")
+                f_summary.write("Num_queries:"+str(count[i])+"\n")
+                f_summary.write("Avg Precision:"+str((sum_prec[i]/count[i])*100)+"\n")
+                f_summary.write("Avg Recall:"+str((sum_recall[i]/count[i])*100)+"\n")
                 f_summary.write('-' * 20 + '\n')
             f_summary.close()
             break
