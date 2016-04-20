@@ -3,6 +3,7 @@ import sys
 import multiprocessing as mp
 from ASTUtils import DFGraph, AssignmentNode
 import os
+import random
 
 Q_LIB="os"
 
@@ -19,11 +20,12 @@ def get_queries(df_graph):
                         ctxt=node_val.context
                         calls=df_graph.find_calls(node, src)
                         if calls:
+                            test_call=random.choice(calls)
                             query={
                                 'type':src,
-                                'line':calls[0].lineNum,
-                                'call':calls[0].tgt,
-                                'col':calls[0].colOffset,
+                                'line':test_call.lineNum,
+                                'call':test_call.tgt,
+                                'col':test_call.colOffset,
                                 'results':[],
                                 'context':ctxt
                             }
