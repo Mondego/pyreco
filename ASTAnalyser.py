@@ -555,9 +555,9 @@ class ASTAnalyser(ast.NodeVisitor):
     def add_node_to_graph(self, node):
         if DEBUG:
             print "add_node_to_graph"
-
+        node.parent=self.parent_node
         self.parent_node=\
-            [self.df_graph.add_node(node,self.parent_node)]
+            [self.df_graph.add_node(node)]
 
     def add_lib_objects(self, lib_name):
         try:

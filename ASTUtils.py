@@ -100,7 +100,8 @@ def get_context(node):
 
 class GraphNode():
     def __init__(self, src, op, tgt,
-                 adjList=None, val=None):
+                 adjList=None, val=None,
+                 parent=None):
         self.src=src
         self.op=op
         self.tgt=tgt
@@ -115,20 +116,25 @@ class GraphNode():
         else:
             self.val=dict()
 
+        if parent:
+            self.parent=parent
+        else:
+            self.parent=list()
+
 
     def __str__(self):
-        return "{0} {1} {2} {3} {4}".format(self.src,
-                                    self.op,
-                                    self.tgt,
-                                    self.adjList)
+        return "{0} {1} {2} {3} {4} {5}".\
+            format(self.src, self.op, self.tgt,
+                   self.adjList, self.parent)
 
 class AssignmentNode(GraphNode):
     def __init__(self, src, tgt,
                  lineNum = "", colOffset = "",
-                 context= None, adjList=None, val=None,):
+                 context= None, adjList=None,
+                 val=None, parent=None):
         GraphNode.__init__(self,
                            src, "--becomes--", tgt,
-                           adjList, val)
+                           adjList, val, parent)
         self.lineNum=lineNum
         self.colOffset=colOffset
         if context:
@@ -137,54 +143,46 @@ class AssignmentNode(GraphNode):
             self.context=dict()
 
     def __str__(self):
-        return "{0} {1} {2} {3} {4} {5} {6} {7}".format(
-            self.src,
-            self.op,
-            self.tgt,
-            self.adjList,
-            self.val,
-            self.lineNum,
-            self.colOffset,
-            self.context)
+        return "{0} {1} {2} {3} {4} {5} {6} {7} {8}".format(
+            self.src, self.op, self.tgt,
+            self.adjList, self.val, self.parent,
+            self.lineNum, self.colOffset, self.context)
 
 class CallNode(GraphNode):
     def __init__(self, src, tgt,
                  lineNum = "", colOffset = "",
-                 adjList=None, val=None):
+                 adjList=None, val=None, parent=None):
         GraphNode.__init__(self,
                            src, "--calls--", tgt,
-                           adjList, val)
+                           adjList, val, parent)
         self.lineNum=lineNum
         self.colOffset=colOffset
 
     def __str__(self):
-        return "{0} {1} {2} {3} {4} {5} {6}".format(
-            self.src,
-            self.op,
-            self.tgt,
-            self.adjList,
-            self.val,
-            self.lineNum,
-            self.colOffset)
+        return "{0} {1} {2} {3} {4} {5} {6} {7}".format(
+            self.src, self.op, self.tgt,
+            self.adjList, self.parent, self.val,
+            self.lineNum, self.colOffset)
 
 class DeadNode(GraphNode):
-    def __init__(self, src, adjList=None, val=None):
+    def __init__(self, src, adjList=None, val=None, parent=None):
         GraphNode.__init__(self,
                            src, "--dies--", "",
-                           adjList, val)
+                           adjList, val, parent)
 
     def __str__(self):
-        return "{0} {1} {2} {3}".format(
+        return "{0} {1} {2} {3} {4}".format(
             self.src,
             self.op,
             self.adjList,
-            self.val)
+            self.val,
+            self.parent)
 
 class DummyNode(GraphNode):
-    def __init__(self, adjList=None, val=None):
+    def __init__(self, adjList=None, val=None, parent=None):
         GraphNode.__init__(self,
                            "", "", "",
-                           adjList, val)
+                           adjList, val, parent)
 
     def __str__(self):
         return "{0}".format(
@@ -203,9 +201,9 @@ class DFGraph():
         else:
             self.count=count
 
-    def add_node(self, graphNode, parent):
+    def add_node(self, graphNode):
         if DEBUG:
-            print 'add_node beg', graphNode, parent
+            print 'add_node beg', graphNode
 
         self.count += 1
         node = str(self.count)
@@ -214,7 +212,7 @@ class DFGraph():
         if self.count == 1:
             self.start_vertex = node
 
-        for p in parent:
+        for p in graphNode.parent:
             p_node = self.graph_dict[p]
             """Add in parent's adjacency List"""
             if not p_node.adjList:
@@ -295,6 +293,7 @@ class DFGraph():
 
     def find_calls(self, assign_node, assign_val):
         var_name=self.graph_dict[assign_node].tgt
+
         def find_calls_in_graph(c_node, visited=None, result=None):
             current_node=self.graph_dict[c_node]
 
@@ -326,6 +325,44 @@ class DFGraph():
                 return result
 
         return find_calls_in_graph(assign_node)
+
+    def find_assignments_and_calls(self, object_name):
+        count=self.count
+        while isinstance(self.graph_dict[str(count)], DeadNode):
+            count-=1
+
+        def find_assignments_and_calls_in_graph(c_node, visited=None, assignments=None, calls=None):
+            current_node=self.graph_dict[c_node]
+
+            if assignments is None:
+                assignments=list()
+
+            if calls is None:
+                calls=list()
+
+            if visited is None:
+                visited=set()
+
+
+            visited.add(c_node)
+
+            if isinstance(current_node, AssignmentNode) and \
+                            current_node.tgt==object_name:
+                assignments.append(current_node)
+                return assignments, calls
+
+            if isinstance(current_node, CallNode) and \
+                current_node.src==object_name:
+                calls.append(current_node)
+
+            if current_node.parent:
+                for adj_node_num in current_node.parent:
+                    if adj_node_num not in visited:
+                        find_assignments_and_calls_in_graph(
+                            adj_node_num, visited,assignments, calls)
+            return assignments, calls
+
+        return find_assignments_and_calls_in_graph(str(count))
 
     """To convert DF_Graph to JSON"""
     def serialize(self):

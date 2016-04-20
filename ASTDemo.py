@@ -14,7 +14,8 @@ for f in flist:
         fname=join(src_path,f)
         print("FILENAME:"+f)
 
-        df_graph=ASTBuilder(open(fname).read()).build_AST()
+        df_graph=ASTBuilder(open(fname).read()).\
+            build_AST().serialize()
 
         if DEBUG:
             print "in ASTDemo"

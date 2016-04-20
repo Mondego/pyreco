@@ -1,34 +1,9 @@
-import _ast
-from ASTAnalyser import ASTAnalyser
-from ASTFunctionVisitor import ASTFunctionVisitor
+import ASTBuilder
+import multiprocessing as mp
 import sys
 import os
 import json
-import multiprocessing as mp
 
-class ASTBuilder:
-    def __init__(self, src):
-        self.src = src
-
-    def build_AST(self):
-        dfgraph=None
-        astTree = None
-        try:
-            astTree = compile(self.src, "<string>", "exec", _ast.PyCF_ONLY_AST)
-        except:
-            return
-
-        try:
-            functionVisitor = ASTFunctionVisitor()
-            functionVisitor.visit(astTree)
-            astVisitor = ASTAnalyser(func_list=functionVisitor.func_list)
-            astVisitor.visit(astTree)
-            dfgraph=astVisitor.df_graph
-        except:
-            print "Unexpected error:", sys.exc_info()[0]
-        return dfgraph
-
-"""
 def worker(folder):
     filename = 'repoData/' + folder + '/allPythonContent.py'
     fullfile = open(filename).read()
@@ -43,12 +18,13 @@ def worker(folder):
             file_name = piece_name.split()[2]
             try:
                 print "Foldername:"+folder, "Filename:"+file_name
-                df_graph = ASTBuilder(piece).build_AST().serialize()
+                df_graph = ASTBuilder(piece).build_AST()
                 if df_graph is not None:
-                    if int(df_graph['count'])>1:
+                    df_json=df_graph.serialize()
+                    if int(df_json['count'])>1:
                         prog_info={
                             'file':file_name,
-                            'graph':df_graph}
+                            'graph':df_json}
                         df_graphs['files'].append(prog_info)
             except:
                 print "Unexpected error in worker:", sys.exc_info()[0]
@@ -80,4 +56,3 @@ def main():
 
 if __name__=="__main__":
     main()
-"""

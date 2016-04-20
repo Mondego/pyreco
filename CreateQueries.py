@@ -24,6 +24,7 @@ def get_queries(df_graph):
                             query={
                                 'type':src,
                                 'line':test_call.lineNum,
+                                'obj':test_call.src,
                                 'call':test_call.tgt,
                                 'col':test_call.colOffset,
                                 'results':[],
