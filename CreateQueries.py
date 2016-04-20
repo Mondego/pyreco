@@ -16,7 +16,7 @@ def get_queries(df_graph):
                 if dot_pos!=-1:
                     lib=src[:dot_pos]
                     if lib==Q_LIB:
-                        ctxt=src.context
+                        ctxt=node_val.context
                         calls=df_graph.find_calls(node, src)
                         if calls:
                             query={
@@ -80,6 +80,7 @@ def main():
     jobs=[]
 
     graph_folder='graphs/'
+    count=0
     for f_name in os.listdir(graph_folder):
         graph=""
         with open(graph_folder+'/'+f_name,'r') as file:
@@ -90,6 +91,9 @@ def main():
                         job=pool.apply_async(create_queries, (df_graphs,q))
                         jobs.append(job)
                         graph=""
+                        count+=1
+                        if count>10:
+                            break
                     except:
                         print "Unexpected error in worker:", sys.exc_info()[0]
                         break
