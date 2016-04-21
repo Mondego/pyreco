@@ -226,10 +226,14 @@ class ASTAnalyser(ast.NodeVisitor):
                                         if target in arg_list:
                                             target=ARG_PREFIX+':'+target
                             """
+                            live_objects={}
+                            for scope in self.obj_list.keys():
+                                live_objects.update(self.obj_list[scope])
+
                             self.add_node_to_graph(
                                 AssignmentNode(srclist, target,
                                                node.lineno, node.col_offset,
-                                               get_context(node.value)))
+                                               get_context(node.value, live_objects)))
 
                             self.obj_list[self.scope][target]=srclist
                     else:

@@ -26,14 +26,25 @@ def get_node_value(node):
             break
     return node_val
 
-def get_arg_value(node):
+def get_arg_value(node, live_objs):
+    if DEBUG:
+        print "get_arg_value", live_objs
     node_val=[]
     join=False
     while node !="":
         if isinstance(node, ast.Name):
-            node_val=[node.id]+node_val
+            node_id=node.id
+            if node_id in live_objs.keys():
+                node_value=node_val
+                node_val=[]
+                for val in live_objs[node_id]:
+                    node_val.append(
+                        '.'.join([val]+node_value))
+            else:
+                node_val=[node_id]+node_val
+                join=True
             node=""
-            join=True
+
         elif isinstance(node, ast.Str):
             node_val=[node.s]+node_val
             node=""
@@ -45,12 +56,12 @@ def get_arg_value(node):
         elif isinstance(node, ast.Tuple):
             t_val=[]
             for t in node.elts:
-                t_val.append(get_arg_value(t))
+                t_val.append(get_arg_value(t, live_objs))
             node_val=tuple(t_val)
             node=""
         elif isinstance(node, ast.List):
             for l in node.elts:
-                node_val.append(get_arg_value(l))
+                node_val.append(get_arg_value(l, live_objs))
             node=""
         elif isinstance(node, ast.Call):
             node = node.func
@@ -61,8 +72,8 @@ def get_arg_value(node):
         elif isinstance(node,ast.Dict):
             d_val=[]
             for key, val in zip(node.keys,node.values):
-                k_val=get_arg_value(key)
-                v_val=get_arg_value(val)
+                k_val=get_arg_value(key, live_objs)
+                v_val=get_arg_value(val, live_objs)
                 if k_val and v_val:
                     d_val.append((k_val,v_val))
             node_val=d_val
@@ -78,22 +89,23 @@ def get_arg_value(node):
     return node_val
 
 
-def get_context(node):
+def get_context(node, live_objs):
+    if DEBUG:
+        print "get_context",live_objs
     context=defaultdict(list)
     if hasattr(node, 'args'):
         if node.args:
             for arg in node.args:
-                arg_value=get_arg_value(arg)
+                arg_value=get_arg_value(arg,live_objs)
                 if arg_value:
                     context['args'].append(
-                        get_arg_value(arg))
+                        get_arg_value(arg,live_objs))
     if hasattr(node, 'keywords'):
         if node.keywords:
             for keyword in node.keywords:
-
                 context['keywords'].append(
                     (keyword.arg,
-                    get_arg_value(keyword.value))
+                    get_arg_value(keyword.value,live_objs))
                 )
     return context
 
