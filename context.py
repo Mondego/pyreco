@@ -19,11 +19,12 @@ def extract_tokens(context_dict):
 		ret_list.extend(list(flatten(arguments)))
 	if 'keywords' in context_dict:
 		keywords = context_dict['keywords']
-		ret_list.extend(list(flatten(keywords)))	
+		ret_list.extend(list(flatten(keywords)))
 	return ret_list
 
 
-def process_tokens(tokens):
+def process_tokens(context_dict):
+	tokens=extract_tokens(context_dict)
 	porter_stemmer = PorterStemmer()
 	wordnet_lemmatizer = WordNetLemmatizer()
 	processed = []
@@ -44,6 +45,7 @@ test = [['submitCommands', ['SendCommands']], ['cancelCommands',
 ['confirmText', 'Change it'], ['cancelTrigger', 'Confirm']]
 print list(flatten(test))
 '''
+'''
 with open('graph-28594.txt', 'r') as file:
 	json_chunks = file.read().strip().split('--------------------')
 	for chunk in json_chunks:
@@ -57,6 +59,7 @@ with open('graph-28594.txt', 'r') as file:
 						token_list = extract_tokens(node_value['context'])
 						processed_tokens = process_tokens(token_list)
 						print node_num, processed_tokens
+'''
 			
 # two root nodes: files and folders
 # under files, two nodes: graph and file
