@@ -1,4 +1,4 @@
-import ASTBuilder
+from ASTBuilder import ASTBuilder
 import multiprocessing as mp
 import sys
 import os
@@ -42,8 +42,10 @@ def worker(folder):
 def main():
     pool = mp.Pool(mp.cpu_count())
     jobs = []
+    #count=0
     for proj in os.listdir('repoData'):
         job = pool.apply_async(worker, (proj,))
+        #count+=1
         jobs.append(job)
 
     for job in jobs:
