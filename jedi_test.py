@@ -11,6 +11,8 @@ FOLDS=10
 def compute_precision_and_recall(jedi_results, relevant_results):
     relevant_set=set(relevant_results)
     relevant_count=0
+    if jedi_results:
+        jedi_results=jedi_results[:10]
     p=0
     for result in relevant_set:
         if result in jedi_results:
