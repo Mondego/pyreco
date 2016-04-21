@@ -42,7 +42,7 @@ def run_queries_for_prj(fold_no, query_text, q):
                 for completion in script.completions():
                     results.append(completion.complete)
                 p,r=compute_precision_and_recall(results, query_info["results"])
-                q.put((fold_no, results, query_info["results"], p, r))
+                q.put((fold_no-1, results, query_info["results"], p, r))
     for file_queries in prj_queries["q_list"]:
         folder=prj_queries["folder"]
         filename=file_queries["file"]
@@ -64,7 +64,6 @@ def listener(q):
 
     while(1):
         msg=q.get()
-        print msg, len(msg)
         if isinstance(msg,tuple):
             n, compl_results, relevant_results, p, r=msg
             f[n].write("Completion results:"+str(compl_results)+"\n")
@@ -76,8 +75,6 @@ def listener(q):
             sum_prec[n]+=p
             sum_recall[n]+=r
             count[n]+=1
-            print sum_prec,sum_recall,count
-
         else:
             f_summary=open('results/results-summary.txt','w')
             for i in range(FOLDS):
@@ -107,7 +104,7 @@ def main():
         for line in file:
             if line.strip()=='-' * 20:
                 try:
-                    job=pool.apply_async(run_queries_for_prj,(count%FOLDS,query, q))
+                    job=pool.apply_async(run_queries_for_prj,(count%FOLDS+1,query, q))
                     jobs.append(job)
                     query=""
                     count+=1
