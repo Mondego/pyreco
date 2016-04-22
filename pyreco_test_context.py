@@ -70,7 +70,7 @@ def listener(q):
                 f[i].close()
                 f_summary.write("Fold:"+str(i+1)+"\n")
                 f_summary.write("Num_queries:"+str(count[i])+"\n")
-                f_summary.write("Avg Precision:"+str((sum_prec[i]/count[i])*100)+"\n")
+                f_summary.write("Avg Precision:"+str((sum_prec[i]/float(count[i]))*100)+"\n")
                 f_summary.write('-' * 20 + '\n')
             f_summary.close()
             break
