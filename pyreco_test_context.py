@@ -16,8 +16,7 @@ def compute_r_precision(pyreco_results, relevant_results):
         for result in relevant_set:
             if result in pyreco_results[:r_length]:
                 p+=1
-        p=p/len(r_length)
-    return p
+    return p/float(r_length)
 
 
 def run_queries_for_prj(fold_no, query_text, q):
