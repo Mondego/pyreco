@@ -8,22 +8,19 @@ import json
 LIB="os"
 FOLDS=10
 
-def compute_precision_and_recall(pyreco_results, relevant_results):
+def compute_r_precision(pyreco_results, relevant_results):
     relevant_set=set(relevant_results)
-    relevant_count=0
+    r_length=len(relevant_set)
     p=0
-    for result in relevant_set:
-        if result in pyreco_results:
-            relevant_count+=1
-    if len(pyreco_results)>0:
-        p=relevant_count/float(len(pyreco_results))
-    r=relevant_count/float(len(relevant_set))
-    return p,r
+    if pyreco_results:
+        for result in relevant_set:
+            if result in pyreco_results[:r_length]:
+                p+=1
+    return p/len(r_length)
 
 
 def run_queries_for_prj(fold_no, query_text, q):
     prj_queries=json.loads(query_text)
-
     def run_query(query_info):
         with open('repoData/'+folder+'/allPythonContent.py', 'r') as f:
             file_content=[line.rstrip() for line in f.readlines()]
@@ -35,8 +32,8 @@ def run_queries_for_prj(fold_no, query_text, q):
             if dot_index!=-1:
                 query_lines[-1]=query_lines[-1][:dot_index]
                 results = get_recommendations('\n'.join(query_lines),fold_no)
-                p,r=compute_precision_and_recall(results, query_info["results"])
-                q.put((fold_no-1, results, query_info["results"], p, r))
+                p=compute_r_precision(results, query_info["results"])
+                q.put((fold_no-1, results, query_info["results"], p))
 
     for file_queries in prj_queries["q_list"]:
         folder=prj_queries["folder"]
@@ -47,28 +44,24 @@ def run_queries_for_prj(fold_no, query_text, q):
 
 def listener(q):
     f=list()
-    sum_recall=list()
     sum_prec=list()
     count=list()
 
     for i in range(FOLDS):
         f.append(open('results-pyreco/results-'+str(i+1)+'.txt','w'))
         sum_prec.append(0)
-        sum_recall.append(0)
         count.append(0)
 
     while(1):
         msg=q.get()
         if isinstance(msg,tuple):
-            n, compl_results, relevant_results, p, r=msg
+            n, compl_results, relevant_results, p=msg
             f[n].write("Completion results:"+str(compl_results)+"\n")
             f[n].write("Relevant results:"+str(relevant_results)+"\n")
-            f[n].write("Precision:"+str(p*100)+"\n")
-            f[n].write("Recall:"+str(r*100)+"\n")
+            f[n].write("R-Precision:"+str(p*100)+"\n")
             f[n].write('-' * 20 + '\n')
             f[n].flush()
             sum_prec[n]+=p
-            sum_recall[n]+=r
             count[n]+=1
 
         else:
@@ -78,7 +71,6 @@ def listener(q):
                 f_summary.write("Fold:"+str(i+1)+"\n")
                 f_summary.write("Num_queries:"+str(count[i])+"\n")
                 f_summary.write("Avg Precision:"+str((sum_prec[i]/count[i])*100)+"\n")
-                f_summary.write("Avg Recall:"+str((sum_recall[i]/count[i])*100)+"\n")
                 f_summary.write('-' * 20 + '\n')
             f_summary.close()
             break
@@ -104,6 +96,8 @@ def main():
                     jobs.append(job)
                     query=""
                     count+=1
+                    if count>2:
+                        break
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
