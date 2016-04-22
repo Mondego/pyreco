@@ -28,12 +28,12 @@ def run_queries_for_prj(fold_no, query_text, q):
             line_num=query_info["line"]
             query_lines=file_content[index+1:index+line_num]
             col_offset=query_info['col']
-            dot_index=query_lines[-1].find(query_info['call'],  col_offset)
-            results=[]
+            dot_index=query_lines[-1].find(query_info['call'],col_offset)
             if dot_index!=-1:
                 script =jedi.Script(source='\n'.join(query_lines),
                                     line=line_num-1,
                                     column=dot_index)
+                results=[]
                 for completion in script.completions():
                     results.append(completion.complete)
                 p=compute_r_precision(results, query_info["results"])
@@ -52,7 +52,7 @@ def listener(q):
     count=list()
 
     for i in range(FOLDS):
-        f.append(open('results/results-'+str(i+1)+'.txt','w'))
+        f.append(open('results-jedi/results-'+str(i+1)+'.txt','w'))
         sum_prec.append(0)
         count.append(0)
 
@@ -67,8 +67,9 @@ def listener(q):
             f[n].flush()
             sum_prec[n]+=p
             count[n]+=1
+
         else:
-            f_summary=open('results/results-summary.txt','w')
+            f_summary=open('results-jedi/results-summary.txt','w')
             for i in range(FOLDS):
                 f[i].close()
                 f_summary.write("Fold:"+str(i+1)+"\n")
@@ -99,7 +100,6 @@ def main():
                     jobs.append(job)
                     query=""
                     count+=1
-
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
