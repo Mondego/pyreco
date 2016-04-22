@@ -16,7 +16,8 @@ def compute_r_precision(jedi_results, relevant_results):
         for result in relevant_set:
             if result in jedi_results[:r_length]:
                 p+=1
-    return p/len(r_length)
+        p=p/len(r_length)
+    return p
 
 
 def run_queries_for_prj(fold_no, query_text, q):

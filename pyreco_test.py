@@ -16,7 +16,8 @@ def compute_r_precision(pyreco_results, relevant_results):
         for result in relevant_set:
             if result in pyreco_results[:r_length]:
                 p+=1
-    return p/len(r_length)
+        p=p/len(r_length)
+    return p
 
 
 def run_queries_for_prj(fold_no, query_text, q):
@@ -96,8 +97,6 @@ def main():
                     jobs.append(job)
                     query=""
                     count+=1
-                    if count>2:
-                        break
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
