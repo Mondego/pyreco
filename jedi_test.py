@@ -19,7 +19,7 @@ def compute_r_precision(jedi_results, relevant_results):
     return p/float(r_length)
 
 
-def run_queries_for_prj(fold_no, query_text, q, l):
+def run_queries_for_prj(fold_no, query_text, q):
     prj_queries=json.loads(query_text)
     def run_query(query_info):
         with open('repoData/'+folder+'/allPythonContent.py', 'r') as f:
@@ -30,14 +30,13 @@ def run_queries_for_prj(fold_no, query_text, q, l):
             col_offset=query_info['col']
             dot_index=query_lines[-1].find(query_info['call'],col_offset)
             if dot_index!=-1:
-                l.acquire()
                 script =jedi.Script(source='\n'.join(query_lines),
                                     line=line_num-1,
                                     column=dot_index)
-                l.release()
                 results=[]
-                for completion in script.completions():
-                    results.append(completion.complete)
+                if script:
+                    for completion in script.completions():
+                        results.append(completion.complete)
                 p=compute_r_precision(results, query_info["results"])
                 q.put((fold_no-1, results, query_info["results"], p))
 
@@ -98,7 +97,7 @@ def main():
         for line in file:
             if line.strip()=='-' * 20:
                 try:
-                    job=pool.apply_async(run_queries_for_prj,(count%FOLDS+1,query, q, l))
+                    job=pool.apply_async(run_queries_for_prj,(count%FOLDS+1,query, q))
                     jobs.append(job)
                     query=""
                     count+=1
