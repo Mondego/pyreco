@@ -55,6 +55,7 @@ def listener(q):
     f=list()
     sum_prec=list()
     count=list()
+    avg_prec=0
 
     for i in range(FOLDS):
         f.append(open('results-jedi/results-'+str(i+1)+'.txt','w'))
@@ -82,6 +83,9 @@ def listener(q):
                     f_summary.write("Num_queries:"+str(count[i])+"\n")
                     f_summary.write("Avg Precision:"+str((sum_prec[i]/float(count[i]))*100)+"\n")
                     f_summary.write('-' * 20 + '\n')
+                    avg_prec+=sum_prec[i]*count[i]
+            avg_prec/=sum(count)
+            f_summary.write("Avg Precision in all folds:"+str(avg_prec*100))
             f_summary.close()
             break
 
