@@ -1,6 +1,5 @@
 # format of the context: "context": {"args": ["basedir", "logs"]}"
-import json
-from pprint import pprint
+import re
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
 
@@ -14,14 +13,43 @@ def flatten(container):
 
 def extract_tokens(context_dict):
 	ret_list = []
-	if 'args' in context_dict:
-		arguments = context_dict['args']
+	if 'arg_val' in context_dict:
+		arguments = context_dict['arg_val']
 		ret_list.extend(list(flatten(arguments)))
-	if 'keywords' in context_dict:
-		keywords = context_dict['keywords']
+	if 'keyword_val' in context_dict:
+		keywords = context_dict['keyword_val']
+		ret_list.extend(list(flatten(keywords)))
+	if 'obj_name' in context_dict:
+		keywords = context_dict['obj_name']
+		ret_list.extend(list(flatten(keywords)))
+
+	return ret_list
+
+def extract_types(context_dict):
+	ret_list = []
+	if 'arg_type' in context_dict:
+		arguments = context_dict['arg_type']
+		ret_list.extend(list(flatten(arguments)))
+	if 'keyword_type' in context_dict:
+		keywords = context_dict['keyword_type']
+		ret_list.extend(list(flatten(keywords)))
+	if 'keyword_key' in context_dict:
+		keywords = context_dict['keyword_key']
 		ret_list.extend(list(flatten(keywords)))
 	return ret_list
 
+
+def camel_case_split(identifier):
+    matches = re.finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
+    return [m.group(0) for m in matches]
+
+def split_tokens(identifier):
+	word_list=[]
+	words=camel_case_split(identifier)
+	for word in words:
+		word_list.extend(
+			re.split(r'[^\w]',word))
+	return word_list
 
 def process_tokens(context_dict):
 	tokens=extract_tokens(context_dict)
@@ -30,12 +58,23 @@ def process_tokens(context_dict):
 	processed = []
 	for token in tokens:
 		if isinstance(token, basestring): # only procses strings
-			token = token.lower() # to lowercase
-			token = porter_stemmer.stem(token)
-			token = wordnet_lemmatizer.lemmatize(token)
-		processed.append(token)
+			token_splits=split_tokens(token)
+			for split in token_splits:
+				split=split.lower()
+				split = porter_stemmer.stem(split)
+				#split = wordnet_lemmatizer.lemmatize(split)
+				processed.append(split)
 	return processed
 
+def process_context(context_dict, process_types=False, process_values=False):
+	processed_list=[]
+	if process_values:
+		processed_list.extend(
+			process_tokens(context_dict))
+	if process_types:
+		processed_list.extend(
+			extract_types(context_dict))
+	return processed_list
 # main function
 '''
 test = [['submitCommands', ['SendCommands']], ['cancelCommands', 
@@ -60,7 +99,7 @@ with open('graph-28594.txt', 'r') as file:
 						processed_tokens = process_tokens(token_list)
 						print node_num, processed_tokens
 '''
-			
+
 # two root nodes: files and folders
 # under files, two nodes: graph and file
 # under graph, three nodes: count, graph_dict, start_vertex

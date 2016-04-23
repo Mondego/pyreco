@@ -5,7 +5,7 @@ import sqlite3
 import json
 import sys
 import multiprocessing as mp
-from context import process_tokens
+from context import process_context
 
 FOLDS=10
 LIB="os"
@@ -22,7 +22,9 @@ def run_queries_for_prj(fold_no, query_text):
         print "Folder-name:"+folder, "File:"+filename
         for query in file_queries["queries"]:
             results=','.join(query['results'])
-            context=','.join(process_tokens(query['context']))
+            process_context
+            context=','.join(
+                process_context(query['context']),process_types=True, process_values=True)
             train_set.append((query['type'],results,context))
 
     for fold in range(1,FOLDS+1):

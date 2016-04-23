@@ -44,11 +44,9 @@ def get_arg_value(node, live_objs):
                 node_val=[node_id]+node_val
                 join=True
             node=""
-
         elif isinstance(node, ast.Str):
-            node_val=[node.s]+node_val
+            node_val=node.s
             node=""
-            join=True
         elif isinstance(node, ast.Attribute):
             node_val = [node.attr] + node_val
             node = node.value
@@ -57,7 +55,7 @@ def get_arg_value(node, live_objs):
             t_val=[]
             for t in node.elts:
                 t_val.append(get_arg_value(t, live_objs))
-            node_val=tuple(t_val)
+            node_val=t_val
             node=""
         elif isinstance(node, ast.List):
             for l in node.elts:
@@ -67,7 +65,7 @@ def get_arg_value(node, live_objs):
             node = node.func
             join=True
         elif isinstance(node, ast.Num):
-            node_val=[node.n]
+            node_val=node.n
             node=""
         elif isinstance(node,ast.Dict):
             d_val=[]
@@ -75,7 +73,8 @@ def get_arg_value(node, live_objs):
                 k_val=get_arg_value(key, live_objs)
                 v_val=get_arg_value(val, live_objs)
                 if k_val and v_val:
-                    d_val.append((k_val,v_val))
+                    d_val.append(k_val)
+                    d_val.append(v_val)
             node_val=d_val
             node=""
         else:
@@ -89,24 +88,30 @@ def get_arg_value(node, live_objs):
     return node_val
 
 
-def get_context(node, live_objs):
+def add_context(var_name, fn_node, live_objs):
     if DEBUG:
         print "get_context",live_objs
     context=defaultdict(list)
-    if hasattr(node, 'args'):
-        if node.args:
-            for arg in node.args:
+    if hasattr(fn_node, 'args'):
+        if fn_node.args:
+            for arg in fn_node.args:
                 arg_value=get_arg_value(arg,live_objs)
                 if arg_value:
-                    context['args'].append(
-                        get_arg_value(arg,live_objs))
-    if hasattr(node, 'keywords'):
-        if node.keywords:
-            for keyword in node.keywords:
-                context['keywords'].append(
-                    (keyword.arg,
-                    get_arg_value(keyword.value,live_objs))
-                )
+                    context['arg_val'].append(arg_value)
+                    context['arg_type'].append(
+                        arg.__class__.__name__
+                    )
+
+    if hasattr(fn_node, 'keywords'):
+        if fn_node.keywords:
+            for keyword in fn_node.keywords:
+                keyword_value=get_arg_value(keyword.value,live_objs)
+                if keyword_value:
+                    context['keyword_val'].append(keyword_value)
+                    context['keyword_key'].append(keyword.arg)
+                    context['keyword_type'].append(
+                        keyword.value.__class__.__name__)
+    context['obj_name'].append(var_name)
     return context
 
 

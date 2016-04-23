@@ -233,7 +233,7 @@ class ASTAnalyser(ast.NodeVisitor):
                             self.add_node_to_graph(
                                 AssignmentNode(srclist, target,
                                                node.lineno, node.col_offset,
-                                               get_context(node.value, live_objects)))
+                                               add_context(target, node.value, live_objects)))
 
                             self.obj_list[self.scope][target]=srclist
                     else:

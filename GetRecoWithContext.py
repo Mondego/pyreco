@@ -4,7 +4,7 @@ from ASTBuilder import ASTBuilder
 import re
 import sqlite3
 from collections import Counter
-from context import process_tokens
+from context import process_context
 
 """
 f=open("srcfiles/query-1.txt")
@@ -32,7 +32,8 @@ def get_recos(query, fold_no):
     for node in assign_nodes:
         query_obj_types.extend(node.src)
         if node.context:
-            query_obj_context.extend(process_tokens(node.context))
+            query_obj_context.extend(
+                process_context(node.context, process_types=True, process_values=True))
 
     for node in call_nodes:
         calls.append(node.tgt)
