@@ -22,7 +22,6 @@ def run_queries_for_prj(fold_no, query_text):
         print "Folder-name:"+folder, "File:"+filename
         for query in file_queries["queries"]:
             results=','.join(query['results'])
-            process_context
             context=','.join(
                 process_context(query['context']),process_types=True, process_values=True)
             train_set.append((query['type'],results,context))
