@@ -31,7 +31,11 @@ def run_queries_for_prj(fold_no, query_text, q):
             dot_index=query_lines[-1].find(query_info['call'],  col_offset)
             if dot_index!=-1:
                 query_lines[-1]=query_lines[-1][:dot_index]
-                results = get_recommendations('\n'.join(query_lines),fold_no)
+                results=[]
+                try:
+                    results = get_recommendations('\n'.join(query_lines),fold_no)
+                except:
+                    print "Error while calling get_recommendations"
                 p=compute_r_precision(results, query_info["results"])
                 q.put((fold_no-1, results, query_info["results"], p))
 
@@ -68,10 +72,11 @@ def listener(q):
             f_summary=open('results-pyreco/results-summary.txt','w')
             for i in range(FOLDS):
                 f[i].close()
-                f_summary.write("Fold:"+str(i+1)+"\n")
-                f_summary.write("Num_queries:"+str(count[i])+"\n")
-                f_summary.write("Avg Precision:"+str((sum_prec[i]/float(count[i]))*100)+"\n")
-                f_summary.write('-' * 20 + '\n')
+                if count[i]!=0:
+                    f_summary.write("Fold:"+str(i+1)+"\n")
+                    f_summary.write("Num_queries:"+str(count[i])+"\n")
+                    f_summary.write("Avg Precision:"+str((sum_prec[i]/float(count[i]))*100)+"\n")
+                    f_summary.write('-' * 20 + '\n')
             f_summary.close()
             break
 
