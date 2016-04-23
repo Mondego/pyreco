@@ -92,8 +92,6 @@ def main():
                     run_queries_for_prj(counter%FOLDS+1,query)
                     query=""
                     counter+=1
-                    if counter>2:
-                        break
                 except:
                     print "Unexpected error in worker:", sys.exc_info()[0]
             else:
