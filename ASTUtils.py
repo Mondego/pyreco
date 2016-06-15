@@ -1,29 +1,60 @@
 import ast
+import sys
 from collections import defaultdict
 
 DEBUG=0
 #flag to switch on for debug msgs
 
-def get_node_value(node):
+#Subscript(value=Attribute(value=Name(id='self', ctx=Load()), attr='fields', ctx=Load()), slice=Index(value=Str(s='summary')), ctx=Load()
+def get_node_value(node, live_obj=None):
+    #print ast.dump(node)
+    #print "in ASTUtils get_node_value"
+    original_node=node
     node_val = []
-    while node != "":
-        if isinstance(node, ast.Name):
-            node_val = [node.id] + node_val
-            break
-        elif isinstance(node, ast.Tuple) or \
-                isinstance(node, ast.List):
-            t_val=[]
-            for t in node.elts:
-                t_val.append('.'.join(get_node_value(t)))
-            node_val=[','.join(t_val)]+node_val
-            break
-        elif isinstance(node, ast.Attribute):
-            node_val = [node.attr] + node_val
-            node = node.value
-        elif isinstance(node, ast.Call):
-            node = node.func
-        else:
-            break
+    try:
+        while node != "":
+            if isinstance(node, ast.Name):
+                if live_obj:
+                    suffix=".".join(node_val)
+                    if node.id in live_obj.keys():
+                        node_val=[]
+                        for val in live_obj[node.id]:
+                            node_val += [val+"."+suffix]
+                    else:
+                        node_val = [node.id] + node_val
+                else:
+                    node_val = [node.id] + node_val
+                break
+            elif isinstance(node, ast.Tuple) or \
+                    isinstance(node, ast.List):
+                t_val=[]
+                for t in node.elts:
+                    t_val.append('.'.join(get_node_value(t)))
+                node_val=[','.join(t_val)]+node_val
+                break
+            elif isinstance(node, ast.Attribute):
+                node_val = [node.attr] + node_val
+                node = node.value
+            elif isinstance(node, ast.Call):
+                node = node.func
+            elif isinstance(node, ast.Subscript):
+                node_value=node_val
+                node_val=get_node_value(node.value)
+                if node_val:
+                    node_val[-1]+='['+'.'.join(get_node_value(node.slice))+']'
+                node_val+=node_value
+                break
+            elif isinstance(node, ast.Index):
+                if isinstance(node.value, ast.Str):
+                    node_val=["'"+node.value.s+"'"]
+                elif isinstance(node.value, ast.Num):
+                    node_val=[str(node.value.n)]
+                break
+            else:
+                break
+    except:
+        print sys.exc_info()
+        print ast.dump(original_node)
     return node_val
 
 def get_arg_value(node, live_objs):
@@ -312,45 +343,52 @@ class DFGraph():
         var_name=self.graph_dict[assign_node].tgt
 
         def find_calls_in_graph(c_node, visited=None, result=None):
-            current_node=self.graph_dict[c_node]
+            try:
+                current_node=self.graph_dict[c_node]
 
-            if result is None:
-                result=list()
+                if result is None:
+                    result=list()
 
-            if visited is None:
-                visited=set()
+                if visited is None:
+                    visited=set()
 
-            if c_node in visited:
-                return result
-            else:
-                visited.add(c_node)
-
-            if isinstance(current_node, CallNode) and \
-                            current_node.src==var_name:
-                if assign_val in current_node.val[var_name]:
-                    result.append(current_node)
+                if c_node in visited:
+                    return result
                 else:
+                    visited.add(c_node)
+
+
+                if isinstance(current_node, CallNode):
+                    if var_name in current_node.val.keys():
+                        if assign_val in current_node.val[var_name] and\
+                                        current_node.src==var_name:
+                            result.append(current_node)
+                    else:
+                        return result
+
+                if isinstance(c_node, DeadNode) and \
+                        c_node.src==var_name:
                     return result
 
-            if isinstance(c_node, DeadNode) and \
-                    c_node.src==var_name:
-                return result
-
-            if current_node.adjList:
-                for adj_node_num in current_node.adjList:
-                    find_calls_in_graph(adj_node_num, visited, result)
+                if current_node.adjList:
+                    for adj_node_num in current_node.adjList:
+                        find_calls_in_graph(adj_node_num, visited, result)
+                    return result
+            except:
+                print "Error in ASTUtils",sys.exc_info()
+                print 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno)
                 return result
 
         return find_calls_in_graph(assign_node)
 
-    def find_assignments_and_calls(self, object_name):
+    def find_assignments_and_calls(self, object_name, lib):
         count=self.count
+
         while isinstance(self.graph_dict[str(count)], DeadNode):
             count-=1
 
         def find_assignments_and_calls_in_graph(c_node, visited=None, assignments=None, calls=None):
             current_node=self.graph_dict[c_node]
-
             if assignments is None:
                 assignments=list()
 
@@ -360,26 +398,86 @@ class DFGraph():
             if visited is None:
                 visited=set()
 
+            visited.add(c_node)
+
+            if isinstance(current_node, AssignmentNode) and \
+                            current_node.tgt == object_name:
+                if any(lib in src for src in current_node.src):
+                    assignments.append(current_node)
+                    return assignments, calls
+
+            if isinstance(current_node, CallNode) and \
+                            current_node.src == object_name:
+                if any(lib in src for src in current_node.val[object_name]):
+                    calls.append(current_node)
+
+            if current_node.parent:
+                for adj_node_num in current_node.parent:
+                    if adj_node_num not in visited and adj_node_num>0:
+                        find_assignments_and_calls_in_graph(
+                            adj_node_num, visited, assignments, calls)
+                if not assignments and c_node>2:
+                    find_assignments_and_calls_in_graph(
+                        str(int(c_node)-1), visited, assignments, calls)
+            return assignments, calls
+
+        return find_assignments_and_calls_in_graph(str(count))
+
+    def find_definitions_and_calls(self, object_name):
+        count=self.count
+        definitions=None
+        assignment_nodes=None
+        calls=None
+        while not isinstance(self.graph_dict[str(count)], CallNode) and \
+                self.graph_dict[str(count)].tgt!='query_method':
+            #print self.graph_dict[str(count)]
+            count-=1
+
+        definitions=self.graph_dict[str(count)].val[object_name]
+
+        def find_calls(c_node, definitions, visited=None, assign_nodes=None, calls=None):
+            current_node=self.graph_dict[c_node]
+
+            if calls is None:
+                calls=list()
+
+            if assign_nodes is None:
+                assign_nodes=list()
+
+            if visited is None:
+                visited=set()
 
             visited.add(c_node)
 
             if isinstance(current_node, AssignmentNode) and \
-                            current_node.tgt==object_name:
-                assignments.append(current_node)
-                return assignments, calls
+                            current_node.tgt == object_name:
+                src=set(current_node.src)&set(definitions)
+                if src:
+                    assign_nodes.append(current_node)
+                    for val in src:
+                        definitions.remove(val)
+
+            if not definitions:
+                return assign_nodes, calls
 
             if isinstance(current_node, CallNode) and \
-                current_node.src==object_name:
-                calls.append(current_node)
+                            current_node.src == object_name:
+                if not current_node.tgt=='query_method':
+                    calls.append(current_node)
 
             if current_node.parent:
                 for adj_node_num in current_node.parent:
-                    if adj_node_num not in visited:
-                        find_assignments_and_calls_in_graph(
-                            adj_node_num, visited,assignments, calls)
-            return assignments, calls
+                    if adj_node_num not in visited and adj_node_num>0:
+                        find_calls(
+                            adj_node_num, definitions, visited, assign_nodes, calls)
 
-        return find_assignments_and_calls_in_graph(str(count))
+            return assign_nodes, calls
+
+        if definitions:
+            assignment_nodes, calls=find_calls(str(count), definitions[:])
+
+        return assignment_nodes, calls
+
 
     """To convert DF_Graph to JSON"""
     def serialize(self):

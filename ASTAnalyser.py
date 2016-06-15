@@ -186,8 +186,11 @@ class ASTAnalyser(ast.NodeVisitor):
 
         self.generic_visit(node)
         obj_list = [obj for values in self.obj_list.values() for obj in values.keys()]
-
+        live_objects={}
         if node.targets:
+            for scope in self.obj_list.keys():
+                live_objects.update(self.obj_list[scope])
+
             for target in node.targets:
                 ignoreAssignment=False
 
@@ -203,39 +206,31 @@ class ASTAnalyser(ast.NodeVisitor):
                 for t in tgt:
                     t_value.append(".".join(get_node_value(t)))
                 target = ','.join(t_value)
-
                 if not ignoreAssignment:
                     ignore_list=self.ignore_list[self.scope]
+
                     if target in ignore_list:
                         self.ignore_list[self.scope].remove(target)
+                    rhs_val = get_node_value(node.value, live_objects)
 
-                    if isinstance(node.value, ast.Call):
-                        src_func_name = get_node_value(node.value.func)
-                        fn_name = ".".join(src_func_name)
+                    if isinstance(node.value, ast.Call) or \
+                        isinstance(node.value, ast.Name):
+                        if rhs_val:
+                            fn_name = ".".join(rhs_val)
 
-                        if not self.is_function_in_src(fn_name):
-                            srclist = self.get_source_list(src_func_name)
+                            if not self.is_function_in_src(fn_name):
+                                srclist = self.get_source_list(rhs_val)
 
-                            """clause for function argument assignments"""
-                            """
-                            if self.scope.startswith('function'):
-                                index=self.scope.find('_')
-                                function_name=self.scope[index+1:]
-                                if self.func_list[function_name]:
-                                    for arg_list in self.func_list[function_name]:
-                                        if target in arg_list:
-                                            target=ARG_PREFIX+':'+target
-                            """
-                            live_objects={}
-                            for scope in self.obj_list.keys():
-                                live_objects.update(self.obj_list[scope])
 
-                            self.add_node_to_graph(
-                                AssignmentNode(srclist, target,
-                                               node.lineno, node.col_offset,
-                                               add_context(target, node.value, live_objects)))
+                                self.add_node_to_graph(
+                                    AssignmentNode(srclist, target,
+                                                   node.lineno, node.col_offset,
+                                                   add_context(target,
+                                                               node.value,
+                                                               live_objects)))
 
-                            self.obj_list[self.scope][target]=srclist
+                                self.obj_list[self.scope][target]=srclist
+
                     else:
                         if target in obj_list:
                             self.kill_obj_after_reassignment(target)
