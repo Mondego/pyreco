@@ -1,4 +1,3 @@
-# format of the context: "context": {"args": ["basedir", "logs"]}"
 import re
 from nltk.stem.porter import PorterStemmer
 from nltk.stem import WordNetLemmatizer
@@ -19,10 +18,9 @@ def extract_tokens(context_dict):
 	if 'keyword_val' in context_dict:
 		keywords = context_dict['keyword_val']
 		ret_list.extend(list(flatten(keywords)))
-	if 'obj_name' in context_dict:
-		keywords = context_dict['obj_name']
+	if 'keyword_key' in context_dict:
+		keywords = context_dict['keyword_key']
 		ret_list.extend(list(flatten(keywords)))
-
 	return ret_list
 
 def extract_types(context_dict):
@@ -33,32 +31,45 @@ def extract_types(context_dict):
 	if 'keyword_type' in context_dict:
 		keywords = context_dict['keyword_type']
 		ret_list.extend(list(flatten(keywords)))
-	if 'keyword_key' in context_dict:
-		keywords = context_dict['keyword_key']
-		ret_list.extend(list(flatten(keywords)))
+
 	return ret_list
 
+def process_obj_name(name):
+	ret_list=[]
+	stemmer=PorterStemmer()
+	splits=split_tokens(name)
+	for split in splits:
+		split=split.lower()
+		ret_list.append(
+			stemmer.stem(split)
+		)
+
+
+	return ret_list
 
 def camel_case_split(identifier):
     matches = re.finditer('.+?(?:(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])|$)', identifier)
     return [m.group(0) for m in matches]
 
 def split_tokens(identifier):
+	#print identifier
 	word_list=[]
 	words=camel_case_split(identifier)
 	for word in words:
+		word= word.replace("_", " ")
 		word_list.extend(
-			re.split(r'[^\w]',word))
+			re.split(r'[^\w]', word))
 	return word_list
 
 def process_tokens(context_dict):
 	tokens=extract_tokens(context_dict)
 	porter_stemmer = PorterStemmer()
-	wordnet_lemmatizer = WordNetLemmatizer()
+	#wordnet_lemmatizer = WordNetLemmatizer()
 	processed = []
 	for token in tokens:
 		if isinstance(token, basestring): # only procses strings
 			token_splits=split_tokens(token)
+
 			for split in token_splits:
 				split=split.lower()
 				split = porter_stemmer.stem(split)
@@ -76,6 +87,8 @@ def process_context(context_dict, process_types=False, process_values=False):
 			extract_types(context_dict))
 	return processed_list
 # main function
+
+#print process_obj_name('test_runn')
 '''
 test = [['submitCommands', ['SendCommands']], ['cancelCommands', 
 ['SendCommands']], ['denyCommands', ['SendCommands']], 
