@@ -70,7 +70,7 @@ def run_query(count, fold_no, query_info, q):
         print "Error in run_query",sys.exc_info()
     return
 
-def listener(q):
+def listener(q, lib):
     print "in listener"
     f=list()
     sum_prec=list()
@@ -95,7 +95,7 @@ def listener(q):
 
 
     for i in range(FOLDS):
-        f.append(open('results-zip-jedi/results-'+str(i+1)+'.txt','w'))
+        f.append(open('results-zip-jedi/results-'+str(i+1)+'-'+lib+'.txt','w'))
         sum_recall.append(0)
         sum_rr.append(0)
         sum_prec.append(0)
@@ -142,7 +142,7 @@ def listener(q):
 
         elif msg=='kill':
             print "RECEIVED KILL"
-            f_summary=open('results-zip-jedi/results-summary.txt','w')
+            f_summary=open('results-zip-jedi/results-summary-'+lib+'.txt','w')
             for i in range(FOLDS):
                 f[i].close()
                 if count[i]!=0:
@@ -202,47 +202,53 @@ def run_queries(count,fold_no, prj_query, q):
 
 def main():
     #context_features=raw_input("arg_type, arg_value, object_name:")
+    Q_LIBS=[]
+    for line in open('Top100.txt','r'):
+        lib=line.split(':')[0]
+        print "LIB:",lib
+        Q_LIBS.append(
+            lib
+        )
+    for LIB in Q_LIBS:
+        query_file='queries/query-'+LIB+'.txt'
+        manager=mp.Manager()
+        pool=mp.Pool(mp.cpu_count())
+        q=manager.Queue()
+        watcher=pool.apply_async(listener,(q,LIB))
+        jobs=[]
+        count=0
+    
+        with open(query_file,'r') as file:
+            query=""
+            for line in file:
+                if line.strip()=='$' * 20:
+                    try:
+                        #query_json=json.loads(query)
+                        #if query_json['folder']=='/home/andrea/github-projects-50/django-django.zip':
+                        count+=1
+                        job=pool.apply_async(run_queries,(count,count%FOLDS+1,query, q))
+                        jobs.append(job)
 
+                        query=""
 
-    query_file='queries/query-'+LIB+'.txt'
-    manager=mp.Manager()
-    pool=mp.Pool(mp.cpu_count())
-    q=manager.Queue()
-    watcher=pool.apply_async(listener,(q,))
-    jobs=[]
-    count=0
+                    except:
+                        print "Unexpected error in worker:", sys.exc_info()[0]
+                        pass
 
-    with open(query_file,'r') as file:
-        query=""
-        for line in file:
-            if line.strip()=='$' * 20:
-                try:
-                    #query_json=json.loads(query)
-                    #if query_json['folder']=='/home/andrea/github-projects-50/django-django.zip':
-                    count+=1
-                    job=pool.apply_async(run_queries,(count,count%FOLDS+1,query, q))
-                    jobs.append(job)
+                else:
+                    query+=line
 
-                    query=""
+        print "Sent jobs for processing"
 
-                except:
-                    print "Unexpected error in worker:", sys.exc_info()[0]
-                    pass
+        for job in jobs:
+            try:
+                job.get()
+            except:
+                pass
 
-            else:
-                query+=line
-
-    print "Sent jobs for processing"
-
-    for job in jobs:
-        try:
-            job.get()
-        except:
-            pass
-
-    q.put('kill')
-    pool.close()
-    pool.join()
+        q.put('kill')
+        pool.close()
+        pool.join()
     #write_results('kill')
 
 if __name__ == '__main__':
