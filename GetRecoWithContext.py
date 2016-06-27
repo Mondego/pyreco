@@ -18,7 +18,6 @@ MAX_RECOS=10
 
 keywords=['if','elif','else','for','except']
 
-
 def process(line):
     #Remove semicolons
     return re.split(
@@ -28,16 +27,15 @@ def process(line):
 def get_recos(query, fold_no, context_features, fname):
     recommendations=[]
     df_graph=None
-    source=[l for l in query.split('\n')]
-
-    source=source[:-1]+process(source[-1])
-
+    source=[l for l in query.split('\n') if l!='']
+    #source=source[:-1]+process(source[-1])
     """Extract the Query Object"""
-    query_line=re.split('=|\(|\)|\:|\,|\\s*',source[-1][:-1])
+    last_line=process(source[-1])
+    query_line=re.split('=|\(|\)|\:|\,|\\s*',last_line[-1][:-1])
+
     query_obj=re.findall(r'([self|\w]+.*)',query_line[-1])[-1]
     query_obj=query_obj.replace('\"','\'')
     #print fname, "query_obj", query_obj
-
     """Get the data flow graph using the least compilable code in the query"""
     source=source[:-1]+[source[-1]+"query_method"]
     l=len(source)
@@ -74,10 +72,8 @@ def get_recos(query, fold_no, context_features, fname):
         split_str=source[i-1].split()
 
         if split_str and is_last_loop:
-            #print split_str
             if split_str[-1][-1]==':':
                 is_last_loop=False
-        #print "in while", fname
         if 'try:' in source[i-1].strip() \
                 and i!=l:
             pos=source[i-1].find('try')
@@ -88,10 +84,10 @@ def get_recos(query, fold_no, context_features, fname):
                 source.append(indent_prefix+'\t'+ 'pass')
                 try_stack.append(indent_prefix)
                 l=l+3
-                #except_count+=3
+                
             else:
                 try_stack.remove(indent_prefix)
-                #except_count=l
+                
 
         if 'except ' in source[i-1] or 'except:' in source[i-1]\
                 and i!=l:
@@ -119,8 +115,6 @@ def get_recos(query, fold_no, context_features, fname):
 
 
 
-
-
         df_graph=ASTBuilder('\n'.join(source[:l])).build_AST()
         #df_graph=ASTBuilder('\n'.join(source[:i]+source[l:except_count])).build_AST()
         #print '\n'.join(source[:l][-40:])
@@ -128,7 +122,7 @@ def get_recos(query, fold_no, context_features, fname):
 
         # print source[i-1], try_stack
         # print '\n'.join(source[:i]+source[l:except_count][-20:])
-        #print '-'*40, source[i-1]
+        #print '-'*40
 
         i=i-1
         count+=1
@@ -140,23 +134,24 @@ def get_recos(query, fold_no, context_features, fname):
             print  fname, "INFINITE LOOP"
             break
 
-
+    print df_graph
 
     """Get Nearest Neighbours using Manhattan distance"""
     if df_graph:
         query_obj_types=[]
         query_obj_context=[]
         calls=[]
+        other_calls=[]
         sql_query=[]
         assign_nodes=[]
         assign_nodes, call_nodes=df_graph.find_definitions_and_calls(query_obj)
-
+        print call_nodes
         if assign_nodes:
             for node in assign_nodes:
-                #print node
+                print node
                 query_obj_types.extend(node.src)
                 if node.context:
-                    #print node.context, context_features
+                    print node.context, context_features
                     for feature in context_features:
                         if feature=='arg_type':
                             sql_query.append('arg_types')
@@ -172,9 +167,13 @@ def get_recos(query, fold_no, context_features, fname):
                                 process_obj_name(node.tgt)
                             )
 
-            for node in call_nodes:
-                calls.append(node.tgt)
+            for call_type in call_nodes:
+                if call_type=='object':
+                    calls.extend(call_nodes[call_type])
+                else:
+                    other_calls.extend(call_nodes[call_type])
 
+            sql_query.append('other_calls')
             sql_query.append('calls')
 
             query_count=Counter(calls+query_obj_context)
@@ -193,7 +192,7 @@ def get_recos(query, fold_no, context_features, fname):
                             if obj[i]:
                                 obj_count+=Counter(obj[i].split(','))
                         obj_calls=obj[-1].split(',') if obj[-1] else ''
-                        score=compute_manhattan_dist(query_count, obj_count)
+                        score=compute_euclidean_dist(query_count, obj_count)
                         objects.append((obj_calls, score))
 
             objects=sorted(objects, key=lambda tup: tup[1])
@@ -225,4 +224,4 @@ def compute_euclidean_dist(query_count, object_count):
         #score+=abs(query_count[key]-object_count[key])
     return score
 
-#print get_recos(source, 4,'','django')
+#print get_recos(source, 4,'','tempfile')

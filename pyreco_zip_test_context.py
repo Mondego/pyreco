@@ -32,7 +32,7 @@ def compute_precision_and_recall(pyreco_results, relevant_result):
     return p,r, rr
 
 
-def run_query(fold_no, query_info, context_features, q):
+def run_query(fold_no, query_info, context_features, q, lib):
     print "Folder-name:"+query_info['folder'], "File:"+query_info['file']
     try:
         zf=ZipFile(query_info['folder'],'r')
@@ -50,7 +50,7 @@ def run_query(fold_no, query_info, context_features, q):
                 results=[]
                 try:
                     results = get_recos('\n'.join(query), fold_no,
-                                        context_features, query_info['file'])
+                                        context_features, query_info['file'], lib)
                 except:
                     #exc_type, exc_value, exc_traceback = sys.exc_info()
 
@@ -69,7 +69,7 @@ def run_query(fold_no, query_info, context_features, q):
     return
 
 
-def listener(q, context):
+def listener(q, context, lib):
     print "in listener"
     prefix='_'.join(context)
     f=list()
@@ -95,7 +95,7 @@ def listener(q, context):
 
 
     for i in range(FOLDS):
-        f.append(open('results-zip-pyreco-ctxt/results-'+prefix+'-'+str(i+1)+'.txt','w'))
+        f.append(open('results-zip-pyreco-ctxt/results-'+lib+'-'+str(i+1)+'.txt','w'))
         sum_recall.append(0)
         sum_rr.append(0)
         sum_prec.append(0)
@@ -143,7 +143,7 @@ def listener(q, context):
 
         elif msg=='kill':
             print "RECEIVED KILL"
-            f_summary=open('results-zip-pyreco-ctxt/results-'+prefix+'-''+summary.txt','w')
+            f_summary=open('results-zip-pyreco-ctxt/results-'+lib+'-summary.txt','w')
             for i in range(FOLDS):
                 f[i].close()
                 if count[i]!=0:
@@ -190,34 +190,33 @@ def listener(q, context):
             f_summary.close()
             break
 
-def run_queries(fold_no, prj_query, context_features, q):
+def run_queries(fold_no, prj_query, context_features, q, lib):
     delim='-'*20+'\n'
     queries=prj_query.split(delim)
     for query in queries:
         query_json=json.loads(query)
         #print query
         #print "blah"
-        run_query(fold_no, query_json, context_features, q)
+        run_query(fold_no, query_json, context_features, q, lib)
 
 
 def main():
-    #context_features=raw_input("arg_type, arg_value, object_name:")
-    #context_features=[
-    #    [],
-    #    ['arg_type'],
-    #    ['arg_value'],
-    #    ['object_name'],
-    #    ['arg_value', 'object_name'],
-    #    ['arg_type', 'arg_value'],
-    #    ['object_name','arg_type'],
-    #    ['object_name','arg_type','arg_value']]
-    context_features=[['object_name']]
-    query_file='queries/query-'+LIB+'.txt'
-    for context in context_features:
+    
+    CONTEXT=[]
+    Q_LIBS=[]
+    for line in open('Top100.txt','r'):
+        lib=line.split(':')[0]
+        print "LIB:",lib
+        Q_LIBS.append(
+            lib
+        )
+
+    for lib in Q_LIBS:
+        query_file='queries/query-'+lib+'.txt'
         manager=mp.Manager()
         pool=mp.Pool(mp.cpu_count())
         q=manager.Queue()
-        watcher=pool.apply_async(listener,(q,context))
+        watcher=pool.apply_async(listener,(q,CONTEXT,lib))
         jobs=[]
         count=0
 
@@ -228,7 +227,7 @@ def main():
                     try:
                         #query_json=json.loads(query)
                         #if query_json['folder']=='/home/andrea/github-projects-50/django-django.zip':
-                        job=pool.apply_async(run_queries,(count%FOLDS+1,query, context, q))
+                        job=pool.apply_async(run_queries,(count%FOLDS+1, query, CONTEXT, q, lib))
                         jobs.append(job)
                         count+=1
                         query=""

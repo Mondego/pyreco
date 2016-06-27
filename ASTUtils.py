@@ -14,6 +14,7 @@ def get_node_value(node, live_obj=None):
     try:
         while node != "":
             if isinstance(node, ast.Name):
+                #print live_obj,node.id, node.id in live_obj.keys()
                 if live_obj:
                     suffix=".".join(node_val)
                     if node.id in live_obj.keys():
@@ -347,7 +348,7 @@ class DFGraph():
                 current_node=self.graph_dict[c_node]
 
                 if result is None:
-                    result=list()
+                    result=defaultdict(list)
 
                 if visited is None:
                     visited=set()
@@ -358,11 +359,43 @@ class DFGraph():
                     visited.add(c_node)
 
 
-                if isinstance(current_node, CallNode):
+                if isinstance(current_node, AssignmentNode) and\
+                                current_node.tgt != var_name:
+
+                    if current_node.context:
+                        if current_node.context.has_key('keyword_type') and \
+                        current_node.context.has_key('keyword_val'):
+                            for key, val in zip(current_node.context['keyword_type'],
+                                                current_node.context['keyword_val']):
+                                if key=='Call':
+                                    result['other'].append(val)
+                        if current_node.context.has_key('arg_type') and \
+                        current_node.context.has_key('arg_val'):
+                            for key, val in zip(current_node.context['arg_type'],
+                                                current_node.context['arg_val']):
+                                if key=='Name' and isinstance(val, list):
+                                    for value in val:
+                                        result['other'].append(value)
+
                     if var_name in current_node.val.keys():
-                        if assign_val in current_node.val[var_name] and\
-                                        current_node.src==var_name:
-                            result.append(current_node)
+                        result['other'].extend(current_node.src)
+                    else:
+                        return result
+                        
+                if isinstance(current_node, CallNode):
+                    if hasattr(current_node,'val'):
+                        if var_name in current_node.val.keys():
+                            if assign_val in current_node.val[var_name]:
+                                if current_node.src==var_name:
+                                    result['object'].append(current_node)
+                                else:
+                                    if current_node.src in current_node.val.keys():
+                                        for src in current_node.val[current_node.src]:
+                                            result['other'].append(
+                                                src+'.'+current_node.tgt
+                                            )
+                        else:
+                            return result
                     else:
                         return result
 
@@ -372,13 +405,16 @@ class DFGraph():
 
                 if current_node.adjList:
                     for adj_node_num in current_node.adjList:
-                        find_calls_in_graph(adj_node_num, visited, result)
+                        result_node=find_calls_in_graph(adj_node_num, visited, None)
+                        if result_node:
+                            for k, v in result_node.items():
+                                result[k].extend(v)
                     return result
             except:
                 print "Error in ASTUtils",sys.exc_info()
                 print 'Error on line {}'.format(sys.exc_info()[-1].tb_lineno)
                 return result
-
+            
         return find_calls_in_graph(assign_node)
 
     def find_assignments_and_calls(self, object_name, lib):
@@ -389,27 +425,50 @@ class DFGraph():
 
         def find_assignments_and_calls_in_graph(c_node, visited=None, assignments=None, calls=None):
             current_node=self.graph_dict[c_node]
+
             if assignments is None:
                 assignments=list()
 
             if calls is None:
-                calls=list()
-
+                calls=defaultdict(list)
             if visited is None:
                 visited=set()
 
             visited.add(c_node)
 
-            if isinstance(current_node, AssignmentNode) and \
-                            current_node.tgt == object_name:
-                if any(lib in src for src in current_node.src):
-                    assignments.append(current_node)
-                    return assignments, calls
+            if isinstance(current_node, AssignmentNode):
+                if current_node.tgt == object_name:
+                    if any(lib in src for src in current_node.src):
+                        assignments.append(current_node)
+                        return assignments, calls
+                else:
+                    calls['other'].extend(current_node.src)
 
-            if isinstance(current_node, CallNode) and \
-                            current_node.src == object_name:
-                if any(lib in src for src in current_node.val[object_name]):
-                    calls.append(current_node)
+                if current_node.context:
+                    if current_node.context.has_key('keyword_type') and \
+                    current_node.context.has_key('keyword_val'):
+                        for key, val in zip(current_node.context['keyword_type'],
+                                            current_node.context['keyword_val']):
+                            if key=='Call':
+                                calls['other'].append(val)
+                    if current_node.context.has_key('arg_type') and \
+                    current_node.context.has_key('arg_val'):
+                        for key, val in zip(current_node.context['arg_type'],
+                                            current_node.context['arg_val']):
+                            if key=='Name' and isinstance(val, list):
+                                for value in val:
+                                    calls['other'].append(value)
+
+            if isinstance(current_node, CallNode):
+                if current_node.src == object_name:
+                    if any(lib in src for src in current_node.val[object_name]):
+                        calls['object'].append(current_node)
+                else:
+                    if current_node.src in current_node.val.keys():
+                        for src in current_node.val[current_node.src]:
+                            calls['other'].append(
+                                src+'.'+current_node.tgt
+                            )
 
             if current_node.parent:
                 for adj_node_num in current_node.parent:
@@ -428,18 +487,18 @@ class DFGraph():
         definitions=None
         assignment_nodes=None
         calls=None
-        while not isinstance(self.graph_dict[str(count)], CallNode) and \
-                self.graph_dict[str(count)].tgt!='query_method':
-            #print self.graph_dict[str(count)]
+        #while not isinstance(self.graph_dict[str(count)], CallNode):
+                #and \
+                #self.graph_dict[str(count)].tgt!='query_method':
+        while isinstance(self.graph_dict[str(count)], DeadNode):
             count-=1
-
+        print "find_definitions_and_calls"
         definitions=self.graph_dict[str(count)].val[object_name]
 
         def find_calls(c_node, definitions, visited=None, assign_nodes=None, calls=None):
             current_node=self.graph_dict[c_node]
-
             if calls is None:
-                calls=list()
+                calls=defaultdict(list)
 
             if assign_nodes is None:
                 assign_nodes=list()
@@ -449,27 +508,64 @@ class DFGraph():
 
             visited.add(c_node)
 
-            if isinstance(current_node, AssignmentNode) and \
-                            current_node.tgt == object_name:
-                src=set(current_node.src)&set(definitions)
-                if src:
-                    assign_nodes.append(current_node)
-                    for val in src:
-                        definitions.remove(val)
+            if isinstance(current_node, AssignmentNode):
+                if current_node.tgt == object_name:
+                    src=set(current_node.src)&set(definitions)
+                    if src:
+                        assign_nodes.append(current_node)
+                        for val in src:
+                            definitions.remove(val)
+
+                else:
+                    calls['other'].extend(current_node.src)
+
+                if current_node.context:
+                    if current_node.context.has_key('keyword_type') and \
+                    current_node.context.has_key('keyword_val'):
+                        for key, val in zip(current_node.context['keyword_type'],
+                                            current_node.context['keyword_val']):
+                            if key=='Call':
+                                calls['other'].append(val)
+                    if current_node.context.has_key('arg_type') and \
+                    current_node.context.has_key('arg_val'):
+                        for key, val in zip(current_node.context['arg_type'],
+                                            current_node.context['arg_val']):
+                            if key=='Name' and isinstance(val, list):
+                                for value in val:
+                                    calls['other'].append(value)
 
             if not definitions:
                 return assign_nodes, calls
 
-            if isinstance(current_node, CallNode) and \
-                            current_node.src == object_name:
-                if not current_node.tgt=='query_method':
-                    calls.append(current_node)
+            if isinstance(current_node, CallNode):
+                if current_node.src == object_name:
+                    if not current_node.tgt=='query_method':
+                        calls['object'].append(current_node.tgt)
+
+                else:
+                    if current_node.src in current_node.val.keys():
+                        for src in current_node.val[current_node.src]:
+                            calls['other'].append(
+                                src+'.'+current_node.tgt
+                            )
 
             if current_node.parent:
                 for adj_node_num in current_node.parent:
                     if adj_node_num not in visited and adj_node_num>0:
-                        find_calls(
-                            adj_node_num, definitions, visited, assign_nodes, calls)
+                        ass_nodes, call_nodes=find_calls(
+                            adj_node_num, definitions, visited, None, None)
+                        if ass_nodes:
+                            for node in ass_nodes:
+                                for val in node.src:
+                                    if val in definitions:
+                                        definitions.remove(val)
+
+                            assign_nodes.extend(ass_nodes)
+                        if call_nodes:
+                            for k, v in call_nodes.items():
+                                calls[k].extend(v)
+                        if not definitions:
+                            return assign_nodes, calls
 
             return assign_nodes, calls
 
@@ -534,4 +630,3 @@ class DFGraph():
 
         df_graph.graph_dict=graph
         return df_graph
-

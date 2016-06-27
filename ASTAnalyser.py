@@ -24,6 +24,7 @@ class ASTAnalyser(ast.NodeVisitor):
         #might require defaultdict(list)
         self.add_node_to_graph(DummyNode())
 
+
     """ClassDef(identifier name, expr* bases, stmt* body, expr* decorator_list)"""
     def visit_ClassDef(self,node):
         if DEBUG:
@@ -214,7 +215,8 @@ class ASTAnalyser(ast.NodeVisitor):
                     rhs_val = get_node_value(node.value, live_objects)
 
                     if isinstance(node.value, ast.Call) or \
-                        isinstance(node.value, ast.Name):
+                        isinstance(node.value, ast.Name) or \
+                        isinstance(node.value, ast.Attribute):
                         if rhs_val:
                             fn_name = ".".join(rhs_val)
 

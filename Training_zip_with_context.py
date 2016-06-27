@@ -7,36 +7,19 @@ from context import extract_types,process_tokens,process_obj_name
 
 FOLDS=10
 
-LIBS=["django",
-      "os",
-      "re",
-      "collections",
-      "json",
-      "threading",
-      "simplejson",
-      "encode",
-      "decimal",
-      "cStringIO",
-      "jeevesdb",
-      "importlib",
-    "discover_runner",
-    "coffin",
-    "freenasUI",
-    "iondb",
-    "formtools",
-    "nogeos",
-    "south"]
 DB_CONN="pyty.db"
 
 def run_query_for_prj(fold_no, query_text):
     conn=sqlite3.connect(DB_CONN)
     c=conn.cursor()
     query_info=json.loads(query_text)
-    folder, filename=query_info["folder"],query_info["file"]
+    folder, filename = query_info["folder"],query_info["file"]
     print "Folder-name:"+folder, "File:"+filename
     call_list=[]
     for call in query_info["calls"]:
         call_list.append(call["tgt"])
+    other_calls=','.join(query_info["other_calls"])
+    #print other_calls
     calls=','.join(call_list)
     arg_types=','.join(extract_types(query_info['context']))
     arg_values=','.join(process_tokens(query_info['context']))
@@ -45,8 +28,8 @@ def run_query_for_prj(fold_no, query_text):
         if fold!=fold_no:
             try:
                 c.execute(
-                    "INSERT INTO TRAINSET_{fold} (obj_type, obj_name, calls, arg_types, arg_values) VALUES (?, ?, ?, ?, ?)".format(fold=str(fold)),
-                    (query_info['type'], obj_name, calls, arg_types, arg_values))
+                    "INSERT INTO TRAINSET_{fold} (obj_type, obj_name, calls, arg_types, arg_values, other_calls) VALUES (?, ?, ?, ?, ?, ?)".format(fold=str(fold)),
+                    (query_info['type'], obj_name, calls, arg_types, arg_values, other_calls))
             except sqlite3.OperationalError, msg:
                 print msg
 
@@ -67,15 +50,22 @@ def main():
     c=conn.cursor()
     for fold in range(1,FOLDS+1):
         c.execute('''DROP TABLE IF EXISTS TRAINSET_{fold_num}'''.format(fold_num=str(fold)))
-        c.execute('''CREATE TABLE TRAINSET_{fold_num} (obj_type text, obj_name text, calls text, arg_types text, arg_values text)'''.format(fold_num=str(fold)))
+        c.execute('''CREATE TABLE TRAINSET_{fold_num} (obj_type text, obj_name text, calls text, arg_types text, arg_values text, other_calls text)'''.format(fold_num=str(fold)))
     conn.commit()
     conn.close()
 
     pool=mp.Pool(mp.cpu_count())
     jobs=[]
     count=0
+    Q_LIBS=[]
+    for line in open('Top100.txt','r'):
+        lib=line.split(':')[0]
+        print "LIB:",lib
+        Q_LIBS.append(
+            lib
+        )
 
-    for lib in LIBS:
+    for lib in Q_LIBS:
         query_file='queries/query-'+lib+'.txt'
         with open(query_file,'r') as file:
             query=""
